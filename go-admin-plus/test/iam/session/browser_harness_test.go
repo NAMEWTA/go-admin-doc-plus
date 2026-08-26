@@ -53,7 +53,18 @@ func (clock *harnessClock) advance(duration time.Duration) {
 // skips; the Lead-owned runner opts in and drives it through Chromium over same-origin HTTPS.
 func TestIAMBrowserHarnessServer(t *testing.T) {
 	if os.Getenv(browserHarnessServeEnv) != "1" {
+		if _, present := os.LookupEnv(browserHarnessPostgresEnv); present {
+			t.Fatal("browser harness compile self-check received PostgreSQL connection material")
+		}
 		t.Skip(browserHarnessServeEnv + " is not enabled")
+	}
+	profile := os.Getenv(browserHarnessProfileEnv)
+	_, hasPostgresMaterial := os.LookupEnv(browserHarnessPostgresEnv)
+	if profile == "sqlite" && hasPostgresMaterial {
+		t.Fatal("SQLite browser harness received PostgreSQL connection material")
+	}
+	if profile == "postgres" && !hasPostgresMaterial {
+		t.Fatal("PostgreSQL browser harness connection material is required")
 	}
 	staticRoot := os.Getenv(browserHarnessStaticEnv)
 	readyFile := os.Getenv(browserHarnessReadyEnv)
@@ -66,7 +77,7 @@ func TestIAMBrowserHarnessServer(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	db := openBrowserHarnessDatabase(t, ctx, os.Getenv(browserHarnessProfileEnv))
+	db := openBrowserHarnessDatabase(t, ctx, profile)
 	runner, err := migrations.NewRunner(sessionmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
@@ -202,12 +213,14 @@ func openBrowserHarnessDatabase(t *testing.T, ctx context.Context, profile strin
 		}
 		schema := fmt.Sprintf("iam_browser_%d", time.Now().UnixNano())
 		if _, err := admin.SQL().ExecContext(ctx, `CREATE SCHEMA `+schema); err != nil {
-			_ = admin.Close()
+			if closeErr := admin.Close(); closeErr != nil {
+				t.Error("close PostgreSQL browser harness administrator failed")
+			}
 			t.Fatal("create PostgreSQL browser harness schema failed")
 		}
 		parsed, err := pgx.ParseConfig(dsn)
 		if err != nil {
-			_ = admin.Close()
+			cleanupPostgresBrowserHarness(t, admin, schema)
 			t.Fatal("parse PostgreSQL browser harness connection failed")
 		}
 		if parsed.RuntimeParams == nil {
@@ -218,19 +231,31 @@ func openBrowserHarnessDatabase(t *testing.T, ctx context.Context, profile strin
 			Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString(), MaxOpenConnections: 4, MaxIdleConnections: 4,
 		})
 		if err != nil {
-			_, _ = admin.SQL().ExecContext(context.Background(), `DROP SCHEMA IF EXISTS `+schema+` CASCADE`)
-			_ = admin.Close()
+			cleanupPostgresBrowserHarness(t, admin, schema)
 			t.Fatal("open isolated PostgreSQL browser harness database failed")
 		}
 		t.Cleanup(func() {
-			_ = db.Close()
-			_, _ = admin.SQL().ExecContext(context.Background(), `DROP SCHEMA IF EXISTS `+schema+` CASCADE`)
-			_ = admin.Close()
+			if err := db.Close(); err != nil {
+				t.Error("close isolated PostgreSQL browser harness database failed")
+			}
+			cleanupPostgresBrowserHarness(t, admin, schema)
 		})
 		return db
 	default:
 		t.Fatal("browser harness profile is invalid")
 		return nil
+	}
+}
+
+func cleanupPostgresBrowserHarness(t *testing.T, admin *database.Database, schema string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, err := admin.SQL().ExecContext(ctx, `DROP SCHEMA IF EXISTS `+schema+` CASCADE`); err != nil {
+		t.Error("drop PostgreSQL browser harness schema failed")
+	}
+	if err := admin.Close(); err != nil {
+		t.Error("close PostgreSQL browser harness administrator failed")
 	}
 }
 

@@ -46,7 +46,7 @@ func (r *Repository) Create(ctx context.Context, tx database.Tx, value Credentia
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, value.ID, normalizeUsername(value.Username), value.DisplayName,
 		value.Email, value.AvatarRef, value.PasswordHash, now.UTC(), now.UTC(), now.UTC())
 	if err != nil {
-		return normalizeDatabaseError(err, ErrConflict)
+		return normalizeCreateError(r.dialect, err)
 	}
 	return nil
 }
@@ -144,4 +144,23 @@ func normalizeDatabaseError(err, fallback error) error {
 		return context.DeadlineExceeded
 	}
 	return fallback
+}
+
+func normalizeCreateError(dialect database.Dialect, err error) error {
+	if normalized := normalizeDatabaseError(err, nil); normalized != nil {
+		return normalized
+	}
+	switch dialect {
+	case database.DialectPostgres:
+		var state interface{ SQLState() string }
+		if errors.As(err, &state) && state.SQLState() == "23505" {
+			return ErrConflict
+		}
+	case database.DialectSQLite:
+		var coded interface{ Code() int }
+		if errors.As(err, &coded) && (coded.Code() == 1555 || coded.Code() == 2067) {
+			return ErrConflict
+		}
+	}
+	return errors.New("account creation failed")
 }
