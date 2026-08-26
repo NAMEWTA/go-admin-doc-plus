@@ -1,0 +1,271 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: IAM Session API
+  version: 1.0.0
+  description: Login, session lifecycle, and personal account operations.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+    description: Same-origin API base path.
+x-go-admin-module: iam-session
+x-go-admin-codegen:
+  owner: iam
+  goPackage: sessiontransport
+  goOutput: go-admin-plus/internal/modules/iam/session/transport/openapi.gen.go
+  typescriptOutput: go-admin-plus-ui/packages/domains/iam/src/session/generated
+security:
+  - SessionCookie: []
+paths:
+  /iam/session/login:
+    post:
+      operationId: loginIamSession
+      summary: Start an authenticated session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: The account is authenticated.
+          headers:
+            X-CSRF-Token:
+              $ref: '#/components/headers/CsrfToken'
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+  /iam/session/current:
+    get:
+      operationId: getCurrentIamSession
+      summary: Read and refresh the current session
+      responses:
+        '200':
+          description: The session is active.
+          headers:
+            X-CSRF-Token:
+              $ref: '#/components/headers/CsrfToken'
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+  /iam/session/logout:
+    post:
+      operationId: logoutIamSession
+      summary: Revoke the current session
+      security:
+        - SessionCookie: []
+          CsrfToken: []
+      responses:
+        '204':
+          description: The session is revoked and the browser cookie is cleared.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+  /iam/account/profile:
+    get:
+      operationId: getIamAccountProfile
+      summary: Read the authenticated account profile
+      responses:
+        '200':
+          description: The profile is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+    patch:
+      operationId: updateIamAccountProfile
+      summary: Update the authenticated account profile
+      security:
+        - SessionCookie: []
+          CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: The updated profile is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+  /iam/account/password:
+    put:
+      operationId: changeIamAccountPassword
+      summary: Replace the authenticated account password
+      security:
+        - SessionCookie: []
+          CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: The password is replaced and all sessions are revoked.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+components:
+  securitySchemes:
+    SessionCookie:
+      $ref: ../components/security-schemes.yaml#/SessionCookie
+    CsrfToken:
+      $ref: ../components/security-schemes.yaml#/CsrfToken
+  headers:
+    CsrfToken:
+      description: The current anti-forgery token. It must be replaced after session rotation.
+      required: true
+      schema:
+        type: string
+        minLength: 43
+        maxLength: 43
+  responses:
+    ValidationProblem:
+      $ref: ../components/responses.yaml#/ValidationProblem
+    AuthenticationProblem:
+      $ref: ../components/responses.yaml#/AuthenticationProblem
+    AuthorizationProblem:
+      $ref: ../components/responses.yaml#/AuthorizationProblem
+    ConflictProblem:
+      $ref: ../components/responses.yaml#/ConflictProblem
+    InternalProblem:
+      $ref: ../components/responses.yaml#/InternalProblem
+  schemas:
+    Problem:
+      $ref: ../components/schemas.yaml#/Problem
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+        password:
+          type: string
+          minLength: 12
+          maxLength: 128
+    SessionResponse:
+      type: object
+      additionalProperties: false
+      required: [profile, csrfToken]
+      properties:
+        profile:
+          $ref: '#/components/schemas/Profile'
+        csrfToken:
+          type: string
+          minLength: 43
+          maxLength: 43
+    Profile:
+      type: object
+      additionalProperties: false
+      required: [id, username, displayName, email]
+      properties:
+        id:
+          type: string
+          minLength: 16
+          maxLength: 64
+        username:
+          type: string
+          minLength: 3
+          maxLength: 64
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        avatarRef:
+          type: string
+          pattern: '^files/[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$'
+    UpdateProfileRequest:
+      type: object
+      additionalProperties: false
+      required: [displayName, email]
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 80
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        avatarRef:
+          type: string
+          pattern: '^files/[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$'
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          minLength: 12
+          maxLength: 128
+        newPassword:
+          type: string
+          minLength: 12
+          maxLength: 128

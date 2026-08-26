@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./session": "./src/session/index.ts"
   },
   "dependencies": {
-    "@go-admin/domain-iam": "workspace:*"
+    "@go-admin/domain-iam": "workspace:*",
+    "vue": "catalog:"
   }
 }

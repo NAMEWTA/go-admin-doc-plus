@@ -167,7 +167,11 @@ importers:
 
   packages/domains/generator: {}
 
-  packages/domains/iam: {}
+  packages/domains/iam:
+    dependencies:
+      '@go-admin/api-client':
+        specifier: workspace:*
+        version: link:../../api-client
 
   packages/domains/organization: {}
 
@@ -208,6 +212,9 @@ importers:
       '@go-admin/domain-iam':
         specifier: workspace:*
         version: link:../../domains/iam
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.41(typescript@6.0.3)
 
   packages/web-domains/organization:
     dependencies:
