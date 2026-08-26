@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/gofrs/flock"
@@ -202,13 +203,12 @@ func openSQLite(ctx context.Context, cfg Config) (*Database, error) {
 		return nil, err
 	}
 
-	dsn := url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
-	query := dsn.Query()
-	query.Add("_pragma", "foreign_keys(1)")
-	query.Add("_pragma", "busy_timeout(5000)")
-	query.Add("_pragma", "journal_mode(WAL)")
-	dsn.RawQuery = query.Encode()
-	sqlDB, err := sql.Open("sqlite", dsn.String())
+	dsn, err := buildSQLiteURI(path)
+	if err != nil {
+		_ = release()
+		return nil, errors.New("sqlite database path is invalid")
+	}
+	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		_ = release()
 		return nil, errors.New("sqlite open failed")
@@ -222,6 +222,46 @@ func openSQLite(ctx context.Context, cfg Config) (*Database, error) {
 	}
 	bunDB := bun.NewDB(sqlDB, sqlitedialect.New())
 	return &Database{sqlDB: sqlDB, bunDB: bunDB, dialect: DialectSQLite, release: release}, nil
+}
+
+// buildSQLiteURI normalizes absolute paths without consulting the host GOOS. SQLite requires an
+// empty URI authority; a UNC server therefore remains the first segment of a double-slash path.
+func buildSQLiteURI(databasePath string) (string, error) {
+	if databasePath == "" {
+		return "", errors.New("sqlite database path is required")
+	}
+	uri := url.URL{Scheme: "file"}
+	switch {
+	case strings.HasPrefix(databasePath, `\\`) || strings.HasPrefix(databasePath, "//"):
+		normalized := strings.ReplaceAll(databasePath, `\`, "/")
+		serverAndPath := strings.TrimPrefix(normalized, "//")
+		parts := strings.SplitN(serverAndPath, "/", 2)
+		if len(parts) != 2 || parts[0] == "" || strings.Trim(parts[1], "/") == "" || strings.ContainsAny(parts[0], " \\/?#@") {
+			return "", errors.New("sqlite UNC path is invalid")
+		}
+		uri.Path = "//" + parts[0] + "/" + parts[1]
+	case isWindowsDrivePath(databasePath):
+		normalized := strings.ReplaceAll(databasePath, `\`, "/")
+		uri.Path = "/" + normalized
+	case strings.HasPrefix(databasePath, "/"):
+		uri.Path = databasePath
+	default:
+		return "", errors.New("sqlite database path is not absolute")
+	}
+	query := url.Values{}
+	query.Add("_pragma", "foreign_keys(1)")
+	query.Add("_pragma", "busy_timeout(5000)")
+	query.Add("_pragma", "journal_mode(WAL)")
+	uri.RawQuery = query.Encode()
+	return uri.String(), nil
+}
+
+func isWindowsDrivePath(path string) bool {
+	if len(path) < 3 || path[1] != ':' || path[2] != '/' && path[2] != '\\' {
+		return false
+	}
+	drive := path[0]
+	return drive >= 'A' && drive <= 'Z' || drive >= 'a' && drive <= 'z'
 }
 
 func sanitizedContextError(ctx context.Context, stage string, err error) error {

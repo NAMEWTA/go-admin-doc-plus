@@ -142,8 +142,10 @@ func TestComposeRejectsNonForwardOrNonAtomicFiles(t *testing.T) {
 
 	for name, source := range map[string]string{
 		"down":                      "-- +goose Up\nSELECT 1;\n-- +goose Down\nSELECT 1;",
+		"mixed-case-envsub":         "-- +goose eNvSuB oN\n-- +goose Up\nSELECT 1;",
 		"mixed-case-no-transaction": "-- +goose no transaction\n-- +goose Up\nSELECT 1;",
 		"missing-up":                "SELECT 1;",
+		"sql-before-up":             "SELECT 1;\n-- +goose Up\nSELECT 2;",
 	} {
 		t.Run(name, func(t *testing.T) {
 			runner, err := migrations.NewRunner(provider{module: "module", files: fstest.MapFS{

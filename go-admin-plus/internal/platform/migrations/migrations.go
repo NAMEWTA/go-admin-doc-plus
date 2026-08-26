@@ -178,7 +178,12 @@ func validateForwardAnnotations(content []byte) error {
 	statementBlock := false
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !strings.HasPrefix(strings.TrimSpace(line), "--") || !strings.Contains(line, "+goose") {
+		trimmed := strings.TrimSpace(line)
+		isAnnotation := strings.HasPrefix(trimmed, "--") && strings.Contains(line, "+goose")
+		if !isAnnotation {
+			if !upSeen && trimmed != "" && !strings.HasPrefix(trimmed, "--") {
+				return errors.New("migration contains content before forward directive")
+			}
 			continue
 		}
 		annotation, err := extractAnnotation(line)
@@ -204,6 +209,7 @@ func validateForwardAnnotations(content []byte) error {
 			}
 			statementBlock = false
 		case "envsub on", "envsub off":
+			return errors.New("migration violates deterministic input policy")
 		default:
 			return errors.New("migration annotation is invalid")
 		}
