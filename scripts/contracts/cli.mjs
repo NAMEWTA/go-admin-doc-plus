@@ -2,9 +2,12 @@ import { spawnSync } from 'node:child_process'
 import {
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync
@@ -12,11 +15,15 @@ import {
 import { tmpdir } from 'node:os'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discoverModuleContracts, isManagedGeneratedOutput, resolveModuleMetadata } from './modules.mjs'
+import {
+  discoverModuleContracts,
+  parseManagedModuleOutput,
+  resolveModuleMetadata
+} from './modules.mjs'
 import { validatePolicy } from './policy.mjs'
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const uiRoot = join(repositoryRoot, 'go-admin-ui-plus')
+const uiRoot = join(repositoryRoot, 'go-admin-plus-ui')
 const canonicalContract = join(repositoryRoot, 'contracts', 'openapi', 'openapi.yaml')
 const config = join(repositoryRoot, 'scripts', 'contracts', 'redocly.yaml')
 const goConfigPath = join(repositoryRoot, 'scripts', 'contracts', 'oapi-codegen.yaml')
@@ -26,10 +33,51 @@ const canonicalOutputs = {
   bundle: join('scripts', 'contracts', 'generated', 'openapi.json'),
   go: join('go-admin-plus', 'internal', 'contracts', 'openapi.gen.go'),
   runtimeSpec: join('go-admin-plus', 'internal', 'contracts', 'openapi.json'),
-  typescript: join('go-admin-ui-plus', 'packages', 'api-client', 'src', 'generated', 'schema.ts'),
-  client: join('go-admin-ui-plus', 'packages', 'api-client', 'src', 'generated', 'client.ts')
+  typescript: join('go-admin-plus-ui', 'packages', 'api-client', 'src', 'generated', 'schema.ts'),
+  client: join('go-admin-plus-ui', 'packages', 'api-client', 'src', 'generated', 'client.ts')
 }
 const canonicalGeneratedFiles = Object.values(canonicalOutputs)
+
+const lstatIfPresent = path => {
+  try {
+    return lstatSync(path)
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+const assertSafeOutputLocation = (outputRoot, path, { directory = false } = {}) => {
+  const root = resolve(outputRoot)
+  const rootStat = lstatIfPresent(root)
+  if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) fail('generated output root must be a real directory')
+  const realRoot = realpathSync(root)
+  const destination = resolve(root, path)
+  const location = relative(root, destination)
+  if (location === '' || location === '..' || location.startsWith(`..${sep}`) || isAbsolute(location)) {
+    fail(`generated output resolves outside its root: ${path}`)
+  }
+
+  const segments = location.split(sep)
+  let current = root
+  let nearestExisting = root
+  for (const [index, segment] of segments.entries()) {
+    current = join(current, segment)
+    const stat = lstatIfPresent(current)
+    if (!stat) break
+    nearestExisting = current
+    if (stat.isSymbolicLink()) fail(`generated output path contains a symbolic link: ${path}`)
+    const final = index === segments.length - 1
+    if (!final && !stat.isDirectory()) fail(`generated output parent is not a directory: ${path}`)
+    if (final && directory && !stat.isDirectory()) fail(`generated output directory is not a directory: ${path}`)
+    if (final && !directory && !stat.isFile()) fail(`generated output is not a regular file: ${path}`)
+  }
+  const physicalLocation = relative(realRoot, realpathSync(nearestExisting))
+  if (physicalLocation === '..' || physicalLocation.startsWith(`..${sep}`) || isAbsolute(physicalLocation)) {
+    fail(`generated output resolves outside its physical root: ${path}`)
+  }
+  return destination
+}
 
 class ContractError extends Error {
   constructor(message, exitCode = 1) {
@@ -150,7 +198,7 @@ const generateTypescript = (input, schemaOutput, clientOutput, clientSource) => 
 }
 
 const outputAt = (outputRoot, path) => {
-  const output = join(outputRoot, path)
+  const output = assertSafeOutputLocation(outputRoot, path)
   mkdirSync(dirname(output), { recursive: true })
   return output
 }
@@ -189,6 +237,8 @@ export const generate = (outputRoot, moduleContracts = discoverModuleContracts(r
         join(relativeTypescriptDirectory, 'schema.ts'),
         join(relativeTypescriptDirectory, 'client.ts')
       ]
+      const moduleManifest = join(dirname(relativeGoOutput), 'openapi.manifest.json')
+      moduleFiles.push(moduleManifest)
       for (const output of moduleFiles) {
         if (moduleOutputs.has(output) || canonicalGeneratedFiles.includes(output)) {
           fail(`multiple contracts generate ${output}`)
@@ -204,6 +254,7 @@ export const generate = (outputRoot, moduleContracts = discoverModuleContracts(r
       copyFileSync(moduleBundle, runtimeSpec)
       generateGo(moduleBundle, goOutput, metadata.goPackage)
       generateTypescript(moduleBundle, schemaOutput, clientOutput, moduleClient)
+      writeFileSync(outputAt(outputRoot, moduleManifest), manifestContent(moduleFiles))
     }
   } finally {
     rmSync(stagingDirectory, { recursive: true, force: true })
@@ -216,15 +267,14 @@ const manifestContent = generatedFiles => `${JSON.stringify({
   outputs: generatedFiles.map(path => path.split(sep).join('/')).sort()
 }, null, 2)}\n`
 
-const isManagedOutput = path => {
+const isCanonicalGeneratedOutput = path => {
   if (typeof path !== 'string' || path.length === 0 || isAbsolute(path) || path.includes('\\')) return false
   if (path.split('/').includes('..')) return false
-  if (canonicalGeneratedFiles.map(item => item.split(sep).join('/')).includes(path)) return true
-  return isManagedGeneratedOutput(path)
+  return canonicalGeneratedFiles.map(item => item.split(sep).join('/')).includes(path)
 }
 
 const readManifest = outputRoot => {
-  const path = join(outputRoot, manifestPath)
+  const path = assertSafeOutputLocation(outputRoot, manifestPath)
   if (!existsSync(path)) return []
   let manifest
   try {
@@ -236,19 +286,129 @@ const readManifest = outputRoot => {
     fail('generated manifest must use schemaVersion 1 and an outputs array')
   }
   const outputs = [...new Set(manifest.outputs)]
-  if (outputs.length !== manifest.outputs.length || outputs.some(path => !isManagedOutput(path))) {
-    fail('generated manifest contains duplicate or unmanaged output paths')
+  const canonical = canonicalGeneratedFiles.map(path => path.split(sep).join('/')).sort()
+  if (outputs.length !== manifest.outputs.length ||
+      JSON.stringify([...outputs].sort()) !== JSON.stringify(canonical) ||
+      outputs.some(path => !isCanonicalGeneratedOutput(path))) {
+    fail('generated manifest must contain exactly the canonical output paths')
   }
   return outputs
 }
 
+const moduleManifestName = 'openapi.manifest.json'
+
+const collectManagedModuleOutputs = (outputRoot, relativeRoot) => {
+  const root = join(outputRoot, ...relativeRoot.split('/'))
+  if (!lstatIfPresent(root)) return []
+  assertSafeOutputLocation(outputRoot, relativeRoot, { directory: true })
+  const outputs = []
+  const visit = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      const relativePath = relative(outputRoot, path).split(sep).join('/')
+      if (entry.isSymbolicLink()) fail(`module generated output tree contains a symbolic link: ${relativePath}`)
+      if (entry.isDirectory()) {
+        visit(path)
+        continue
+      }
+      if (!entry.isFile()) continue
+      const kind = parseManagedModuleOutput(relativePath)?.kind
+      if (kind === 'go-code' || kind === 'go-spec' || kind === 'go-manifest' || kind === 'typescript-file') {
+        outputs.push(relativePath)
+      }
+    }
+  }
+  visit(root)
+  return outputs
+}
+
+const discoverManagedModuleOutputs = outputRoot => {
+  const outputs = collectManagedModuleOutputs(outputRoot, 'go-admin-plus/internal/modules')
+  const domainsRoot = join(outputRoot, 'go-admin-plus-ui', 'packages', 'domains')
+  if (!lstatIfPresent(domainsRoot)) return outputs.sort((left, right) => left.localeCompare(right))
+  assertSafeOutputLocation(outputRoot, 'go-admin-plus-ui/packages/domains', { directory: true })
+  for (const entry of readdirSync(domainsRoot, { withFileTypes: true })) {
+    const ownerPath = join(domainsRoot, entry.name)
+    if (entry.isSymbolicLink()) {
+      fail(`module generated output tree contains a symbolic link: ${relative(outputRoot, ownerPath)}`)
+    }
+    if (!entry.isDirectory()) continue
+    outputs.push(...collectManagedModuleOutputs(
+      outputRoot,
+      `go-admin-plus-ui/packages/domains/${entry.name}/src`
+    ))
+  }
+  return [...new Set(outputs)].sort((left, right) => left.localeCompare(right))
+}
+
+const discoverModuleManifests = outputRoot => {
+  const modulesRoot = join(outputRoot, 'go-admin-plus', 'internal', 'modules')
+  if (!existsSync(modulesRoot)) return []
+  assertSafeOutputLocation(outputRoot, join('go-admin-plus', 'internal', 'modules'), { directory: true })
+  const manifests = []
+  const visit = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      if (entry.isSymbolicLink()) fail(`module generated output tree contains a symbolic link: ${relative(outputRoot, path)}`)
+      if (entry.isDirectory()) {
+        visit(path)
+        continue
+      }
+      if (entry.isFile() && entry.name === moduleManifestName) manifests.push(path)
+    }
+  }
+  visit(modulesRoot)
+  return manifests.sort((left, right) => left.localeCompare(right))
+}
+
+const readModuleManifestOutputs = outputRoot => {
+  const outputs = []
+  for (const absoluteManifest of discoverModuleManifests(outputRoot)) {
+    if (!lstatSync(absoluteManifest).isFile()) fail('module generated manifest must be a regular file')
+    const manifestPath = relative(outputRoot, absoluteManifest).split(sep).join('/')
+    const parsedManifest = parseManagedModuleOutput(manifestPath)
+    if (parsedManifest?.kind !== 'go-manifest') fail(`unmanaged module generated manifest ${manifestPath}`)
+    let manifest
+    try {
+      manifest = JSON.parse(readFileSync(absoluteManifest, 'utf8'))
+    } catch (error) {
+      fail(`module generated manifest is invalid: ${error instanceof Error ? error.message : String(error)}`)
+    }
+    if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.outputs)) {
+      fail(`module generated manifest ${manifestPath} must use schemaVersion 1 and an outputs array`)
+    }
+    const typescriptDirectory = [
+      'go-admin-plus-ui', 'packages', 'domains', parsedManifest.owner, 'src',
+      ...parsedManifest.nested, 'generated'
+    ].join('/')
+    const goDirectory = dirname(manifestPath).split(sep).join('/')
+    const expected = [
+      `${goDirectory}/openapi.gen.go`,
+      `${goDirectory}/openapi.json`,
+      manifestPath,
+      `${typescriptDirectory}/client.ts`,
+      `${typescriptDirectory}/schema.ts`
+    ].sort()
+    const unique = [...new Set(manifest.outputs)].sort()
+    if (unique.length !== manifest.outputs.length || JSON.stringify(unique) !== JSON.stringify(expected)) {
+      fail(`module generated manifest ${manifestPath} must list exactly its own generated outputs`)
+    }
+    outputs.push(...unique)
+  }
+  return [...new Set(outputs)]
+}
+
 const materializeGeneration = (stagingRoot, outputRoot, generatedFiles) => {
-  const previousOutputs = readManifest(outputRoot)
+  const previousOutputs = [
+    ...readManifest(outputRoot),
+    ...readModuleManifestOutputs(outputRoot),
+    ...discoverManagedModuleOutputs(outputRoot)
+  ]
   const pending = []
   let temporaryManifest
   try {
     generatedFiles.forEach((path, index) => {
-      const destination = join(outputRoot, path)
+      const destination = assertSafeOutputLocation(outputRoot, path)
       mkdirSync(dirname(destination), { recursive: true })
       const temporary = join(dirname(destination), `.${basename(destination)}.contract-${process.pid}-${index}.tmp`)
       copyFileSync(join(stagingRoot, path), temporary)
@@ -258,13 +418,13 @@ const materializeGeneration = (stagingRoot, outputRoot, generatedFiles) => {
 
     const expected = new Set(generatedFiles.map(path => path.split(sep).join('/')))
     for (const stale of previousOutputs.filter(path => !expected.has(path))) {
-      rmSync(join(outputRoot, ...stale.split('/')), { force: true })
+      rmSync(assertSafeOutputLocation(outputRoot, stale), { force: true })
     }
 
-    const manifest = join(outputRoot, manifestPath)
+    const manifest = assertSafeOutputLocation(outputRoot, manifestPath)
     mkdirSync(dirname(manifest), { recursive: true })
     temporaryManifest = `${manifest}.contract-${process.pid}.tmp`
-    writeFileSync(temporaryManifest, manifestContent(generatedFiles))
+    writeFileSync(temporaryManifest, manifestContent(canonicalGeneratedFiles))
     renameSync(temporaryManifest, manifest)
   } finally {
     for (const { temporary } of pending) rmSync(temporary, { force: true })
@@ -294,12 +454,20 @@ export const checkGeneration = (
   try {
     const generatedFiles = generate(stagingRoot, moduleContracts)
     const drift = generatedFiles.filter(path => {
-      const expected = join(outputRoot, path)
+      const expected = assertSafeOutputLocation(outputRoot, path)
       const actual = join(stagingRoot, path)
       return !existsSync(expected) || readFileSync(expected).compare(readFileSync(actual)) !== 0
     })
-    const manifest = join(outputRoot, manifestPath)
-    if (!existsSync(manifest) || readFileSync(manifest, 'utf8') !== manifestContent(generatedFiles)) {
+    const expectedOutputs = new Set(generatedFiles.map(path => path.split(sep).join('/')))
+    const managedOutputs = [
+      ...readModuleManifestOutputs(outputRoot),
+      ...discoverManagedModuleOutputs(outputRoot)
+    ]
+    for (const stale of [...new Set(managedOutputs)].filter(path => !expectedOutputs.has(path))) {
+      drift.push(stale)
+    }
+    const manifest = assertSafeOutputLocation(outputRoot, manifestPath)
+    if (!existsSync(manifest) || readFileSync(manifest, 'utf8') !== manifestContent(canonicalGeneratedFiles)) {
       drift.push(manifestPath)
     }
     if (drift.length) fail(`generated transport drift:\n- ${drift.join('\n- ')}`)

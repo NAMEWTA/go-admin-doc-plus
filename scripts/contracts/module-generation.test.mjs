@@ -18,6 +18,7 @@ test('generates Go and TypeScript transports for a module contract', () => {
     assert.ok(outputs.includes(goOutput))
     assert.ok(outputs.includes(join(typescriptRoot, 'schema.ts')))
     assert.ok(outputs.includes(join(typescriptRoot, 'client.ts')))
+    assert.ok(outputs.includes(join(dirname(goOutput), 'openapi.manifest.json')))
     assert.match(readFileSync(join(outputRoot, goOutput), 'utf8'), /package contractfixturetransport/)
     assert.ok(existsSync(join(outputRoot, typescriptRoot, 'schema.ts')))
     assert.ok(existsSync(join(outputRoot, typescriptRoot, 'client.ts')))

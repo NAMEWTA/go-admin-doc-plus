@@ -87,3 +87,15 @@ test('uses one path grammar for nested generation targets and manifest entries',
   assert.equal(isManagedGeneratedOutput('go-admin-plus/internal/modules/transport/openapi.gen.go'), false)
   assert.match(metadata.goOutput, /session_v2/)
 })
+
+test('rejects mismatched nested Go and TypeScript slice paths', () => {
+  assert.throws(() => resolveModuleMetadata(repositoryRoot, {
+    'x-go-admin-module': 'iam-session',
+    'x-go-admin-codegen': {
+      owner: 'iam',
+      goPackage: 'iamsessiontransport',
+      goOutput: 'go-admin-plus/internal/modules/iam/session/transport/openapi.gen.go',
+      typescriptOutput: 'go-admin-plus-ui/packages/domains/iam/src/administration/generated'
+    }
+  }), /same nested module path/)
+})

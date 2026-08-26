@@ -48,8 +48,8 @@ tasks:
     cmds:
       - node scripts/contracts/cli.mjs lint
       - node --test --test-concurrency=1 scripts/contracts/*.test.mjs
-      - pnpm --dir go-admin-ui-plus --filter @go-admin/api-client type-check
-      - pnpm --dir go-admin-ui-plus --filter @go-admin/api-client test
+      - pnpm --dir go-admin-plus-ui --filter @go-admin/api-client typecheck
+      - pnpm --dir go-admin-plus-ui --filter @go-admin/api-client test
 
   generate:check:
     desc: Reject generated OpenAPI transport drift
