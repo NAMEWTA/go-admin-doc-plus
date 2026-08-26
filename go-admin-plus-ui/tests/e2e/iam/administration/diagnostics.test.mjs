@@ -64,3 +64,11 @@ test('browser administration interactions wait for Vue DOM updates', () => {
   assert.doesNotMatch(driver, /(?<!await )input\('/)
   assert.match(driver, /await waitUntil\(\(\) => !element<HTMLButtonElement>\('\[data-testid="delete-selected-users"\]'\)\.disabled/)
 })
+
+test('browser host readiness failures retain the stable profile', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+
+  assert.match(runner, /waitReady = async \(path, child, profile\)/)
+  assert.match(runner, /`\$\{profile\} HTTPS host readiness timed out`/)
+  assert.match(runner, /waitReady\(ready, host, profile\)/)
+})
