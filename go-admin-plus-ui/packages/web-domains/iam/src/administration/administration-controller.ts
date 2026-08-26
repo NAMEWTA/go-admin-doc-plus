@@ -206,6 +206,12 @@ export const createUserAndClearPassword = async (controller: AdministrationContr
   finally { clear() }
 }
 
+export const settleAdministrationPageOperation = async (operation: () => Promise<unknown>, settled: () => void): Promise<void> => {
+  try { await operation() }
+  catch { /* The controller owns stable failure classification; page operations must settle. */ }
+  finally { settled() }
+}
+
 const isAdministrationFailure = (value: string): value is AdministrationFailure =>
   ['relogin', 'forbidden', 'validation', 'conflict', 'unavailable'].includes(value)
 

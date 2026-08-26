@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { AdministrationRequestError, type AdministrationClient } from '@go-admin/domain-iam/administration'
-import { createAdministrationController, createUserAndClearPassword, resetPasswordAndClear } from './administration-controller'
+import { createAdministrationController, createUserAndClearPassword, resetPasswordAndClear, settleAdministrationPageOperation } from './administration-controller'
 
 const client = (): AdministrationClient => ({
   manifest: vi.fn(async (): ReturnType<AdministrationClient['manifest']> => ({ dataScope: 'all', permissionCodes: ['iam.users.read', 'iam.users.write', 'iam.users.delete', 'iam.users.reset-password', 'iam.roles.read', 'iam.roles.write', 'iam.roles.delete', 'iam.roles.assign', 'iam.menus.read', 'iam.menus.write', 'iam.menus.delete', 'iam.permissions.read', 'iam.manifest.read'], menus: [] })), listUsers: vi.fn(async (search, page, pageSize) => ({ rows: [{ id: 'account-00000001', username: search || 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }], total: page * pageSize })),
@@ -75,14 +75,23 @@ describe('administration controller', () => {
 
   it('loads only administration projections granted by the manifest', async () => {
     const api = client()
-    vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'self', permissionCodes: ['iam.users.read', 'iam.roles.read', 'iam.menus.read', 'iam.permissions.read', 'iam.roles.assign', 'iam.manifest.read'], menus: [] })
+    vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'self', permissionCodes: ['iam.users.read', 'iam.users.write', 'iam.roles.read', 'iam.menus.read', 'iam.permissions.read', 'iam.roles.assign', 'iam.manifest.read'], menus: [] })
     const controller = createAdministrationController(api, async () => true)
     await controller.refreshAuthorizationData()
     expect(controller.can('iam.users.read')).toBe(true)
+    expect(controller.can('iam.users.write')).toBe(false)
     expect(controller.can('iam.roles.read')).toBe(false)
     expect(api.listRoles).not.toHaveBeenCalled()
     expect(api.listMenus).not.toHaveBeenCalled()
     expect(api.listPermissions).not.toHaveBeenCalled()
+  })
+
+  it('exposes global actions when an account-level all scope accompanies the permission', async () => {
+    const api = client()
+    vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'all', permissionCodes: ['iam.users.read', 'iam.users.write', 'iam.manifest.read'], menus: [] })
+    const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData()
+    expect(controller.can('iam.users.write')).toBe(true)
   })
 
   it('records initial manifest failures and clears stale capabilities fail closed', async () => {
@@ -94,6 +103,16 @@ describe('administration controller', () => {
     expect(controller.failure()).toBe('relogin')
     expect(controller.can('iam.users.read')).toBe(false)
     expect(controller.can('iam.roles.read')).toBe(false)
+  })
+
+  it('settles initial page failures after surfacing the stable relogin state', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    vi.mocked(api.manifest).mockRejectedValueOnce(new AdministrationRequestError('relogin'))
+    const settled = vi.fn()
+    await expect(settleAdministrationPageOperation(() => controller.refreshAuthorizationData(), settled)).resolves.toBeUndefined()
+    expect(controller.failure()).toBe('relogin')
+    expect(controller.can('iam.users.read')).toBe(false)
+    expect(settled).toHaveBeenCalledTimes(1)
   })
 
   it('repairs create, removal and command projections without repeating successful writes', async () => {

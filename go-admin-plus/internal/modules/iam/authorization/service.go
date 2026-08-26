@@ -101,11 +101,11 @@ func (s *Service) RequireInTx(ctx context.Context, tx database.Tx, accountID, pe
 		JOIN iam_role_permissions rp ON rp.role_id = permission_role.id AND rp.permission_code = ?
 		JOIN iam_account_roles scope_ar ON scope_ar.account_id = a.id
 		JOIN iam_roles scope_role ON scope_role.id = scope_ar.role_id AND scope_role.enabled = ?
-		WHERE a.id = ? AND a.disabled_at IS NULL AND rp.permission_code = ?`
+		WHERE a.id = ? AND a.disabled_at IS NULL`
 	if s.dialect == database.DialectPostgres {
 		query += ` FOR SHARE OF a, permission_ar, permission_role, rp, scope_ar, scope_role`
 	}
-	rows, err := tx.QueryContext(ctx, query, true, permission, true, accountID, permission)
+	rows, err := tx.QueryContext(ctx, query, true, permission, true, accountID)
 	if err != nil {
 		return Decision{}, err
 	}

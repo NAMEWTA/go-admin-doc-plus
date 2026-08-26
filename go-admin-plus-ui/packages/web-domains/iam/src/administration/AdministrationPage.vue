@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import type { Menu, Role, User } from '@go-admin/domain-iam/administration'
-import { createUserAndClearPassword, resetPasswordAndClear, type AdministrationController, type CreateRoleModel, type CreateUserModel } from './administration-controller'
+import { createUserAndClearPassword, resetPasswordAndClear, settleAdministrationPageOperation, type AdministrationController, type CreateRoleModel, type CreateUserModel } from './administration-controller'
 
 const props = defineProps<{ controller: AdministrationController }>()
 const emit = defineEmits<{ sessionRequired: [] }>()
@@ -31,9 +31,9 @@ const surfaceFailure = () => {
           : failure === 'unavailable' ? 'The administration service is unavailable.' : ''
   if (failure === 'relogin') emit('sessionRequired')
 }
-const run = async (operation: () => Promise<unknown>) => {
-  try { await operation() } finally { surfaceFailure(); revision.value += 1 }
-}
+const run = (operation: () => Promise<unknown>) => settleAdministrationPageOperation(operation, () => {
+  surfaceFailure(); revision.value += 1
+})
 const search = () => run(() => props.controller.users.search({ ...filters }))
 const reset = () => run(async () => { filters.search = ''; await props.controller.users.reset() })
 const submitUser = () => run(() => createUserAndClearPassword(props.controller, { ...user }, () => { user.password = '' }))
