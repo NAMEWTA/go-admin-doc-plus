@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T23:18:17+08:00",
+  "updated_at": "2026-08-26T23:27:33+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -183,21 +183,21 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-02",
       "source_checkpoint": "6fab034640672fef057acad61139aa8b917a85a1",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "d828f74fb8cab349597123ae0ff7371e5aac7b03",
+        "source_sha": "6fab034640672fef057acad61139aa8b917a85a1",
+        "candidate_sha": "7271df83db41c8e7018616f9fee0f68f61c9ffee",
+        "candidate_tree_sha": "c79ef58b0bd9cfcaf80717db7df76f4feae20467",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-02",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-02",
+        "result_sha": "7271df83db41c8e7018616f9fee0f68f61c9ffee",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G1 requires lint, bundle, deterministic generation, conformance, negative fixtures, and clean-tree verification on the parent candidate",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>"
         },
@@ -208,11 +208,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-26T23:16:15+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-26T23:27:33+08:00"
     },
     {
       "ticket_id": "T-03",

@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-02
 title: OpenAPI 合同与双方生成基座
-status: review
+status: done
 planning_depth: deep
 planning_depth_reason: 公共 API、错误语义和双方生成物是所有垂直切片共享的外部合同
 ready: true
@@ -117,9 +117,9 @@ shared_path_owners: ["<Path>Taskfile.yml</Path> => T-02 (contract:lint and gener
 
 ## 10. 验收标准
 
-- [ ] `AC-023`：OpenAPI 3.1 可确定性生成 Go strict transport 和新 Workspace TS client，clean tree 无漂移。
-- [ ] `AC-025`：公共负向响应只使用已声明错误类别且不泄露内部信息。
-- [ ] T02-D04 修正与验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，共享路径仅由 T-02 修改。
-- [ ] 形成新的非空 source checkpoint，并记录新的 candidate/result SHA。
-- [ ] 未发生未批准偏差，Ticket、Map 和 Evidence 状态一致。
+- [x] `AC-023`：OpenAPI 3.1 可确定性生成 Go strict transport 和新 Workspace TS client，clean tree 无漂移。
+- [x] `AC-025`：公共负向响应只使用已声明错误类别且不泄露内部信息。
+- [x] T02-D04 修正与验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>`。
+- [x] 修改未超出 `writable_paths`，共享路径仅由 T-02 修改。
+- [x] 形成新的非空 source checkpoint，并记录新的 candidate/result SHA。
+- [x] 未发生未批准偏差，Ticket、Map 和 Evidence 状态一致。
