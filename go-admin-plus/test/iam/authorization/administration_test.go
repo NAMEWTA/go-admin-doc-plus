@@ -136,7 +136,7 @@ func TestMenuUpdateNormalizesAndValidatesBeforeMutation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	menu.Key = "  REPORTS-UPDATED  "
+	menu.Key = "reports-updated"
 	menu.Label = "  Updated Reports  "
 	menu.Path = "  /iam/reports-updated  "
 	menu.PermissionCode = "  " + authorization.PermissionUsersRead + "  "
@@ -154,6 +154,7 @@ func TestMenuUpdateNormalizesAndValidatesBeforeMutation(t *testing.T) {
 	}
 
 	for _, invalid := range []administration.Menu{
+		{ID: menu.ID, Key: "Reports Updated", Label: "Updated Reports", Path: "/iam/reports-updated", PermissionCode: authorization.PermissionUsersRead, SortOrder: 21},
 		{ID: menu.ID, Key: "reports-updated", Label: "Updated Reports", Path: "IAM/UPPER", PermissionCode: authorization.PermissionUsersRead, SortOrder: 21},
 		{ID: menu.ID, Key: "reports-updated", Label: "Updated Reports", Path: "/iam/reports-updated", PermissionCode: authorization.PermissionUsersRead, SortOrder: -1},
 		{ID: menu.ID, Key: "reports-updated", Label: "Updated Reports", Path: "/iam/reports-updated", PermissionCode: authorization.PermissionUsersRead, SortOrder: 100001},
@@ -167,6 +168,60 @@ func TestMenuUpdateNormalizesAndValidatesBeforeMutation(t *testing.T) {
 	}
 	if key != "reports-updated" || path != "/iam/reports-updated" || sortOrder != 21 {
 		t.Fatalf("invalid update changed menu = %q %q %d", key, path, sortOrder)
+	}
+}
+
+func TestStableKeysBoundedPaginationAndMigrationConstraints(t *testing.T) {
+	db, service := newAdministrationFixture(t)
+	ctx := context.Background()
+	if _, err := service.ListUsers(ctx, adminID, "", 1_000_001, 20); !errors.Is(err, administration.ErrValidation) {
+		t.Fatalf("unbounded page = %v", err)
+	}
+	for _, key := range []string{"Bad Key", "-leading", "upper" + strings.ToUpper("case")} {
+		if _, err := service.CreateRole(ctx, adminID, key, "Invalid role", authorization.ScopeAll); !errors.Is(err, administration.ErrValidation) {
+			t.Fatalf("invalid role key %q = %v", key, err)
+		}
+		if _, err := service.CreateMenu(ctx, adminID, administration.Menu{Key: key, Label: "Invalid menu", Path: "/iam/invalid", PermissionCode: authorization.PermissionUsersRead}); !errors.Is(err, administration.ErrValidation) {
+			t.Fatalf("invalid menu key %q = %v", key, err)
+		}
+	}
+	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_roles(id, role_key, name, data_scope, enabled, protected, created_at, updated_at) VALUES (?, ?, ?, 'all', 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, "role-invalid-key1", "invalid key", "Invalid"); err == nil {
+		t.Fatal("SQLite role key constraint accepted invalid key")
+	}
+	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_menus(id, menu_key, label, path, permission_code, sort_order, protected, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, 1, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, "menu-invalid-null", "valid-menu", "Invalid", "/iam/invalid-null"); err == nil {
+		t.Fatal("SQLite menu permission accepted NULL")
+	}
+	var permissionNotNull int
+	if err := db.Bun().QueryRowContext(ctx, `SELECT "notnull" FROM pragma_table_info('iam_menus') WHERE name = 'permission_code'`).Scan(&permissionNotNull); err != nil || permissionNotNull != 1 {
+		t.Fatalf("SQLite menu permission nullability = %d, %v", permissionNotNull, err)
+	}
+}
+
+func TestSelfScopeCannotReadGlobalAdministrationMetadata(t *testing.T) {
+	_, service := newAdministrationFixture(t)
+	ctx := context.Background()
+	user, err := service.CreateUser(ctx, adminID, administration.CreateUser{Username: "metadata-self", DisplayName: "Metadata Self", Email: "metadata-self@example.test", Password: "metadata self password"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	role, err := service.CreateRole(ctx, adminID, "metadata-self", "Metadata self", authorization.ScopeSelf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := service.SetRoleGrants(ctx, adminID, role.ID, []string{authorization.PermissionRolesRead, authorization.PermissionMenusRead, authorization.PermissionPermissionsRead}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.SetUserRoles(ctx, adminID, user.ID, []string{role.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.ListRoles(ctx, user.ID); !errors.Is(err, administration.ErrDenied) {
+		t.Fatalf("self role list = %v", err)
+	}
+	if _, err := service.ListMenus(ctx, user.ID); !errors.Is(err, administration.ErrDenied) {
+		t.Fatalf("self menu list = %v", err)
+	}
+	if _, err := service.ListPermissions(ctx, user.ID); !errors.Is(err, administration.ErrDenied) {
+		t.Fatalf("self permission list = %v", err)
 	}
 }
 

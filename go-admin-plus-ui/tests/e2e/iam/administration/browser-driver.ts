@@ -1,4 +1,4 @@
-import { createApp, h, type App } from 'vue'
+import { createApp, h, type App, type Component } from 'vue'
 import { createSessionController } from '@go-admin/domain-iam/session'
 import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
@@ -45,7 +45,7 @@ const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdmin
   const api = createWebAdministrationClient(fetch, '/api')
   let confirmations = 0
   const controller = createAdministrationController(api, async () => { confirmations += 1; return true })
-  const app = createApp({ render: () => h(AdministrationPage, { controller }) })
+  const app = createApp({ render: () => h(AdministrationPage as Component, { controller }) })
   app.mount('#app')
   await waitUntil(() => row(expectedUser) !== null, 'administration page did not load')
   return { app, controller, api, confirmations: () => confirmations }

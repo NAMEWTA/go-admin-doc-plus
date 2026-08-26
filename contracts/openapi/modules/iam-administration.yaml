@@ -31,7 +31,7 @@ paths:
       summary: List users within the caller data scope
       parameters:
         - {name: search, in: query, schema: {type: string, maxLength: 100}}
-        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: page, in: query, schema: {type: integer, minimum: 1, maximum: 1000000, default: 1}}
         - {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
       responses:
         '200': {description: Scope-filtered users., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/UserPage'}}}}
@@ -326,7 +326,7 @@ components:
       required: [id, key, name, dataScope, enabled, protected, permissionCodes, menuIds]
       properties:
         id: {$ref: '#/components/schemas/Identifier'}
-        key: {type: string, minLength: 3, maxLength: 64}
+        key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
         dataScope: {$ref: '#/components/schemas/DataScope'}
         enabled: {type: boolean}
@@ -338,7 +338,7 @@ components:
       additionalProperties: false
       required: [key, name, dataScope]
       properties:
-        key: {type: string, minLength: 3, maxLength: 64}
+        key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
         dataScope: {$ref: '#/components/schemas/DataScope'}
     UpdateRoleRequest:
@@ -346,7 +346,7 @@ components:
       additionalProperties: false
       required: [key, name, dataScope, enabled]
       properties:
-        key: {type: string, minLength: 3, maxLength: 64}
+        key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
         dataScope: {$ref: '#/components/schemas/DataScope'}
         enabled: {type: boolean}
@@ -363,7 +363,7 @@ components:
       required: [id, key, label, path, permissionCode, sortOrder, protected]
       properties:
         id: {$ref: '#/components/schemas/Identifier'}
-        key: {type: string, minLength: 3, maxLength: 64}
+        key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         label: {type: string, minLength: 1, maxLength: 80}
         path: {type: string, minLength: 2, maxLength: 200, pattern: '^/[a-z0-9][a-z0-9/_-]*$'}
         permissionCode: {type: string, minLength: 3, maxLength: 100}
@@ -374,7 +374,7 @@ components:
       additionalProperties: false
       required: [key, label, path, permissionCode, sortOrder]
       properties:
-        key: {type: string, minLength: 3, maxLength: 64}
+        key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         label: {type: string, minLength: 1, maxLength: 80}
         path: {type: string, minLength: 2, maxLength: 200, pattern: '^/[a-z0-9][a-z0-9/_-]*$'}
         permissionCode: {type: string, minLength: 3, maxLength: 100}
@@ -389,7 +389,7 @@ components:
       additionalProperties: false
       required: [key, label, path, permissionCode, sortOrder]
       properties:
-        key: {type: string, minLength: 3, maxLength: 64}
+        key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         label: {type: string, minLength: 1, maxLength: 80}
         path: {type: string, minLength: 2, maxLength: 200}
         permissionCode: {type: string, minLength: 3, maxLength: 100}

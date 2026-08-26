@@ -3,8 +3,8 @@ package authorization
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"sort"
 
 	"go-admin/internal/platform/database"
 )
@@ -94,16 +94,18 @@ func (s *Service) RequireInTx(ctx context.Context, tx database.Tx, accountID, pe
 	if s == nil || tx == nil || accountID == "" || permission == "" {
 		return Decision{}, ErrDenied
 	}
-	query := `SELECT r.data_scope
+	query := `SELECT scope_role.data_scope
 		FROM iam_accounts a
-		JOIN iam_account_roles ar ON ar.account_id = a.id
-		JOIN iam_roles r ON r.id = ar.role_id AND r.enabled = ?
-		JOIN iam_role_permissions rp ON rp.role_id = r.id
+		JOIN iam_account_roles permission_ar ON permission_ar.account_id = a.id
+		JOIN iam_roles permission_role ON permission_role.id = permission_ar.role_id AND permission_role.enabled = ?
+		JOIN iam_role_permissions rp ON rp.role_id = permission_role.id AND rp.permission_code = ?
+		JOIN iam_account_roles scope_ar ON scope_ar.account_id = a.id
+		JOIN iam_roles scope_role ON scope_role.id = scope_ar.role_id AND scope_role.enabled = ?
 		WHERE a.id = ? AND a.disabled_at IS NULL AND rp.permission_code = ?`
 	if s.dialect == database.DialectPostgres {
-		query += ` FOR SHARE OF a, ar, r, rp`
+		query += ` FOR SHARE OF a, permission_ar, permission_role, rp, scope_ar, scope_role`
 	}
-	rows, err := tx.QueryContext(ctx, query, true, accountID, permission)
+	rows, err := tx.QueryContext(ctx, query, true, permission, true, accountID, permission)
 	if err != nil {
 		return Decision{}, err
 	}
@@ -136,66 +138,56 @@ func (s *Service) Manifest(ctx context.Context, accountID string) (Manifest, err
 	manifest := Manifest{Scope: ScopeSelf}
 	manifestAllowed := false
 	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rows, err := tx.QueryContext(ctx, `SELECT DISTINCT rp.permission_code, r.data_scope
-			FROM iam_accounts a
-			JOIN iam_account_roles ar ON ar.account_id = a.id
-			JOIN iam_roles r ON r.id = ar.role_id AND r.enabled = ?
-			JOIN iam_role_permissions rp ON rp.role_id = r.id
-			WHERE a.id = ? AND a.disabled_at IS NULL`, true, accountID)
+		rows, err := tx.QueryContext(ctx, `WITH enabled_roles AS (
+				SELECT r.id, r.data_scope
+				FROM iam_accounts a
+				JOIN iam_account_roles ar ON ar.account_id = a.id
+				JOIN iam_roles r ON r.id = ar.role_id AND r.enabled = ?
+				WHERE a.id = ? AND a.disabled_at IS NULL
+			), permissions AS (
+				SELECT DISTINCT rp.permission_code
+				FROM enabled_roles er
+				JOIN iam_role_permissions rp ON rp.role_id = er.id
+			), scope_projection AS (
+				SELECT CASE WHEN SUM(CASE WHEN data_scope = 'all' THEN 1 ELSE 0 END) > 0 THEN 'all' ELSE 'self' END AS data_scope
+				FROM enabled_roles
+			), menus AS (
+				SELECT DISTINCT m.menu_key, m.label, m.path, m.permission_code, m.sort_order
+				FROM enabled_roles er
+				JOIN iam_role_menus rm ON rm.role_id = er.id
+				JOIN iam_menus m ON m.id = rm.menu_id
+				WHERE EXISTS (SELECT 1 FROM permissions p WHERE p.permission_code = m.permission_code)
+			)
+			SELECT 0 AS row_kind, p.permission_code, s.data_scope,
+				CAST(NULL AS TEXT) AS menu_key, CAST(NULL AS TEXT) AS label, CAST(NULL AS TEXT) AS path, CAST(NULL AS INTEGER) AS sort_order
+			FROM permissions p CROSS JOIN scope_projection s
+			UNION ALL
+			SELECT 1 AS row_kind, m.permission_code, s.data_scope, m.menu_key, m.label, m.path, m.sort_order
+			FROM menus m CROSS JOIN scope_projection s
+			ORDER BY row_kind, sort_order, permission_code, menu_key`, true, accountID)
 		if err != nil {
 			return err
 		}
-		permissions := map[string]struct{}{}
+		defer rows.Close()
 		for rows.Next() {
+			var kind int
 			var permission, scope string
-			if err := rows.Scan(&permission, &scope); err != nil {
-				_ = rows.Close()
+			var key, label, path sql.NullString
+			var sortOrder sql.NullInt64
+			if err := rows.Scan(&kind, &permission, &scope, &key, &label, &path, &sortOrder); err != nil {
 				return err
 			}
-			permissions[permission] = struct{}{}
 			if Scope(scope) == ScopeAll {
 				manifest.Scope = ScopeAll
 			}
-		}
-		if err := rows.Err(); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		if err := rows.Close(); err != nil {
-			return err
-		}
-		for permission := range permissions {
-			manifest.Permissions = append(manifest.Permissions, permission)
-		}
-		_, manifestAllowed = permissions[PermissionManifestRead]
-		sort.Strings(manifest.Permissions)
-
-		menuRows, err := tx.QueryContext(ctx, `SELECT DISTINCT m.menu_key, m.label, m.path, m.permission_code, m.sort_order
-			FROM iam_accounts a
-			JOIN iam_account_roles ar ON ar.account_id = a.id
-			JOIN iam_roles r ON r.id = ar.role_id AND r.enabled = ?
-			JOIN iam_role_menus rm ON rm.role_id = r.id
-			JOIN iam_menus m ON m.id = rm.menu_id
-			WHERE a.id = ? AND a.disabled_at IS NULL
-			AND EXISTS (
-				SELECT 1 FROM iam_account_roles permission_ar
-				JOIN iam_roles permission_role ON permission_role.id = permission_ar.role_id AND permission_role.enabled = ?
-				JOIN iam_role_permissions permission_rp ON permission_rp.role_id = permission_role.id
-				WHERE permission_ar.account_id = a.id AND permission_rp.permission_code = m.permission_code
-			)
-			ORDER BY m.sort_order, m.menu_key`, true, accountID, true)
-		if err != nil {
-			return err
-		}
-		defer menuRows.Close()
-		for menuRows.Next() {
-			var menu Menu
-			if err := menuRows.Scan(&menu.Key, &menu.Label, &menu.Path, &menu.PermissionCode, &menu.SortOrder); err != nil {
-				return err
+			if kind == 0 {
+				manifest.Permissions = append(manifest.Permissions, permission)
+				manifestAllowed = manifestAllowed || permission == PermissionManifestRead
+				continue
 			}
-			manifest.Menus = append(manifest.Menus, menu)
+			manifest.Menus = append(manifest.Menus, Menu{Key: key.String, Label: label.String, Path: path.String, PermissionCode: permission, SortOrder: int(sortOrder.Int64)})
 		}
-		return menuRows.Err()
+		return rows.Err()
 	})
 	if err != nil {
 		return Manifest{}, sanitize(ctx, err)

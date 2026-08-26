@@ -75,6 +75,7 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
+              "maximum": 1000000,
               "default": 1
             }
           },
@@ -1387,7 +1388,8 @@
           "key": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 64
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "name": {
             "type": "string",
@@ -1435,7 +1437,8 @@
           "key": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 64
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "name": {
             "type": "string",
@@ -1460,7 +1463,8 @@
           "key": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 64
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "name": {
             "type": "string",
@@ -1522,7 +1526,8 @@
           "key": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 64
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "label": {
             "type": "string",
@@ -1564,7 +1569,8 @@
           "key": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 64
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "label": {
             "type": "string",
@@ -1623,7 +1629,8 @@
           "key": {
             "type": "string",
             "minLength": 3,
-            "maxLength": 64
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$"
           },
           "label": {
             "type": "string",

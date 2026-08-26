@@ -26,6 +26,9 @@ func TestHTTPRotationHeadersSurviveAuthorizationConflictAndValidationResponses(t
 		}, want: http.StatusForbidden},
 		{name: "conflict", method: http.MethodDelete, path: "/iam/administration/roles/role-system-admin", want: http.StatusConflict},
 		{name: "validation", method: http.MethodPost, path: "/iam/administration/users", body: `{"username":"x"}`, want: http.StatusBadRequest},
+		{name: "role-key", method: http.MethodPost, path: "/iam/administration/roles", body: `{"key":"Bad Key","name":"Invalid","dataScope":"all"}`, want: http.StatusBadRequest},
+		{name: "menu-key", method: http.MethodPost, path: "/iam/administration/menus", body: `{"key":"-invalid","label":"Invalid","path":"/iam/invalid","permissionCode":"iam.users.read","sortOrder":1}`, want: http.StatusBadRequest},
+		{name: "page-maximum", method: http.MethodGet, path: "/iam/administration/users?page=1000001", want: http.StatusBadRequest},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			db, administrationService := newAdministrationFixture(t)

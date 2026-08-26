@@ -74,6 +74,26 @@ func TestManifestCombinesMenuAndPermissionAcrossEnabledRoles(t *testing.T) {
 	}
 }
 
+func TestPermissionDecisionAndManifestUseAccountLevelEnabledRoleScope(t *testing.T) {
+	db := authorizationDatabase(t)
+	seedAccount(t, db, "account-scope-001", "scope-user")
+	for _, role := range []struct{ id, key, scope string }{{"role-scope-all01", "scope-all", "all"}, {"role-scope-self1", "scope-self", "self"}} {
+		mustExec(t, db, `INSERT INTO iam_roles(id, role_key, name, data_scope, enabled, protected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, role.id, role.key, role.key, role.scope, true, false)
+		mustExec(t, db, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, "account-scope-001", role.id)
+	}
+	mustExec(t, db, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-scope-self1", authorization.PermissionUsersRead)
+	mustExec(t, db, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-scope-self1", authorization.PermissionManifestRead)
+	service := authorization.NewService(db)
+	decision, err := service.Require(context.Background(), "account-scope-001", authorization.PermissionUsersRead)
+	if err != nil || decision.Scope != authorization.ScopeAll {
+		t.Fatalf("decision = %#v, %v", decision, err)
+	}
+	manifest, err := service.Manifest(context.Background(), "account-scope-001")
+	if err != nil || manifest.Scope != authorization.ScopeAll {
+		t.Fatalf("manifest = %#v, %v", manifest, err)
+	}
+}
+
 func TestManifestRequiresItsStablePermissionCode(t *testing.T) {
 	db := authorizationDatabase(t)
 	seedAccount(t, db, "account-no-manifest", "no-manifest")

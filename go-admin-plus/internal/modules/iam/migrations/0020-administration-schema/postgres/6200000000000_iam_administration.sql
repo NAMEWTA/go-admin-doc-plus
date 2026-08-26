@@ -6,7 +6,7 @@ CREATE TABLE iam_permissions (
 );
 CREATE TABLE iam_roles (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 16 AND 64),
-  role_key TEXT NOT NULL UNIQUE CHECK (length(role_key) BETWEEN 3 AND 64 AND role_key = lower(btrim(role_key))),
+  role_key TEXT NOT NULL UNIQUE CHECK (length(role_key) BETWEEN 3 AND 64 AND role_key ~ '^[a-z0-9][a-z0-9_-]*$'),
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 100),
   data_scope TEXT NOT NULL CHECK (data_scope IN ('all', 'self')),
   enabled BOOLEAN NOT NULL DEFAULT TRUE, protected BOOLEAN NOT NULL DEFAULT FALSE,
@@ -24,10 +24,10 @@ CREATE TABLE iam_role_permissions (
 );
 CREATE TABLE iam_menus (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 16 AND 64),
-  menu_key TEXT NOT NULL UNIQUE CHECK (length(menu_key) BETWEEN 3 AND 64 AND menu_key = lower(btrim(menu_key))),
+  menu_key TEXT NOT NULL UNIQUE CHECK (length(menu_key) BETWEEN 3 AND 64 AND menu_key ~ '^[a-z0-9][a-z0-9_-]*$'),
   label TEXT NOT NULL CHECK (length(label) BETWEEN 1 AND 80),
   path TEXT NOT NULL UNIQUE CHECK (left(path, 1) = '/'),
-  permission_code TEXT REFERENCES iam_permissions(code) ON DELETE RESTRICT,
+  permission_code TEXT NOT NULL REFERENCES iam_permissions(code) ON DELETE RESTRICT,
   sort_order INTEGER NOT NULL DEFAULT 0, protected BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL
 );

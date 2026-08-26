@@ -6,7 +6,7 @@ CREATE TABLE iam_permissions (
 );
 CREATE TABLE iam_roles (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 16 AND 64),
-  role_key TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK (length(role_key) BETWEEN 3 AND 64),
+  role_key TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK (length(role_key) BETWEEN 3 AND 64 AND role_key NOT GLOB '*[^a-z0-9_-]*' AND substr(role_key, 1, 1) GLOB '[a-z0-9]'),
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 100),
   data_scope TEXT NOT NULL CHECK (data_scope IN ('all', 'self')),
   enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
@@ -25,10 +25,10 @@ CREATE TABLE iam_role_permissions (
 );
 CREATE TABLE iam_menus (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 16 AND 64),
-  menu_key TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK (length(menu_key) BETWEEN 3 AND 64),
+  menu_key TEXT NOT NULL COLLATE NOCASE UNIQUE CHECK (length(menu_key) BETWEEN 3 AND 64 AND menu_key NOT GLOB '*[^a-z0-9_-]*' AND substr(menu_key, 1, 1) GLOB '[a-z0-9]'),
   label TEXT NOT NULL CHECK (length(label) BETWEEN 1 AND 80),
   path TEXT NOT NULL UNIQUE CHECK (substr(path, 1, 1) = '/'),
-  permission_code TEXT REFERENCES iam_permissions(code) ON DELETE RESTRICT,
+  permission_code TEXT NOT NULL REFERENCES iam_permissions(code) ON DELETE RESTRICT,
   sort_order INTEGER NOT NULL DEFAULT 0,
   protected INTEGER NOT NULL DEFAULT 0 CHECK (protected IN (0, 1)),
   created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL

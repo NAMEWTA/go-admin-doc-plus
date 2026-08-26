@@ -54,6 +54,12 @@ func TestPostgresRevocationWaitsForFinalAuthorizationFence(t *testing.T) {
 	if _, err := runner.Up(ctx, serviceDB); err != nil {
 		t.Fatal("isolated migrations failed")
 	}
+	if _, err := serviceDB.Bun().ExecContext(ctx, `INSERT INTO iam_roles(id, role_key, name, data_scope, enabled, protected, created_at, updated_at) VALUES (?, ?, ?, 'all', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, "role-invalid-key1", "invalid key", "Invalid"); err == nil {
+		t.Fatal("PostgreSQL role key constraint accepted invalid key")
+	}
+	if _, err := serviceDB.Bun().ExecContext(ctx, `INSERT INTO iam_menus(id, menu_key, label, path, permission_code, sort_order, protected, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, 1, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, "menu-invalid-null", "valid-menu", "Invalid", "/iam/invalid-null"); err == nil {
+		t.Fatal("PostgreSQL menu permission accepted NULL")
+	}
 	hash, err := account.HashPassword("administrator password")
 	if err != nil {
 		t.Fatal(err)
@@ -100,6 +106,41 @@ func TestPostgresRevocationWaitsForFinalAuthorizationFence(t *testing.T) {
 	plain, _ := administration.NewService(serviceDB, authorization.NewService(serviceDB))
 	if _, err := plain.CreateRole(ctx, adminID, "after-revoke", "After revoke", authorization.ScopeAll); !errors.Is(err, authorization.ErrDenied) {
 		t.Fatalf("post-revoke command = %v", err)
+	}
+
+	toggle := make(chan error, 1)
+	go func() {
+		for index := 0; index < 100; index++ {
+			if _, err := revokerDB.Bun().ExecContext(ctx, `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code = ?`, "role-system-admin", authorization.PermissionUsersRead); err != nil {
+				toggle <- err
+				return
+			}
+			if _, err := revokerDB.Bun().ExecContext(ctx, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-system-admin", authorization.PermissionUsersRead); err != nil {
+				toggle <- err
+				return
+			}
+		}
+		toggle <- nil
+	}()
+	manifestService := authorization.NewService(serviceDB)
+	for index := 0; index < 200; index++ {
+		manifest, err := manifestService.Manifest(ctx, adminID)
+		if err != nil {
+			t.Fatalf("concurrent manifest = %v", err)
+		}
+		hasPermission, hasMenu := false, false
+		for _, permission := range manifest.Permissions {
+			hasPermission = hasPermission || permission == authorization.PermissionUsersRead
+		}
+		for _, menu := range manifest.Menus {
+			hasMenu = hasMenu || menu.PermissionCode == authorization.PermissionUsersRead
+		}
+		if hasPermission != hasMenu {
+			t.Fatal("manifest combined permission and menu from different snapshots")
+		}
+	}
+	if err := <-toggle; err != nil {
+		t.Fatal("manifest grant toggle failed")
 	}
 }
 

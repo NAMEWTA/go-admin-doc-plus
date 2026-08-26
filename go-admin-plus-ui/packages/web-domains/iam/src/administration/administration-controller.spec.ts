@@ -27,6 +27,10 @@ describe('administration controller', () => {
     const first = controller.createUser.run({ username: 'reader', displayName: 'Reader', email: 'reader@example.test', password: 'reader password' })
     expect(await controller.createUser.run({ username: 'reader', displayName: 'Reader', email: 'reader@example.test', password: 'reader password' })).toBe('busy')
     release(); expect(await first).toBe('submitted'); expect(api.createUser).toHaveBeenCalledTimes(1)
+    expect(await controller.createRole.run({ key: 'Bad Key', name: 'Invalid role', dataScope: 'all' })).toBe('invalid')
+    expect(await controller.createMenu.run({ key: '-invalid', label: 'Invalid menu', path: '/iam/invalid', permissionCode: 'iam.users.read', sortOrder: 1 })).toBe('invalid')
+    expect(await controller.updateRole({ id: 'role-000000000001', key: 'bad key', name: 'Invalid', dataScope: 'all', enabled: true, protected: false, permissionCodes: [], menuIds: [] })).toBe('invalid')
+    expect(api.createRole).not.toHaveBeenCalled(); expect(api.createMenu).not.toHaveBeenCalled(); expect(api.updateRole).not.toHaveBeenCalled()
   })
 
   it('guards direct commands and clears replacement passwords on every result', async () => {
@@ -71,7 +75,7 @@ describe('administration controller', () => {
 
   it('loads only administration projections granted by the manifest', async () => {
     const api = client()
-    vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'self', permissionCodes: ['iam.users.read', 'iam.manifest.read'], menus: [] })
+    vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'self', permissionCodes: ['iam.users.read', 'iam.roles.read', 'iam.menus.read', 'iam.permissions.read', 'iam.roles.assign', 'iam.manifest.read'], menus: [] })
     const controller = createAdministrationController(api, async () => true)
     await controller.refreshAuthorizationData()
     expect(controller.can('iam.users.read')).toBe(true)
@@ -79,5 +83,42 @@ describe('administration controller', () => {
     expect(api.listRoles).not.toHaveBeenCalled()
     expect(api.listMenus).not.toHaveBeenCalled()
     expect(api.listPermissions).not.toHaveBeenCalled()
+  })
+
+  it('records initial manifest failures and clears stale capabilities fail closed', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData()
+    expect(controller.can('iam.roles.read')).toBe(true)
+    vi.mocked(api.manifest).mockRejectedValueOnce(new AdministrationRequestError('relogin'))
+    await expect(controller.refreshAuthorizationData()).rejects.toBeInstanceOf(AdministrationRequestError)
+    expect(controller.failure()).toBe('relogin')
+    expect(controller.can('iam.users.read')).toBe(false)
+    expect(controller.can('iam.roles.read')).toBe(false)
+  })
+
+  it('repairs create, removal and command projections without repeating successful writes', async () => {
+    const createAPI = client(); const createController = createAdministrationController(createAPI, async () => true)
+    vi.mocked(createAPI.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    const model = { username: 'reader', displayName: 'Reader', email: 'reader@example.test', password: 'reader password' }
+    expect(await createController.createUser.run(model)).toBe('refresh-failed')
+    expect(createController.hasPendingRepair()).toBe(true)
+    expect(await createController.createUser.run({ ...model, username: 'invalid key' })).toBe('submitted')
+    expect(createAPI.createUser).toHaveBeenCalledTimes(1)
+    expect(createController.hasPendingRepair()).toBe(false)
+
+    const removeAPI = client(); const confirm = vi.fn(async () => true); const removeController = createAdministrationController(removeAPI, confirm)
+    vi.mocked(removeAPI.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    expect(await removeController.deleteUsers.run(['account-00000001'])).toBe('refresh-failed')
+    expect(await removeController.deleteUsers.run([])).toBe('completed')
+    expect(removeAPI.deleteUsers).toHaveBeenCalledTimes(1)
+    expect(confirm).toHaveBeenCalledTimes(1)
+
+    const commandAPI = client(); const commandConfirm = vi.fn(async () => true); const commandController = createAdministrationController(commandAPI, commandConfirm)
+    vi.mocked(commandAPI.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    const user = { id: 'account-00000001', username: 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }
+    expect(await commandController.updateUser(user, false)).toBe('refresh-failed')
+    expect(await commandController.updateUser(user, false)).toBe('completed')
+    expect(commandAPI.updateUser).toHaveBeenCalledTimes(1)
+    expect(commandConfirm).toHaveBeenCalledTimes(1)
   })
 })

@@ -30,6 +30,9 @@ var (
 const systemAdministratorKey = "system-admin"
 
 var menuPathPattern = regexp.MustCompile(`^/[a-z0-9][a-z0-9/_-]*$`)
+var stableKeyPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
+
+const maximumUserPage = 1_000_000
 
 type Database interface {
 	WithinTx(context.Context, func(context.Context, database.Tx) error) error
@@ -97,7 +100,7 @@ func NewService(db Database, authorizer *authorization.Service, options ...Optio
 }
 
 func (s *Service) ListUsers(ctx context.Context, actorID, search string, page, pageSize int) (Page[User], error) {
-	if page < 1 || pageSize < 1 || pageSize > 100 {
+	if page < 1 || page > maximumUserPage || pageSize < 1 || pageSize > 100 {
 		return Page[User]{}, ErrValidation
 	}
 	search = strings.ToLower(strings.TrimSpace(search))
@@ -419,8 +422,12 @@ func (s *Service) ResetPassword(ctx context.Context, actorID, userID, replacemen
 func (s *Service) ListRoles(ctx context.Context, actorID string) ([]Role, error) {
 	var result []Role
 	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if _, err := s.authorizer.RequireInTx(ctx, tx, actorID, authorization.PermissionRolesRead); err != nil {
+		decision, err := s.authorizer.RequireInTx(ctx, tx, actorID, authorization.PermissionRolesRead)
+		if err != nil {
 			return err
+		}
+		if decision.Scope != authorization.ScopeAll {
+			return ErrDenied
 		}
 		rows, err := tx.QueryContext(ctx, `SELECT id, role_key, name, data_scope, enabled, protected FROM iam_roles ORDER BY role_key`)
 		if err != nil {
@@ -447,9 +454,8 @@ func (s *Service) ListRoles(ctx context.Context, actorID string) ([]Role, error)
 }
 
 func (s *Service) CreateRole(ctx context.Context, actorID, key, name string, scope authorization.Scope) (Role, error) {
-	key = strings.ToLower(strings.TrimSpace(key))
 	name = strings.TrimSpace(name)
-	if len(key) < 3 || len(key) > 64 || name == "" || len(name) > 100 || scope != authorization.ScopeAll && scope != authorization.ScopeSelf {
+	if !validStableKey(key) || name == "" || len(name) > 100 || scope != authorization.ScopeAll && scope != authorization.ScopeSelf {
 		return Role{}, ErrValidation
 	}
 	value := Role{ID: uuid.NewString(), Key: key, Name: name, Scope: scope, Enabled: true, PermissionCodes: []string{}, MenuIDs: []string{}}
@@ -461,9 +467,8 @@ func (s *Service) CreateRole(ctx context.Context, actorID, key, name string, sco
 }
 
 func (s *Service) UpdateRole(ctx context.Context, actorID string, value Role) error {
-	value.Key = strings.ToLower(strings.TrimSpace(value.Key))
 	value.Name = strings.TrimSpace(value.Name)
-	if value.ID == "" || len(value.Key) < 3 || len(value.Key) > 64 || value.Name == "" || len(value.Name) > 100 || value.Scope != authorization.ScopeAll && value.Scope != authorization.ScopeSelf {
+	if value.ID == "" || !validStableKey(value.Key) || value.Name == "" || len(value.Name) > 100 || value.Scope != authorization.ScopeAll && value.Scope != authorization.ScopeSelf {
 		return ErrValidation
 	}
 	return s.write(ctx, actorID, authorization.PermissionRolesWrite, func(ctx context.Context, tx database.Tx) error {
@@ -561,8 +566,12 @@ func (s *Service) DeleteRole(ctx context.Context, actorID, roleID string) error 
 func (s *Service) ListMenus(ctx context.Context, actorID string) ([]Menu, error) {
 	var result []Menu
 	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if _, err := s.authorizer.RequireInTx(ctx, tx, actorID, authorization.PermissionMenusRead); err != nil {
+		decision, err := s.authorizer.RequireInTx(ctx, tx, actorID, authorization.PermissionMenusRead)
+		if err != nil {
 			return err
+		}
+		if decision.Scope != authorization.ScopeAll {
+			return ErrDenied
 		}
 		rows, err := tx.QueryContext(ctx, `SELECT id, menu_key, label, path, permission_code, sort_order, protected FROM iam_menus ORDER BY sort_order, menu_key`)
 		if err != nil {
@@ -582,7 +591,6 @@ func (s *Service) ListMenus(ctx context.Context, actorID string) ([]Menu, error)
 }
 
 func (s *Service) CreateMenu(ctx context.Context, actorID string, value Menu) (Menu, error) {
-	value.Key = strings.ToLower(strings.TrimSpace(value.Key))
 	value.Label = strings.TrimSpace(value.Label)
 	value.Path = strings.TrimSpace(value.Path)
 	value.PermissionCode = strings.TrimSpace(value.PermissionCode)
@@ -598,7 +606,6 @@ func (s *Service) CreateMenu(ctx context.Context, actorID string, value Menu) (M
 }
 
 func (s *Service) UpdateMenu(ctx context.Context, actorID string, value Menu) error {
-	value.Key = strings.ToLower(strings.TrimSpace(value.Key))
 	value.Label = strings.TrimSpace(value.Label)
 	value.Path = strings.TrimSpace(value.Path)
 	value.PermissionCode = strings.TrimSpace(value.PermissionCode)
@@ -662,8 +669,12 @@ func (s *Service) DeleteMenu(ctx context.Context, actorID, menuID string) error 
 func (s *Service) ListPermissions(ctx context.Context, actorID string) ([]Permission, error) {
 	var result []Permission
 	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if _, err := s.authorizer.RequireInTx(ctx, tx, actorID, authorization.PermissionPermissionsRead); err != nil {
+		decision, err := s.authorizer.RequireInTx(ctx, tx, actorID, authorization.PermissionPermissionsRead)
+		if err != nil {
 			return err
+		}
+		if decision.Scope != authorization.ScopeAll {
+			return ErrDenied
 		}
 		rows, err := tx.QueryContext(ctx, `SELECT code, name FROM iam_permissions ORDER BY code`)
 		if err != nil {
@@ -756,7 +767,11 @@ func validUser(username, displayName, email string) bool {
 }
 
 func validMenu(value Menu) bool {
-	return len(value.Key) >= 3 && len(value.Key) <= 64 && value.Label != "" && len(value.Label) <= 80 && len(value.Path) >= 2 && len(value.Path) <= 200 && menuPathPattern.MatchString(value.Path) && len(value.PermissionCode) >= 3 && len(value.PermissionCode) <= 100 && value.SortOrder >= 0 && value.SortOrder <= 100000
+	return validStableKey(value.Key) && value.Label != "" && len(value.Label) <= 80 && len(value.Path) >= 2 && len(value.Path) <= 200 && menuPathPattern.MatchString(value.Path) && len(value.PermissionCode) >= 3 && len(value.PermissionCode) <= 100 && value.SortOrder >= 0 && value.SortOrder <= 100000
+}
+
+func validStableKey(value string) bool {
+	return len(value) >= 3 && len(value) <= 64 && stableKeyPattern.MatchString(value)
 }
 
 func duplicate(values []string) bool {

@@ -182,6 +182,18 @@ func openAdministrationBrowserDB(t *testing.T, ctx context.Context, profile stri
 		_ = admin.Close()
 		t.Fatal("PostgreSQL harness schema failed")
 	}
+	var db *database.Database
+	t.Cleanup(func() {
+		if db != nil {
+			_ = db.Close()
+		}
+		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := admin.SQL().ExecContext(cleanup, `DROP SCHEMA IF EXISTS `+schema+` CASCADE`); err != nil {
+			t.Error("PostgreSQL harness cleanup failed")
+		}
+		_ = admin.Close()
+	})
 	parsed, err := pgx.ParseConfig(dsn)
 	if err != nil {
 		t.Fatal("PostgreSQL harness material invalid")
@@ -190,19 +202,10 @@ func openAdministrationBrowserDB(t *testing.T, ctx context.Context, profile stri
 		parsed.RuntimeParams = map[string]string{}
 	}
 	parsed.RuntimeParams["search_path"] = schema
-	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString()})
+	db, err = database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString()})
 	if err != nil {
 		t.Fatal("isolated PostgreSQL harness failed")
 	}
-	t.Cleanup(func() {
-		_ = db.Close()
-		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if _, err := admin.SQL().ExecContext(cleanup, `DROP SCHEMA IF EXISTS `+schema+` CASCADE`); err != nil {
-			t.Error("PostgreSQL harness cleanup failed")
-		}
-		_ = admin.Close()
-	})
 	return db
 }
 
