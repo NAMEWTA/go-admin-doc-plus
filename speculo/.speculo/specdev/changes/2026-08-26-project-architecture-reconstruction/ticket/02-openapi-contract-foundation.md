@@ -48,6 +48,8 @@ shared_path_owners: ["<Path>Taskfile.yml</Path> => T-02 (contract:lint and gener
 ### 已批准 Ticket 偏差
 
 - `T02-D01`：原路径合同无法实现已批准的 `task contract:lint generate:check` 和固定官方生成器。Lead/Ticket owner 于 2026-08-26 批准最小扩展：T-02 只新增这两个根任务及其精确 task-set 断言，只写入 oapi-codegen/生成 transport 所需的 Go module 记录、合同工具/客户端所需的 pnpm lock，并仅为实际 registry 当前版 `@redocly/cli@2.48.0` 增加精确 release-age allowlist；不改变 Spec、ADR、产品 API、安全策略或后续 owner 的其他职责。
+- `T02-D02`：首轮双轴审查证明 fragment 模板仍指向重构前 UI 目录，且不能表达 IAM 同一 owner 下的多个 fragment。Lead/Ticket owner 于 2026-08-26 批准只在既有模板、fixture 和合同工具路径内引入独立 fragment id 与显式 owner，并把模块 TypeScript 生成目标声明为 Spec 权威的 `<Path>go-admin-plus-ui/packages/domains/{owner}/src/**</Path>`；T-02 不写未来模块源码。
+- `T02-D03`：首轮双轴审查证明公开 `generate` 仍只运行施工期旧生成链。Lead/Ticket owner 于 2026-08-26 批准在既有根 `generate` Task 追加 canonical OpenAPI 生成步骤；旧生成器只在 expand 施工期保留并由 T-21 删除，不构成产品兼容合同。
 
 ### 未决问题
 
