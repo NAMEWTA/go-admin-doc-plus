@@ -8,17 +8,19 @@ import { checkGeneration, synchronizeGeneration } from './cli.mjs'
 
 const directory = dirname(fileURLToPath(import.meta.url))
 const fixture = name => join(directory, 'fixtures', name)
-const contractTemporaryDirectories = () => readdirSync(tmpdir())
+const generatedTemporaryDirectories = root => readdirSync(root)
   .filter(name => /^go-admin-(?:contract|generate|module|oapi)/.test(name))
   .sort()
 
 test('failed generation leaves existing outputs and temporary resources unchanged', () => {
   const outputRoot = mkdtempSync(join(tmpdir(), 'contract-state-output-'))
+  const isolatedTemporaryRoot = mkdtempSync(join(tmpdir(), 'contract-generator-tmp-'))
+  const previousTemporaryRoot = process.env.TMPDIR
+  process.env.TMPDIR = isolatedTemporaryRoot
   try {
     synchronizeGeneration(outputRoot, [fixture('valid-module.yaml')])
     const manifest = join(outputRoot, 'scripts', 'contracts', 'generated', 'manifest.json')
     const beforeManifest = readFileSync(manifest, 'utf8')
-    const beforeTemporaryDirectories = contractTemporaryDirectories()
 
     assert.throws(
       () => synchronizeGeneration(outputRoot, [fixture('invalid-module-owner.yaml')]),
@@ -26,9 +28,12 @@ test('failed generation leaves existing outputs and temporary resources unchange
     )
 
     assert.equal(readFileSync(manifest, 'utf8'), beforeManifest)
-    assert.deepEqual(contractTemporaryDirectories(), beforeTemporaryDirectories)
+    assert.deepEqual(generatedTemporaryDirectories(isolatedTemporaryRoot), [])
   } finally {
+    if (previousTemporaryRoot === undefined) delete process.env.TMPDIR
+    else process.env.TMPDIR = previousTemporaryRoot
     rmSync(outputRoot, { recursive: true, force: true })
+    rmSync(isolatedTemporaryRoot, { recursive: true, force: true })
   }
 })
 
@@ -44,6 +49,25 @@ test('detects and contracts outputs left by a removed module fragment', () => {
       outputRoot,
       'go-admin-plus-ui/packages/domains/contract-fixture/src/generated/client.ts'
     )), false)
+  } finally {
+    rmSync(outputRoot, { recursive: true, force: true })
+  }
+})
+
+test('keeps the shared manifest stable when module fragments are added', () => {
+  const outputRoot = mkdtempSync(join(tmpdir(), 'contract-state-output-'))
+  try {
+    synchronizeGeneration(outputRoot, [])
+    const sharedManifest = join(outputRoot, 'scripts', 'contracts', 'generated', 'manifest.json')
+    const canonical = readFileSync(sharedManifest, 'utf8')
+
+    synchronizeGeneration(outputRoot, [fixture('valid-module.yaml')])
+
+    assert.equal(readFileSync(sharedManifest, 'utf8'), canonical)
+    assert.ok(existsSync(join(
+      outputRoot,
+      'go-admin-plus/internal/modules/contract-fixture/transport/openapi.manifest.json'
+    )))
   } finally {
     rmSync(outputRoot, { recursive: true, force: true })
   }
@@ -80,10 +104,31 @@ test('rejects a manifest path outside the generated owner grammar without deleti
     manifest.outputs.push(...unmanagedPaths)
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-    assert.throws(() => synchronizeGeneration(outputRoot, []), /unmanaged output paths/)
+    assert.throws(() => synchronizeGeneration(outputRoot, []), /exactly the canonical output paths/)
     for (const path of unmanagedPaths) {
       assert.equal(readFileSync(join(outputRoot, path), 'utf8'), `keep ${path}`)
     }
+  } finally {
+    rmSync(outputRoot, { recursive: true, force: true })
+  }
+})
+
+test('rejects a module manifest that claims a sibling slice output', () => {
+  const outputRoot = mkdtempSync(join(tmpdir(), 'contract-state-output-'))
+  try {
+    synchronizeGeneration(outputRoot, [fixture('valid-nested-module.yaml')])
+    const manifestPath = join(
+      outputRoot,
+      'go-admin-plus/internal/modules/iam/session_v2/transport/openapi.manifest.json'
+    )
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    manifest.outputs[3] = 'go-admin-plus-ui/packages/domains/iam/src/administration/generated/client.ts'
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+
+    assert.throws(
+      () => synchronizeGeneration(outputRoot, [fixture('valid-nested-module.yaml')]),
+      /exactly its own generated outputs/
+    )
   } finally {
     rmSync(outputRoot, { recursive: true, force: true })
   }

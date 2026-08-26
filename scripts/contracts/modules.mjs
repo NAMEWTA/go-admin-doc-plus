@@ -19,8 +19,9 @@ export const parseManagedModuleOutput = value => {
     const directory = segments.at(-2)
     const filename = segments.at(-1)
     if (!moduleIdPattern.test(owner) || !validNestedSegments(nested) || directory !== 'transport') return undefined
-    if (filename === 'openapi.gen.go') return { kind: 'go-code', owner, value }
-    if (filename === 'openapi.json') return { kind: 'go-spec', owner, value }
+    if (filename === 'openapi.gen.go') return { kind: 'go-code', nested, owner, value }
+    if (filename === 'openapi.json') return { kind: 'go-spec', nested, owner, value }
+    if (filename === 'openapi.manifest.json') return { kind: 'go-manifest', nested, owner, value }
     return undefined
   }
 
@@ -33,7 +34,7 @@ export const parseManagedModuleOutput = value => {
     if (segments[generatedIndex] !== 'generated') return undefined
     const nested = segments.slice(5, generatedIndex)
     if (!validNestedSegments(nested)) return undefined
-    return { kind: hasFile ? 'typescript-file' : 'typescript-directory', owner, value }
+    return { kind: hasFile ? 'typescript-file' : 'typescript-directory', nested, owner, value }
   }
 
   return undefined
@@ -41,7 +42,8 @@ export const parseManagedModuleOutput = value => {
 
 export const isManagedGeneratedOutput = value => {
   const parsed = parseManagedModuleOutput(value)
-  return parsed?.kind === 'go-code' || parsed?.kind === 'go-spec' || parsed?.kind === 'typescript-file'
+  return parsed?.kind === 'go-code' || parsed?.kind === 'go-spec' ||
+    parsed?.kind === 'go-manifest' || parsed?.kind === 'typescript-file'
 }
 
 export const resolveModuleMetadata = (repositoryRoot, document, source = 'module contract') => {
@@ -74,6 +76,9 @@ export const resolveModuleMetadata = (repositoryRoot, document, source = 'module
   const parsedTypescriptOutput = parseManagedModuleOutput(codegen.typescriptOutput)
   if (parsedTypescriptOutput?.kind !== 'typescript-directory' || parsedTypescriptOutput.owner !== codegen.owner) {
     throw new Error(`${source}: TypeScript output must be a managed owner src path ending with generated`)
+  }
+  if (JSON.stringify(parsedGoOutput.nested) !== JSON.stringify(parsedTypescriptOutput.nested)) {
+    throw new Error(`${source}: Go and TypeScript outputs must use the same nested module path`)
   }
 
   return {
