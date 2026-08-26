@@ -52,7 +52,7 @@
       "owner": "codex-root",
       "approved_at": "2026-08-26T17:38:00+08:00",
       "reason": "The approved verification invokes root contract tasks and fixed official generators, but T-02 originally made Taskfile.yml and dependency lock manifests read-only",
-      "resolution": "Serialize the minimal root task registrations and exact Go/pnpm tool dependencies under T-02 without changing the Spec or ADR"
+      "resolution": "Serialize the minimal root task registrations, exact Go/pnpm dependencies, and the exact @redocly/cli@2.48.0 release-age allowlist under T-02 without weakening supply-chain policy or changing the Spec/ADR"
     }
   ],
   "worktrees": [
