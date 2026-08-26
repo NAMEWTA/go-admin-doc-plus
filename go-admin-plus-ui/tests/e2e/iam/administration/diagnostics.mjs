@@ -11,6 +11,23 @@ const sanitize = (value, fallback, maximum) => {
 }
 
 export const safeRunnerDiagnostic = (value) => sanitize(value, 'unknown runner failure', 200)
+export const safeBrowserDiagnostic = (value) => sanitize(value, 'unknown browser assertion', 160)
+
+const failures = new Set(['relogin', 'forbidden', 'validation', 'conflict', 'unavailable'])
+const alertCodes = new Map([
+  ['Your session must be renewed.', 'relogin'],
+  ['You do not have permission for that action.', 'forbidden'],
+  ['Review the submitted values.', 'validation'],
+  ['The resource changed or is protected.', 'conflict'],
+  ['The administration service is unavailable.', 'unavailable'],
+])
+
+export const administrationMountDiagnostic = ({ failure, canUsersRead, rows, total, loading, alertText }) => {
+  const failureCode = failures.has(failure) ? failure : 'none'
+  const alertCode = alertText ? alertCodes.get(alertText) ?? 'unrecognized' : 'none'
+  const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : -1
+  return `administration page did not load failure=${failureCode} can-users-read=${Boolean(canUsersRead)} rows=${count(rows)} total=${count(total)} loading=${Boolean(loading)} alert=${alertCode}`
+}
 
 export const browserDiagnostic = (output) => {
   const match = output.match(/IAM_ADMIN_E2E_FAIL\|ASSERTION\|([^<\r\n]{1,200})/)

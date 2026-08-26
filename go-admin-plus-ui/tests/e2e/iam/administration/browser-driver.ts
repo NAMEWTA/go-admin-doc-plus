@@ -2,21 +2,11 @@ import { createApp, h, type App, type Component } from 'vue'
 import { createSessionController } from '@go-admin/domain-iam/session'
 import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
+import { administrationMountDiagnostic, safeBrowserDiagnostic } from './diagnostics.mjs'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
-const safeDiagnostic = (error: unknown) => {
-  const message = typeof error === 'string' ? error : error instanceof Error ? error.message : 'unknown browser assertion'
-  return message
-    .replace(/\b(?:https?|postgres(?:ql)?):\/\/\S+/gi, '[redacted-url]')
-    .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
-    .replace(/\b(password|token|secret|cookie|authorization|dsn)\b\s*[:=]\s*\S+/gi, '$1=[redacted]')
-    .replace(/[^a-z0-9 .,:;_()[\]#@=?-]+/gi, '?')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 160) || 'unknown browser assertion'
-}
 const renderFailure = (error: unknown) => {
-  const diagnostic = safeDiagnostic(error)
+  const diagnostic = safeBrowserDiagnostic(error)
   const marker = `IAM_ADMIN_E2E_FAIL|ASSERTION|${diagnostic}`
   document.body.replaceChildren()
   const result = document.createElement('pre')
@@ -27,13 +17,13 @@ const renderFailure = (error: unknown) => {
 }
 const session = createSessionController(createWebSessionClient(fetch, '/api'))
 const control = async (path: string, method = 'GET') => { const response = await fetch(`/__test/${path}`, { method }); assert(response.ok, 'test control failed'); return response }
-const waitUntil = async (condition: () => boolean, message: string, timeout = 10_000) => {
+const waitUntil = async (condition: () => boolean, message: string | (() => string), timeout = 10_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
     if (condition()) return
     await new Promise((resolve) => setTimeout(resolve, 25))
   }
-  throw new Error(message)
+  throw new Error(typeof message === 'function' ? message() : message)
 }
 const element = <T extends Element>(selector: string) => {
   const result = document.querySelector<T>(selector)
@@ -68,7 +58,17 @@ const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdmin
   const controller = createAdministrationController(api, async () => { confirmations += 1; return true })
   const app = createApp({ render: () => h(AdministrationPage as Component, { controller }) })
   app.mount('#app')
-  await waitUntil(() => row(expectedUser) !== null, 'administration page did not load')
+  await waitUntil(() => row(expectedUser) !== null, () => {
+    const snapshot = controller.users.snapshot()
+    return administrationMountDiagnostic({
+      failure: controller.failure(),
+      canUsersRead: controller.can('iam.users.read'),
+      rows: snapshot.rows.length,
+      total: snapshot.total,
+      loading: snapshot.loading,
+      alertText: document.querySelector('[role="alert"]')?.textContent?.trim() ?? null,
+    })
+  })
   return { app, controller, api, confirmations: () => confirmations }
 }
 

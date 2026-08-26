@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { browserDiagnostic, runnerFailureLine, safeRunnerDiagnostic } from './diagnostics.mjs'
+import { administrationMountDiagnostic, browserDiagnostic, runnerFailureLine, safeRunnerDiagnostic } from './diagnostics.mjs'
 
 test('extracts a bounded browser assertion without replacing a string diagnostic', () => {
   const output = '<pre id="result">IAM_ADMIN_E2E_FAIL|ASSERTION|missing tab: roles</pre>'
@@ -29,4 +29,12 @@ test('runner lifecycle remains an honest no-op without required opt-in', () => {
   assert.equal(result.status, 0)
   assert.equal(result.stderr, '')
   assert.match(result.stdout, /^IAM_ADMIN_E2E_SKIP required opt-in is disabled\s*$/)
+})
+
+test('mount timeout exposes only stable controller state and known alert codes', () => {
+  assert.equal(administrationMountDiagnostic({ failure: 'forbidden', canUsersRead: false, rows: 0, total: 0, loading: false, alertText: 'You do not have permission for that action.' }),
+    'administration page did not load failure=forbidden can-users-read=false rows=0 total=0 loading=false alert=forbidden')
+  const unknown = administrationMountDiagnostic({ failure: 'unexpected-secret', canUsersRead: true, rows: 2, total: 9, loading: true, alertText: 'password=hunter2 https://private.example' })
+  assert.equal(unknown, 'administration page did not load failure=none can-users-read=true rows=2 total=9 loading=true alert=unrecognized')
+  assert.doesNotMatch(unknown, /hunter2|private\.example|password/)
 })
