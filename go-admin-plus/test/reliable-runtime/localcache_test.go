@@ -36,6 +36,10 @@ func TestLocalCacheIsBoundedClearableAndDisableable(t *testing.T) {
 	if cache.Len() != 0 {
 		t.Fatalf("Len() after Clear = %d", cache.Len())
 	}
+	metrics := cache.Snapshot()
+	if metrics.Hits != 1 || metrics.Misses != 2 || metrics.Evictions != 2 || metrics.Clears != 1 || metrics.Entries != 0 {
+		t.Fatalf("cache lifecycle Snapshot() = %#v", metrics)
+	}
 
 	disabled, err := localcache.New[string, int](localcache.Options{Disabled: true})
 	if err != nil {
@@ -57,7 +61,7 @@ func TestLocalCacheDisabledAndClearedUseTheSameSourceOfTruth(t *testing.T) {
 		}
 		return "allowed", nil
 	}
-	enabled, err := localcache.New[string, string](localcache.Options{Capacity: 4})
+	enabled, err := localcache.New[string, string](localcache.Options{Capacity: 4, TTL: time.Minute})
 	if err != nil {
 		t.Fatalf("New(enabled) error = %v", err)
 	}
@@ -88,7 +92,7 @@ func TestLocalCacheDisabledAndClearedUseTheSameSourceOfTruth(t *testing.T) {
 
 func TestLocalCacheConcurrentAccessRemainsBounded(t *testing.T) {
 	t.Parallel()
-	cache, err := localcache.New[int, int](localcache.Options{Capacity: 8})
+	cache, err := localcache.New[int, int](localcache.Options{Capacity: 8, TTL: time.Minute})
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
@@ -107,5 +111,40 @@ func TestLocalCacheConcurrentAccessRemainsBounded(t *testing.T) {
 	workers.Wait()
 	if cache.Len() > 8 {
 		t.Fatalf("concurrent cache Len() = %d, want <= 8", cache.Len())
+	}
+}
+
+func TestLocalCacheClearFencesInFlightLoadAndPublishesOnlyCounters(t *testing.T) {
+	t.Parallel()
+	cache, err := localcache.New[string, string](localcache.Options{Capacity: 1, TTL: time.Minute})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	loaded := make(chan error, 1)
+	go func() {
+		_, err := cache.GetOrLoad(context.Background(), "private-key", func(context.Context, string) (string, error) {
+			close(started)
+			<-release
+			return "private-value", nil
+		})
+		loaded <- err
+	}()
+	<-started
+	cache.Clear()
+	close(release)
+	if err := <-loaded; err != nil {
+		t.Fatalf("GetOrLoad() error = %v", err)
+	}
+	if _, ok := cache.Get("private-key"); ok {
+		t.Fatal("in-flight loader repopulated cache after Clear")
+	}
+	snapshot := cache.Snapshot()
+	if snapshot.Hits != 0 || snapshot.Misses != 2 || snapshot.Loads != 1 || snapshot.Clears != 1 || snapshot.Entries != 0 {
+		t.Fatalf("Snapshot() = %#v", snapshot)
+	}
+	if _, err := localcache.New[string, string](localcache.Options{Capacity: 1}); err == nil {
+		t.Fatal("enabled cache accepted an unlimited TTL")
 	}
 }

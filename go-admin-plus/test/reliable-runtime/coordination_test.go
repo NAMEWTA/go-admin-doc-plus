@@ -4,11 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 	"testing"
 
 	"go-admin/internal/platform/coordination"
 )
+
+func TestCoordinationConfigCannotSelectAnotherAdvisoryKey(t *testing.T) {
+	t.Parallel()
+	if _, configurable := reflect.TypeFor[coordination.Config]().FieldByName("AdvisoryKey"); configurable {
+		t.Fatal("coordination Config exposes an advisory key bypass")
+	}
+}
 
 func TestSQLiteAllowsOneExecutorAndTakeoverAfterRelease(t *testing.T) {
 	t.Parallel()

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,17 +26,32 @@ type entry[K comparable, V any] struct {
 }
 
 type Cache[K comparable, V any] struct {
-	mu       sync.Mutex
-	items    map[K]*list.Element
-	order    *list.List
-	capacity int
-	ttl      time.Duration
-	disabled bool
-	now      func() time.Time
+	mu         sync.Mutex
+	items      map[K]*list.Element
+	order      *list.List
+	capacity   int
+	ttl        time.Duration
+	disabled   bool
+	now        func() time.Time
+	generation uint64
+	hits       atomic.Uint64
+	misses     atomic.Uint64
+	loads      atomic.Uint64
+	evictions  atomic.Uint64
+	clears     atomic.Uint64
+}
+
+type Snapshot struct {
+	Hits      uint64
+	Misses    uint64
+	Loads     uint64
+	Evictions uint64
+	Clears    uint64
+	Entries   int
 }
 
 func New[K comparable, V any](options Options) (*Cache[K, V], error) {
-	if !options.Disabled && (options.Capacity < 1 || options.TTL < 0) {
+	if !options.Disabled && (options.Capacity < 1 || options.TTL <= 0) {
 		return nil, errors.New("local cache options are invalid")
 	}
 	now := options.Now
@@ -50,21 +66,29 @@ func New[K comparable, V any](options Options) (*Cache[K, V], error) {
 
 func (c *Cache[K, V]) Get(key K) (V, bool) {
 	var zero V
-	if c == nil || c.disabled {
+	if c == nil {
+		return zero, false
+	}
+	if c.disabled {
+		c.misses.Add(1)
 		return zero, false
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	element, ok := c.items[key]
 	if !ok {
+		c.misses.Add(1)
 		return zero, false
 	}
 	item := element.Value.(entry[K, V])
 	if !item.expiresAt.IsZero() && !c.now().Before(item.expiresAt) {
 		c.remove(element)
+		c.evictions.Add(1)
+		c.misses.Add(1)
 		return zero, false
 	}
 	c.order.MoveToFront(element)
+	c.hits.Add(1)
 	return item.value, true
 }
 
@@ -74,20 +98,7 @@ func (c *Cache[K, V]) Set(key K, value V) {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	expiresAt := time.Time{}
-	if c.ttl > 0 {
-		expiresAt = c.now().Add(c.ttl)
-	}
-	if element, ok := c.items[key]; ok {
-		element.Value = entry[K, V]{key: key, value: value, expiresAt: expiresAt}
-		c.order.MoveToFront(element)
-		return
-	}
-	element := c.order.PushFront(entry[K, V]{key: key, value: value, expiresAt: expiresAt})
-	c.items[key] = element
-	for c.order.Len() > c.capacity {
-		c.remove(c.order.Back())
-	}
+	c.setLocked(key, value)
 }
 
 // GetOrLoad makes the source loader the correctness path. Disabled, empty, expired, and cleared
@@ -100,11 +111,25 @@ func (c *Cache[K, V]) GetOrLoad(ctx context.Context, key K, loader Loader[K, V])
 	if loader == nil {
 		return zero, errors.New("local cache loader is required")
 	}
+	if c == nil {
+		return loader(ctx, key)
+	}
+	c.mu.Lock()
+	generation := c.generation
+	c.mu.Unlock()
+	c.loads.Add(1)
 	value, err := loader(ctx, key)
 	if err != nil {
 		return zero, err
 	}
-	c.Set(key, value)
+	if c.disabled {
+		return value, nil
+	}
+	c.mu.Lock()
+	if c.generation == generation {
+		c.setLocked(key, value)
+	}
+	c.mu.Unlock()
 	return value, nil
 }
 
@@ -114,6 +139,8 @@ func (c *Cache[K, V]) Clear() {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.generation++
+	c.clears.Add(1)
 	clear(c.items)
 	c.order.Init()
 }
@@ -131,11 +158,38 @@ func (c *Cache[K, V]) Len() int {
 			item := element.Value.(entry[K, V])
 			if !now.Before(item.expiresAt) {
 				c.remove(element)
+				c.evictions.Add(1)
 			}
 			element = previous
 		}
 	}
 	return c.order.Len()
+}
+
+// Snapshot returns aggregate performance counters without retaining or exposing cache keys/values.
+func (c *Cache[K, V]) Snapshot() Snapshot {
+	if c == nil {
+		return Snapshot{}
+	}
+	return Snapshot{
+		Hits: c.hits.Load(), Misses: c.misses.Load(), Loads: c.loads.Load(),
+		Evictions: c.evictions.Load(), Clears: c.clears.Load(), Entries: c.Len(),
+	}
+}
+
+func (c *Cache[K, V]) setLocked(key K, value V) {
+	expiresAt := c.now().Add(c.ttl)
+	if element, ok := c.items[key]; ok {
+		element.Value = entry[K, V]{key: key, value: value, expiresAt: expiresAt}
+		c.order.MoveToFront(element)
+		return
+	}
+	element := c.order.PushFront(entry[K, V]{key: key, value: value, expiresAt: expiresAt})
+	c.items[key] = element
+	for c.order.Len() > c.capacity {
+		c.remove(c.order.Back())
+		c.evictions.Add(1)
+	}
 }
 
 func (c *Cache[K, V]) remove(element *list.Element) {

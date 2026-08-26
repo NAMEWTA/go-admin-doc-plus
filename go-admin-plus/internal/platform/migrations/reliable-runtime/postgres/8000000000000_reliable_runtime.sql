@@ -10,9 +10,12 @@ CREATE TABLE reliable_outbox (
     occurred_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL,
     claimed_by text,
+    claim_token text,
     claim_until timestamptz,
     delivered_at timestamptz,
     last_error_code text,
+    CHECK ((state = 'claimed' AND claimed_by IS NOT NULL AND claim_token ~ '^[0-9a-f]{32}$' AND claim_until IS NOT NULL)
+        OR (state <> 'claimed' AND claimed_by IS NULL AND claim_token IS NULL AND claim_until IS NULL)),
     UNIQUE (topic, business_key)
 );
 CREATE INDEX reliable_outbox_ready_idx

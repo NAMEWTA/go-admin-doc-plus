@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -122,20 +123,19 @@ func TestExpiredClaimRecoversAndConsumerDeliveryIsTransactional(t *testing.T) {
 		t.Fatalf("recovered claim = %#v", second)
 	}
 
-	consumerFailure := errors.New("consumer internal detail")
-	consumer := effectConsumer{name: "projector", fail: consumerFailure}
+	consumer := newEffectConsumer(t, true)
 	err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
 		_, err := store.Deliver(ctx, tx, second[0], consumer, now.Add(2*time.Minute))
 		return err
 	})
-	if !errors.Is(err, outbox.ErrConsumerFailed) || errors.Is(err, consumerFailure) {
+	if !errors.Is(err, outbox.ErrConsumerFailed) || strings.Contains(err.Error(), "missing_effect_target") {
 		t.Fatalf("Deliver() error = %v", err)
 	}
 	assertEffectCalls(t, db, event.BusinessKey, 0)
 
 	retryAt := now.Add(3 * time.Minute)
 	if err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
-		return store.Retry(ctx, tx, second[0], retryAt, "consumer_failed")
+		return store.Retry(ctx, tx, second[0], now.Add(2*time.Minute), retryAt, "consumer_failed")
 	}); err != nil {
 		t.Fatalf("Retry() error = %v", err)
 	}
@@ -143,7 +143,7 @@ func TestExpiredClaimRecoversAndConsumerDeliveryIsTransactional(t *testing.T) {
 		t.Fatalf("event claimed before retry time: %#v", got)
 	}
 	third := claimEvents(t, db, store, outbox.ClaimOptions{Owner: "worker-c", Now: retryAt, Lease: time.Minute, Limit: 1})
-	consumer.fail = nil
+	consumer = newEffectConsumer(t, false)
 	if err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
 		delivered, err := store.Deliver(ctx, tx, third[0], consumer, retryAt)
 		if err != nil || !delivered {
@@ -172,19 +172,135 @@ func TestExpiredClaimRecoversAndConsumerDeliveryIsTransactional(t *testing.T) {
 	assertEffectCalls(t, db, event.BusinessKey, 1)
 }
 
-type effectConsumer struct {
-	name string
-	fail error
+func TestExpiredOwnerCannotSettleOrRunConsumer(t *testing.T) {
+	t.Parallel()
+	db := openReliableSQLite(t)
+	if _, err := db.SQL().Exec(`CREATE TABLE effects (business_key TEXT PRIMARY KEY, calls INTEGER NOT NULL)`); err != nil {
+		t.Fatalf("create effects: %v", err)
+	}
+	store := outbox.NewStore(db)
+	now := time.Date(2026, 8, 26, 14, 30, 0, 0, time.UTC)
+	event := reliableEvent("event-expired-1", "order:expired", now)
+	enqueueEvent(t, db, store, event)
+	record := claimEvents(t, db, store, outbox.ClaimOptions{Owner: "worker-a", Now: now, Lease: time.Minute, Limit: 1})[0]
+	expiredAt := now.Add(time.Minute)
+	consumer := newEffectConsumer(t, false)
+	err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		_, err := store.Deliver(ctx, tx, record, consumer, expiredAt)
+		return err
+	})
+	if !errors.Is(err, outbox.ErrClaimLost) {
+		t.Fatalf("Deliver(expired) error = %v", err)
+	}
+	assertEffectCalls(t, db, event.BusinessKey, 0)
+	err = db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		return store.Retry(ctx, tx, record, expiredAt, expiredAt.Add(time.Minute), "consumer_failed")
+	})
+	if !errors.Is(err, outbox.ErrClaimLost) {
+		t.Fatalf("Retry(expired) error = %v", err)
+	}
+	stored, found, err := store.Lookup(context.Background(), event.ID)
+	if err != nil || !found || stored.State != outbox.StateClaimed {
+		t.Fatalf("expired record = %#v, found %v, err %v", stored, found, err)
+	}
 }
 
-func (c effectConsumer) Name() string { return c.name }
-
-func (c effectConsumer) Handle(ctx context.Context, tx database.Tx, event outbox.Event) error {
-	if _, err := tx.ExecContext(ctx, `INSERT INTO effects (business_key, calls) VALUES (?, 1)
-		ON CONFLICT (business_key) DO UPDATE SET calls = effects.calls + 1`, event.BusinessKey); err != nil {
-		return err
+func TestClaimTokenFencesReusedOwner(t *testing.T) {
+	t.Parallel()
+	db := openReliableSQLite(t)
+	if _, err := db.SQL().Exec(`CREATE TABLE effects (business_key TEXT PRIMARY KEY, calls INTEGER NOT NULL)`); err != nil {
+		t.Fatalf("create effects: %v", err)
 	}
-	return c.fail
+	store := outbox.NewStore(db)
+	now := time.Date(2026, 8, 26, 14, 40, 0, 0, time.UTC)
+	event := reliableEvent("event-token-fence-1", "order:token-fence", now)
+	enqueueEvent(t, db, store, event)
+	stale := claimEvents(t, db, store, outbox.ClaimOptions{Owner: "worker-a", Now: now, Lease: time.Minute, Limit: 1})[0]
+	current := claimEvents(t, db, store, outbox.ClaimOptions{Owner: "worker-a", Now: now.Add(2 * time.Minute), Lease: time.Minute, Limit: 1})[0]
+	if current.Attempts != 2 || current.ClaimedBy != stale.ClaimedBy {
+		t.Fatalf("same-owner reclaim = %#v", current)
+	}
+	err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		_, err := store.Deliver(ctx, tx, stale, newEffectConsumer(t, false), now.Add(2*time.Minute))
+		return err
+	})
+	if !errors.Is(err, outbox.ErrClaimLost) {
+		t.Fatalf("Deliver(stale token) error = %v", err)
+	}
+	assertEffectCalls(t, db, event.BusinessKey, 0)
+	err = db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		return store.Retry(ctx, tx, stale, now.Add(2*time.Minute), now.Add(3*time.Minute), "consumer_failed")
+	})
+	if !errors.Is(err, outbox.ErrClaimLost) {
+		t.Fatalf("Retry(stale token) error = %v", err)
+	}
+}
+
+func TestOccurredAtUsesPostgresStableMicrosecondPrecision(t *testing.T) {
+	t.Parallel()
+	db := openReliableSQLite(t)
+	store := outbox.NewStore(db)
+	invalid := reliableEvent("event-nanos-1", "order:nanos", time.Date(2026, 8, 26, 14, 45, 0, 123456789, time.UTC))
+	err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		_, err := store.Enqueue(ctx, tx, invalid)
+		return err
+	})
+	if !errors.Is(err, outbox.ErrInvalidEvent) {
+		t.Fatalf("Enqueue(nanoseconds) error = %v", err)
+	}
+	valid := reliableEvent("event-micros-1", "order:micros", time.Date(2026, 8, 26, 14, 45, 0, 123456000, time.UTC))
+	enqueueEvent(t, db, store, valid)
+	if err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		created, err := store.Enqueue(ctx, tx, valid)
+		if err != nil || created {
+			return errors.New("microsecond replay was not idempotent")
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("Enqueue(microsecond replay) error = %v", err)
+	}
+}
+
+func TestEventPayloadRejectsNestedSensitiveFields(t *testing.T) {
+	t.Parallel()
+	db := openReliableSQLite(t)
+	store := outbox.NewStore(db)
+	now := time.Date(2026, 8, 26, 14, 50, 0, 0, time.UTC)
+	payloads := [][]byte{
+		[]byte(`{"password":"value"}`),
+		[]byte(`{"profile":{"client_secret":"value"}}`),
+		[]byte(`{"items":[{"raw_session":"value"}]}`),
+		[]byte(`{"access-token":"value"}`),
+		[]byte(`{"credential_bundle":"value"}`),
+	}
+	for index, payload := range payloads {
+		event := reliableEvent(fmt.Sprintf("event-sensitive-%d", index), fmt.Sprintf("order:sensitive:%d", index), now)
+		event.Payload = payload
+		err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+			_, err := store.Enqueue(ctx, tx, event)
+			return err
+		})
+		if !errors.Is(err, outbox.ErrInvalidEvent) {
+			t.Fatalf("Enqueue(payload %s) error = %v", payload, err)
+		}
+	}
+}
+
+func newEffectConsumer(t *testing.T, fail bool) outbox.TransactionalConsumer {
+	t.Helper()
+	statements := []outbox.Statement{{
+		Query: `INSERT INTO effects (business_key, calls) VALUES (?, 1)
+			ON CONFLICT (business_key) DO UPDATE SET calls = effects.calls + 1`,
+		Arguments: []outbox.EventField{outbox.FieldBusinessKey},
+	}}
+	if fail {
+		statements = append(statements, outbox.Statement{Query: `INSERT INTO missing_effect_target (value) VALUES (1)`})
+	}
+	consumer, err := outbox.NewTransactionalConsumer("projector", statements...)
+	if err != nil {
+		t.Fatalf("NewTransactionalConsumer() error = %v", err)
+	}
+	return consumer
 }
 
 func reliableEvent(id, businessKey string, at time.Time) outbox.Event {

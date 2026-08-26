@@ -13,7 +13,9 @@ import (
 	"go-admin/internal/platform/database"
 )
 
-const DefaultAdvisoryKey int64 = 0x676f61646d696e
+// workerAdvisoryKey is intentionally not configurable: every deployment must contend for the
+// same scheduler/outbox execution right.
+const workerAdvisoryKey int64 = 0x676f61646d696e
 
 var (
 	ErrInvalidConfig = errors.New("executor coordination config is invalid")
@@ -27,8 +29,7 @@ var (
 )
 
 type Config struct {
-	Owner       string
-	AdvisoryKey int64
+	Owner string
 }
 
 type Lease struct {
@@ -43,10 +44,6 @@ type Lease struct {
 func Acquire(ctx context.Context, db *database.Database, config Config) (*Lease, error) {
 	if db == nil || !ownerPattern.MatchString(config.Owner) {
 		return nil, ErrInvalidConfig
-	}
-	key := config.AdvisoryKey
-	if key == 0 {
-		key = DefaultAdvisoryKey
 	}
 	switch db.Dialect() {
 	case database.DialectSQLite:
@@ -63,7 +60,7 @@ func Acquire(ctx context.Context, db *database.Database, config Config) (*Lease,
 			return nil, coordinationError(ctx, "executor connection failed", err)
 		}
 		var acquired bool
-		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock(?)`, key).Scan(&acquired); err != nil {
+		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock(?)`, workerAdvisoryKey).Scan(&acquired); err != nil {
 			_ = conn.Close()
 			return nil, coordinationError(ctx, "executor lease acquisition failed", err)
 		}
@@ -71,7 +68,7 @@ func Acquire(ctx context.Context, db *database.Database, config Config) (*Lease,
 			_ = conn.Close()
 			return nil, ErrNotLeader
 		}
-		return &Lease{db: db, conn: conn, postgres: true, advisoryKey: key}, nil
+		return &Lease{db: db, conn: conn, postgres: true, advisoryKey: workerAdvisoryKey}, nil
 	default:
 		return nil, ErrInvalidConfig
 	}
