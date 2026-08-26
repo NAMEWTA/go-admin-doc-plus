@@ -302,6 +302,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-03 implementation owner 已返回 clean source checkpoint `48a97ff77f0f07501fe7492a6fa4aaee59255f0c`；固定审查范围为 `27a186cbda7e77c403b3c64074260a10e924ee92..48a97ff77f0f07501fe7492a6fa4aaee59255f0c`，12 个文件均在授权路径内，source Go 普通/SQLite/race/vet/build 与 mod verify 全部通过，required process E2E 保持 pending。
 - T05-D02 修正后 implementation owner 返回新的 clean source checkpoint `89683cc1e7defdf5cfcc5564e62a43e6296787c0`；browser runtime adapter 已迁入公开 workspace package，Desktop 仅预建 manifest，Admin Web 不再拥有 transport。双轴审查重新固定为 `27a186cbda7e77c403b3c64074260a10e924ee92..89683cc1e7defdf5cfcc5564e62a43e6296787c0`。
 - T-03 规范轴初审 pass；标准轴对 `27a186c..48a97ff` 返回 fail：1 high（公开 config input/Desktop material 可被 JSON/slog 结构化序列化泄密）、2 medium（非 GET 在 405 前执行 dependency probe；并发安全合同缺少实际并发/race 场景）。旧 checkpoint 失效并退回原 owner 修正。
+- T-05 规范轴在 T05-D02 后 pass；标准轴对 `27a186c..89683cc` 返回 fail：1 high（写入成功后 refresh 失败误报为写失败，可能诱发重复写）、2 medium（乱序导航覆盖新状态；identity 响应未知 credential 字段未 fail closed）、1 low（列表 stale request/error 语义未固定）。旧 checkpoint 失效并退回原 owner 全部修正。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
