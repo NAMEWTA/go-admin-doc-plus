@@ -34,7 +34,7 @@ const run = async () => {
   }
   const client = createWebAuditClient(authenticatedFetch, new URL('/api', baseURL).toString())
   const denied = createAuditController(client, async () => false)
-  assert(await denied.cleanup('2026-06-01T00:00:00Z') === 'cancelled', 'Audit E2E confirmation rejection failed')
+  assert(await denied.cleanup(auditFixture.cleanupBefore) === 'cancelled', 'Audit E2E confirmation rejection failed')
   assert((await snapshot()).count === auditFixture.initialFactCount, 'Audit E2E rejected cleanup changed state')
 
   const controller = createAuditController(client, async () => true)
@@ -45,7 +45,7 @@ const run = async () => {
   assert(detail.action === 'update' && detail.source === 'web', 'Audit E2E detail failed')
   assert(!JSON.stringify(detail).includes('payload') && !JSON.stringify(detail).includes('businessKey'), 'Audit E2E detail leaked envelope')
 
-  assert(await controller.cleanup('2026-06-01T00:00:00Z') === 'completed', 'Audit E2E cleanup failed')
+  assert(await controller.cleanup(auditFixture.cleanupBefore) === 'completed', 'Audit E2E cleanup failed')
   assert(controller.lastCleanup()?.deleted === 1, 'Audit E2E cleanup result failed')
   assert(controller.list.snapshot().total === 0, 'Audit E2E cleanup did not refresh list')
   assert((await snapshot()).count === auditFixture.postCleanupFactCount, 'Audit E2E cleanup removed recent login facts')

@@ -25,10 +25,18 @@ import (
 )
 
 const (
-	auditE2EServeEnv   = "GO_ADMIN_AUDIT_E2E_SERVE"
-	auditE2EProfileEnv = "GO_ADMIN_AUDIT_E2E_PROFILE"
-	auditE2EReadyEnv   = "GO_ADMIN_AUDIT_E2E_READY_FILE"
-	auditE2EStaticEnv  = "GO_ADMIN_AUDIT_E2E_STATIC_DIR"
+	auditE2EServeEnv        = "GO_ADMIN_AUDIT_E2E_SERVE"
+	auditE2EProfileEnv      = "GO_ADMIN_AUDIT_E2E_PROFILE"
+	auditE2EReadyEnv        = "GO_ADMIN_AUDIT_E2E_READY_FILE"
+	auditE2EStaticEnv       = "GO_ADMIN_AUDIT_E2E_STATIC_DIR"
+	auditUIInitialFacts     = 3
+	auditUIPostCleanupFacts = 2
+)
+
+var (
+	auditUIFixtureTime   = time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
+	auditUIOperationTime = auditUIFixtureTime.Add(-60 * 24 * time.Hour)
+	auditUICleanupBefore = time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC)
 )
 
 type auditHarnessClock struct {
@@ -81,6 +89,60 @@ func (clock *auditHarnessClock) advance(duration time.Duration) {
 	clock.mu.Unlock()
 }
 
+func TestAuditUIFixtureCleanupDeletesOnlyExpiredOperation(t *testing.T) {
+	const minimumAge = 30 * 24 * time.Hour
+	cutoff := auditUIFixtureTime.Add(31 * time.Minute).Add(-minimumAge)
+	if !auditUIOperationTime.Before(auditUICleanupBefore) || auditUICleanupBefore.After(cutoff) {
+		t.Fatalf("invalid Audit cleanup fixture window: operation=%s before=%s cutoff=%s", auditUIOperationTime, auditUICleanupBefore, cutoff)
+	}
+
+	ctx := context.Background()
+	db := openSQLite(t)
+	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
+	createAuditIAMFixture(t, db, auditUIFixtureTime)
+	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions, err := session.NewService(db, policy, session.WithClock(func() time.Time { return auditUIFixtureTime }), session.WithLoginFactPort(loginFacts))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sessions.Login(ctx, "missing", "incorrect password"); !errors.Is(err, session.ErrCredentials) {
+		t.Fatal("failed login fixture was not recorded")
+	}
+	if _, err := sessions.Login(ctx, "admin", "correct horse battery"); err != nil {
+		t.Fatal("successful login fixture was not recorded")
+	}
+	store := newAuditStore(t, db)
+	enqueue(t, db, store, outbox.Event{ID: "audit-ui-window-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: auditUIOperationTime})
+	dispatch(t, db, store, mustConsumers(t), auditUIFixtureTime)
+	if count := countAuditRows(t, db, "audit_facts"); count != auditUIInitialFacts {
+		t.Fatalf("initial Audit fixture count = %d", count)
+	}
+	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: minimumAge, CleanupLimit: 10, Now: func() time.Time { return auditUIFixtureTime.Add(31 * time.Minute) }})
+	result, err := service.Cleanup(ctx, audit.Principal{ID: "auditor-00000001"}, audit.CleanupCommand{Before: auditUICleanupBefore, Confirmation: audit.CleanupConfirmation})
+	if err != nil || result.Deleted != 1 || result.MoreEligible {
+		t.Fatalf("cleanup result = %#v, %v", result, err)
+	}
+	if count := countAuditRows(t, db, "audit_facts"); count != auditUIPostCleanupFacts {
+		t.Fatalf("post-cleanup Audit fixture count = %d", count)
+	}
+	page, err := service.List(ctx, audit.Principal{ID: "auditor-00000001"}, audit.Filter{Page: 1, PageSize: 20})
+	if err != nil || len(page.Records) != auditUIPostCleanupFacts {
+		t.Fatalf("remaining Audit fixture = %#v, %v", page, err)
+	}
+	for _, fact := range page.Records {
+		if fact.Kind != audit.KindLogin {
+			t.Fatalf("cleanup retained non-login fact: %#v", fact)
+		}
+	}
+}
+
 // TestAuditUIHarnessServer is the tracked required-E2E host. Source gates compile it and skip;
 // the Lead-owned runner opts in for both SQLite and PostgreSQL and drives the actual Web client
 // and controller against this real Outbox-to-Audit process.
@@ -113,7 +175,7 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	db := openAuditUIHarnessDatabase(t, ctx, profile)
 	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
 	store := newAuditStore(t, db)
-	fixtureTime := time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
+	fixtureTime := auditUIFixtureTime
 	clock := &auditHarnessClock{now: fixtureTime}
 	createAuditIAMFixture(t, db, fixtureTime)
 	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
@@ -131,7 +193,7 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	if _, err := sessions.Login(ctx, "missing", "incorrect password"); !errors.Is(err, session.ErrCredentials) {
 		t.Fatal("seed failed login fact failed")
 	}
-	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: fixtureTime.Add(-60 * 24 * time.Hour)})
+	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: auditUIOperationTime})
 	dispatch(t, db, store, mustConsumers(t), fixtureTime)
 
 	permissionAdapter, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))

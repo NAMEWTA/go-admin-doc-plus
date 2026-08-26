@@ -77,7 +77,7 @@ const driver = {
 
     const before = document.querySelector<HTMLInputElement>('[data-testid="audit-cleanup-before"]')
     assert(before, 'Audit cleanup boundary is unavailable')
-    before.value = '2026-06-01'
+    before.value = auditFixture.cleanupBefore.slice(0, 10)
     before.dispatchEvent(new Event('input', { bubbles: true }))
 		await new Promise((resolvePromise) => setTimeout(resolvePromise, 0))
 
