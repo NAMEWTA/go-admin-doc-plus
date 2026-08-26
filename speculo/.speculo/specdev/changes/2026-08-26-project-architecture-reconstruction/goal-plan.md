@@ -310,6 +310,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-05 双轴复审对 `27a186c..5b7b4f4` pass、0 findings；首次 parent-candidate `f2bbd5211eada20b8ddc3762cba680bc7944ceae` 的 pnpm 全门禁和功能浏览器断言通过，但 Lead 截图检查发现 390px 视口导航隐式 grid row 被拉伸至近半屏。required visual E2E 判定失败，candidate 未提升并已清理，checkpoint 退回原 owner 修正并补导航高度断言。
 - T-05 原 owner 以 `a648baf851d25861ac04eef688b8856fcf439b71` 修正移动 grid rows 并增加静态样式合同；source `pnpm verify` 全绿且 clean，最终双轴复审固定为 `27a186c..a648baf`，第二次 candidate 将把 390px nav 高度上限纳入 required browser E2E。
 - T-05 第二次 candidate frozen install 暴露根 `.gitignore` 仍漏掉 pnpm 子 package `node_modules` symlink。Lead 在 T-01 已有所有权内以 `3bc0dd5fe13a6e215caf6f95781482152ccfc279` 补齐 `<Path>go-admin-plus-ui/**/node_modules/</Path>`；该父分支纠正将合入当前 candidate 后继续 clean-tree/browser 门禁。
+- T-05 第二次 parent-candidate 已在纳入最新父分支治理修正后固定为 `d5d10dda68fb6b49850c7442bf036b195ba1d202`（tree `0511250c439a3233d9217fb41de598dfdc17dadb`）。24-workspace frozen install、lint/type、22 项 unit、6 项 boundary、build、合同生成、治理、SpecDev 校验与真实 Chromium desktop/mobile E2E 全部通过；390px 导航高度为 71px 且无溢出。`main` 已从 `c2260191c86942f859088d15b9a3ba9af96c975b` 以 `--ff-only` 晋升到同一 result，T-05 状态为 `done`。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
