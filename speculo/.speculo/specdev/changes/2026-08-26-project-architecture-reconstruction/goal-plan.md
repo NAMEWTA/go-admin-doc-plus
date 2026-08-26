@@ -287,7 +287,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - Goal Plan 已选择 `required/candidate-merge`，Lead 为 `codex-root`，implementation agent 上限 3，integration attempt 上限 3。
 - G-BASELINE 已完成：原始 170 项 tracked 改动和 6 个 untracked 条目经 secret/大文件/生成物审计后，形成 `main@888900751ab2b04d2db5fa8d5e6a6b811599ce93` 不可变基线。
 - 基线 Go test、前端 unit/type/lint/build 与 Goal Plan validator 已实测通过，validator 结果为 0 error / 0 warning。
-- 当前 Gate 为 `G0 in-progress`；T-01 source worktree 已创建于 `specdev-worktree/2026-08-26-project-architecture-reconstruction/T-01`，尚未形成 source commit、candidate 或 result SHA。
+- 当前 Gate 为 `G0 review`；T-01 source commit 已固定为 `8cf3d431c47f1d9cd9fdc4e7e927f2529b4fd51d`，尚未形成 candidate 或 result SHA。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers

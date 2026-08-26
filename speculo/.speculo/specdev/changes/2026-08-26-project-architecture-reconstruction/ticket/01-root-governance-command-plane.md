@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-01
 title: 根级产品治理与统一命令面
-status: in_progress
+status: review
 planning_depth: deep
 planning_depth_reason: 根级共享路径、治理资产迁移和后续全部 Ticket 的命令合同具有高事故半径
 ready: true
