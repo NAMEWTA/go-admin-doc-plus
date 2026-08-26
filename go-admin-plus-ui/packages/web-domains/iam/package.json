@@ -5,15 +5,17 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./session": "./src/session/index.ts"
+    "./session": "./src/session/index.ts",
+    "./administration": "./src/administration/index.ts"
   },
   "dependencies": {
     "@go-admin/domain-iam": "workspace:*",
+    "@go-admin/ui": "workspace:*",
     "vue": "catalog:"
   },
   "scripts": {
-    "test": "vitest run src/session",
-    "typecheck": "vue-tsc -p src/session/tsconfig.json"
+    "test": "vitest run src/session src/administration",
+    "typecheck": "vue-tsc -p src/session/tsconfig.json && vue-tsc -p src/administration/tsconfig.json"
   },
   "devDependencies": {
     "@vue/compiler-sfc": "catalog:",
