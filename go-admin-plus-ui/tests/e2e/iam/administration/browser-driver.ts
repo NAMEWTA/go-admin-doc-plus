@@ -1,4 +1,4 @@
-import { createApp, h, type App, type Component } from 'vue'
+import { createApp, h, nextTick, type App, type Component } from 'vue'
 import { createSessionController } from '@go-admin/domain-iam/session'
 import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
@@ -43,11 +43,20 @@ const clickRow = (key: string, action: string) => {
   assert(target, `missing ${action} for ${key}`)
   target.click()
 }
+const clickRowAndWait = async (key: string, action: string, selector: string) => {
+  clickRow(key, action)
+  await nextTick()
+  await waitUntil(() => document.querySelector(selector) !== null, `row ${action} view did not render`)
+}
 const submit = (testID: string) => element<HTMLFormElement>(`[data-testid="${testID}"]`).requestSubmit()
-const openTab = (name: string) => {
+const openTab = async (name: 'users' | 'roles' | 'menus') => {
   const button = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find((candidate) => candidate.textContent === name)
   assert(button, `missing tab: ${name}`)
   button.click()
+  await waitUntil(
+    () => button.getAttribute('aria-pressed') === 'true' && document.querySelector(`section[aria-labelledby="${name}-heading"]`) !== null,
+    `tab ${name} did not render`,
+  )
 }
 
 interface MountedAdministration { app: App; controller: AdministrationController; api: ReturnType<typeof createWebAdministrationClient>; confirmations(): number }
@@ -96,13 +105,13 @@ const scenario = async () => {
   click('[data-testid="user-search-reset"]')
   await waitUntil(() => element<HTMLInputElement>('[data-testid="user-search"] input').value === '', 'search reset failed')
 
-  openTab('roles')
+  await openTab('roles')
   input('[data-testid="create-role"] [name="key"]', 'browser-reader')
   input('[data-testid="create-role"] [name="name"]', 'Browser Reader')
   input('[data-testid="create-role"] [name="dataScope"]', 'self')
   submit('create-role')
   await waitUntil(() => row('browser-reader') !== null, 'role create was not rendered')
-  clickRow('browser-reader', 'edit')
+  await clickRowAndWait('browser-reader', 'edit', '[data-testid="edit-role"]')
   input('[data-testid="edit-role"] [name="name"]', 'Browser Reader Updated')
   submit('edit-role')
   await waitUntil(() => row('browser-reader')?.textContent?.includes('Browser Reader Updated') === true, 'role edit was not rendered')
@@ -113,7 +122,7 @@ const scenario = async () => {
   submit('edit-role')
   await waitUntil(() => row('browser-reader')?.textContent?.includes('Enabled') === true, 'role enable was not rendered')
 
-  openTab('menus')
+  await openTab('menus')
   input('[data-testid="create-menu"] [name="key"]', 'browser-menu')
   input('[data-testid="create-menu"] [name="label"]', 'Browser Menu')
   input('[data-testid="create-menu"] [name="path"]', '/iam/browser')
@@ -121,20 +130,20 @@ const scenario = async () => {
   input('[data-testid="create-menu"] [name="sortOrder"]', '90')
   submit('create-menu')
   await waitUntil(() => row('browser-menu') !== null, 'menu create was not rendered')
-  clickRow('browser-menu', 'edit')
+  await clickRowAndWait('browser-menu', 'edit', '[data-testid="edit-menu"]')
   input('[data-testid="edit-menu"] [name="label"]', 'Browser Menu Updated')
   submit('edit-menu')
   await waitUntil(() => row('browser-menu')?.textContent?.includes('Browser Menu Updated') === true, 'menu edit was not rendered')
 
-  openTab('roles')
-  clickRow('browser-reader', 'edit')
+  await openTab('roles')
+  await clickRowAndWait('browser-reader', 'edit', '[data-testid="assign-role-grants"]')
   input('[data-testid="assign-role-grants"] [data-permission-code="iam.users.read"]', true)
   input('[data-testid="assign-role-grants"] [data-permission-code="iam.manifest.read"]', true)
   input('[data-testid="assign-role-grants"] [data-menu-key="browser-menu"]', true)
   submit('assign-role-grants')
   await waitUntil(() => mounted.controller.roles().find((value) => value.key === 'browser-reader')?.permissionCodes.includes('iam.manifest.read') === true, 'grants did not refresh')
 
-  openTab('users')
+  await openTab('users')
   await fillCreateUser('browser-user', 'Browser User')
   input('[data-testid="create-user"] [name="username"]', 'browser-user')
   input('[data-testid="create-user"] [name="displayName"]', 'Duplicate Browser User')
@@ -142,7 +151,7 @@ const scenario = async () => {
   input('[data-testid="create-user"] [name="password"]', 'duplicate browser password')
   submit('create-user')
   await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('protected') === true, 'conflict page state was not visible')
-  clickRow('browser-user', 'edit')
+  await clickRowAndWait('browser-user', 'edit', '[data-testid="edit-user"]')
   input('[data-testid="edit-user"] [name="displayName"]', 'Browser Updated')
   submit('edit-user')
   await waitUntil(() => row('browser-user')?.textContent?.includes('Browser Updated') === true, 'user edit was not rendered')
@@ -153,7 +162,7 @@ const scenario = async () => {
   await waitUntil(() => row('browser-user')?.textContent?.includes('Disabled') === true, 'user disable was not rendered')
   clickRow('browser-user', 'toggle')
   await waitUntil(() => row('browser-user')?.textContent?.includes('Enabled') === true, 'user enable was not rendered')
-  clickRow('browser-user', 'edit')
+  await clickRowAndWait('browser-user', 'edit', '[data-testid="reset-user-password"]')
   input('[data-testid="reset-user-password"] [name="password"]', 'browser replacement password')
   submit('reset-user-password')
   await waitUntil(() => element<HTMLInputElement>('[data-testid="reset-user-password"] [name="password"]').value === '', 'reset password was retained')
@@ -165,6 +174,7 @@ const scenario = async () => {
   await fillCreateUser('browser-batch-b', 'Browser Batch B')
   input('[aria-label="Select browser-batch-a"]', true)
   input('[aria-label="Select browser-batch-b"]', true)
+  await waitUntil(() => !element<HTMLButtonElement>('[data-testid="delete-selected-users"]').disabled, 'batch delete action did not enable')
   click('[data-testid="delete-selected-users"]')
   await waitUntil(() => row('browser-batch-a') === null && row('browser-batch-b') === null, 'batch delete was not rendered')
   assert(mounted.confirmations() >= 5, 'destructive page commands bypassed confirmation')
@@ -192,10 +202,10 @@ const scenario = async () => {
   mounted = await mountAdministration()
   clickRow('browser-user', 'delete')
   await waitUntil(() => row('browser-user') === null, 'assigned user cleanup failed')
-  openTab('roles')
+  await openTab('roles')
   clickRow('browser-reader', 'delete')
   await waitUntil(() => row('browser-reader') === null, 'role cleanup failed')
-  openTab('menus')
+  await openTab('menus')
   clickRow('browser-menu', 'delete')
   await waitUntil(() => row('browser-menu') === null, 'menu cleanup failed')
   await control('revoke-role-read', 'POST')

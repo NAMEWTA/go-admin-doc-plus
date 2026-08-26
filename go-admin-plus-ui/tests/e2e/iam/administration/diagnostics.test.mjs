@@ -48,3 +48,15 @@ test('administration permission branches subscribe to the page revision', () => 
   assert.doesNotMatch(template, /controller\.can\(/)
   assert.match(template, /\bcan\(/)
 })
+
+test('browser administration interactions wait for Vue DOM updates', () => {
+  const driver = readFileSync(new URL('./browser-driver.ts', import.meta.url), 'utf8')
+  const openTab = driver.match(/const openTab = async[\s\S]*?\n}\n/)?.[0] ?? ''
+
+  assert.match(openTab, /aria-pressed/)
+  assert.match(openTab, /section\[aria-labelledby=/)
+  assert.doesNotMatch(driver, /(?<!await )openTab\('/)
+  assert.doesNotMatch(driver, /clickRow\([^\n]+, 'edit'\)/)
+  assert.match(driver, /clickRow\(key, action\)\n  await nextTick\(\)\n  await waitUntil/)
+  assert.match(driver, /await waitUntil\(\(\) => !element<HTMLButtonElement>\('\[data-testid="delete-selected-users"\]'\)\.disabled/)
+})
