@@ -307,6 +307,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-03 双轴复审对固定范围 `27a186c..3801d77` 返回 pass、0 findings；Lead parent-candidate `cfae1e71cec1d123bc6ce0fca1d8f92938db78f2` 无冲突通过 Go/合同/生成/治理全门禁以及 required process E2E，父分支已快进提升至该 result，Ticket 状态为 `done`。
 - T-05 原 owner 已闭合全部标准轴 findings 并返回 clean source checkpoint `5b7b4f43298a6b28ab55190baca07e05ffa50911`；mutation 两阶段结果、导航 sequence/abort/invalidate、identity 精确白名单和 stale list request 语义均转绿，双轴复审重新固定为 `27a186c..5b7b4f4`。
 - T-03 集成解除 T-04 阻塞；Lead 已从 `main@fe56a1932d8b9cec8db5f5dd7e24df33ab10853f` 创建 T-04 source worktree，implementation owner 为 `codex-t04-database`，Lead 保留真实 PostgreSQL/SQLite required E2E 与 candidate integration 所有权。
+- T-05 双轴复审对 `27a186c..5b7b4f4` pass、0 findings；首次 parent-candidate `f2bbd5211eada20b8ddc3762cba680bc7944ceae` 的 pnpm 全门禁和功能浏览器断言通过，但 Lead 截图检查发现 390px 视口导航隐式 grid row 被拉伸至近半屏。required visual E2E 判定失败，candidate 未提升并已清理，checkpoint 退回原 owner 修正并补导航高度断言。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
