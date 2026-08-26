@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { administrationMountDiagnostic, browserDiagnostic, runnerFailureLine, safeRunnerDiagnostic } from './diagnostics.mjs'
@@ -37,4 +38,13 @@ test('mount timeout exposes only stable controller state and known alert codes',
   const unknown = administrationMountDiagnostic({ failure: 'unexpected-secret', canUsersRead: true, rows: 2, total: 9, loading: true, alertText: 'password=hunter2 https://private.example' })
   assert.equal(unknown, 'administration page did not load failure=none can-users-read=true rows=2 total=9 loading=true alert=unrecognized')
   assert.doesNotMatch(unknown, /hunter2|private\.example|password/)
+})
+
+test('administration permission branches subscribe to the page revision', () => {
+  const page = readFileSync(new URL('../../../../packages/web-domains/iam/src/administration/AdministrationPage.vue', import.meta.url), 'utf8')
+  const template = page.split('<template>')[1] ?? ''
+
+  assert.match(page, /const can = \(permissionCode: string\) => \{ void revision\.value; return props\.controller\.can\(permissionCode\) \}/)
+  assert.doesNotMatch(template, /controller\.can\(/)
+  assert.match(template, /\bcan\(/)
 })
