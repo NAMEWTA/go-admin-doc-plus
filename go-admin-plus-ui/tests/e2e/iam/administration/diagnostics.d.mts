@@ -13,4 +13,8 @@ export function administrationMountDiagnostic(state: {
   users: 'not-started' | 'pending' | 'success' | 'error'
   readyState: DocumentReadyState
   pageMounted: boolean
+  permissionCount: number
+  hasUsersRead: boolean
+  hasManifestRead: boolean
+  scope: 'all' | 'self' | 'unknown'
 }): string

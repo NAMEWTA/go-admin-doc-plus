@@ -11,7 +11,7 @@ const sanitize = (value, fallback, maximum) => {
 }
 
 export const safeRunnerDiagnostic = (value) => sanitize(value, 'unknown runner failure', 200)
-export const safeBrowserDiagnostic = (value) => sanitize(value, 'unknown browser assertion', 160)
+export const safeBrowserDiagnostic = (value) => sanitize(value, 'unknown browser assertion', 200)
 
 const failures = new Set(['relogin', 'forbidden', 'validation', 'conflict', 'unavailable'])
 const alertCodes = new Map([
@@ -25,13 +25,14 @@ const alertCodes = new Map([
 const requestPhases = new Set(['not-started', 'pending', 'success', 'error'])
 const readyStates = new Set(['loading', 'interactive', 'complete'])
 
-export const administrationMountDiagnostic = ({ failure, canUsersRead, rows, total, loading, alertText, manifest, users, readyState, pageMounted }) => {
+export const administrationMountDiagnostic = ({ failure, canUsersRead, rows, total, loading, alertText, manifest, users, readyState, pageMounted, permissionCount, hasUsersRead, hasManifestRead, scope }) => {
   const failureCode = failures.has(failure) ? failure : 'none'
   const alertCode = alertText ? alertCodes.get(alertText) ?? 'unrecognized' : 'none'
   const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : -1
   const phase = (value) => requestPhases.has(value) ? value : 'not-started'
   const documentState = readyStates.has(readyState) ? readyState : 'loading'
-  return `administration page did not load failure=${failureCode} can-users-read=${Boolean(canUsersRead)} rows=${count(rows)} total=${count(total)} loading=${Boolean(loading)} alert=${alertCode} manifest=${phase(manifest)} users=${phase(users)} ready=${documentState} mounted=${Boolean(pageMounted)}`
+  const scopeCode = scope === 'all' || scope === 'self' ? scope : 'unknown'
+  return `administration mount timeout f=${failureCode} can=${Boolean(canUsersRead)} rows=${count(rows)} total=${count(total)} load=${Boolean(loading)} alert=${alertCode} manifest=${phase(manifest)} users=${phase(users)} pc=${count(permissionCount)} ur=${Boolean(hasUsersRead)} mr=${Boolean(hasManifestRead)} scope=${scopeCode} ready=${documentState} mounted=${Boolean(pageMounted)}`
 }
 
 export const browserDiagnostic = (output) => {

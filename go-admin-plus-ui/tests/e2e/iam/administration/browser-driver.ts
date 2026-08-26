@@ -62,6 +62,12 @@ const openTab = async (name: 'users' | 'roles' | 'menus') => {
 interface MountedAdministration { app: App; controller: AdministrationController; api: ReturnType<typeof createWebAdministrationClient>; confirmations(): number }
 type RequestPhase = 'not-started' | 'pending' | 'success' | 'error'
 interface MountPhases { manifest: RequestPhase; users: RequestPhase }
+interface ManifestProbe {
+  permissionCount: number
+  hasUsersRead: boolean
+  hasManifestRead: boolean
+  scope: 'all' | 'self' | 'unknown'
+}
 const observeRequest = async <T>(phases: MountPhases, key: keyof MountPhases, operation: () => Promise<T>): Promise<T> => {
   phases[key] = 'pending'
   try {
@@ -73,18 +79,26 @@ const observeRequest = async <T>(phases: MountPhases, key: keyof MountPhases, op
     throw error
   }
 }
-const observedClient = (client: AdministrationClient, phases: MountPhases): AdministrationClient => ({
+const observedClient = (client: AdministrationClient, phases: MountPhases, projection: ManifestProbe): AdministrationClient => ({
   ...client,
-  manifest: () => observeRequest(phases, 'manifest', () => client.manifest()),
+  manifest: () => observeRequest(phases, 'manifest', async () => {
+    const manifest = await client.manifest()
+    projection.permissionCount = manifest.permissionCodes.length
+    projection.hasUsersRead = manifest.permissionCodes.includes('iam.users.read')
+    projection.hasManifestRead = manifest.permissionCodes.includes('iam.manifest.read')
+    projection.scope = manifest.dataScope === 'all' || manifest.dataScope === 'self' ? manifest.dataScope : 'unknown'
+    return manifest
+  }),
   listUsers: (...arguments_) => observeRequest(phases, 'users', () => client.listUsers(...arguments_)),
 })
 const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdministration> => {
   document.body.innerHTML = '<div id="app"></div>'
   const api = createWebAdministrationClient(fetch, '/api')
   const phases: MountPhases = { manifest: 'not-started', users: 'not-started' }
+  const projection: ManifestProbe = { permissionCount: -1, hasUsersRead: false, hasManifestRead: false, scope: 'unknown' }
   let confirmations = 0
   let pageMounted = false
-  const controller = createAdministrationController(observedClient(api, phases), async () => { confirmations += 1; return true })
+  const controller = createAdministrationController(observedClient(api, phases, projection), async () => { confirmations += 1; return true })
   const app = createApp({ render: () => h(AdministrationPage as Component, { controller }) })
   app.mount('#app')
   pageMounted = true
@@ -101,6 +115,10 @@ const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdmin
       users: phases.users,
       readyState: document.readyState,
       pageMounted,
+      permissionCount: projection.permissionCount,
+      hasUsersRead: projection.hasUsersRead,
+      hasManifestRead: projection.hasManifestRead,
+      scope: projection.scope,
     })
   })
   return { app, controller, api, confirmations: () => confirmations }
@@ -118,7 +136,9 @@ const fillCreateUser = async (username: string, displayName: string) => {
 
 const scenario = async () => {
   await session.login({ username: 'admin', password: 'administrator password' })
-  assert(session.state().status === 'authenticated', 'administrator login failed')
+  const administratorState = session.state()
+  assert(administratorState.status === 'authenticated', 'administrator login failed')
+  assert(administratorState.profile.username === 'admin', 'administrator identity mismatch')
   assert(!document.cookie.includes('__Host-go-admin-session'), 'HttpOnly session became script-readable')
   const attributes = await (await control('cookie-attributes')).json() as Record<string, boolean>
   assert(attributes.secure && attributes.httpOnly && attributes.strict, 'host cookie attributes failed')

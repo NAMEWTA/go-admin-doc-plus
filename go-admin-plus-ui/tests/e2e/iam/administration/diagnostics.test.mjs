@@ -33,11 +33,12 @@ test('runner lifecycle remains an honest no-op without required opt-in', () => {
 })
 
 test('mount timeout exposes only stable controller state and known alert codes', () => {
-  assert.equal(administrationMountDiagnostic({ failure: 'forbidden', canUsersRead: false, rows: 0, total: 0, loading: false, alertText: 'You do not have permission for that action.', manifest: 'error', users: 'not-started', readyState: 'complete', pageMounted: true }),
-    'administration page did not load failure=forbidden can-users-read=false rows=0 total=0 loading=false alert=forbidden manifest=error users=not-started ready=complete mounted=true')
-  const unknown = administrationMountDiagnostic({ failure: 'unexpected-secret', canUsersRead: true, rows: 2, total: 9, loading: true, alertText: 'password=hunter2 https://private.example', manifest: 'secret-value', users: 'pending', readyState: 'secret-state', pageMounted: false })
-  assert.equal(unknown, 'administration page did not load failure=none can-users-read=true rows=2 total=9 loading=true alert=unrecognized manifest=not-started users=pending ready=loading mounted=false')
+  assert.equal(administrationMountDiagnostic({ failure: 'forbidden', canUsersRead: false, rows: 0, total: 0, loading: false, alertText: 'You do not have permission for that action.', manifest: 'error', users: 'not-started', readyState: 'complete', pageMounted: true, permissionCount: 13, hasUsersRead: true, hasManifestRead: true, scope: 'all' }),
+    'administration mount timeout f=forbidden can=false rows=0 total=0 load=false alert=forbidden manifest=error users=not-started pc=13 ur=true mr=true scope=all ready=complete mounted=true')
+  const unknown = administrationMountDiagnostic({ failure: 'unexpected-secret', canUsersRead: true, rows: 2, total: 9, loading: true, alertText: 'password=hunter2 https://private.example', manifest: 'secret-value', users: 'pending', readyState: 'secret-state', pageMounted: false, permissionCount: -99, hasUsersRead: false, hasManifestRead: false, scope: 'secret-scope' })
+  assert.equal(unknown, 'administration mount timeout f=none can=true rows=2 total=9 load=true alert=unrecognized manifest=not-started users=pending pc=-1 ur=false mr=false scope=unknown ready=loading mounted=false')
   assert.doesNotMatch(unknown, /hunter2|private\.example|password/)
+  assert.ok(unknown.length <= 200)
 })
 
 test('administration permission branches subscribe to the page revision', () => {
