@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T00:32:00+08:00",
+  "updated_at": "2026-08-27T00:40:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -396,36 +396,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-08",
       "source_checkpoint": "212f0fb785ea92480a0185fd0cacf592d844d969",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "08a6535f63ec5da8824f69d1c19fc851afa4f998",
+        "source_sha": "212f0fb785ea92480a0185fd0cacf592d844d969",
+        "candidate_sha": "503ea063092d9ee595c8adcb59308edca691171b",
+        "candidate_tree_sha": "44fd724d0764ca3843714b6ede8c9de8ab902dd6",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-08",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-08",
+        "result_sha": "503ea063092d9ee595c8adcb59308edca691171b",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G3 requires outbox, coordination, bounded cache, fault, race, and dual-dialect checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-08.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-08 must prove PostgreSQL unique executor takeover and SQLite single-executor behavior with real processes",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-08.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-08.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-27T00:32:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-27T00:40:00+08:00"
     }
   ]
 }

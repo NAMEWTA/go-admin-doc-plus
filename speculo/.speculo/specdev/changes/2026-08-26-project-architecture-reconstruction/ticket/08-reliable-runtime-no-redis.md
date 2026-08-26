@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-08
 title: 无 Redis 可靠运行时
-status: review
+status: done
 planning_depth: deep
 planning_depth_reason: 事务 Outbox、幂等、缓存正确性和多实例执行权涉及并发与可靠副作用
 ready: true
@@ -111,9 +111,9 @@ shared_path_owners: ["<Path>go-admin-plus/internal/platform/outbox/**</Path> => 
 
 ## 10. 验收标准
 
-- [ ] `AC-018`：PostgreSQL 唯一 executor、接管、重试和幂等成立，SQLite 无第二 executor。
-- [ ] `AC-034`：缓存空/禁用时认证与业务正确性不变且无 Redis 尝试。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-08.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，共享路径仅由 T-08 修改。
-- [ ] 形成非空 implementation/source commit，并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
+- [x] `AC-018`：PostgreSQL 唯一 executor、接管、重试和幂等成立，SQLite 无第二 executor。
+- [x] `AC-034`：缓存空/禁用时认证与业务正确性不变且无 Redis 尝试。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-08.md</Path>`。
+- [x] 修改未超出 `writable_paths`，共享路径仅由 T-08 修改。
+- [x] 形成非空 implementation/source commit，并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
