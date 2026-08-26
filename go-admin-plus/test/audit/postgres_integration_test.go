@@ -3,11 +3,11 @@ package audit_test
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 
 	audit "go-admin/internal/modules/audit"
 	auditmigration "go-admin/internal/modules/audit/migrations/0011-audit"
@@ -64,16 +64,12 @@ func openIsolatedAuditPostgres(t *testing.T, ctx context.Context, dsn string) *d
 		_ = admin.Close()
 		t.Fatal("create PostgreSQL Audit schema failed")
 	}
-	parsed, err := pgx.ParseConfig(dsn)
+	isolatedDSN, err := isolatedAuditPostgresDSN(dsn, schema)
 	if err != nil {
 		cleanupAuditPostgres(t, admin, schema)
 		t.Fatal("parse PostgreSQL Audit connection failed")
 	}
-	if parsed.RuntimeParams == nil {
-		parsed.RuntimeParams = make(map[string]string)
-	}
-	parsed.RuntimeParams["search_path"] = schema
-	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString(), MaxOpenConnections: 4, MaxIdleConnections: 4})
+	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: isolatedDSN, MaxOpenConnections: 4, MaxIdleConnections: 4})
 	if err != nil {
 		cleanupAuditPostgres(t, admin, schema)
 		t.Fatal("open isolated PostgreSQL Audit database failed")
@@ -85,6 +81,50 @@ func openIsolatedAuditPostgres(t *testing.T, ctx context.Context, dsn string) *d
 		cleanupAuditPostgres(t, admin, schema)
 	})
 	return db
+}
+
+func isolatedAuditPostgresDSN(dsn, schema string) (string, error) {
+	if !strings.HasPrefix(schema, "audit_test_") {
+		return "", fmt.Errorf("invalid isolated schema")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") || parsed.Host == "" {
+		return "", fmt.Errorf("invalid PostgreSQL URL")
+	}
+	query := parsed.Query()
+	query.Set("search_path", schema)
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
+func TestIsolatedAuditPostgresDSNIncludesSearchPathAndPreservesParameters(t *testing.T) {
+	const schema = "audit_test_contract_01"
+	value, err := isolatedAuditPostgresDSN("postgres://user:p%40ss@localhost/database?application_name=audit+runner&search_path=public&sslmode=disable", schema)
+	if err != nil {
+		t.Fatal("isolated PostgreSQL DSN failed")
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		t.Fatal("isolated PostgreSQL DSN is not a URL")
+	}
+	if parsed.Query().Get("search_path") != schema || parsed.Query().Get("sslmode") != "disable" || parsed.Query().Get("application_name") != "audit runner" {
+		t.Fatal("isolated PostgreSQL DSN lost its search path or existing parameters")
+	}
+	if password, present := parsed.User.Password(); !present || password != "p@ss" {
+		t.Fatal("isolated PostgreSQL DSN corrupted URL-escaped credentials")
+	}
+}
+
+func TestIsolatedAuditPostgresDSNRejectsNonURLAndUnexpectedSchema(t *testing.T) {
+	for _, testCase := range []struct{ dsn, schema string }{
+		{"host=localhost dbname=database", "audit_test_contract_01"},
+		{"postgres://localhost/database", "public"},
+		{"https://localhost/database", "audit_test_contract_01"},
+	} {
+		if _, err := isolatedAuditPostgresDSN(testCase.dsn, testCase.schema); err == nil {
+			t.Fatal("invalid isolated PostgreSQL DSN was accepted")
+		}
+	}
 }
 
 func cleanupAuditPostgres(t *testing.T, admin *database.Database, schema string) {
