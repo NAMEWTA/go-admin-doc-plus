@@ -12,11 +12,11 @@ risk: high
 blocked_by: [T-01]
 contract_ids: [AC-023, AC-025]
 owner: codex-root
-expected_changes: ["<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>contracts/openapi/modules/_template.yaml</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]
-read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>", "<Path>go-admin-plus/api/openapi/**</Path>", "<Path>go-admin-ui-plus/packages/contracts/**</Path>"]
-shared_paths: ["<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]
-shared_path_owners: ["<Path>contracts/openapi/openapi.yaml</Path> => T-02", "<Path>contracts/openapi/components/**</Path> => T-02", "<Path>scripts/contracts/**</Path> => T-02", "<Path>go-admin-plus/internal/contracts/**</Path> => T-02", "<Path>go-admin-plus-ui/packages/api-client/**</Path> => T-02"]
+expected_changes: ["<Path>Taskfile.yml</Path>", "<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>Taskfile.yml</Path>", "<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>contracts/openapi/modules/_template.yaml</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+read_only_paths: ["<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>", "<Path>go-admin-plus/api/openapi/**</Path>", "<Path>go-admin-ui-plus/packages/contracts/**</Path>"]
+shared_paths: ["<Path>Taskfile.yml</Path>", "<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>Taskfile.yml</Path> => T-02 (contract:lint and generate:check only; serialized after T-01)", "<Path>contracts/openapi/openapi.yaml</Path> => T-02", "<Path>contracts/openapi/components/**</Path> => T-02", "<Path>scripts/contracts/**</Path> => T-02", "<Path>go-admin-plus/go.mod</Path> => T-02 (contract generator and generated transport dependencies only)", "<Path>go-admin-plus/go.sum</Path> => T-02 (same scope)", "<Path>go-admin-plus/internal/contracts/**</Path> => T-02", "<Path>go-admin-plus-ui/packages/api-client/**</Path> => T-02", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-02 (contract tooling/client dependencies only)"]
 ---
 
 # Ticket T-02: OpenAPI 合同与双方生成基座
@@ -44,6 +44,10 @@ shared_path_owners: ["<Path>contracts/openapi/openapi.yaml</Path> => T-02", "<Pa
 ### 已采用的低影响假设
 
 - 生成器版本在工具配置中固定，输出按模块落入 owner 路径。
+
+### 已批准 Ticket 偏差
+
+- `T02-D01`：原路径合同无法实现已批准的 `task contract:lint generate:check` 和固定官方生成器。Lead/Ticket owner 于 2026-08-26 批准最小扩展：T-02 只新增这两个根任务，并只写入 oapi-codegen/生成 transport 所需的 Go module 记录以及合同工具/客户端所需的 pnpm lock 记录；不改变 Spec、ADR、产品 API 或后续 owner 的其他职责。
 
 ### 未决问题
 

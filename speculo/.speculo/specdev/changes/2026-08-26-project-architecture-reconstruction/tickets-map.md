@@ -138,11 +138,11 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 
 | 共享路径 | 唯一 owner | 消费方式 |
 |---|---|---|
-| `<Path>Taskfile.yml</Path>`、`<Path>.husky/**</Path>`、根分类脚本 | T-01 | 后续 Ticket 只读调用 |
+| `<Path>Taskfile.yml</Path>`、`<Path>.husky/**</Path>`、根分类脚本 | T-01；T-02 仅串行拥有 `contract:lint`/`generate:check` 两个增量任务 | 其他 Ticket 只读调用 |
 | `<Path>contracts/openapi/openapi.yaml</Path>`、公共 components、合同工具与公共 client | T-02 | 模块写自有 fragment |
 | kernel/config/observability | T-03 | 宿主和模块只读依赖 |
-| Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04 | 模块实现自有 Provider，不改依赖清单 |
-| Workspace/lock/app-shell core/platform/ui | T-05 | 模块只写预建包的 `src` |
+| Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
+| Workspace/lock/app-shell core/platform/ui | T-05；T-02 先串行拥有合同工具/client lock 变更 | 模块只写预建包的 `src` |
 | Outbox/coordination/local cache | T-08 | Audit/Scheduler 只读消费 |
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |
 | product OpenAPI/composition/manifest | T-17 | 发行 Ticket 只读消费 |
