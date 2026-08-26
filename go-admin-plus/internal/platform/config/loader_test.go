@@ -85,6 +85,59 @@ func TestSessionPolicyRejectsInvalidRelationsAndUnknownFields(t *testing.T) {
 	}
 }
 
+func TestSessionPolicyRejectsOverflowBeforeDurationConversionForEveryProfileAndSource(t *testing.T) {
+	const overflow = "36028797018965768"
+	profiles := []runtimeconfig.Profile{
+		runtimeconfig.ProfileServerSQLite,
+		runtimeconfig.ProfileServerPostgres,
+		runtimeconfig.ProfileDesktopSQLite,
+	}
+	for _, profile := range profiles {
+		for _, source := range []string{"file", "environment", "cli"} {
+			t.Run(string(profile)+"/"+source, func(t *testing.T) {
+				input := sessionPolicyInput(t, profile)
+				switch source {
+				case "file":
+					path := filepath.Join(t.TempDir(), "runtime.json")
+					document := fmt.Sprintf(`{"profile":%q,"session":{"idleTimeoutSeconds":%s}}`, profile, overflow)
+					if err := os.WriteFile(path, []byte(document), 0o600); err != nil {
+						t.Fatal(err)
+					}
+					input.File = path
+				case "environment":
+					input.Environment["GO_ADMIN_SESSION_ABSOLUTE_SECONDS"] = overflow
+				case "cli":
+					input.CLI["session.rotationIntervalSeconds"] = overflow
+				}
+				_, err := runtimeconfig.Load(input)
+				if err == nil {
+					t.Fatal("overflowing session seconds were accepted")
+				}
+				if strings.Contains(err.Error(), overflow) {
+					t.Fatal("overflowing configuration value leaked")
+				}
+			})
+		}
+	}
+}
+
+func sessionPolicyInput(t *testing.T, profile runtimeconfig.Profile) runtimeconfig.Input {
+	t.Helper()
+	input := runtimeconfig.Input{Profile: profile, Environment: map[string]string{}, CLI: map[string]string{}}
+	switch profile {
+	case runtimeconfig.ProfileServerPostgres:
+		input.Environment["GO_ADMIN_DATABASE_DSN"] = "postgres://private"
+	case runtimeconfig.ProfileDesktopSQLite:
+		input.Desktop = runtimeconfig.DesktopMaterial{
+			DataDirectory: filepath.Join(t.TempDir(), "data"),
+			LogDirectory:  filepath.Join(t.TempDir(), "logs"),
+			LoopbackPort:  43127,
+			StartupToken:  "0123456789abcdef0123456789abcdef",
+		}
+	}
+	return input
+}
+
 func TestLoadAppliesDocumentedPrecedence(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime.json")
 	if err := os.WriteFile(configPath, []byte(`{

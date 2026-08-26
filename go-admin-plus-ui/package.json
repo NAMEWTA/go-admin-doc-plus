@@ -14,10 +14,11 @@
     "build": "pnpm --filter @go-admin/admin-web build",
     "build:prod": "pnpm build",
     "lint": "oxlint --ignore-pattern '**/node_modules/**' --ignore-pattern '**/dist/**' --deny-warnings apps packages tests",
-    "typecheck": "pnpm --filter @go-admin/domain-iam typecheck && pnpm --filter @go-admin/web-domain-iam typecheck && pnpm --filter @go-admin/admin-web typecheck && tsc -p tests/shell/tsconfig.json",
+    "typecheck": "pnpm --filter @go-admin/domain-iam typecheck && pnpm --filter @go-admin/web-domain-iam typecheck && pnpm --filter @go-admin/admin-web typecheck && tsc -p tests/shell/tsconfig.json && tsc -p tests/e2e/iam/session/tsconfig.json",
     "type-check": "pnpm typecheck",
     "test": "vitest run --config tests/shell/vitest.config.ts",
     "test:unit": "pnpm test",
+    "test:e2e:iam-session": "node tests/e2e/iam/session/run.mjs",
     "check:workspace": "node --test tests/shell/workspace-boundary.test.mjs",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:workspace && pnpm build"
   },

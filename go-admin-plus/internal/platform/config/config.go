@@ -563,15 +563,34 @@ func resolveSessionPolicy(base SessionPolicy, file sessionConfig, environment, c
 			return SessionPolicy{}, err
 		}
 	}
+	if err := validateSessionSeconds(idle, absolute, rotation); err != nil {
+		return SessionPolicy{}, err
+	}
 	return NewSessionPolicy(time.Duration(idle)*time.Second, time.Duration(absolute)*time.Second, time.Duration(rotation)*time.Second)
 }
 
 func parseSessionSeconds(field, value string) (int64, error) {
-	seconds, err := strconv.ParseInt(value, 10, 32)
+	seconds, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("configuration %s: must be an integer number of seconds", field)
 	}
 	return seconds, nil
+}
+
+func validateSessionSeconds(idle, absolute, rotation int64) error {
+	if idle < 60 || idle > 86400 {
+		return fmt.Errorf("configuration session.idleTimeoutSeconds: must be between 60 and 86400")
+	}
+	if absolute < 300 || absolute > 2592000 {
+		return fmt.Errorf("configuration session.absoluteTimeoutSeconds: must be between 300 and 2592000")
+	}
+	if rotation < 60 || rotation > idle {
+		return fmt.Errorf("configuration session.rotationIntervalSeconds: must be between 60 and idle timeout")
+	}
+	if idle > absolute {
+		return fmt.Errorf("configuration session.idleTimeoutSeconds: must not exceed absolute timeout")
+	}
+	return nil
 }
 
 func validateServer(listen, logLevel string) error {

@@ -46,7 +46,7 @@ func (r *Repository) Create(ctx context.Context, tx database.Tx, value Credentia
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, value.ID, normalizeUsername(value.Username), value.DisplayName,
 		value.Email, value.AvatarRef, value.PasswordHash, now.UTC(), now.UTC(), now.UTC())
 	if err != nil {
-		return ErrConflict
+		return normalizeDatabaseError(err, ErrConflict)
 	}
 	return nil
 }
@@ -78,7 +78,7 @@ func scanCredential(row *sql.Row) (Credential, error) {
 		return Credential{}, ErrNotFound
 	}
 	if err != nil {
-		return Credential{}, errors.New("account lookup failed")
+		return Credential{}, normalizeDatabaseError(err, errors.New("account lookup failed"))
 	}
 	if avatar.Valid {
 		value.AvatarRef = &avatar.String
@@ -91,9 +91,13 @@ func (r *Repository) UpdateProfile(ctx context.Context, tx database.Tx, id, disp
 	result, err := tx.ExecContext(ctx, `UPDATE iam_accounts SET display_name = ?, email = ?, avatar_ref = ?, updated_at = ? WHERE id = ? AND disabled_at IS NULL`,
 		displayName, strings.ToLower(strings.TrimSpace(email)), avatar, now.UTC(), id)
 	if err != nil {
-		return Profile{}, errors.New("profile update failed")
+		return Profile{}, normalizeDatabaseError(err, errors.New("profile update failed"))
 	}
-	if count, _ := result.RowsAffected(); count != 1 {
+	count, err := result.RowsAffected()
+	if err != nil {
+		return Profile{}, normalizeDatabaseError(err, errors.New("profile update result failed"))
+	}
+	if count != 1 {
 		return Profile{}, ErrNotFound
 	}
 	value, err := r.FindByID(ctx, tx, id, false)
@@ -103,11 +107,11 @@ func (r *Repository) UpdateProfile(ctx context.Context, tx database.Tx, id, disp
 func (r *Repository) UpdatePasswordAndAdvanceGeneration(ctx context.Context, tx database.Tx, id, hash string, generation int64, now time.Time) error {
 	result, err := tx.ExecContext(ctx, `UPDATE iam_accounts SET password_hash = ?, password_changed_at = ?, session_generation = session_generation + 1, updated_at = ? WHERE id = ? AND disabled_at IS NULL AND session_generation = ?`, hash, now.UTC(), now.UTC(), id, generation)
 	if err != nil {
-		return errors.New("password update failed")
+		return normalizeDatabaseError(err, errors.New("password update failed"))
 	}
 	count, err := result.RowsAffected()
 	if err != nil {
-		return errors.New("password update result failed")
+		return normalizeDatabaseError(err, errors.New("password update result failed"))
 	}
 	if count != 1 {
 		return ErrConflict
@@ -118,11 +122,11 @@ func (r *Repository) UpdatePasswordAndAdvanceGeneration(ctx context.Context, tx 
 func (r *Repository) AdvanceSessionGeneration(ctx context.Context, tx database.Tx, id string, generation int64, now time.Time) error {
 	result, err := tx.ExecContext(ctx, `UPDATE iam_accounts SET session_generation = session_generation + 1, updated_at = ? WHERE id = ? AND session_generation = ?`, now.UTC(), id, generation)
 	if err != nil {
-		return errors.New("session generation update failed")
+		return normalizeDatabaseError(err, errors.New("session generation update failed"))
 	}
 	count, err := result.RowsAffected()
 	if err != nil {
-		return errors.New("session generation result failed")
+		return normalizeDatabaseError(err, errors.New("session generation result failed"))
 	}
 	if count != 1 {
 		return ErrConflict
@@ -131,3 +135,13 @@ func (r *Repository) AdvanceSessionGeneration(ctx context.Context, tx database.T
 }
 
 func normalizeUsername(value string) string { return strings.ToLower(strings.TrimSpace(value)) }
+
+func normalizeDatabaseError(err, fallback error) error {
+	if errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return context.DeadlineExceeded
+	}
+	return fallback
+}

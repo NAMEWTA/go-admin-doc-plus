@@ -259,11 +259,11 @@ func (s *Service) ChangePassword(ctx context.Context, token, csrf, current, repl
 		}
 		revoked, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE account_id = ? AND generation <= ? AND state = 'active'`, now, accountID, rec.Generation)
 		if err != nil {
-			return errors.New("session revoke failed")
+			return normalizeSQLError(err, "session revoke failed")
 		}
 		count, countErr := revoked.RowsAffected()
 		if countErr != nil {
-			return errors.New("session revoke result failed")
+			return normalizeSQLError(countErr, "session revoke result failed")
 		}
 		if count < 1 {
 			return ErrConflict
@@ -281,11 +281,11 @@ func (s *Service) Logout(ctx context.Context, token, csrf string) error {
 		}
 		result, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE id = ? AND state = 'active'`, s.now().UTC(), rec.ID)
 		if err != nil {
-			return errors.New("session revoke failed")
+			return normalizeSQLError(err, "session revoke failed")
 		}
 		n, countErr := result.RowsAffected()
 		if countErr != nil {
-			return errors.New("session revoke result failed")
+			return normalizeSQLError(countErr, "session revoke result failed")
 		}
 		if n != 1 {
 			return ErrAuthentication
@@ -311,10 +311,10 @@ func (s *Service) RevokeAccount(ctx context.Context, accountID string) error {
 		}
 		result, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE account_id = ? AND generation <= ? AND state = 'active'`, now, accountID, credential.SessionGeneration)
 		if err != nil {
-			return errors.New("session revoke failed")
+			return normalizeSQLError(err, "session revoke failed")
 		}
 		if _, err := result.RowsAffected(); err != nil {
-			return errors.New("session revoke result failed")
+			return normalizeSQLError(err, "session revoke result failed")
 		}
 		return nil
 	}))
@@ -338,7 +338,7 @@ func (s *Service) create(ctx context.Context, tx database.Tx, profile account.Pr
 		VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), generation, tokenDigest(csrf), now, now,
 		minTime(now.Add(s.policy.IdleTimeout()), absolute), absolute, minTime(now.Add(s.policy.RotationInterval()), absolute))
 	if err != nil {
-		return Issued{}, errors.New("session creation failed")
+		return Issued{}, normalizeSQLError(err, "session creation failed")
 	}
 	return Issued{Profile: profile, Token: token, CSRF: csrf}, nil
 }
@@ -353,7 +353,7 @@ func (s *Service) active(ctx context.Context, tx database.Tx, token string, now 
 		if errors.Is(err, sql.ErrNoRows) {
 			return record{}, account.Credential{}, ErrAuthentication
 		}
-		return record{}, account.Credential{}, errors.New("session lookup failed")
+		return record{}, account.Credential{}, normalizeSQLError(err, "session lookup failed")
 	}
 	credential, err := s.accounts.FindByID(ctx, tx, accountID, true)
 	if errors.Is(err, account.ErrNotFound) || credential.Disabled {
@@ -374,7 +374,7 @@ func (s *Service) active(ctx context.Context, tx database.Tx, token string, now 
 		return record{}, account.Credential{}, ErrAuthentication
 	}
 	if err != nil {
-		return record{}, account.Credential{}, errors.New("session lookup failed")
+		return record{}, account.Credential{}, normalizeSQLError(err, "session lookup failed")
 	}
 	if rec.State != "active" || rec.AccountID != credential.ID || rec.Generation != credential.SessionGeneration {
 		return record{}, account.Credential{}, ErrAuthentication
@@ -382,11 +382,11 @@ func (s *Service) active(ctx context.Context, tx database.Tx, token string, now 
 	if !now.Before(rec.IdleExpiresAt) || !now.Before(rec.AbsoluteExpiresAt) {
 		updated, updateErr := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'expired' WHERE id = ? AND state = 'active'`, rec.ID)
 		if updateErr != nil {
-			return record{}, account.Credential{}, errors.New("session expiry failed")
+			return record{}, account.Credential{}, normalizeSQLError(updateErr, "session expiry failed")
 		}
 		count, countErr := updated.RowsAffected()
 		if countErr != nil {
-			return record{}, account.Credential{}, errors.New("session expiry result failed")
+			return record{}, account.Credential{}, normalizeSQLError(countErr, "session expiry result failed")
 		}
 		if count != 1 {
 			return record{}, account.Credential{}, ErrAuthentication
@@ -404,11 +404,11 @@ func (s *Service) refresh(ctx context.Context, tx database.Tx, rec record, profi
 		}
 		updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'rotated', replaced_by = ? WHERE id = ? AND generation = ? AND state = 'active'`, tokenDigest(issued.Token), rec.ID, rec.Generation)
 		if err != nil {
-			return Issued{}, errors.New("session rotation failed")
+			return Issued{}, normalizeSQLError(err, "session rotation failed")
 		}
 		count, countErr := updated.RowsAffected()
 		if countErr != nil {
-			return Issued{}, errors.New("session rotation result failed")
+			return Issued{}, normalizeSQLError(countErr, "session rotation result failed")
 		}
 		if count != 1 {
 			return Issued{}, ErrAuthentication
@@ -423,11 +423,11 @@ func (s *Service) refresh(ctx context.Context, tx database.Tx, rec record, profi
 	updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET csrf_hash = ?, last_seen_at = ?, idle_expires_at = ? WHERE id = ? AND generation = ? AND state = 'active'`,
 		tokenDigest(csrf), now, minTime(now.Add(s.policy.IdleTimeout()), rec.AbsoluteExpiresAt), rec.ID, rec.Generation)
 	if err != nil {
-		return Issued{}, errors.New("session refresh failed")
+		return Issued{}, normalizeSQLError(err, "session refresh failed")
 	}
 	count, countErr := updated.RowsAffected()
 	if countErr != nil {
-		return Issued{}, errors.New("session refresh result failed")
+		return Issued{}, normalizeSQLError(countErr, "session refresh result failed")
 	}
 	if count != 1 {
 		return Issued{}, ErrAuthentication
@@ -487,6 +487,16 @@ func (s *Service) probeLock(point accountLockPoint) {
 	if s.lockProbe != nil {
 		s.lockProbe(point)
 	}
+}
+
+func normalizeSQLError(err error, fallback string) error {
+	if errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return context.DeadlineExceeded
+	}
+	return errors.New(fallback)
 }
 
 func sanitize(err error) error {

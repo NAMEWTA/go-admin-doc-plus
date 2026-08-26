@@ -2,6 +2,7 @@ package session_test
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -189,12 +190,122 @@ func TestSanitizePreservesContextTermination(t *testing.T) {
 	}
 }
 
+func TestCallbackSQLFailuresPreserveContextTermination(t *testing.T) {
+	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded} {
+		for _, stage := range []string{"query-scan", "exec", "rows-affected"} {
+			t.Run(sentinel.Error()+"/"+stage, func(t *testing.T) {
+				policy := mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute)
+				db, healthy, _ := newFixture(t, policy)
+				failure := callbackFailureDatabase{db: db}
+				switch stage {
+				case "query-scan":
+					failure.queryErr = sentinel
+				case "exec":
+					failure.execErr = sentinel
+				case "rows-affected":
+					failure.resultErr = sentinel
+				}
+				service, err := session.NewService(failure, policy)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var operationErr error
+				switch stage {
+				case "query-scan", "exec":
+					_, operationErr = service.Login(context.Background(), "admin", "correct horse battery")
+				case "rows-affected":
+					issued, loginErr := healthy.Login(context.Background(), "admin", "correct horse battery")
+					if loginErr != nil {
+						t.Fatal(loginErr)
+					}
+					_, operationErr = service.UpdateProfile(context.Background(), issued.Token, issued.CSRF, "Updated", "updated@example.test", nil)
+				}
+				if !errors.Is(operationErr, sentinel) {
+					t.Fatalf("SQL callback sentinel was lost at %s: %v", stage, operationErr)
+				}
+			})
+		}
+	}
+}
+
+func TestCallbackSQLDetailsAreSanitized(t *testing.T) {
+	policy := mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute)
+	db, _, _ := newFixture(t, policy)
+	service, err := session.NewService(callbackFailureDatabase{db: db, execErr: errors.New("private SQL path and value")}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, operationErr := service.Login(context.Background(), "admin", "correct horse battery")
+	if !errors.Is(operationErr, session.ErrInternal) || strings.Contains(operationErr.Error(), "private") {
+		t.Fatal("SQL detail was not reduced to the stable internal error")
+	}
+}
+
 type errorDatabase struct{ err error }
 
 func (value errorDatabase) WithinTx(context.Context, func(context.Context, database.Tx) error) error {
 	return value.err
 }
 func (errorDatabase) Dialect() database.Dialect { return database.DialectSQLite }
+
+type callbackFailureDatabase struct {
+	db                           *database.Database
+	queryErr, execErr, resultErr error
+}
+
+func (failure callbackFailureDatabase) WithinTx(_ context.Context, fn func(context.Context, database.Tx) error) error {
+	return failure.db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		return fn(ctx, callbackFailureTx{Tx: tx, queryErr: failure.queryErr, execErr: failure.execErr, resultErr: failure.resultErr})
+	})
+}
+func (failure callbackFailureDatabase) Dialect() database.Dialect { return failure.db.Dialect() }
+
+type callbackFailureTx struct {
+	database.Tx
+	queryErr, execErr, resultErr error
+}
+
+func (tx callbackFailureTx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	if tx.queryErr == nil {
+		return tx.Tx.QueryContext(ctx, query, args...)
+	}
+	failed, cancel := contextForFailure(tx.queryErr)
+	defer cancel()
+	return tx.Tx.QueryContext(failed, query, args...)
+}
+
+func (tx callbackFailureTx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
+	if tx.queryErr == nil {
+		return tx.Tx.QueryRowContext(ctx, query, args...)
+	}
+	failed, cancel := contextForFailure(tx.queryErr)
+	defer cancel()
+	return tx.Tx.QueryRowContext(failed, query, args...)
+}
+
+func (tx callbackFailureTx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	if tx.execErr != nil {
+		return nil, tx.execErr
+	}
+	if tx.resultErr != nil {
+		return callbackFailureResult{err: tx.resultErr}, nil
+	}
+	return tx.Tx.ExecContext(ctx, query, args...)
+}
+
+type callbackFailureResult struct{ err error }
+
+func (result callbackFailureResult) LastInsertId() (int64, error) { return 0, result.err }
+func (result callbackFailureResult) RowsAffected() (int64, error) { return 0, result.err }
+
+func contextForFailure(sentinel error) (context.Context, context.CancelFunc) {
+	if errors.Is(sentinel, context.DeadlineExceeded) {
+		return context.WithDeadline(context.Background(), time.Unix(0, 0))
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return ctx, func() {}
+}
 
 func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
 	db, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
