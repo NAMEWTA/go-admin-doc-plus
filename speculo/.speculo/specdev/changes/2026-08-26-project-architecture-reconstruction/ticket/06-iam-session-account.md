@@ -4,10 +4,10 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-06
 title: 安全登录、Session 与个人账户闭环
-status: blocked
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 认证、密码、Session schema、Cookie/CSRF 和审计脱敏属于关键安全边界
-ready: false
+ready: true
 risk: critical
 blocked_by: [T-02, T-03, T-04, T-05]
 contract_ids: [AC-008, AC-010, AC-012, AC-025, AC-036]

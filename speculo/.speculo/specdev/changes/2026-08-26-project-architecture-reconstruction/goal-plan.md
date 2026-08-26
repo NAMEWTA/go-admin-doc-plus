@@ -2,7 +2,7 @@
 schema_version: 6
 artifact: goal-plan
 change: 2026-08-26-project-architecture-reconstruction
-status: blocked
+status: in_progress
 modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root
@@ -10,7 +10,7 @@ implementation_agent_limit: 3
 integration_attempt_limit: 3
 ticket_workspace_policy: required
 integration_gate: candidate-merge
-ready_for_execution: false
+ready_for_execution: true
 ---
 
 # Goal Plan: Go Admin Plus 自主产品架构重构
@@ -323,6 +323,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-08 owner 已在原 source 闭合首轮双轴全部 findings 并返回 clean checkpoint `d2311880e7f0b597f5ad4d470ffa316ae47e430d`：固定 advisory lease、真实 Lease-only Dispatcher、数据库内声明式 mutation、claim token/owner/expiry fencing、失锁回滚停止、递归敏感字段拒绝、脱敏 observer、失败时钟 retry、微秒幂等和 cache generation/metrics 均具备聚焦回归；普通/SQLite/全 race/vet/CGO=0/build/module verify 通过。当前对 `05d619d1c4c90378a0138c630fa1aa3bcfa0f942..d2311880e7f0b597f5ad4d470ffa316ae47e430d` 重新执行双轴审查，required 多进程 E2E 仍 pending。
 - T02-D04 已闭合 symlink/junction output escape 与无 manifest orphan 漏检：统一 resolver 对写入、检查和 stale 删除执行 lexical root、逐段 `lstat` 与最近存在父路径 `realpath` 证明，外部 sentinel 保持不变；受管理 Go transport 与新 UI domain `src/**/generated` 扫描会发现孤儿且不进入 pnpm `node_modules`。合并最新 Lead 状态后的 clean checkpoint 为 `6fab034640672fef057acad61139aa8b917a85a1`，固定范围 `faa451b47b59bb5c207fe1dcdbcb39bc8474cacd..6fab034640672fef057acad61139aa8b917a85a1`；合同 28/28、lint/generate check、API client typecheck/7 tests 通过，进入新一轮双轴复审。
 - T02-D04 最终双轴复审对 `faa451b47b59bb5c207fe1dcdbcb39bc8474cacd..6fab034640672fef057acad61139aa8b917a85a1` 均 pass、0 findings。Lead candidate/result 为 `7271df83db41c8e7018616f9fee0f68f61c9ffee`（tree `c79ef58b0bd9cfcaf80717db7df76f4feae20467`）；合同 28/28、API client 7/7、新 Workspace 22 unit + 6 boundary、Go 普通/SQLite/vet/race/mod、governance、SpecDev 与 clean-tree 全绿，父分支已从 `d828f74fb8cab349597123ae0ff7371e5aac7b03` 提升。当前机器没有 Go Task CLI，未安装系统工具，Task 底层命令已直接通过。
+- T-06 的 T02-D04 依赖已关闭；clean source worktree 从 `05d619d1c4c90378a0138c630fa1aa3bcfa0f942` 无冲突快进到最新依赖记录 `825a1c63fd3afd748e7da7efea10004569dc484c`。T-06 解除阻塞并按已批准 `T06-D01` 恢复实现，required Cookie/CSRF/browser E2E 仍仅由 Lead candidate 执行。
 - T-08 checkpoint `d2311880e7f0b597f5ad4d470ffa316ae47e430d` 的双轴复审再次 request-changes。固定修复合同为：以结构化 mutation 描述替代任意 SQL+黑名单，显式限制非平台 owner 表、操作、业务键、参数和影响行数，并拒绝 Unicode quoted identifier 绕过 advisory 锁；将 Claim/Deliver/Retry 收回不可由 API replica 直接调用且绑定同一 Database/owner 的真实 Lease 状态机；以 topic payload schema/allowlist 和非敏感稳定 BusinessKey 类型取代字段名猜测；补 pending age、claim duration、attempt/retry、active executor/lost-lock 指标，并令探测失锁立即分类。旧 checkpoint 作废，required E2E 未开始。
 - T-05 双轴复审对 `27a186c..5b7b4f4` pass、0 findings；首次 parent-candidate `f2bbd5211eada20b8ddc3762cba680bc7944ceae` 的 pnpm 全门禁和功能浏览器断言通过，但 Lead 截图检查发现 390px 视口导航隐式 grid row 被拉伸至近半屏。required visual E2E 判定失败，candidate 未提升并已清理，checkpoint 退回原 owner 修正并补导航高度断言。
 - T-05 原 owner 以 `a648baf851d25861ac04eef688b8856fcf439b71` 修正移动 grid rows 并增加静态样式合同；source `pnpm verify` 全绿且 clean，最终双轴复审固定为 `27a186c..a648baf`，第二次 candidate 将把 390px nav 高度上限纳入 required browser E2E。
