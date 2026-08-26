@@ -35,25 +35,53 @@ export type CommandResult = 'completed' | 'cancelled' | 'busy' | 'invalid' | 'fa
 export type AdministrationFailure = 'relogin' | 'forbidden' | 'validation' | 'conflict' | 'unavailable'
 
 export const createAdministrationController = (client: AdministrationClient, confirm: (count: number) => Promise<boolean>): AdministrationController => {
-  const users = createListController<UserFilters, User, string>({
-    initialFilters: () => ({ search: '' }),
-    rowKey: (row) => row.id,
-    load: async ({ filters, page, pageSize }) => client.listUsers(filters.search, page, pageSize),
-  })
   let roles: ReadonlyArray<Role> = []
   let menus: ReadonlyArray<Menu> = []
   let permissions: ReadonlyArray<Permission> = []
   let capabilityCodes = new Set<string>()
   let capabilityScope: 'all' | 'self' = 'self'
   let failure: AdministrationFailure | null = null
+  let userProjectionReady = false
   const pendingRepairs = new Map<string, () => Promise<void>>()
+  let mutationBusy = false
   let repairBusy = false
+  const clearAuthorizationProjection = () => {
+    capabilityCodes = new Set(); capabilityScope = 'self'; roles = []; menus = []; permissions = []; userProjectionReady = false
+  }
   const recordFailure = (error: unknown) => {
     failure = error instanceof AdministrationRequestError && isAdministrationFailure(error.category)
       ? error.category
       : 'unavailable'
+    if (failure === 'relogin') clearAuthorizationProjection()
   }
   const clearFailure = () => { failure = null }
+  const rawUsers = createListController<UserFilters, User, string>({
+    initialFilters: () => ({ search: '' }),
+    rowKey: (row) => row.id,
+    load: async ({ filters, page, pageSize }) => client.listUsers(filters.search, page, pageSize),
+  })
+  const observeUserList = async (operation: () => Promise<void>) => {
+    clearFailure()
+    try {
+      await operation()
+      userProjectionReady = true
+    } catch (error) {
+      recordFailure(error)
+      if (!userProjectionReady) clearAuthorizationProjection()
+      throw error
+    }
+  }
+  const users: ListController<UserFilters, User, string> = {
+    snapshot: () => rawUsers.snapshot(),
+    refresh: () => observeUserList(() => rawUsers.refresh()),
+    search: (filters) => observeUserList(() => rawUsers.search(filters)),
+    reset: () => observeUserList(() => rawUsers.reset()),
+    setPage: (page) => observeUserList(() => rawUsers.setPage(page)),
+    setPageSize: (pageSize) => observeUserList(() => rawUsers.setPageSize(pageSize)),
+    setSort: (sort) => observeUserList(() => rawUsers.setSort(sort)),
+    select: (rows) => rawUsers.select(rows),
+    clearSelection: () => rawUsers.clearSelection(),
+  }
   const refreshAuthorizationData = async () => {
     clearFailure()
     try {
@@ -68,7 +96,7 @@ export const createAdministrationController = (client: AdministrationClient, con
       ])
       roles = [...nextRoles]; menus = [...nextMenus]; permissions = [...nextPermissions]
     } catch (error) {
-      capabilityCodes = new Set(); capabilityScope = 'self'; roles = []; menus = []; permissions = []
+      clearAuthorizationProjection()
       recordFailure(error)
       throw error
     }
@@ -78,25 +106,24 @@ export const createAdministrationController = (client: AdministrationClient, con
     submit(model: Readonly<TModel>): Promise<void>
     refresh(): Promise<void>
   }): FormController<TModel> => {
-    let busy = false
     const refresh = async (): Promise<FormRunResult> => {
       clearFailure()
       try { await options.refresh(); pendingRepairs.delete(key); return 'submitted' }
       catch (error) { recordFailure(error); return 'refresh-failed' }
     }
     return {
-      get busy() { return busy },
+      get busy() { return mutationBusy || repairBusy },
       async run(model) {
-        if (busy) return 'busy'
-        busy = true
+        if (mutationBusy || repairBusy) return 'busy'
+        if (pendingRepairs.size > 0) return 'refresh-failed'
+        mutationBusy = true
         try {
-          if (pendingRepairs.has(key)) return await refresh()
           if (!await options.validate(model)) return 'invalid'
           clearFailure()
           try { await options.submit(model) } catch (error) { recordFailure(error); return 'failed' }
           pendingRepairs.set(key, options.refresh)
           return await refresh()
-        } finally { busy = false }
+        } finally { mutationBusy = false }
       },
     }
   }
@@ -105,7 +132,6 @@ export const createAdministrationController = (client: AdministrationClient, con
     refresh(): Promise<void>
     clearSelection(): void
   }): RemovalController<TKey> => {
-    let busy = false
     const repair = async () => { options.clearSelection(); await options.refresh() }
     const refresh = async (): Promise<RemovalRunResult> => {
       clearFailure()
@@ -113,19 +139,19 @@ export const createAdministrationController = (client: AdministrationClient, con
       catch (error) { recordFailure(error); return 'refresh-failed' }
     }
     return {
-      get busy() { return busy },
+      get busy() { return mutationBusy || repairBusy },
       async run(keys) {
-        if (busy) return 'busy'
-        if (pendingRepairs.has(key)) { busy = true; try { return await refresh() } finally { busy = false } }
+        if (mutationBusy || repairBusy) return 'busy'
+        if (pendingRepairs.size > 0) return 'refresh-failed'
         if (keys.length === 0) return 'empty'
-        busy = true
+        mutationBusy = true
         try {
           if (!await confirm(keys.length)) return 'cancelled'
           clearFailure()
           try { await options.execute([...keys]) } catch (error) { recordFailure(error); return 'failed' }
           pendingRepairs.set(key, repair)
           return await refresh()
-        } finally { busy = false }
+        } finally { mutationBusy = false }
       },
     }
   }
@@ -149,24 +175,20 @@ export const createAdministrationController = (client: AdministrationClient, con
     submit: async (model) => { await client.createMenu(model) },
     refresh: refreshAuthorizationData,
   })
-  let commandBusy = false
   const command = async (key: string, operation: () => Promise<void>, refreshed: () => Promise<void>, destructive = false): Promise<CommandResult> => {
-    if (commandBusy) return 'busy'
-    commandBusy = true
+    if (mutationBusy || repairBusy) return 'busy'
+    if (pendingRepairs.size > 0) return 'refresh-failed'
+    mutationBusy = true
     clearFailure()
     try {
-      if (pendingRepairs.has(key)) {
-        try { await refreshed(); pendingRepairs.delete(key); return 'completed' }
-        catch (error) { recordFailure(error); return 'refresh-failed' }
-      }
       if (destructive && !await confirm(1)) return 'cancelled'
       try { await operation() } catch (error) { recordFailure(error); return 'failed' }
       pendingRepairs.set(key, refreshed)
       try { await refreshed(); pendingRepairs.delete(key); return 'completed' } catch (error) { recordFailure(error); return 'refresh-failed' }
-    } finally { commandBusy = false }
+    } finally { mutationBusy = false }
   }
   const repairProjection = async (): Promise<CommandResult> => {
-    if (repairBusy || commandBusy) return 'busy'
+    if (repairBusy || mutationBusy) return 'busy'
     const next = pendingRepairs.entries().next().value as [string, () => Promise<void>] | undefined
     if (!next) return 'completed'
     repairBusy = true
@@ -184,7 +206,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     clearFailure,
     hasPendingRepair: () => pendingRepairs.size > 0,
     repairProjection,
-    get busy() { return commandBusy || repairBusy },
+    get busy() { return mutationBusy || repairBusy },
     updateUser(user, enabled) { return command(`update-user:${user.id}`, async () => { await client.updateUser(user.id, { displayName: user.displayName, email: user.email, enabled }) }, () => users.refresh(), !enabled) },
     deleteRole(id) { return command(`delete-role:${id}`, () => client.deleteRole(id), refreshAuthorizationData, true) },
     updateRole(role) { if (!validStableKey(role.key) || !validName(role.name, 100)) return Promise.resolve('invalid'); return command(`update-role:${role.id}`, () => client.updateRole(role.id, { key: role.key, name: role.name, dataScope: role.dataScope, enabled: role.enabled }), refreshAuthorizationData, !role.enabled) },

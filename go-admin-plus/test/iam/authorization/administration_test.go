@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,14 @@ import (
 	"go-admin/internal/platform/database"
 	"go-admin/internal/platform/migrations"
 )
+
+func TestAdministrationConstructorOwnsAuthorizationDatabase(t *testing.T) {
+	constructor := reflect.TypeOf(administration.NewService)
+	options := reflect.TypeOf([]administration.Option{})
+	if !constructor.IsVariadic() || constructor.NumIn() != 2 || constructor.In(1) != options {
+		t.Fatalf("constructor permits a split authorization owner: %v", constructor)
+	}
+}
 
 func TestAdministrationClosesRolePermissionAndDataScopeLoop(t *testing.T) {
 	_, service := newAdministrationFixture(t)
@@ -367,8 +376,7 @@ func newAdministrationFixture(t *testing.T) (*database.Database, *administration
 	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, adminID, "role-system-admin"); err != nil {
 		t.Fatal(err)
 	}
-	authorizer := authorization.NewService(db)
-	service, err := administration.NewService(db, authorizer)
+	service, err := administration.NewService(db)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -115,29 +115,124 @@ describe('administration controller', () => {
     expect(settled).toHaveBeenCalledTimes(1)
   })
 
+  it.each([
+    ['relogin', new AdministrationRequestError('relogin')],
+    ['unavailable', new Error('list unavailable')],
+  ] as const)('surfaces an initial user list %s failure and clears capabilities fail closed', async (expected, error) => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData()
+    vi.mocked(api.listUsers).mockRejectedValueOnce(error)
+    const sessionRequired = vi.fn()
+    await settleAdministrationPageOperation(() => controller.users.refresh(), () => {
+      if (controller.failure() === 'relogin') sessionRequired()
+    })
+    expect(controller.failure()).toBe(expected)
+    expect(controller.users.snapshot().rows).toEqual([])
+    expect(controller.can('iam.users.read')).toBe(false)
+    expect(controller.can('iam.roles.read')).toBe(false)
+    expect(sessionRequired).toHaveBeenCalledTimes(expected === 'relogin' ? 1 : 0)
+  })
+
+  it('classifies current search, reset and pagination failures', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData(); await controller.users.refresh()
+    for (const operation of [
+      () => controller.users.search({ search: 'reader' }),
+      () => controller.users.reset(),
+      () => controller.users.setPage(2),
+    ]) {
+      vi.mocked(api.listUsers).mockRejectedValueOnce(new Error('list unavailable'))
+      await expect(operation()).rejects.toThrow('list unavailable')
+      expect(controller.failure()).toBe('unavailable')
+    }
+  })
+
   it('repairs create, removal and command projections without repeating successful writes', async () => {
     const createAPI = client(); const createController = createAdministrationController(createAPI, async () => true)
-    vi.mocked(createAPI.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    vi.mocked(createAPI.listUsers)
+      .mockRejectedValueOnce(new Error('refresh unavailable'))
+      .mockRejectedValueOnce(new Error('refresh still unavailable'))
     const model = { username: 'reader', displayName: 'Reader', email: 'reader@example.test', password: 'reader password' }
     expect(await createController.createUser.run(model)).toBe('refresh-failed')
     expect(createController.hasPendingRepair()).toBe(true)
-    expect(await createController.createUser.run({ ...model, username: 'invalid key' })).toBe('submitted')
+    expect(await createController.createUser.run({ ...model, username: 'writer' })).toBe('refresh-failed')
     expect(createAPI.createUser).toHaveBeenCalledTimes(1)
+    expect(createController.hasPendingRepair()).toBe(true)
+    expect(await createController.repairProjection()).toBe('refresh-failed')
+    expect(createAPI.createUser).toHaveBeenCalledTimes(1)
+    expect(createController.hasPendingRepair()).toBe(true)
+    expect(await createController.repairProjection()).toBe('completed')
     expect(createController.hasPendingRepair()).toBe(false)
+    expect(await createController.createUser.run({ ...model, username: 'writer' })).toBe('submitted')
+    expect(createAPI.createUser).toHaveBeenCalledTimes(2)
 
     const removeAPI = client(); const confirm = vi.fn(async () => true); const removeController = createAdministrationController(removeAPI, confirm)
-    vi.mocked(removeAPI.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    vi.mocked(removeAPI.listUsers)
+      .mockRejectedValueOnce(new Error('refresh unavailable'))
+      .mockRejectedValueOnce(new Error('refresh still unavailable'))
     expect(await removeController.deleteUsers.run(['account-00000001'])).toBe('refresh-failed')
-    expect(await removeController.deleteUsers.run([])).toBe('completed')
+    expect(removeController.hasPendingRepair()).toBe(true)
+    expect(await removeController.deleteUsers.run(['account-00000002'])).toBe('refresh-failed')
     expect(removeAPI.deleteUsers).toHaveBeenCalledTimes(1)
     expect(confirm).toHaveBeenCalledTimes(1)
+    expect(await removeController.repairProjection()).toBe('refresh-failed')
+    expect(removeController.hasPendingRepair()).toBe(true)
+    expect(await removeController.repairProjection()).toBe('completed')
+    expect(removeController.hasPendingRepair()).toBe(false)
+    expect(await removeController.deleteUsers.run(['account-00000002'])).toBe('completed')
+    expect(removeAPI.deleteUsers).toHaveBeenCalledTimes(2)
+    expect(confirm).toHaveBeenCalledTimes(2)
 
     const commandAPI = client(); const commandConfirm = vi.fn(async () => true); const commandController = createAdministrationController(commandAPI, commandConfirm)
-    vi.mocked(commandAPI.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    vi.mocked(commandAPI.listUsers)
+      .mockRejectedValueOnce(new Error('refresh unavailable'))
+      .mockRejectedValueOnce(new Error('refresh still unavailable'))
     const user = { id: 'account-00000001', username: 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }
     expect(await commandController.updateUser(user, false)).toBe('refresh-failed')
-    expect(await commandController.updateUser(user, false)).toBe('completed')
+    expect(commandController.hasPendingRepair()).toBe(true)
+    expect(await commandController.updateUser({ ...user, id: 'account-00000002' }, true)).toBe('refresh-failed')
     expect(commandAPI.updateUser).toHaveBeenCalledTimes(1)
     expect(commandConfirm).toHaveBeenCalledTimes(1)
+    expect(commandController.hasPendingRepair()).toBe(true)
+    expect(await commandController.repairProjection()).toBe('refresh-failed')
+    expect(commandAPI.updateUser).toHaveBeenCalledTimes(1)
+    expect(commandController.hasPendingRepair()).toBe(true)
+    expect(await commandController.repairProjection()).toBe('completed')
+    expect(commandController.hasPendingRepair()).toBe(false)
+    expect(await commandController.updateUser({ ...user, id: 'account-00000002' }, true)).toBe('completed')
+    expect(commandAPI.updateUser).toHaveBeenCalledTimes(2)
+    expect(commandConfirm).toHaveBeenCalledTimes(1)
+  })
+
+  it('serializes all mutation controller classes behind one busy boundary', async () => {
+    const api = client(); const confirm = vi.fn(async () => true); const controller = createAdministrationController(api, confirm)
+    let release!: () => void
+    vi.mocked(api.createUser).mockImplementation(() => new Promise((resolve) => {
+      release = () => resolve({ id: 'account-00000002', username: 'reader', displayName: 'Reader', email: 'reader@example.test', disabled: false, roleIds: [] })
+    }))
+    const user = { id: 'account-00000001', username: 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }
+    const creating = controller.createUser.run({ username: 'reader', displayName: 'Reader', email: 'reader@example.test', password: 'reader password' })
+    expect(await controller.deleteUsers.run([user.id])).toBe('busy')
+    expect(await controller.updateUser(user, false)).toBe('busy')
+    expect(api.deleteUsers).not.toHaveBeenCalled()
+    expect(api.updateUser).not.toHaveBeenCalled()
+    expect(confirm).not.toHaveBeenCalled()
+    release()
+    expect(await creating).toBe('submitted')
+    expect(controller.hasPendingRepair()).toBe(false)
+
+    vi.mocked(api.createUser).mockResolvedValueOnce({ id: 'account-00000003', username: 'writer', displayName: 'Writer', email: 'writer@example.test', disabled: false, roleIds: [] })
+    vi.mocked(api.listUsers).mockRejectedValueOnce(new Error('refresh unavailable'))
+    expect(await controller.createUser.run({ username: 'writer', displayName: 'Writer', email: 'writer@example.test', password: 'writer password' })).toBe('refresh-failed')
+    let releaseRepair!: () => void
+    vi.mocked(api.listUsers).mockImplementationOnce(() => new Promise((resolve) => {
+      releaseRepair = () => resolve({ rows: [], total: 0 })
+    }))
+    const repairing = controller.repairProjection()
+    expect(await controller.deleteUsers.run([user.id])).toBe('busy')
+    expect(api.deleteUsers).not.toHaveBeenCalled()
+    releaseRepair()
+    expect(await repairing).toBe('completed')
+    expect(controller.hasPendingRepair()).toBe(false)
   })
 })

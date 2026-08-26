@@ -58,7 +58,7 @@ func TestIAMAdministrationBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminService, err := administration.NewService(db, authorization.NewService(db))
+	adminService, err := administration.NewService(db)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -75,7 +75,7 @@ func TestPostgresRevocationWaitsForFinalAuthorizationFence(t *testing.T) {
 	}
 
 	locked, release := make(chan struct{}), make(chan struct{})
-	service, err := administration.NewService(serviceDB, authorization.NewService(serviceDB), administration.WithAuthorizationProbe(func(permission string) {
+	service, err := administration.NewService(serviceDB, administration.WithAuthorizationProbe(func(permission string) {
 		if permission == authorization.PermissionRolesWrite {
 			close(locked)
 			<-release
@@ -103,7 +103,7 @@ func TestPostgresRevocationWaitsForFinalAuthorizationFence(t *testing.T) {
 	if err := <-revoked; err != nil {
 		t.Fatal("revocation failed")
 	}
-	plain, _ := administration.NewService(serviceDB, authorization.NewService(serviceDB))
+	plain, _ := administration.NewService(serviceDB)
 	if _, err := plain.CreateRole(ctx, adminID, "after-revoke", "After revoke", authorization.ScopeAll); !errors.Is(err, authorization.ErrDenied) {
 		t.Fatalf("post-revoke command = %v", err)
 	}

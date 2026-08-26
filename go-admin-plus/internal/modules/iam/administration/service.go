@@ -85,11 +85,11 @@ func WithAuthorizationProbe(probe func(string)) Option {
 	return func(s *Service) { s.authorizationProbe = probe }
 }
 
-func NewService(db Database, authorizer *authorization.Service, options ...Option) (*Service, error) {
-	if db == nil || authorizer == nil {
-		return nil, errors.New("iam administration dependencies are required")
+func NewService(db Database, options ...Option) (*Service, error) {
+	if db == nil {
+		return nil, errors.New("iam administration database is required")
 	}
-	service := &Service{db: db, authorizer: authorizer, accounts: account.NewRepository(db.Dialect()), passwordWork: account.ProcessPasswordWorkBudget(), now: time.Now}
+	service := &Service{db: db, authorizer: authorization.NewService(db), accounts: account.NewRepository(db.Dialect()), passwordWork: account.ProcessPasswordWorkBudget(), now: time.Now}
 	for _, option := range options {
 		option(service)
 	}
