@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"go-admin/internal/modules/iam/session"
 	"go-admin/internal/platform/database"
 )
 
@@ -37,16 +38,23 @@ func NewLoginRecorder(db *database.Database) (*LoginRecorder, error) {
 }
 
 func (recorder *LoginRecorder) Record(ctx context.Context, tx database.Tx, fact LoginFact) (bool, error) {
-	if recorder == nil || recorder.newBusinessID == nil || tx == nil || fact.ActorType != ActorAccount ||
-		fact.Outcome != OutcomeSucceeded && fact.Outcome != OutcomeFailed ||
-		fact.Outcome == OutcomeSucceeded && (fact.ActorRef == nil || !validActorRef(*fact.ActorRef)) ||
-		fact.Outcome == OutcomeFailed && fact.ActorRef != nil ||
-		fact.Source != SourceWeb && fact.Source != SourceDesktop && fact.Source != SourceServer || fact.OccurredAt.IsZero() {
+	if recorder == nil || recorder.newBusinessID == nil {
 		return false, ErrInvalidArgument
 	}
 	businessID, err := recorder.newBusinessID()
 	if err != nil {
 		return false, ErrInternal
+	}
+	return recorder.record(ctx, tx, businessID, fact)
+}
+
+func (recorder *LoginRecorder) record(ctx context.Context, tx database.Tx, businessID string, fact LoginFact) (bool, error) {
+	if recorder == nil || tx == nil || !opaqueLoginBusinessID.MatchString(businessID) || fact.ActorType != ActorAccount ||
+		fact.Outcome != OutcomeSucceeded && fact.Outcome != OutcomeFailed ||
+		fact.Outcome == OutcomeSucceeded && (fact.ActorRef == nil || !validActorRef(*fact.ActorRef)) ||
+		fact.Outcome == OutcomeFailed && fact.ActorRef != nil ||
+		fact.Source != SourceWeb && fact.Source != SourceDesktop && fact.Source != SourceServer || fact.OccurredAt.IsZero() {
+		return false, ErrInvalidArgument
 	}
 	topic := TopicLoginSucceeded
 	if fact.Outcome == OutcomeFailed {
@@ -72,6 +80,40 @@ func (recorder *LoginRecorder) Record(ctx context.Context, tx database.Tx, fact 
 		return false, ErrInternal
 	}
 	return true, nil
+}
+
+// SessionLoginFactAdapter is the Audit-owned implementation of Session's module-neutral port.
+// Session creates the opaque attempt ID and never imports Audit.
+type SessionLoginFactAdapter struct{ recorder *LoginRecorder }
+
+func NewSessionLoginFactAdapter(db *database.Database) (*SessionLoginFactAdapter, error) {
+	recorder, err := NewLoginRecorder(db)
+	if err != nil {
+		return nil, err
+	}
+	return &SessionLoginFactAdapter{recorder: recorder}, nil
+}
+
+func (adapter *SessionLoginFactAdapter) RecordLoginFact(ctx context.Context, tx database.Tx, fact session.LoginFact) error {
+	if adapter == nil || adapter.recorder == nil || !fact.AttemptID.Valid() {
+		return ErrInvalidArgument
+	}
+	mapped := LoginFact{ActorType: ActorAccount, Source: Source(fact.Source), OccurredAt: fact.OccurredAt}
+	switch fact.Outcome {
+	case session.LoginSucceeded:
+		actorRef := "account:" + fact.AccountID
+		mapped.Outcome = OutcomeSucceeded
+		mapped.ActorRef = &actorRef
+	case session.LoginFailed:
+		if fact.AccountID != "" {
+			return ErrInvalidArgument
+		}
+		mapped.Outcome = OutcomeFailed
+	default:
+		return ErrInvalidArgument
+	}
+	_, err := adapter.recorder.record(ctx, tx, fact.AttemptID.Opaque(), mapped)
+	return err
 }
 
 type storedLoginFact struct {

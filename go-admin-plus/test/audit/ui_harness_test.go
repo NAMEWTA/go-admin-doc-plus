@@ -3,6 +3,7 @@ package audit_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,6 +14,10 @@ import (
 
 	audit "go-admin/internal/modules/audit"
 	auditmigration "go-admin/internal/modules/audit/migrations/0011-audit"
+	"go-admin/internal/modules/iam/authorization"
+	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
+	administrationmigration "go-admin/internal/modules/iam/migrations/0020-administration-schema"
+	"go-admin/internal/modules/iam/session"
 	"go-admin/internal/platform/config"
 	"go-admin/internal/platform/database"
 	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
@@ -56,28 +61,42 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	db := openAuditUIHarnessDatabase(t, ctx, profile)
-	migrate(t, db, reliablemigration.Provider{}, auditmigration.Provider{})
+	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
 	store := newAuditStore(t, db)
 	now := time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
-	recorder, err := audit.NewLoginRecorder(db)
+	createAuditIAMFixture(t, db, now)
+	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		_, recordErr := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: stringPointer("account:account-00000011"), Source: audit.SourceWeb, OccurredAt: now.Add(-2 * 24 * time.Hour)})
-		return recordErr
-	}); err != nil {
-		t.Fatal("seed Audit login fact failed")
+	policy, err := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
+	if err != nil {
+		t.Fatal(err)
 	}
-	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000011", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
+	sessions, err := session.NewService(db, policy, session.WithClock(func() time.Time { return now }), session.WithLoginFactPort(loginFacts))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sessions.Login(ctx, "missing", "incorrect password"); !errors.Is(err, session.ErrCredentials) {
+		t.Fatal("seed failed login fact failed")
+	}
+	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
 	dispatch(t, db, store, mustConsumers(t), now)
 
-	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
-	authorized, err := audit.NewAuthorizedRequest(audit.Principal{ID: "auditor-00000001"}, "ccccccccccccccccccccccccccccccccccccccccccc", stringPointer(sessionCookie("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")))
+	permissionAdapter, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
 	if err != nil {
 		t.Fatal(err)
 	}
-	api, err := audit.NewHTTPHandler(service, auditUIAuthorizer{authorized: authorized}, func(*http.Request) string { return "0123456789abcdef" })
+	service := mustServiceWithPolicy(t, db, permissionAdapter, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+	requestAdapter, err := audit.NewIAMRequestAuthorizer(sessions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	auditAPI, err := audit.NewHTTPHandler(service, requestAdapter, func(*http.Request) string { return "0123456789abcdef" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionAPI, err := session.NewHTTPHandler(sessions, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,6 +104,9 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	shutdown := make(chan struct{})
 	var shutdownOnce sync.Once
 	mux := http.NewServeMux()
+	api := http.NewServeMux()
+	api.Handle("/audit/", auditAPI)
+	api.Handle("/iam/", sessionAPI)
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	mux.HandleFunc("/__test/snapshot", func(response http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodGet {
@@ -98,6 +120,38 @@ func TestAuditUIHarnessServer(t *testing.T) {
 		}
 		response.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(response).Encode(map[string]int{"count": count})
+	})
+	mux.HandleFunc("/__test/audit-permission", func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			response.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		enabled := request.URL.Query().Get("enabled")
+		var err error
+		if enabled == "false" {
+			_, err = db.Bun().ExecContext(request.Context(), `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code = ?`, "role-system-admin", audit.PermissionRead)
+		} else if enabled == "true" {
+			_, err = db.Bun().ExecContext(request.Context(), `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-system-admin", audit.PermissionRead)
+		} else {
+			response.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		response.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/__test/revoke-sessions", func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			response.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if _, err := db.Bun().ExecContext(request.Context(), `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE state = 'active'`, now); err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		response.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("/__test/shutdown", func(response http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodPost {
@@ -122,15 +176,6 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	case <-ctx.Done():
 		t.Fatal("Audit UI harness timed out")
 	}
-}
-
-type auditUIAuthorizer struct{ authorized audit.AuthorizedRequest }
-
-func (authorizer auditUIAuthorizer) AuthorizeRequest(_ context.Context, request *http.Request) (audit.AuthorizedRequest, audit.RequestFailure) {
-	if request.Method != http.MethodGet && request.Header.Get("X-CSRF-Token") != "ccccccccccccccccccccccccccccccccccccccccccc" {
-		return authorizer.authorized, audit.RequestAuthorizationFailed
-	}
-	return authorizer.authorized, audit.RequestAuthorized
 }
 
 func openAuditUIHarnessDatabase(t *testing.T, ctx context.Context, profile string) *database.Database {

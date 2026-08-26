@@ -37,12 +37,57 @@ type Database interface {
 	Dialect() database.Dialect
 }
 
+type LoginFactOutcome string
+type LoginFactSource string
+
+const (
+	LoginSucceeded LoginFactOutcome = "succeeded"
+	LoginFailed    LoginFactOutcome = "failed"
+	LoginSourceWeb LoginFactSource  = "web"
+)
+
+// LoginAttemptID is generated inside Session. Its private representation prevents callers from
+// substituting usernames or credential material for the stable Audit correlation identifier.
+type LoginAttemptID struct{ value [16]byte }
+
+func (id LoginAttemptID) Opaque() string { return hex.EncodeToString(id.value[:]) }
+func (id LoginAttemptID) Valid() bool {
+	var combined byte
+	for _, value := range id.value {
+		combined |= value
+	}
+	return combined != 0
+}
+func (LoginAttemptID) String() string      { return "session.LoginAttemptID{[opaque]}" }
+func (id LoginAttemptID) GoString() string { return id.String() }
+
+// LoginFact is deliberately closed: it cannot carry usernames, passwords, Session/CSRF tokens,
+// request bodies, or arbitrary metadata.
+type LoginFact struct {
+	AttemptID  LoginAttemptID
+	Outcome    LoginFactOutcome
+	AccountID  string
+	Source     LoginFactSource
+	OccurredAt time.Time
+}
+
+type LoginFactPort interface {
+	RecordLoginFact(context.Context, database.Tx, LoginFact) error
+}
+
+type discardLoginFactPort struct{}
+
+func (discardLoginFactPort) RecordLoginFact(context.Context, database.Tx, LoginFact) error {
+	return nil
+}
+
 type Service struct {
 	db           Database
 	accounts     *account.Repository
 	policy       config.SessionPolicy
 	now          func() time.Time
 	passwordWork *account.PasswordWorkBudget
+	loginFacts   LoginFactPort
 	lockProbe    func(accountLockPoint)
 }
 
@@ -60,6 +105,7 @@ func WithClock(clock func() time.Time) Option { return func(s *Service) { s.now 
 func WithPasswordWorkBudget(budget *account.PasswordWorkBudget) Option {
 	return func(s *Service) { s.passwordWork = budget }
 }
+func WithLoginFactPort(port LoginFactPort) Option { return func(s *Service) { s.loginFacts = port } }
 
 func NewService(db Database, policy config.SessionPolicy, options ...Option) (*Service, error) {
 	if db == nil {
@@ -68,7 +114,7 @@ func NewService(db Database, policy config.SessionPolicy, options ...Option) (*S
 	if _, err := config.NewSessionPolicy(policy.IdleTimeout(), policy.AbsoluteTimeout(), policy.RotationInterval()); err != nil {
 		return nil, err
 	}
-	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget()}
+	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget(), loginFacts: discardLoginFactPort{}}
 	for _, option := range options {
 		option(s)
 	}
@@ -77,6 +123,9 @@ func NewService(db Database, policy config.SessionPolicy, options ...Option) (*S
 	}
 	if s.passwordWork == nil {
 		return nil, errors.New("password work budget is required")
+	}
+	if s.loginFacts == nil {
+		return nil, errors.New("login fact port is required")
 	}
 	return s, nil
 }
@@ -104,16 +153,21 @@ type record struct {
 }
 
 func (s *Service) Login(ctx context.Context, username, password string) (Issued, error) {
+	attemptID, err := newLoginAttemptID()
+	if err != nil {
+		return Issued{}, ErrInternal
+	}
+	now := s.now().UTC()
 	if len(strings.TrimSpace(username)) < 3 || len(username) > 64 || len(password) < 12 || len(password) > 128 {
-		return Issued{}, ErrCredentials
+		return Issued{}, s.failedLogin(ctx, attemptID, now)
 	}
 	releasePasswordWork, acquired := s.passwordWork.TryAcquire()
 	if !acquired {
-		return Issued{}, ErrCredentials
+		return Issued{}, s.failedLogin(ctx, attemptID, now)
 	}
 	defer releasePasswordWork()
 	var observed account.Credential
-	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+	err = s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		credential, err := s.accounts.FindCredential(ctx, tx, username, false)
 		if err == nil {
 			observed = credential
@@ -123,19 +177,18 @@ func (s *Service) Login(ctx context.Context, username, password string) (Issued,
 	if errors.Is(err, account.ErrNotFound) {
 		// A fixed valid hash keeps absent and wrong-password paths in the same expensive class.
 		_ = account.VerifyPassword(dummyPasswordHash, password)
-		return Issued{}, ErrCredentials
+		return Issued{}, s.failedLogin(ctx, attemptID, now)
 	}
 	if err != nil {
 		return Issued{}, sanitize(err)
 	}
 	passwordValid := account.VerifyPassword(observed.PasswordHash, password)
 	if observed.Disabled || !passwordValid {
-		return Issued{}, ErrCredentials
+		return Issued{}, s.failedLogin(ctx, attemptID, now)
 	}
 	releasePasswordWork()
 
 	var result Issued
-	now := s.now().UTC()
 	err = s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		credential, err := s.accounts.FindCredential(ctx, tx, username, true)
 		if errors.Is(err, account.ErrNotFound) || credential.Disabled {
@@ -148,12 +201,45 @@ func (s *Service) Login(ctx context.Context, username, password string) (Issued,
 			return ErrCredentials
 		}
 		issued, err := s.create(ctx, tx, credential.Profile, credential.SessionGeneration, now, now.Add(s.policy.AbsoluteTimeout()))
-		if err == nil {
-			result = issued
+		if err != nil {
+			return err
 		}
-		return err
+		if err := s.recordLoginFact(ctx, tx, LoginFact{AttemptID: attemptID, Outcome: LoginSucceeded, AccountID: credential.Profile.ID, Source: LoginSourceWeb, OccurredAt: now}); err != nil {
+			return err
+		}
+		result = issued
+		return nil
 	})
-	return result, sanitize(err)
+	if errors.Is(err, ErrCredentials) {
+		return Issued{}, s.failedLogin(ctx, attemptID, now)
+	}
+	if err != nil {
+		return Issued{}, sanitize(err)
+	}
+	return result, nil
+}
+
+func (s *Service) failedLogin(ctx context.Context, attemptID LoginAttemptID, occurredAt time.Time) error {
+	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		return s.recordLoginFact(ctx, tx, LoginFact{AttemptID: attemptID, Outcome: LoginFailed, Source: LoginSourceWeb, OccurredAt: occurredAt})
+	})
+	if err != nil {
+		return sanitize(err)
+	}
+	return ErrCredentials
+}
+
+func (s *Service) recordLoginFact(ctx context.Context, tx database.Tx, fact LoginFact) error {
+	if err := s.loginFacts.RecordLoginFact(ctx, tx, fact); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return context.Canceled
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return context.DeadlineExceeded
+		}
+		return errors.New("login fact recording failed")
+	}
+	return nil
 }
 
 func (s *Service) Current(ctx context.Context, token string) (Issued, error) {
@@ -493,6 +579,14 @@ func randomSecret() (string, error) {
 		return "", errors.New("secure random unavailable")
 	}
 	return base64.RawURLEncoding.EncodeToString(raw), nil
+}
+
+func newLoginAttemptID() (LoginAttemptID, error) {
+	var id LoginAttemptID
+	if _, err := rand.Read(id.value[:]); err != nil {
+		return LoginAttemptID{}, errors.New("secure random unavailable")
+	}
+	return id, nil
 }
 
 func tokenDigest(value string) string {

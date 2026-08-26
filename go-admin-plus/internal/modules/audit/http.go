@@ -83,7 +83,8 @@ func NewHTTPHandler(service *Service, authorizer RequestAuthorizer, traceID cont
 	middleware := func(next transport.StrictHandlerFunc, _ string) transport.StrictHandlerFunc {
 		return func(ctx context.Context, w http.ResponseWriter, request *http.Request, input any) (any, error) {
 			authorized, failure := authorizer.AuthorizeRequest(ctx, request)
-			if !validFailure(failure) || failure != RequestAuthenticationFailed && !authorized.valid() {
+			if !validFailure(failure) || failure == RequestAuthorized && !authorized.valid() ||
+				failure != RequestAuthorized && authorized != (AuthorizedRequest{}) && !authorized.valid() {
 				failure = RequestInternalFailed
 				authorized = AuthorizedRequest{}
 			}
@@ -317,6 +318,9 @@ func csrfAuthorizationProblem(identity httpIdentity) transport.AuthorizedAuthori
 }
 
 func authorizedAuthorizationHeaders(identity httpIdentity) transport.AuthorizedAuthorizationProblemResponseHeaders {
+	if !identity.authorized.valid() {
+		return transport.AuthorizedAuthorizationProblemResponseHeaders{}
+	}
 	return transport.AuthorizedAuthorizationProblemResponseHeaders{XCSRFToken: cloneString(&identity.authorized.csrf), SetCookie: cloneString(identity.authorized.cookie)}
 }
 

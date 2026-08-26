@@ -5,6 +5,14 @@ const assert: (condition: unknown, message: string) => asserts condition = (cond
 }
 
 let confirmCleanup = false
+const login = await fetch('/api/iam/session/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ username: 'admin', password: 'correct horse battery' }),
+})
+assert(login.ok, 'real IAM login failed')
+const loginBody = await login.text()
+assert(!/(password|sessionToken)/i.test(loginBody), 'IAM login response exposed credential material')
 const controller = createAuditController(createWebAuditClient(fetch, '/api'), async () => confirmCleanup)
 mountAuditPage('#app', controller)
 
@@ -37,14 +45,15 @@ const snapshot = async (): Promise<{ count: number }> => {
 
 const driver = {
   async run() {
-		await waitFor(() => document.querySelectorAll('[data-testid="audit-row"]').length === 2, 'initial Audit page load failed')
+		await waitFor(() => document.querySelectorAll('[data-testid="audit-row"]').length === 3, 'initial Audit page load failed')
 		const factsResponse = await fetch('/api/audit/records?page=1&pageSize=20')
 		assert(factsResponse.ok, 'Audit fact verification request failed')
 		const rawFacts = await factsResponse.text()
 		assert(!/(payload|businessKey|password|secret|session|credential)/i.test(rawFacts), 'Audit response exposed a private envelope')
 		const facts = JSON.parse(rawFacts) as { records: Array<{ kind: string; actorRef?: string; subject: string }> }
-		assert(facts.records.some((fact) => fact.kind === 'login' && fact.actorRef === 'account:account-00000011' && /^login:[a-f0-9]{32}$/.test(fact.subject)), 'Audit login actor fact is missing')
-		assert(facts.records.some((fact) => fact.kind === 'operation' && fact.actorRef === 'account:account-00000011' && fact.subject === 'demo:ui-record-revision-2'), 'Audit operation actor fact is missing')
+		assert(facts.records.some((fact) => fact.kind === 'login' && fact.actorRef === 'account:account-00000001' && /^login:[a-f0-9]{32}$/.test(fact.subject)), 'Audit login actor fact is missing')
+		assert(facts.records.some((fact) => fact.kind === 'login' && !fact.actorRef && /^login:[a-f0-9]{32}$/.test(fact.subject)), 'Audit failed login fact is missing')
+		assert(facts.records.some((fact) => fact.kind === 'operation' && fact.actorRef === 'account:account-00000001' && fact.subject === 'demo:ui-record-revision-2'), 'Audit operation actor fact is missing')
     select('audit-source', 'web')
     select('audit-action', 'update')
     click('audit-search')
@@ -70,7 +79,17 @@ const driver = {
     click('audit-cleanup')
     await waitFor(() => (document.querySelector('[data-testid="audit-cleanup-status"]')?.textContent ?? '').includes('Deleted 1 records'), 'Audit cleanup status failed')
 		assert(document.querySelectorAll('[data-testid="audit-row"]').length === 0, 'filtered Audit list did not refresh after cleanup')
-		assert((await snapshot()).count === 1, 'Audit browser cleanup removed the recent login fact')
+		assert((await snapshot()).count === 2, 'Audit browser cleanup removed a recent login fact')
+
+		assert((await fetch('/__test/audit-permission?enabled=false', { method: 'POST' })).ok, 'Audit permission revoke failed')
+		click('audit-search')
+		await waitFor(() => (document.querySelector('[role="alert"]')?.textContent ?? '').includes('permission'), 'Audit forbidden state was not rendered')
+		assert((await fetch('/__test/audit-permission?enabled=true', { method: 'POST' })).ok, 'Audit permission restore failed')
+		click('audit-search')
+		await waitFor(() => !document.querySelector('[role="alert"]'), 'Audit permission recovery failed')
+		assert((await fetch('/__test/revoke-sessions', { method: 'POST' })).ok, 'Session revoke failed')
+		click('audit-search')
+		await waitFor(() => (document.querySelector('[role="alert"]')?.textContent ?? '').includes('Sign in again'), 'Audit relogin state was not rendered')
     return true
   },
   async shutdown() {

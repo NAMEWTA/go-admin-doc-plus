@@ -18,10 +18,23 @@ const shutdown = async () => {
 }
 
 const run = async () => {
-  const client = createWebAuditClient(fetch, new URL('/api', baseURL).toString())
+  const login = await fetch(new URL('/api/iam/session/login', baseURL), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'admin', password: 'correct horse battery' }),
+  })
+  assert(login.ok, 'Audit E2E IAM login failed')
+  const cookie = login.headers.get('set-cookie')?.split(';', 1)[0]
+  assert(cookie, 'Audit E2E IAM cookie is missing')
+  const authenticatedFetch: typeof fetch = async (input, init) => {
+    const request = new Request(input, init)
+    const headers = new Headers(request.headers)
+    headers.set('Cookie', cookie)
+    return fetch(new Request(request, { headers }))
+  }
+  const client = createWebAuditClient(authenticatedFetch, new URL('/api', baseURL).toString())
   const denied = createAuditController(client, async () => false)
   assert(await denied.cleanup('2026-06-01T00:00:00Z') === 'cancelled', 'Audit E2E confirmation rejection failed')
-  assert((await snapshot()).count === 1, 'Audit E2E rejected cleanup changed state')
+  assert((await snapshot()).count === 3, 'Audit E2E rejected cleanup changed state')
 
   const controller = createAuditController(client, async () => true)
   await controller.list.search({ source: 'web', action: 'update' })
@@ -34,7 +47,7 @@ const run = async () => {
   assert(await controller.cleanup('2026-06-01T00:00:00Z') === 'completed', 'Audit E2E cleanup failed')
   assert(controller.lastCleanup()?.deleted === 1, 'Audit E2E cleanup result failed')
   assert(controller.list.snapshot().total === 0, 'Audit E2E cleanup did not refresh list')
-  assert((await snapshot()).count === 0, 'Audit E2E cleanup did not persist')
+  assert((await snapshot()).count === 2, 'Audit E2E cleanup removed recent login facts')
 }
 
 try {

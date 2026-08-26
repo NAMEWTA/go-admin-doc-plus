@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -101,6 +102,121 @@ func TestHTTPInfrastructureFailureIsNotReportedAsLogout(t *testing.T) {
 	handler.ServeHTTP(protectedResponse, protected)
 	if protectedResponse.Code != http.StatusInternalServerError || !strings.Contains(protectedResponse.Body.String(), `"category":"internal"`) {
 		t.Fatalf("protected dependency failure was misclassified: status=%d", protectedResponse.Code)
+	}
+}
+
+func TestLoginFactPortCommitsWithSuccessAndRecordsFailureSynchronously(t *testing.T) {
+	const (
+		username = "admin"
+		password = "correct horse battery"
+	)
+	attemptPattern := regexp.MustCompile(`^[a-f0-9]{32}$`)
+
+	t.Run("success", func(t *testing.T) {
+		probe := &loginFactProbe{}
+		db, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginFactPort(probe))
+		createLoginFactProbeTable(t, db)
+		issued, err := service.Login(context.Background(), username, password)
+		if err != nil || issued.Token == "" || issued.CSRF == "" {
+			t.Fatalf("login with fact = %#v, %v", issued, err)
+		}
+		if countRows(t, db, "iam_sessions") != 1 || countRows(t, db, "login_fact_probe") != 1 {
+			t.Fatal("successful Session and login fact did not commit together")
+		}
+		fact := probe.single(t)
+		if !fact.AttemptID.Valid() || !attemptPattern.MatchString(fact.AttemptID.Opaque()) || strings.Contains(fact.AttemptID.Opaque(), username) ||
+			fact.Outcome != session.LoginSucceeded || fact.AccountID != "account-00000001" || fact.Source != session.LoginSourceWeb {
+			t.Fatalf("success fact = %#v", fact)
+		}
+		assertLoginFactHasNoCredentialMaterial(t, fact, username, password, issued.Token, issued.CSRF)
+	})
+
+	t.Run("failed credentials", func(t *testing.T) {
+		probe := &loginFactProbe{}
+		db, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginFactPort(probe))
+		createLoginFactProbeTable(t, db)
+		if _, err := service.Login(context.Background(), username, "incorrect password"); !errors.Is(err, session.ErrCredentials) {
+			t.Fatalf("failed login = %v", err)
+		}
+		if countRows(t, db, "iam_sessions") != 0 || countRows(t, db, "login_fact_probe") != 1 {
+			t.Fatal("failed login fact was not synchronously committed without a Session")
+		}
+		fact := probe.single(t)
+		if !fact.AttemptID.Valid() || !attemptPattern.MatchString(fact.AttemptID.Opaque()) || fact.Outcome != session.LoginFailed || fact.AccountID != "" {
+			t.Fatalf("failed fact = %#v", fact)
+		}
+		assertLoginFactHasNoCredentialMaterial(t, fact, username, "incorrect password")
+	})
+}
+
+func TestLoginFactFailureRollsBackSessionAndReturnsNoCredentialMaterial(t *testing.T) {
+	probe := &loginFactProbe{fail: true}
+	db, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginFactPort(probe))
+	createLoginFactProbeTable(t, db)
+	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if !errors.Is(err, session.ErrInternal) || issued.Token != "" || issued.CSRF != "" {
+		t.Fatalf("login fact failure = %#v, %v", issued, err)
+	}
+	if countRows(t, db, "iam_sessions") != 0 || countRows(t, db, "login_fact_probe") != 0 {
+		t.Fatal("login fact failure committed a Session or partial fact")
+	}
+}
+
+type loginFactProbe struct {
+	fail  bool
+	facts []session.LoginFact
+}
+
+func (probe *loginFactProbe) RecordLoginFact(ctx context.Context, tx database.Tx, fact session.LoginFact) error {
+	probe.facts = append(probe.facts, fact)
+	if _, err := tx.ExecContext(ctx, `INSERT INTO login_fact_probe(attempt_id, outcome, account_id, source, occurred_at) VALUES (?, ?, ?, ?, ?)`, fact.AttemptID.Opaque(), fact.Outcome, fact.AccountID, fact.Source, fact.OccurredAt); err != nil {
+		return err
+	}
+	if probe.fail {
+		return errors.New("private audit failure")
+	}
+	return nil
+}
+
+func (probe *loginFactProbe) single(t *testing.T) session.LoginFact {
+	t.Helper()
+	if len(probe.facts) != 1 {
+		t.Fatalf("login facts = %d", len(probe.facts))
+	}
+	return probe.facts[0]
+}
+
+func createLoginFactProbeTable(t *testing.T, db *database.Database) {
+	t.Helper()
+	if _, err := db.Bun().ExecContext(context.Background(), `CREATE TABLE login_fact_probe(attempt_id TEXT PRIMARY KEY, outcome TEXT NOT NULL, account_id TEXT NOT NULL, source TEXT NOT NULL, occurred_at TIMESTAMP NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func countRows(t *testing.T, db *database.Database, table string) int {
+	t.Helper()
+	var count int
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT COUNT(*) FROM `+table).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	return count
+}
+
+func assertLoginFactHasNoCredentialMaterial(t *testing.T, fact session.LoginFact, forbidden ...string) {
+	t.Helper()
+	encoded, err := json.Marshal(fact)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, value := range forbidden {
+		if value != "" && strings.Contains(string(encoded), value) {
+			t.Fatal("login fact serialized credential or identity input")
+		}
+	}
+	for _, field := range []string{"username", "password", "token", "csrf", "request"} {
+		if strings.Contains(strings.ToLower(string(encoded)), field) {
+			t.Fatalf("login fact exposed forbidden field %q", field)
+		}
 	}
 }
 

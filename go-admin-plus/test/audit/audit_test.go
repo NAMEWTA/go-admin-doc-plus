@@ -20,6 +20,11 @@ import (
 
 	audit "go-admin/internal/modules/audit"
 	auditmigration "go-admin/internal/modules/audit/migrations/0011-audit"
+	"go-admin/internal/modules/iam/account"
+	"go-admin/internal/modules/iam/authorization"
+	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
+	administrationmigration "go-admin/internal/modules/iam/migrations/0020-administration-schema"
+	"go-admin/internal/modules/iam/session"
 	"go-admin/internal/platform/config"
 	"go-admin/internal/platform/coordination"
 	"go-admin/internal/platform/database"
@@ -324,6 +329,116 @@ func TestSynchronousLoginPortRejectsSensitiveActorReferencesWithoutWriting(t *te
 	encoded, _ := json.Marshal(page)
 	if err != nil || page.Total != 0 || regexp.MustCompile(`(?i)password|secret|session|token|credential`).Match(encoded) {
 		t.Fatalf("rejected login facts reached list JSON: %s, %v", encoded, err)
+	}
+}
+
+func TestRealIAMAdaptersRecordLoginAndAuthorizeAuditRequests(t *testing.T) {
+	ctx := context.Background()
+	db := openSQLite(t)
+	migrate(t, db, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
+	now := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
+	createAuditIAMFixture(t, db, now)
+	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy, err := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessions, err := session.NewService(db, policy, session.WithClock(func() time.Time { return now }), session.WithLoginFactPort(loginFacts))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionHandler, err := session.NewHTTPHandler(sessions, func(*http.Request) string { return "0123456789abcdef" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	permissions, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
+	if err != nil {
+		t.Fatal(err)
+	}
+	auditService := mustServiceWithPolicy(t, db, permissions, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+	requests, err := audit.NewIAMRequestAuthorizer(sessions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	auditHandler, err := audit.NewHTTPHandler(auditService, requests, func(*http.Request) string { return "0123456789abcdef" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	anonymous := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
+	anonymousResponse := httptest.NewRecorder()
+	auditHandler.ServeHTTP(anonymousResponse, anonymous)
+	if anonymousResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("real request adapter anonymous status = %d", anonymousResponse.Code)
+	}
+
+	failed := httptest.NewRequest(http.MethodPost, "/iam/session/login", strings.NewReader(`{"username":"admin","password":"incorrect password"}`))
+	failed.Header.Set("Content-Type", "application/json")
+	failedResponse := httptest.NewRecorder()
+	sessionHandler.ServeHTTP(failedResponse, failed)
+	if failedResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("failed login status = %d", failedResponse.Code)
+	}
+	login := httptest.NewRequest(http.MethodPost, "/iam/session/login", strings.NewReader(`{"username":"admin","password":"correct horse battery"}`))
+	login.Header.Set("Content-Type", "application/json")
+	loginResponse := httptest.NewRecorder()
+	sessionHandler.ServeHTTP(loginResponse, login)
+	if loginResponse.Code != http.StatusOK {
+		t.Fatalf("login status = %d body=%s", loginResponse.Code, loginResponse.Body.String())
+	}
+	cookie := strings.SplitN(loginResponse.Header().Get("Set-Cookie"), ";", 2)[0]
+	if cookie == "" {
+		t.Fatal("login cookie is missing")
+	}
+
+	list := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
+	list.Header.Set("Cookie", cookie)
+	listResponse := httptest.NewRecorder()
+	auditHandler.ServeHTTP(listResponse, list)
+	if listResponse.Code != http.StatusOK {
+		t.Fatalf("Audit list status = %d body=%s", listResponse.Code, listResponse.Body.String())
+	}
+	var page audit.Page
+	if err := json.Unmarshal(listResponse.Body.Bytes(), &page); err != nil || page.Total != 2 {
+		t.Fatalf("real login facts = %#v, %v", page, err)
+	}
+	encoded := listResponse.Body.String()
+	for _, forbidden := range []string{"admin", "correct horse battery", "incorrect password", strings.TrimPrefix(cookie, session.CookieName+"=")} {
+		if strings.Contains(encoded, forbidden) {
+			t.Fatal("Audit login response exposed identity input or credential material")
+		}
+	}
+
+	csrfRejected := httptest.NewRequest(http.MethodPost, "/audit/records/cleanup", strings.NewReader(`{"before":"2026-06-01T00:00:00Z","confirmation":"delete-expired-audit-records"}`))
+	csrfRejected.Header.Set("Content-Type", "application/json")
+	csrfRejected.Header.Set("Cookie", cookie)
+	csrfRejected.Header.Set("X-CSRF-Token", "wrong")
+	csrfResponse := httptest.NewRecorder()
+	auditHandler.ServeHTTP(csrfResponse, csrfRejected)
+	if csrfResponse.Code != http.StatusForbidden || csrfResponse.Header().Get("X-CSRF-Token") != "" || csrfResponse.Header().Get("Set-Cookie") != "" {
+		t.Fatalf("real CSRF adapter response = %d %#v", csrfResponse.Code, csrfResponse.Header())
+	}
+
+	if _, err := db.Bun().ExecContext(ctx, `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code = ?`, "role-system-admin", audit.PermissionRead); err != nil {
+		t.Fatal(err)
+	}
+	denied := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
+	denied.Header.Set("Cookie", cookie)
+	deniedResponse := httptest.NewRecorder()
+	auditHandler.ServeHTTP(deniedResponse, denied)
+	if deniedResponse.Code != http.StatusForbidden || deniedResponse.Header().Get("X-CSRF-Token") == "" {
+		t.Fatalf("real permission adapter response = %d %#v", deniedResponse.Code, deniedResponse.Header())
+	}
+
+	beforeSessions := countAuditRows(t, db, "iam_sessions")
+	if _, err := db.Bun().ExecContext(ctx, "DROP TABLE audit_facts"); err != nil {
+		t.Fatal(err)
+	}
+	issued, loginErr := sessions.Login(ctx, "admin", "correct horse battery")
+	if !errors.Is(loginErr, session.ErrInternal) || issued.Token != "" || issued.CSRF != "" || countAuditRows(t, db, "iam_sessions") != beforeSessions {
+		t.Fatalf("Audit failure issued Session = %#v, %v", issued, loginErr)
 	}
 }
 
@@ -634,6 +749,43 @@ func openSQLite(t *testing.T) *database.Database {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	return db
+}
+
+func createAuditIAMFixture(t *testing.T, db *database.Database, now time.Time) {
+	t.Helper()
+	hash, err := account.HashPassword("correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository := account.NewRepository(db.Dialect())
+	if err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		if err := repository.Create(ctx, tx, account.Credential{Profile: account.Profile{ID: "account-00000001", Username: "admin", DisplayName: "Administrator", Email: "admin@example.test"}, PasswordHash: hash}, now); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, "account-00000001", "role-system-admin"); err != nil {
+			return err
+		}
+		for _, permission := range []audit.Permission{audit.PermissionRead, audit.PermissionCleanup} {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO iam_permissions(code, name, protected) VALUES (?, ?, ?)`, permission, "Audit permission", true); err != nil {
+				return err
+			}
+			if _, err := tx.ExecContext(ctx, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-system-admin", permission); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func countAuditRows(t *testing.T, db *database.Database, table string) int {
+	t.Helper()
+	var count int
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT COUNT(*) FROM `+table).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	return count
 }
 
 func migrate(t *testing.T, db *database.Database, providers ...migrations.Provider) {

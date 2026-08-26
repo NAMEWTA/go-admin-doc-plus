@@ -159,7 +159,18 @@ importers:
         specifier: workspace:*
         version: link:../platform
 
-  packages/domains/audit: {}
+  packages/domains/audit:
+    dependencies:
+      '@go-admin/api-client':
+        specifier: workspace:*
+        version: link:../../api-client
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0))
 
   packages/domains/demo: {}
 
@@ -195,6 +206,28 @@ importers:
       '@go-admin/domain-audit':
         specifier: workspace:*
         version: link:../../domains/audit
+      '@go-admin/ui':
+        specifier: workspace:*
+        version: link:../../ui
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.41(typescript@6.0.3)
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: 'catalog:'
+        version: 3.5.41
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.2.1(@types/node@26.2.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0))
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 3.3.10(typescript@6.0.3)
 
   packages/web-domains/demo:
     dependencies:
