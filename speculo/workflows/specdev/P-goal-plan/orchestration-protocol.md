@@ -45,9 +45,9 @@ required 模式 Lead 串行集成 Ready 候选：
 4. 在 candidate 状态运行集成检查和适用 E2E；
 5. 重读父 HEAD；若变化，将候选标记 `stale` 并重建；
 6. 检查通过且父 HEAD 未变时，父分支 fast-forward 到 candidate；
-7. 重读父 HEAD/tree，将 implementation checkpoint 写入 `result_sha`；需要回写 SHA 时只允许追加 SpecDev finalization commit，确认父 HEAD 包含 result 后才允许 Ticket Done。
+7. 重读父 HEAD/tree，写入 `result_sha` 后才允许 Ticket Done。
 
-父分支是 source checkpoint 的祖先时 candidate/result 可等于 source SHA，方法为 `fast-forward`；否则 candidate 必须是独立 merge commit。候选失败时父分支保持不变，Ticket 回到 `in_progress` 或 `blocked`。current 模式跳过候选 checkout，Lead 在 current workspace 核对 implementation commit、运行集成检查并记录 `method=direct-parent`；失败时父 HEAD 不推进，成功后的 finalization/后续 commits 必须保持 result 可达。
+父分支是 source checkpoint 的祖先时 candidate/result 可等于 source SHA，方法为 `fast-forward`；否则 candidate 必须是独立 merge commit。候选失败时父分支保持不变，Ticket 回到 `in_progress` 或 `blocked`。current 模式跳过候选 checkout，Lead 在 current workspace 核对 implementation commit、运行集成检查并记录 `method=direct-parent`；失败时父 HEAD 不推进。
 
 ## 7. Expand-contract
 

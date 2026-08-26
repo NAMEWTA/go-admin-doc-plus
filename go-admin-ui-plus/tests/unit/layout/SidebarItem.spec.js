@@ -19,12 +19,12 @@ const makeItem = (path, title = '菜单项') => ({
 describe('Layout:SidebarItem 外链处理', () => {
   it('http 外链渲染为 a 标签并新窗口打开', () => {
     const wrapper = mount(SidebarItem, {
-      props: { item: makeItem('https://www.go-admin.pro', '官方文档'), basePath: 'https://www.go-admin.pro' },
+      props: { item: makeItem('https://github.com/NAMEWTA/go-admin-plus', '项目文档'), basePath: 'https://github.com/NAMEWTA/go-admin-plus' },
       global: { stubs }
     })
     const a = wrapper.find('a.sidebar-external-link')
     expect(a.exists()).toBe(true)
-    expect(a.attributes('href')).toBe('https://www.go-admin.pro')
+    expect(a.attributes('href')).toBe('https://github.com/NAMEWTA/go-admin-plus')
     expect(a.attributes('target')).toBe('_blank')
     // 防止被打开页通过 window.opener 反向操作本页
     expect(a.attributes('rel')).toContain('noopener')

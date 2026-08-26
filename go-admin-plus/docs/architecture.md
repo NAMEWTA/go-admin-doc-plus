@@ -1,85 +1,58 @@
-# 架构说明
+# 后端架构
 
-> 本文记录**为什么这样设计**与不易从代码直接读出的语义。
-> 编码规范见根目录 `AGENTS.md`，标准写法见 `app/demo/`。
+后端是一个可由服务器或桌面宿主启动的模块化单体。`internal/application` 管理配置、存储、
+路由、模块启动和关闭；`internal/profile` 为 server 与 desktop 选择数据库、缓存和队列；
+`internal/modules` 以固定顺序组装业务模块。
 
-## 数据权限（DataScope）
+## 请求路径
 
-`PermissionAction()` 中间件从数据库取出当前用户的 DataScope 存入 `gin.Context`；
-Service 在查询时通过 `actions.Permission(tableName, p)` 这个 GORM Scope 追加 WHERE。
-
-实现见 `common/actions/permission.go:62-79`，五档语义：
-
-| 值 | 含义 | 过滤方式 |
-|---|---|---|
-| `1` 或其他 | 全部数据 | 不追加条件 |
-| `2` | 本角色关联部门的数据 | `create_by` 属于 `sys_role_dept` 关联部门下的用户 |
-| `3` | 本部门数据 | `create_by` 属于同部门用户 |
-| `4` | 本部门及子部门 | 按 `sys_dept.dept_path` 前缀匹配 |
-| `5` | 仅本人 | `create_by = 当前用户` |
-
-**过滤依据是 `create_by` 字段**，因此参与数据权限的表必须内嵌 `models.ControlBy`。
-
-总开关：`config/settings.yml` 的 `application.enabledp`。关闭时 `Permission` 直接返回原
-查询，这也意味着**关闭开关后所有数据权限配置立即失效**，排查问题时先确认此项。
-
-## 定时任务
-
-两类任务，配置在 `sys_job` 表：
-
-- **HTTP 任务** —— 按 Cron 表达式请求指定 URL
-- **函数任务** —— 调用注册在 `app/jobs` 中的 Go 函数
-
-自定义函数任务需实现 `JobExec` 接口（`app/jobs/type.go:10`）：
-
-```go
-type JobExec interface {
-    Exec(arg interface{}) error
-}
+```text
+Host -> Gin Engine -> Middleware -> Module Router
+                                  -> common Action -> DTO -> Model
+                                  -> API -> Service -> Model
 ```
 
-并注册进 `app/jobs/examples.go` 的 `jobList` 映射，键名与 `sys_job` 表中配置的调用目标
-对应。
+单表 CRUD 使用 `common/actions`。跨表事务、外部调用和复杂校验使用 API + Service。ORM
+由请求上下文注入，Service 不接触 Gin context。
 
-任务内需要数据库连接时，通过 `sdk.Runtime.GetDbByKey("*")` 获取，不要反向 import
-`app/admin/service`。
+## 数据权限
 
-## 配置扩展
+`actions.PermissionAction()` 读取当前用户 DataScope 并写入请求上下文，查询通过
+`actions.Permission(tableName, permission)` 追加 GORM Scope。参与过滤的表必须包含
+`create_by`，通常通过 `models.ControlBy` 提供。
 
-业务自定义配置写在 `config/extend.go` 中的结构体，对应 `settings.yml` 的 `extend:`
-节点，代码中通过 `config.ExtConfig.Xxx` 访问。
+| DataScope | 行为 |
+| --- | --- |
+| `1` | 全部数据 |
+| `2` | 当前角色关联部门 |
+| `3` | 当前部门 |
+| `4` | 当前部门及子部门 |
+| `5` | 当前用户创建的数据 |
 
-配置值支持环境变量占位：在 yml 中写 `${ENV_NAME}`，由 `go-admin-core` 的
-`config/reader/preprocessor.go` 在加载时替换。敏感信息可借此避免写入文件。
+服务器配置 `application.enabledp` 控制 DataScope 总开关。关闭后不会追加过滤条件。
 
-## 多数据源
+## 模块生命周期
 
-`WithContextDb` 中间件按请求解析出对应的数据库连接放入上下文，Service 通过 `e.Orm`
-取用。**不要使用全局 DB 变量** —— 那会绕过多租户隔离。
-
-多库配置见 `settings.yml` 的 `databases` 与 `registers` 节点，后者用于 dbresolver
-读写分离。
+模块实现 `ID`、`RegisterRoutes`、`Migrations`、`Start` 和 `Stop`。默认顺序由
+`internal/modules/default.go` 固定并由测试锁定。异步队列在应用启动后注册处理器，在关闭
+时等待退出或服从 context deadline。
 
 ## 数据库迁移
 
-迁移文件放 `cmd/migrate/migration/version-local/`，文件名前 13 位为 Unix 毫秒时间戳，
-框架按文件名升序执行，已执行版本记录在 `sys_migration` 表。
+产品迁移位于 `cmd/migrate/migration/version/`，按 13 位版本号升序执行，结果记录在
+`sys_migration`。已执行迁移不可改写；结构、种子或品牌默认值变化都通过新迁移演进。
 
-```bash
-go run main.go migrate -c config/settings.yml -g   # 生成骨架
-```
+服务器 profile 支持 PostgreSQL、MySQL、SQL Server 和 SQLite。桌面 profile 使用应用数据
+目录内的 SQLite，并在升级前保留迁移备份。
 
-**已执行过的迁移文件不可修改** —— 版本号已入表，改动不会重跑。需要调整时新建迁移。
+## OpenAPI
 
-## 构建注意
+`docs/admin/` 是由 Swagger 注解生成的 OpenAPI 2 工件，`api/openapi/openapi.json` 是经
+路由校准后的 OpenAPI 3 权威契约。后端 contract test 双向核对运行路由，前端再由该工件
+生成类型并校验页面字段、fixture、DTO 和 Model。
 
-- 默认构建禁用 CGO；使用 SQLite 需 `make build-sqlite`（带 `-tags sqlite3`）
-- `mode: prod` 时不注册 Swagger 路由
-- dev 模式下 JWT 超时被设为极大值，生产部署前务必确认 `mode` 与 `jwt.secret`
+## 运行状态
 
-## 参考
-
-- 编码规范：根目录 `AGENTS.md`
-- 标准 CRUD 模块：`app/demo/`
-- API 文档：`go generate` 生成到 `docs/admin/`，dev 模式下访问
-  `/swagger/admin/index.html`
+日志、上传、临时文件、数据库与渲染后的密钥配置属于运行时状态。服务器部署由 Compose
+volume 和 runtime secret 目录持有；桌面应用使用平台应用数据目录。源码树只保存模板、
+迁移和可复现测试数据。

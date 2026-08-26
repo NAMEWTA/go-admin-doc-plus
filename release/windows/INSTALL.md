@@ -1,24 +1,18 @@
-# Install Go Admin Plus on Windows
+# 在 Windows 安装 Go Admin Plus
 
-This Windows 10/11 x64 package is for self-use. The Go Admin Plus installer and
-application are not Authenticode signed. Windows cannot verify their publisher,
-and Microsoft Defender SmartScreen can show "Windows protected your PC".
+当前 Windows 10/11 x64 安装包用于自主使用，应用和安装器都没有 Authenticode 签名。
+Windows 无法验证发布者，Microsoft Defender SmartScreen 可能显示保护提示。
 
-Only continue when the artifact came from the expected release source. In
-PowerShell, calculate the installer hash from the directory containing
-`SHA256SUMS`:
+只使用来自预期 Actions run 的工件。在包含 `SHA256SUMS` 的目录中计算安装器哈希：
 
 ```powershell
 Get-FileHash -Algorithm SHA256 .\go-admin-plus-0.1.0-windows-amd64-unsigned-self-use-setup.exe
 ```
 
-Compare the complete value with the matching line in `SHA256SUMS`. Stop if it
-does not match. If SmartScreen offers a self-use exception, select **More info**
-and then **Run anyway**. The installer contains the complete Microsoft WebView2
-Evergreen Standalone x64 runtime and does not need an internet connection.
+将完整结果与 `SHA256SUMS` 对应行比较，不一致时立即停止。独立验证后，如果 SmartScreen
+提供自主使用例外，可以选择“更多信息”再选择“仍要运行”。安装器包含完整的 Microsoft
+WebView2 Evergreen Standalone x64 runtime，不依赖在线 bootstrapper。
 
-Do not disable Microsoft Defender, SmartScreen or Smart App Control. Smart App
-Control and managed-device policy can block an unsigned installer without a
-Run anyway option; that environment is unsupported by this Phase 1 package.
-Application data remains in `%LOCALAPPDATA%\go-admin-plus` when the application
-is upgraded or uninstalled.
+不得关闭 Microsoft Defender、SmartScreen 或 Smart App Control。受管理设备可能不允许
+运行未签名安装器，当前包不会绕过该策略。升级或卸载应用时，
+`%LOCALAPPDATA%\go-admin-plus` 中的数据会保留。

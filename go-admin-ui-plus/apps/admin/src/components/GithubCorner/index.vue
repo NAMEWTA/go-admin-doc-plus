@@ -1,5 +1,5 @@
 <template>
-  <a href="https://github.com/wenjianzhang/go-admin" target="_blank" class="github-corner" aria-label="View source on Github">
+  <a href="https://github.com/NAMEWTA/go-admin-plus" target="_blank" class="github-corner" aria-label="查看 Go Admin Plus 源码">
     <svg
       width="80"
       height="80"

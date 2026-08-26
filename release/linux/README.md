@@ -1,12 +1,11 @@
-# Linux AMD64 Compose release
+# Linux AMD64 Compose 发布
 
-This bundle runs Admin Web as the only host-published service. API, migration,
-PostgreSQL and Redis stay on Compose networks. The default bind is
-`127.0.0.1:8080`; put a TLS reverse proxy in front of it for remote access.
+发布包只向宿主机暴露 Web 服务。API、迁移、PostgreSQL 和 Redis 只存在于 Compose
+网络，默认绑定 `127.0.0.1:8080`；远程访问必须在前面部署 TLS 反向代理。
 
-## Build and start from source
+从源码构建并启动：
 
-```sh
+```bash
 cp deploy/compose/.env.example deploy/compose/.env
 ./release/linux/prepare-config.sh
 docker compose --env-file deploy/compose/.env \
@@ -15,35 +14,20 @@ docker compose --env-file deploy/compose/.env \
   up -d --build --wait
 ```
 
-The first command that changes data is the one-shot `migrate` service. A failed
-migration prevents `api` from starting. Named volumes retain PostgreSQL, Redis
-and server files across container replacement.
+一次性 `migrate` 是第一个修改数据的服务，迁移失败会阻止 API 启动。PostgreSQL、Redis
+和文件数据由 named volume 持久化。运行时密钥保存在 Git 忽略的
+`deploy/compose/runtime/`；`prepare-config.sh` 只创建缺失值，不覆盖已有非空配置。
 
-For a release, set `GO_ADMIN_VERSION` and the two image names in `.env` to the
-published immutable version tags, pull them, and omit `compose.build.yml`.
-Record the resolved image digests from the release manifest before rollout.
+发布部署使用 manifest 中的不可变镜像 digest，省略 `compose.build.yml`。升级前备份三个
+named volume 和 runtime 目录；回滚时恢复这些数据并使用上一版 digest。
 
-Runtime secrets live below `deploy/compose/runtime/`, which Git ignores.
-`prepare-config.sh` creates them once and never overwrites non-empty values.
-It protects the runtime directories with mode `0700`; the rendered settings
-file is `0444` because local Compose secret mounts retain the host file mode
-and the API/migration containers intentionally run as non-root.
-Back up all three named volumes and the runtime secret directory before an
-upgrade. Recovery is restoring those assets and starting the previous image
-digests with the same Compose bundle.
+验证和停止：
 
-## Verify and stop
-
-`verify-compose.sh` requires Docker Compose, curl and jq. It checks same-origin
-login, database persistence after API restart, health semantics, proxy 404
-behavior and runtime least privilege.
-
-```sh
+```bash
 ./release/linux/verify-compose.sh
 docker compose --env-file deploy/compose/.env \
   -f deploy/compose/compose.yml \
   -f deploy/compose/compose.build.yml down
 ```
 
-Do not add `-v` to `down` unless permanent deletion of all named-volume data is
-explicitly intended and a verified backup exists.
+除非明确要永久删除全部 volume 数据且已有验证通过的备份，否则不要对 `down` 使用 `-v`。

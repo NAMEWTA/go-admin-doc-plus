@@ -20,8 +20,7 @@ export default {
     this.$_destroyResizeEvent()
     this.$_destroySidebarResizeEvent()
   },
-  // to fixed bug when cached by keep-alive
-  // https://github.com/PanJiaChen/vue-element-admin/issues/2116
+  // Rebind listeners when a cached chart becomes active again.
   activated() {
     this.$_initResizeEvent()
     this.$_initSidebarResizeEvent()
@@ -31,8 +30,7 @@ export default {
     this.$_destroySidebarResizeEvent()
   },
   methods: {
-    // use $_ for mixins properties
-    // https://vuejs.org/v2/style-guide/index.html#Private-property-names-essential
+    // Prefix mixin-owned internals to avoid component property collisions.
     $_initResizeEvent() {
       window.addEventListener('resize', this.$_resizeHandler)
     },

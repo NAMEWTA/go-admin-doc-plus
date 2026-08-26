@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "artifact": "design-tree",
+  "change": "2026-08-26-project-architecture-reconstruction",
+  "status": "consensus",
+  "round": 11,
+  "nodes": [
+    {
+      "id": "D-001",
+      "title": "自主架构与旧模式兼容",
+      "question": "项目脱离上游后，目录、内部包名、脚本入口和旧文档模式是否仍需保留兼容入口？",
+      "depends_on": [],
+      "recommendation": "以当前产品为唯一权威，不保留旧目录、旧内部导入、旧脚本和旧描述的兼容入口。",
+      "status": "answered",
+      "round": 1,
+      "answer": "不保留。允许没有任何旧模式兼容层的重构，只要求目标产品功能完整。",
+      "log_ref": "LOG-001"
+    },
+    {
+      "id": "D-002",
+      "title": "产品子目录规范名",
+      "question": "仓库内 Go 服务端和前端工作区最终使用什么目录名？",
+      "depends_on": [],
+      "recommendation": "使用 go-admin-plus 与 go-admin-plus-ui，并从根目录统一编排。",
+      "status": "answered",
+      "round": 1,
+      "answer": "后端使用 go-admin-plus，前端使用 go-admin-plus-ui。",
+      "log_ref": "LOG-002"
+    },
+    {
+      "id": "D-003",
+      "title": "前端 Monorepo 基线",
+      "question": "前端是否采用 pnpm workspace 的多包 Monorepo，并以 Plus UI 多应用领域化架构作为主要参考？",
+      "depends_on": [],
+      "recommendation": "采用 pnpm workspace、显式 workspace 依赖、公开 exports 和可执行依赖边界检查。",
+      "status": "answered",
+      "round": 1,
+      "answer": "采用，并认真参考用户提供的 Plus UI ADR、CONTEXT、设计树、LOG 和 Spec。",
+      "log_ref": "LOG-003"
+    },
+    {
+      "id": "D-004",
+      "title": "功能完整与外部兼容边界",
+      "question": "不保留旧模式时，现有 HTTP API、数据库数据、配置键和用户操作行为是否仍属于必须保留的产品功能合同？",
+      "depends_on": ["D-001"],
+      "recommendation": "删除代码与目录兼容层，但保留可观察业务能力；允许重设计 API、配置和 schema，只要提供一次性数据迁移并使 Web、桌面和部署一起原子切换。",
+      "status": "answered",
+      "round": 2,
+      "answer": "采用完全 Greenfield 的目标合同：旧 HTTP API、旧数据库数据、旧 schema、旧配置键和旧操作模式均可直接废弃；只要求新系统覆盖确认后的目标功能。",
+      "log_ref": "LOG-004"
+    },
+    {
+      "id": "D-005",
+      "title": "根级资产生命周期分类",
+      "question": "根级治理采用单一 release 总目录，还是按开发脚本、部署定义、数据库演进和发行产物的生命周期分别归属？",
+      "depends_on": ["D-001", "D-002"],
+      "recommendation": "根级统一但分域：.github、.husky、scripts、deploy、release；运行时迁移跟随 Go 应用，参考 SQL/初始化快照进入 database，而不是把所有内容塞进 release。",
+      "status": "answered",
+      "round": 2,
+      "answer": "采用按生命周期分域的根级统一治理：.github、.husky、scripts、deploy、release、database；可执行迁移跟随 Go 应用。",
+      "log_ref": "LOG-005"
+    },
+    {
+      "id": "D-006",
+      "title": "Go 后端架构语法",
+      "question": "后端采用 Java 风格的 go-admin/go-common/go-app/go-api 顶级分区，还是把其职责翻译为 Go 原生的 cmd/internal/modules/contracts/platform 结构？",
+      "depends_on": ["D-001", "D-002"],
+      "recommendation": "采用 Go 原生翻译：cmd 只放可执行入口，internal/app 负责装配，internal/modules 按业务能力内聚，internal/contracts 放跨模块端口与 DTO，internal/platform 放基础设施；不保留 common 杂物箱。",
+      "status": "answered",
+      "round": 2,
+      "answer": "采用 Go 原生的 cmd/internal/modules/contracts/platform 架构语法，不照搬 Java Maven 顶级模块。",
+      "log_ref": "LOG-006"
+    },
+    {
+      "id": "D-007",
+      "title": "桌面宿主目标",
+      "question": "整体重构后桌面端继续使用 Wails 2，还是替换为 Tauri 2 并把 Go 应用作为受控 sidecar？",
+      "depends_on": ["D-001", "D-003"],
+      "recommendation": "若 Tauri 2 是产品目标，本次直接替换为 Tauri 2 + Go sidecar，不保留 Wails；通过 capabilities、固定 loopback/启动令牌、进程监督和平台签名门禁保持桌面功能完整。",
+      "status": "answered",
+      "round": 2,
+      "answer": "使用 Tauri 2 作为桌面宿主，Go 应用作为受控 sidecar；删除 Wails 2 及其兼容入口。",
+      "log_ref": "LOG-007"
+    },
+    {
+      "id": "D-008",
+      "title": "前端应用拓扑",
+      "question": "前端首期包含哪些独立可构建 App，Web 与桌面是否共享同一组合清单和页面能力？",
+      "depends_on": ["D-003", "D-007"],
+      "recommendation": "首期建立 admin-web 和 desktop 两个交付 App，共享无头领域、Web 领域和 UI 包；desktop 只拥有宿主装配与平台适配，不复制业务页面。",
+      "status": "answered",
+      "round": 3,
+      "answer": "建立 apps/admin-web 与 apps/admin-desktop 两个独立可构建 App，共享同一业务组合清单、领域包、页面包和 UI；desktop 仅拥有 Tauri 宿主、sidecar 启动和桌面适配，不复制业务页面。",
+      "log_ref": "LOG-008"
+    },
+    {
+      "id": "D-009",
+      "title": "前端领域与表现层边界",
+      "question": "当前 domains 同时包含 API 和 Vue 页面的问题，目标如何拆分并命名？",
+      "depends_on": ["D-008"],
+      "recommendation": "采用 packages/domains 作为无头业务能力，packages/web-domains 承载 Vue 页面与 composables，packages/platform 定义端口，packages/adapters 实现浏览器和桌面运行时，apps 只做组合。",
+      "status": "answered",
+      "round": 4,
+      "answer": "采用 packages/domains/* 无头 TypeScript 领域、packages/web-domains/* Vue 表现层、packages/platform 宿主端口、packages/adapters/{browser,desktop} 运行时实现、packages/app-shell 共享组合与 packages/ui 通用 UI；Apps 仅选择 shell、adapter 和能力 manifest。",
+      "log_ref": "LOG-011"
+    },
+    {
+      "id": "D-010",
+      "title": "后端业务领域划分",
+      "question": "Go 模块按哪些稳定业务能力切分，现有 admin、other、jobs、demo 如何重命名或拆解？",
+      "depends_on": ["D-006"],
+      "recommendation": "至少拆为 identity-access、system、operations、scheduler、developer-tools、demo；other 必须消失，认证与系统管理不再被笼统 admin 混在同一边界。",
+      "status": "answered",
+      "round": 3,
+      "answer": "采用 iam、organization、settings、audit、scheduler、generator、files、demo 八个能力模块；健康检查、指标和服务器状态归入应用运维与 platform/observability，不作为业务域。",
+      "log_ref": "LOG-009"
+    },
+    {
+      "id": "D-011",
+      "title": "跨领域合同与依赖方向",
+      "question": "跨模块调用、事件、DTO 和数据库访问如何避免当前 other/admin/common 的反向依赖？",
+      "depends_on": ["D-006", "D-010"],
+      "recommendation": "消费者定义最小端口或使用中立 contracts 包；领域只通过公开 application API/事件协作，禁止跨领域导入 transport、repository 或 ORM model。",
+      "status": "answered",
+      "round": 4,
+      "answer": "同步协作使用消费者定义的最小 port 并由 internal/app 注入，异步协作使用不可变 integration event；internal/contracts 只保存被多个模块真实共享的 ID、值语义和事件，禁止跨模块 ORM model、repository、transport DTO、数据库 join 和全局 service locator。",
+      "log_ref": "LOG-012"
+    },
+    {
+      "id": "D-012",
+      "title": "数据库与迁移所有权",
+      "question": "Greenfield 产品正式支持哪些数据库，并且 schema 基线、可执行迁移、测试数据和开发 bootstrap 分别由谁拥有？",
+      "depends_on": ["D-004", "D-005", "D-006", "D-010"],
+      "recommendation": "正式支持服务端 PostgreSQL、桌面 SQLite，删除 MySQL/SQL Server 通用兼容；从全新 schema 基线开始，各模块拥有迁移并由统一 runner 组成不可变前进序列，根 database 只放开发 bootstrap、测试 fixture 和数据库工程工具。",
+      "status": "answered",
+      "round": 4,
+      "answer": "服务端正式支持 PostgreSQL 与 SQLite，桌面端仅支持 SQLite，删除 MySQL/SQL Server；各模块拥有从 Greenfield 基线开始的迁移并由统一 runner 组成不可变只前进序列，根 database 只保存开发 bootstrap、测试 fixture 和工程工具。",
+      "log_ref": "LOG-013"
+    },
+    {
+      "id": "D-013",
+      "title": "部署与发行蓝图",
+      "question": "Linux Compose、容器镜像、macOS/Windows 桌面包、签名与 SBOM 如何在根目录分工？",
+      "depends_on": ["D-005", "D-007"],
+      "recommendation": "deploy 保存环境可运行定义，release 保存版本编排、签名、安装器与 provenance；Dockerfile 放 deploy/images，平台打包逻辑放 release/platforms，CI 仅调用这些可本地复现的脚本。",
+      "status": "answered",
+      "round": 3,
+      "answer": "首期交付 Linux amd64/arm64 OCI 与 Compose、macOS Universal DMG、Windows x64 NSIS，不提供 Linux 桌面包；deploy 管运行定义，release 管版本、签名、公证、SBOM 与 provenance，Tauri 配置由 admin-desktop App 自有。",
+      "log_ref": "LOG-010"
+    },
+    {
+      "id": "D-014",
+      "title": "根级任务与 Git Hook 治理",
+      "question": "根 scripts、任务运行器、Husky 和各语言工具脚本如何形成唯一入口？",
+      "depends_on": ["D-005", "D-006", "D-009"],
+      "recommendation": "根 Taskfile 提供 dev/test/lint/build/generate/release 命令；scripts 按 backend/frontend/contracts/release 分类；唯一 .husky 位于 Git 根并调用根任务，不为每个子项目重复 hook。",
+      "status": "answered",
+      "round": 5,
+      "answer": "根 Taskfile 定义 dev/build/test/lint/generate/migrate/package/release，scripts 按 backend/frontend/contracts/desktop/deploy/release 生命周期分类；唯一 .husky 位于 Git 根并只执行快速 staged 检查，CI 调用相同根任务执行完整门禁。",
+      "log_ref": "LOG-014"
+    },
+    {
+      "id": "D-015",
+      "title": "跨端 API 合同与生成",
+      "question": "Go HTTP 合同、OpenAPI、TypeScript transport 类型和领域模型如何形成单一事实源？",
+      "depends_on": ["D-004", "D-006", "D-009", "D-011"],
+      "recommendation": "Go transport/DTO 生成 OpenAPI，根 contracts 门禁生成并校验 TypeScript transport 类型；前端领域模型显式映射，不让生成 DTO 决定领域边界。",
+      "status": "answered",
+      "round": 5,
+      "answer": "采用 contract-first：根 contracts/openapi 保存模块化 OpenAPI 3.1，生成 Go strict server interface/transport types 与 TypeScript transport types/client；两端领域模型显式映射，CI lint、bundle、generate 并拒绝差异，Go HTTP 使用 Chi adapter。",
+      "log_ref": "LOG-015"
+    },
+    {
+      "id": "D-016",
+      "title": "无兼容重构的切换策略",
+      "question": "不保留最终兼容层时，施工采用一次性全仓大爆炸，还是以新结构中的垂直切片推进并在最终原子切换时删除旧结构？",
+      "depends_on": ["D-004", "D-009", "D-010", "D-011", "D-012", "D-013", "D-014", "D-015", "D-019", "D-020", "D-021", "D-022", "D-023"],
+      "recommendation": "在新目录中按可验证垂直切片施工，最终一次切换并删除旧目录、旧入口、旧 schema 和旧命名；不运行新旧双轨，也不建设数据/API 兼容支架。",
+      "status": "answered",
+      "round": 8,
+      "answer": "在新结构中按合同与骨架、IAM 垂直切片、其余业务模块、Web/Desktop、部署发行的顺序施工，每个切片立即验证；全部目标能力完成后执行一次原子切换，同时删除旧目录、旧入口、旧 API、旧 schema、旧配置、旧命名与临时迁移代码；开发期间不维护可发布的新旧双轨，也不建设数据或 API 兼容层。",
+      "log_ref": "LOG-021"
+    },
+    {
+      "id": "D-017",
+      "title": "架构与功能质量门禁",
+      "question": "如何自动证明目录重构不仅能编译，而且依赖方向、功能、数据库、桌面和发布均完整？",
+      "depends_on": ["D-009", "D-011", "D-012", "D-013", "D-015", "D-016", "D-019", "D-020", "D-021", "D-022", "D-023"],
+      "recommendation": "增加 Go import 架构测试、pnpm workspace/cycle/deep-import 检查、OpenAPI 漂移、数据库迁移矩阵、Web E2E、桌面原生 tracer，以及 Linux 双架构 OCI、macOS Universal 和 Windows x64 发布合同。",
+      "status": "answered",
+      "round": 9,
+      "answer": "采用风险分层强制门禁：本地/Hook 执行格式化、静态检查、生成漂移、secret 与遗留技术零命中；PR 执行 Go/pnpm build/test、架构依赖/cycle/deep-import、OpenAPI conformance、PostgreSQL/SQLite migration 与 repository、Session/CSRF/RBAC/outbox、Web E2E 和 Tauri sidecar tracer；受保护发行执行 Linux amd64/arm64 OCI、macOS Universal DMG、Windows x64 NSIS 的原生构建、安装、smoke test、签名/公证、SBOM 与 provenance；任一必需门禁失败禁止对应合并或发行，豁免必须有负责人、原因和到期时间。",
+      "log_ref": "LOG-022"
+    },
+    {
+      "id": "D-018",
+      "title": "最终设计共识",
+      "question": "目标目录、模块合同、迁移顺序、验证门禁和非目标是否完整并可进入 Spec？",
+      "depends_on": ["D-016", "D-017"],
+      "recommendation": "逐项复核所有分支，明确确认后才关闭设计树并路由到 Spec。",
+      "status": "answered",
+      "round": 10,
+      "answer": "用户确认全部设计分支完整并达成共识；关闭 Grill 设计树，下一步路由到 specdev/S-spec/S-spec.md 编写正式 Spec，本轮不自动进入 Spec 或实现。",
+      "log_ref": "LOG-023"
+    },
+    {
+      "id": "D-019",
+      "title": "持久化实现与查询工具链",
+      "question": "模块仓储在同时支持 PostgreSQL 与 SQLite 时采用哪种数据访问与迁移工具链？",
+      "depends_on": ["D-010", "D-012"],
+      "recommendation": "采用 SQL-first 的 Bun + database/sql 实现模块私有 repository record，PostgreSQL 使用 Bun pgdriver，SQLite 使用经过固定版本验证的 CGo-free driver；采用 Goose Provider 组合内嵌的双方言前进迁移，禁止 AutoMigrate，领域模型不携带 ORM tag。",
+      "status": "answered",
+      "round": 5,
+      "answer": "采用 SQL-first Bun + database/sql；模块拥有私有 persistence record/repository，领域模型不携带数据库 tag；PostgreSQL 使用 Bun pgdriver，SQLite 使用固定并验证的 CGo-free driver；迁移使用 Goose Provider 内嵌双方言序列，禁止 AutoMigrate。",
+      "log_ref": "LOG-016"
+    },
+    {
+      "id": "D-020",
+      "title": "IAM 会话与授权安全模型",
+      "question": "Web 与桌面的登录会话、刷新、撤销、RBAC/数据权限和凭据存储采用什么目标安全模型？",
+      "depends_on": ["D-010", "D-011", "D-012", "D-015", "D-021"],
+      "recommendation": "采用数据库持久化的高熵不透明 session，服务端只保存 token hash，并支持撤销、空闲/绝对超时和周期轮换；Web 使用受 CSRF 防护的 __Host-* Secure/HttpOnly/SameSite cookie，Desktop 由 Tauri transport proxy 从 Stronghold 注入且 JavaScript 不可读取；删除 JWT、refresh token 与 Casbin，IAM 基于稳定权限码实现 RBAC/数据范围，密码使用 Argon2id。",
+      "status": "answered",
+      "round": 6,
+      "answer": "删除 JWT、refresh token 与 Casbin；采用数据库持久化的高熵不透明 session，数据库只保存 token hash，支持撤销、空闲超时、绝对超时和周期轮换；Web 使用受 CSRF 防护的 __Host-* Secure/HttpOnly/SameSite cookie，Desktop 由 Tauri transport proxy 从 Stronghold 注入 session 且 JavaScript 不可读取；IAM 基于稳定权限码自行实现 RBAC 与数据范围，密码使用 Argon2id。",
+      "log_ref": "LOG-018"
+    },
+    {
+      "id": "D-021",
+      "title": "租户与数据隔离模型",
+      "question": "Greenfield 产品采用单租户部署、共享 schema 多租户，还是每租户独立数据库？",
+      "depends_on": ["D-004", "D-010", "D-012", "D-013"],
+      "recommendation": "若没有明确 SaaS 多租户产品需求，首期采用单租户每部署实例，删除 host 到数据库的动态 resolver 和全局多数据库注册；未来多租户作为独立架构 change 设计。",
+      "status": "answered",
+      "round": 5,
+      "answer": "完整删除租户功能和能力，不保留单租户兼容抽象：删除 tenant package、host/domain resolver、多数据库全局注册、tenant context、配置项，以及 SQL/schema/migration/索引/fixture 中的租户表与 tenant 字段；同步删除前端、测试和文档引用。",
+      "log_ref": "LOG-017"
+    },
+    {
+      "id": "D-022",
+      "title": "缓存与分布式协调模型",
+      "question": "PostgreSQL/SQLite 服务端与桌面在缓存、会话撤销、任务调度和节点协调上如何使用 Redis 或本地实现？",
+      "depends_on": ["D-010", "D-012", "D-013", "D-021"],
+      "recommendation": "完整删除 Redis；session、任务定义与可靠事件保存在当前数据库，缓存仅使用有界进程内实现且正确性不依赖缓存；可靠异步采用 transactional outbox；SQLite profile 限定单实例，PostgreSQL 多副本由独立 worker 使用 advisory lock 选出唯一 scheduler/outbox executor。",
+      "status": "answered",
+      "round": 6,
+      "answer": "完整删除 Redis；session、任务定义和可靠事件保存在当前数据库，缓存仅使用有界进程内实现且系统正确性不依赖缓存；可靠异步采用 transactional outbox；SQLite profile 限定单实例，PostgreSQL 多副本由独立 worker 使用 advisory lock 选出唯一 scheduler/outbox executor；Compose 删除 Redis service、volume 和配置。",
+      "log_ref": "LOG-019"
+    },
+    {
+      "id": "D-023",
+      "title": "配置、密钥与运行 Profile",
+      "question": "Server PostgreSQL、Server SQLite 与 Desktop SQLite 如何共享类型化配置，同时隔离密钥、环境覆盖和宿主专属参数？",
+      "depends_on": ["D-005", "D-012", "D-013", "D-021", "D-022"],
+      "recommendation": "定义不可变类型化 config，由 app 启动时一次加载、校验并通过构造函数注入；显式 server-postgres、server-sqlite、desktop-sqlite schema 只暴露各宿主所需字段；优先级为 defaults < config file < environment < 显式非密钥 CLI flag，密钥只来自环境或 _FILE secret reference，禁止 CLI secret、全局可变 config、原始配置打印及 JWT/Redis/租户/多数据源键；Desktop 路径和启动材料由 Tauri 宿主提供。",
+      "status": "answered",
+      "round": 7,
+      "answer": "采用不可变强类型配置，在启动时一次加载和校验并通过构造函数注入；分别定义 server-postgres、server-sqlite、desktop-sqlite 最小 schema；优先级为 defaults < config file < environment < 显式非敏感 CLI flags；密钥只允许环境变量或 _FILE secret reference，禁止 CLI 密钥、全局可变配置与原始配置打印；Desktop 路径和启动材料由 Tauri 宿主提供；彻底删除 JWT、Redis、租户和多数据源配置。",
+      "log_ref": "LOG-020"
+    }
+  ]
+}

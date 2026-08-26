@@ -90,7 +90,7 @@ ready_for_execution: false
 | Ticket | Parent/base | Workspace/branch | Source checks | Implementation commit | Integration checks/E2E | Parent result |
 |---|---|---|---|---|---|---|
 
-当 `ticket_workspace_policy: current` 时，Ticket 必须严格串行。Lead 每次只允许一个 implementation owner 写入当前 workspace；完成非 E2E 检查并形成 commit 后，Lead 在同一父分支/current workspace 运行适用集成检查和 E2E，验证通过后将该 Ticket 的 `result_sha` 记录为其 implementation commit。若需回写该 SHA，形成只包含 SpecDev Evidence/状态的 finalization commit；父 HEAD 必须包含 result，随后才能开始下一个 Ticket。不得创建 source/candidate worktree。
+当 `ticket_workspace_policy: current` 时，Ticket 必须严格串行。Lead 每次只允许一个 implementation owner 写入当前 workspace；完成非 E2E 检查并形成 commit 后，Lead 在同一父分支/current workspace 运行适用集成检查和 E2E，验证通过后将该 Ticket 的 `result_sha` 记录为其 implementation commit，再开始下一个 Ticket。不得创建 source/candidate worktree。
 
 当 `ticket_workspace_policy: required` 时，Ticket 使用独立 source worktree；source worktree 不运行 E2E，Lead 在最新父分支的 candidate 状态运行集成检查和适用 E2E，通过且父 HEAD 未漂移后才推进父分支。
 

@@ -1,0 +1,118 @@
+---
+schema_version: 3
+artifact: ticket
+change: 2026-08-26-project-architecture-reconstruction
+id: T-10
+title: Settings 参数与字典垂直切片
+status: ready
+planning_depth: deep
+planning_depth_reason: 模块新增公共 API、双方言 schema，并必须隔离业务设置与运行 secret
+ready: true
+risk: high
+blocked_by: [T-07]
+contract_ids: [AC-015, AC-035]
+owner: unassigned
+expected_changes: ["<Path>contracts/openapi/modules/settings.yaml</Path>", "<Path>go-admin-plus/internal/modules/settings/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/settings.yaml</Path>", "<Path>go-admin-plus/internal/modules/settings/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus/test/settings/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/settings/**</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
+shared_paths: []
+shared_path_owners: []
+---
+
+# Ticket T-10: Settings 参数与字典垂直切片
+
+- **Ticket 文件：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>`
+- **总体 Map：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/tickets-map.md</Path>`
+- **上游 Spec：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>`
+- **完成 Evidence：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>`
+
+## 1. 战略与来源
+
+- **目标：** 交付应用参数、界面设置、字典类型/数据和 option 查询闭环。
+- **可观察产出：** 授权管理员可维护业务设置，消费者获得稳定 option；运行 secret 永不进入该模块。
+- **来源：** `US-008`、`AC-015`、`AC-035`、`ADR-009`、`ADR-020`。
+- **当前事实：** 旧 sys_config 与 runtime 配置边界模糊并带 tenant 字段。
+- **Planning Depth 原因：** schema/API 和 secret 边界错误会扩大配置泄露表面。
+
+## 2. 决策状态
+
+### 已锁定决策
+
+- Settings 只拥有业务可维护设置；profile、DSN、Session policy 和 secret 归 T-03。
+- 字典键和值使用稳定唯一约束和确定排序。
+
+### 已采用的低影响假设
+
+- option 查询仅返回启用项，管理查询可查看全部状态。
+
+### 未决问题
+
+无。
+
+## 3. 范围边界
+
+| IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |
+|---|---|---|
+| 参数、界面设置、字典、options、页面 | IAM 授权、共享 UI | runtime config、secret、动态 reload |
+
+## 4. 要构建什么
+
+管理员通过标准列表/表单维护业务设置和字典，服务端验证键、类型、状态与引用后事务提交；业务消费者通过公开查询取得稳定且脱敏的值。
+
+## 5. 实现契约
+
+- **入口或接缝：** Settings API/use cases/repository、option query、Web pages。
+- **输入与输出：** 参数/字典 CRUD；返回分页、详情、options 或稳定错误。
+- **公共接口变化：** 新 Settings fragment 与 Permission Code。
+- **不变量：** 唯一键、确定排序、业务设置不接受 secret/profile 字段、无 tenant。
+- **状态或数据流：** authorized command -> validate -> transaction -> query/option projection -> UI refresh。
+- **错误与失败行为：** 重复键、非法类型、引用冲突、secret-like 字段和越权无状态变化。
+- **兼容要求：** 不导入旧 sys_config/sys_dict 或旧 API。
+- **安全与隐私要求：** secret 关键词和值探测必须阻断并脱敏。
+
+## 6. 执行路线
+
+1. 固定唯一性、option、secret 拒绝和越权测试。
+2. 实现 migration、repository、用例与合同 mapping。
+3. 实现 headless domain、Vue 页面和共享交互。
+4. 覆盖删除引用、重复提交和缓存禁用。
+5. 运行双方言 API/UI/敏感值回归。
+
+## 7. 路径访问契约
+
+- **预计修改点：** Settings 独占路径。
+- **可写范围：** 仅 frontmatter `writable_paths`。
+- **只读上下文：** IAM、T-03 config 和共享 UI。
+- **共享路径：** 无。
+- **保留或不动：** runtime 配置和产品注册点。
+
+## 8. 验证矩阵
+
+| 行为或风险 | 验证接缝 | 命令或步骤 | 预期结果 | Evidence |
+|---|---|---|---|---|
+| 正常路径 | API/UI suite | `task test -- settings` | 参数、字典和 options 一致 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>` |
+| 失败路径 | validation/security | 提交重复键、secret 字段、引用删除和越权 | 稳定拒绝且无泄露/状态变化 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>` |
+| 回归 | dialect/cache E2E | 双方言并禁用缓存完成 CRUD | 行为等价且 UI 刷新正确 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>` |
+
+- **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 非 E2E 检查。
+- **E2E disposition：** required：业务设置/字典跨 API/UI 以及 secret 拒绝需要验证。
+- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、E2E 与父分支包含关系。
+
+## 9. 发布、迁移与恢复
+
+- **迁移顺序：** 模块原子落地，T-17 组合。
+- **兼容窗口：** 无旧设置/字典导入或双写。
+- **监控信号：** validation/conflict/authorization 与 secret 拒绝计数。
+- **回滚或前向恢复：** 产品接入前回滚；接入后前向 migration 修复。
+- **不可逆操作与批准点：** 删除需引用检查和用户确认。
+- **收缩条件：** T-21 证明旧配置表、tenant 与 runtime 混用零命中。
+
+## 10. 验收标准
+
+- [ ] `AC-015`：业务设置、字典和 options 闭环成立且拒绝运行 secret。
+- [ ] `AC-035`：管理交互合同完整。
+- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>`。
+- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [ ] E2E disposition 已执行且 shared path 无越权写入。
+- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。

@@ -1,11 +1,11 @@
 {
-  "defaults": {
-    "confirm_before_external_write": true,
-    "report_language": "zh-CN"
-  },
+  "schema_version": 1,
   "language": "zh-CN",
   "persistence": {
     "root_override": null
   },
-  "schema_version": 1
+  "defaults": {
+    "confirm_before_external_write": true,
+    "report_language": "zh-CN"
+  }
 }

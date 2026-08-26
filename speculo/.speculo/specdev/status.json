@@ -3,7 +3,15 @@
   "workflow": "specdev",
   "active": [
     {
-      "change": "2026-08-24-go-admin-plus-architecture"
+      "change": "2026-08-26-project-architecture-reconstruction",
+      "current_work": "specdev/implement",
+      "works_run": [
+        "specdev/grill-with-docs",
+        "specdev/spec",
+        "specdev/tickets",
+        "specdev/goal-plan"
+      ],
+      "claimed_investigations": []
     }
   ],
   "archived": []

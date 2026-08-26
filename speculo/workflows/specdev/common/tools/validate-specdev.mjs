@@ -2110,12 +2110,8 @@ function validateGitEvidence(repoRoot, changeStatus, errors) {
     }
     if (worktree.workspace_ref === "current") {
       if (currentBranch !== worktree.parent_branch) errors.push(`${label}: current branch ${currentBranch ?? "<detached>"} must equal ${worktree.parent_branch}`);
-      if (
-        new Set(["integrated", "removed"]).has(worktree.status) &&
-        worktree.integration?.result_sha &&
-        !gitSucceeds(resolvedRoot, ["merge-base", "--is-ancestor", worktree.integration.result_sha, worktree.parent_branch])
-      ) {
-        errors.push(`${label}: recorded result_sha must be an ancestor of parent branch HEAD`);
+      if (new Set(["integrated", "removed"]).has(worktree.status) && worktree.integration?.result_sha && gitOutput(resolvedRoot, ["rev-parse", worktree.parent_branch]) !== worktree.integration.result_sha) {
+        errors.push(`${label}: parent branch HEAD must equal recorded result_sha`);
       }
       if (worktree.integration?.source_sha && worktree.base_sha && !gitSucceeds(resolvedRoot, ["merge-base", "--is-ancestor", worktree.base_sha, worktree.integration.source_sha])) {
         errors.push(`${label}: source_sha must descend from base_sha`);
@@ -2260,19 +2256,21 @@ function validateChange(change, stage = null, repoRoot = null) {
 
   if (spec) {
     const declaredContracts = new Set(spec.body.match(/\bAC-\d+\b/g) ?? []);
-    const coveredContracts = new Set(
-      [...tickets.values()].flatMap((artifact) =>
-        (artifact.meta.contract_ids ?? []).map(String),
-      ),
-    );
-    let uncovered = [...declaredContracts].filter((id) => !coveredContracts.has(id)).sort();
-    if (ticketsMap) {
-      uncovered = uncovered.filter(
-        (id) => !new RegExp(`${escapeRegExp(id)}.*\\bdeferred\\b`, "i").test(ticketsMap.body),
+    if (tickets.size > 0 || ticketsMap) {
+      const coveredContracts = new Set(
+        [...tickets.values()].flatMap((artifact) =>
+          (artifact.meta.contract_ids ?? []).map(String),
+        ),
       );
-    }
-    if (uncovered.length) {
-      errors.push(`Spec acceptance contracts are not covered by Tickets: ${JSON.stringify(uncovered)}`);
+      let uncovered = [...declaredContracts].filter((id) => !coveredContracts.has(id)).sort();
+      if (ticketsMap) {
+        uncovered = uncovered.filter(
+          (id) => !new RegExp(`${escapeRegExp(id)}.*\\bdeferred\\b`, "i").test(ticketsMap.body),
+        );
+      }
+      if (uncovered.length) {
+        errors.push(`Spec acceptance contracts are not covered by Tickets: ${JSON.stringify(uncovered)}`);
+      }
     }
     if (spec.meta.ready_for_tickets === true && !declaredContracts.size) {
       errors.push("ready Spec must define at least one AC-### acceptance contract");

@@ -314,17 +314,11 @@
       },
       "dto.SysDictDataDeleteReq": {
         "properties": {
-          "createBy": {
-            "type": "integer"
-          },
           "ids": {
             "items": {
               "type": "integer"
             },
             "type": "array"
-          },
-          "updateBy": {
-            "type": "integer"
           }
         },
         "type": "object"
@@ -591,7 +585,7 @@
           },
           "sysApi": {
             "items": {
-              "$ref": "#/components/schemas/models.SysApi"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysApi"
             },
             "type": "array"
           },
@@ -678,7 +672,7 @@
           },
           "sysApi": {
             "items": {
-              "$ref": "#/components/schemas/models.SysApi"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysApi"
             },
             "type": "array"
           },
@@ -846,13 +840,13 @@
           },
           "sysDept": {
             "items": {
-              "$ref": "#/components/schemas/models.SysDept"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysDept"
             },
             "type": "array"
           },
           "sysMenu": {
             "items": {
-              "$ref": "#/components/schemas/models.SysMenu"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysMenu"
             },
             "type": "array"
           },
@@ -915,13 +909,13 @@
           },
           "sysDept": {
             "items": {
-              "$ref": "#/components/schemas/models.SysDept"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysDept"
             },
             "type": "array"
           },
           "sysMenu": {
             "items": {
-              "$ref": "#/components/schemas/models.SysMenu"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysMenu"
             },
             "type": "array"
           },
@@ -1069,30 +1063,7 @@
         },
         "type": "object"
       },
-      "handler.Login": {
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "uuid": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "password",
-          "username",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "models.SysApi": {
+      "go-admin_app_admin_models.SysApi": {
         "properties": {
           "action": {
             "type": "string"
@@ -1127,7 +1098,7 @@
         },
         "type": "object"
       },
-      "models.SysConfig": {
+      "go-admin_app_admin_models.SysConfig": {
         "properties": {
           "configKey": {
             "type": "string"
@@ -1165,11 +1136,11 @@
         },
         "type": "object"
       },
-      "models.SysDept": {
+      "go-admin_app_admin_models.SysDept": {
         "properties": {
           "children": {
             "items": {
-              "$ref": "#/components/schemas/models.SysDept"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysDept"
             },
             "type": "array"
           },
@@ -1229,7 +1200,7 @@
         },
         "type": "object"
       },
-      "models.SysMenu": {
+      "go-admin_app_admin_models.SysMenu": {
         "properties": {
           "action": {
             "type": "string"
@@ -1245,7 +1216,7 @@
           },
           "children": {
             "items": {
-              "$ref": "#/components/schemas/models.SysMenu"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysMenu"
             },
             "type": "array"
           },
@@ -1300,12 +1271,15 @@
           "roleId": {
             "type": "integer"
           },
+          "routeKey": {
+            "type": "string"
+          },
           "sort": {
             "type": "integer"
           },
           "sysApi": {
             "items": {
-              "$ref": "#/components/schemas/models.SysApi"
+              "$ref": "#/components/schemas/go-admin_app_admin_models.SysApi"
             },
             "type": "array"
           },
@@ -1322,6 +1296,29 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "handler.Login": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "password",
+          "username",
+          "uuid"
+        ],
         "type": "object"
       },
       "response.Page": {
@@ -1388,9 +1385,6 @@
             "type": "integer"
           },
           "createdAt": {
-            "type": "string"
-          },
-          "deletedAt": {
             "type": "string"
           },
           "dictType": {
@@ -1525,9 +1519,6 @@
           "dataScope": {
             "type": "string"
           },
-          "deletedAt": {
-            "type": "string"
-          },
           "functionAuthor": {
             "description": "功能作者",
             "type": "string"
@@ -1630,8 +1621,8 @@
     }
   },
   "info": {
-    "description": "Authoritative Phase 1 HTTP wire contract for every go-admin host.",
-    "title": "go-admin API",
+    "description": "Authoritative HTTP contract shared by every Go Admin Plus host.",
+    "title": "Go Admin Plus API",
     "version": "2.0.0"
   },
   "openapi": "3.0.3",
@@ -1844,7 +1835,7 @@
                                   "properties": {
                                     "list": {
                                       "items": {
-                                        "$ref": "#/components/schemas/models.SysApi"
+                                        "$ref": "#/components/schemas/go-admin_app_admin_models.SysApi"
                                       },
                                       "type": "array"
                                     }
@@ -2045,7 +2036,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -2195,7 +2186,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -2225,7 +2216,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -2266,7 +2257,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -2308,7 +2299,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -2359,7 +2350,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -2627,7 +2618,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -3271,7 +3262,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -3313,7 +3304,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -3345,7 +3336,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -3387,7 +3378,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -3429,7 +3420,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -3517,7 +3508,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "tags": [
@@ -3554,7 +3545,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "tags": [
@@ -4503,7 +4494,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -4590,7 +4581,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -4625,7 +4616,7 @@
     },
     "/api/v1/server-monitor": {
       "get": {
-        "description": "获取JSON",
+        "description": "获取操作系统、内存、CPU、磁盘和网络运行信息",
         "responses": {
           "200": {
             "content": {
@@ -4633,7 +4624,8 @@
                 "schema": {
                   "oneOf": [
                     {
-                      "$ref": "#/components/schemas/response.Response"
+                      "additionalProperties": true,
+                      "type": "object"
                     },
                     {
                       "$ref": "#/components/schemas/ApiErrorEnvelope"
@@ -4642,7 +4634,7 @@
                 }
               }
             },
-            "description": "{\"code\": 200, \"data\": [...]}"
+            "description": "运行信息"
           }
         },
         "security": [
@@ -4650,9 +4642,9 @@
             "Bearer": []
           }
         ],
-        "summary": "系统信息",
+        "summary": "获取服务器运行信息",
         "tags": [
-          "系统信息"
+          "系统监控"
         ]
       }
     },
@@ -4821,7 +4813,7 @@
                                   "properties": {
                                     "list": {
                                       "items": {
-                                        "$ref": "#/components/schemas/models.SysApi"
+                                        "$ref": "#/components/schemas/go-admin_app_admin_models.SysApi"
                                       },
                                       "type": "array"
                                     }
@@ -4883,7 +4875,7 @@
                         {
                           "properties": {
                             "data": {
-                              "$ref": "#/components/schemas/models.SysApi"
+                              "$ref": "#/components/schemas/go-admin_app_admin_models.SysApi"
                             }
                           },
                           "type": "object"
@@ -5521,7 +5513,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -5780,7 +5772,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -5810,7 +5802,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -5851,7 +5843,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -5892,7 +5884,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [
@@ -5934,7 +5926,7 @@
                 }
               }
             },
-            "description": "Standard go-admin response envelope"
+            "description": "Standard Go Admin Plus response envelope"
           }
         },
         "security": [

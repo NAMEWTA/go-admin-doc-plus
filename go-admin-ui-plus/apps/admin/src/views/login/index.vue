@@ -41,7 +41,7 @@
     <!-- 右侧：登录表单 -->
     <div class="panel">
       <div class="form-box">
-        <h1 class="panel-title">{{ sysInfo && sysInfo.sys_app_name || 'go-admin' }}</h1>
+        <h1 class="panel-title">{{ sysInfo && sysInfo.sys_app_name || 'Go Admin Plus' }}</h1>
         <p class="panel-sub">使用管理员账号登录控制台</p>
 
         <el-form

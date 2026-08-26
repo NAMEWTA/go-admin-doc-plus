@@ -13,29 +13,29 @@ describe('virtualUrl', () => {
   it('lifts the route out of the hash and into the path', () => {
     // The whole reason this function exists: GA4 takes the page from the path,
     // and every route in a hash-routed application shares the path "/".
-    expect(virtualUrl('/login', 'https://demo.go-admin.dev/#/login'))
-      .toBe('https://demo.go-admin.dev/login')
+    expect(virtualUrl('/login', 'https://console.example.com/#/login'))
+      .toBe('https://console.example.com/login')
 
-    expect(virtualUrl('/admin/sys-user', 'https://demo.go-admin.dev/#/admin/sys-user'))
-      .toBe('https://demo.go-admin.dev/admin/sys-user')
+    expect(virtualUrl('/admin/sys-user', 'https://console.example.com/#/admin/sys-user'))
+      .toBe('https://console.example.com/admin/sys-user')
   })
 
   it('keeps the route query, which says which page this is', () => {
-    expect(virtualUrl('/login?redirect=/admin/sys-user', 'https://demo.go-admin.dev/#/login?redirect=/admin/sys-user'))
-      .toBe('https://demo.go-admin.dev/login?redirect=/admin/sys-user')
+    expect(virtualUrl('/login?redirect=/admin/sys-user', 'https://console.example.com/#/login?redirect=/admin/sys-user'))
+      .toBe('https://console.example.com/login?redirect=/admin/sys-user')
   })
 
   it('carries over campaign parameters the router never sees', () => {
     // utm_* sits before the hash, so vue-router does not parse it and it is
     // absent from fullPath. GA4 reads attribution off page_location, so leaving
     // it behind would report every campaign visit as direct traffic.
-    expect(virtualUrl('/login', 'https://demo.go-admin.dev/?utm_source=github&utm_medium=readme#/login'))
-      .toBe('https://demo.go-admin.dev/login?utm_source=github&utm_medium=readme')
+    expect(virtualUrl('/login', 'https://console.example.com/?utm_source=github&utm_medium=readme#/login'))
+      .toBe('https://console.example.com/login?utm_source=github&utm_medium=readme')
   })
 
   it('lets the route keep a parameter the outer query also has', () => {
-    expect(virtualUrl('/login?redirect=/a', 'https://demo.go-admin.dev/?redirect=/b#/login?redirect=/a'))
-      .toBe('https://demo.go-admin.dev/login?redirect=/a')
+    expect(virtualUrl('/login?redirect=/a', 'https://console.example.com/?redirect=/b#/login?redirect=/a'))
+      .toBe('https://console.example.com/login?redirect=/a')
   })
 
   it('keeps the port and the scheme it was given', () => {
@@ -45,7 +45,7 @@ describe('virtualUrl', () => {
 })
 
 describe('trackPageView', () => {
-  const href = 'https://demo.go-admin.dev/#/login'
+  const href = 'https://console.example.com/#/login'
 
   beforeEach(() => {
     vi.stubGlobal('location', new URL(href))
@@ -73,7 +73,7 @@ describe('trackPageView', () => {
     expect(gtag).toHaveBeenCalledTimes(1)
     expect(gtag).toHaveBeenCalledWith('event', 'page_view', {
       page_title: '登录 - go-admin',
-      page_location: 'https://demo.go-admin.dev/login'
+      page_location: 'https://console.example.com/login'
     })
   })
 

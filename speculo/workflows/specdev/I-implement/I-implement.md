@@ -9,6 +9,8 @@ keywords: [实现, TDD, Lead, subagent, worktree, current workspace, direct-pare
 
 # 实现
 
+> 激活本 Work 后，先读取 `<Path>{roots.workflows}/specdev/README.md</Path>`，再执行本入口。
+
 本 work 保留模块设计检查、design-it-twice、TDD 红绿循环、双轴审查和证据治理。Ticket 模式按 Goal Plan 的 `ticket_workspace_policy` 选择 current workspace 串行直接父分支或独立 worktree candidate-merge；Lead 根据实际情况自行实现或动态派单。
 
 ## 执行模式
@@ -108,7 +110,7 @@ Ticket 模式中，Lead 以 `operation=accept` 调用 subagent-delivery，重读
 
 Direct Spec 模式由 Lead 在 current workspace 运行轻量合同要求的定向非 E2E 检查，审计获批可写范围，并在获得 implementation commit 授权后创建引用 change 的非空 commit；无需改动时记录事实并取消直接实现，不创建 empty commit。记录实施前基线、最终 checkpoint、dirty 状态、实际路径、命令结果、未运行项和恢复条件。
 
-**完成标准**：required 模式 Ticket worktree clean 且 `source_checkpoint` 精确等于 branch tip；current 模式 workspace clean、Ticket `result_sha` 精确等于父分支上的 implementation commit，且父 HEAD 包含该 result；或 Direct Spec 的 current workspace checkpoint、路径和轻量合同一致。
+**完成标准**：required 模式 Ticket worktree clean 且 `source_checkpoint` 精确等于 branch tip；current 模式 workspace clean 且 Ticket `result_sha` 精确等于父分支上的 implementation commit；或 Direct Spec 的 current workspace checkpoint、路径和轻量合同一致。
 
 ### 6. 双轴审查
 
@@ -134,13 +136,13 @@ Direct Spec 模式由 Lead 在 current workspace 运行轻量合同要求的定�
 
 E2E 是否需要由 Ticket/Goal Plan 的实际跨边界风险决定，不限于 UI；不适用必须记录原因。
 
-`current` Ticket 模式跳过 source worktree、candidate merge 和 candidate checkout。Lead 在当前 workspace 运行 Ticket 要求的适用集成/回归与 E2E，记录运行环境、命令、退出码和摘要；E2E 不得派给其他 agent。失败时不声明完成，保留 Ticket commit、父 HEAD 和恢复条件。全部通过后重读父 HEAD/tree，将 implementation commit 记录为 `result_sha`；需要把该 SHA 写回 Evidence/状态时，另形成只含 SpecDev 投影的 finalization commit。Direct Spec 模式同样跳过 source worktree、candidate merge 和父分支推进。
+`current` Ticket 模式跳过 source worktree、candidate merge 和 candidate checkout。Lead 在当前 workspace 运行 Ticket 要求的适用集成/回归与 E2E，记录运行环境、命令、退出码和摘要；E2E 不得派给其他 agent。失败时不声明完成，保留 Ticket commit、父 HEAD 和恢复条件。全部通过后重读父 HEAD/tree 并记录 `result_sha`。Direct Spec 模式同样跳过 source worktree、candidate merge 和父分支推进。
 
 ### 8. Evidence、状态与完成
 
 Lead 使用 `<Path>{roots.workflows}/specdev/I-implement/evidence-template.md</Path>` 写入 Ticket Evidence；Direct Spec 按该模板的 Direct Spec 适配说明写 `<Path>{roots.state}/specdev/changes/{change}/evidence/direct-spec.md</Path>`。Ticket Evidence 按策略记录 implementation/source、适用 candidate/result SHA、派单/返回、两层验证、双轴审查、E2E disposition、路径审计、偏差和残余风险；Direct Spec Evidence 使用实施前基线与 current workspace 最终 checkpoint，不伪造 Ticket/worktree/candidate 字段。
 
-Ticket 正常状态：`ready → in_progress → review → done`。`required` 的 `done` 要求 change worktree 已完成集成（`integrated` 或 `removed`）、父 HEAD=result SHA 且包含 source commit；`current` 的 `done` 要求 current workspace clean、direct-parent 验证通过、父 HEAD 包含 result，且 result 精确指向该 Ticket 的 implementation checkpoint。result 后只允许 Lead-owned SpecDev finalization 或后续已验证 Ticket commits。阻塞使用 `blocked`，契约偏差使用 `deviated`，无需改动使用 `cancelled`。Direct Spec 由当前 I-implement owner 按 `<Path>{roots.workflows}/specdev/common/rules/change-completion.md</Path>` 关闭 change。
+Ticket 正常状态：`ready → in_progress → review → done`。`required` 的 `done` 要求 change worktree 已完成集成（`integrated` 或 `removed`）、父 HEAD=result SHA 且包含 source commit；`current` 的 `done` 要求 current workspace clean、direct-parent 验证通过且父 HEAD=result SHA。阻塞使用 `blocked`，契约偏差使用 `deviated`，无需改动使用 `cancelled`。Direct Spec 由当前 I-implement owner 按 `<Path>{roots.workflows}/specdev/common/rules/change-completion.md</Path>` 关闭 change。
 
 按存在和当前模式同步 Ticket、Tickets Map、Goal Plan、`<Path>{roots.state}/specdev/changes/{change}/.status.json</Path>` 和全局状态；Direct Spec 不创建缺失的 Ticket/Map/Goal Plan。最后一个计划内 Ticket 完成后，Goal Plan 的 Lead 按 change completion 关闭；无 Goal Plan 的当前 I owner 承担同一门禁。需要远程 reconcile 时返回 T-triage，否则进入 Archive。
 

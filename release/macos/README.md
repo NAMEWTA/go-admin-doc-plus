@@ -1,21 +1,14 @@
-# macOS ARM64 release
+# macOS ARM64 发布
 
-`identity.json` is the versioned source for the macOS product name, bundle ID,
-minimum OS and application-data identity. `self_use_release_status=approved`
-permits the Phase 1 `unsigned-self-use` artifact. It is ad-hoc code signed for
-bundle integrity, but it is neither Developer ID signed nor notarized by Apple.
-`identity_status=candidate` remains the independent future signing gate; a
-signed production run fails until that identity is audited as `approved`.
+`identity.json` 是产品名、bundle ID、最低系统版本、应用数据目录和工件名的权威来源。
+`self_use_release_status=approved` 允许生成 `unsigned-self-use` 工件；
+`identity_status=candidate` 表示正式签名身份尚未批准。
 
-The backend `release-macos.yml` workflow checks out exact root, backend and
-frontend commits. It builds and runs a tagged native tracer twice against one
-data root, then rebuilds the untagged production app. The default self-use mode
-ad-hoc signs the app, verifies a scoped quarantine removal flow, and packages
-the DMG with `INSTALL.md`, provenance, checksum and SPDX SBOM. The optional
-future production mode retains the Developer ID/notary/staple implementation
-without making those credentials a Phase 1 requirement.
+`release-macos.yml` 固定根提交，构建带 tracer 的桌面应用并在同一数据目录运行两次，再构建
+生产应用。自主使用模式执行 ad-hoc 签名，验证限定范围的 quarantine 流程，并把应用、
+安装说明、来源记录、校验和与 SPDX SBOM 打包到 DMG。
 
-Future signed-production secrets:
+未来正式签名需要以下 secrets：
 
 - `APPLE_DEVELOPER_ID_P12_BASE64`
 - `APPLE_DEVELOPER_ID_P12_PASSWORD`
@@ -24,6 +17,4 @@ Future signed-production secrets:
 - `APPLE_NOTARY_KEY_ID`
 - `APPLE_NOTARY_ISSUER_ID`
 
-Read `INSTALL.md` before running the self-use artifact. It requires verifying
-SHA-256 first and never recommends globally disabling Gatekeeper. No workflow
-publishes a GitHub Release or external distribution.
+运行工件前必须阅读 `INSTALL.md`。workflow 不创建 GitHub Release，也不执行外部分发。

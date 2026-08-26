@@ -6,8 +6,7 @@ export default {
     ...mapState(useAppStore, ['device'])
   },
   mounted() {
-    // In order to fix the click on menu on the ios device will trigger the mouseleave bug
-    // https://github.com/PanJiaChen/vue-element-admin/issues/1135
+    // Keep an iOS menu tap from being treated as a desktop mouseleave.
     this.fixBugIniOS()
   },
   methods: {

@@ -1,12 +1,12 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "基于Gin + Vue + Element UI的前后端分离权限管理系统的接口文档\n添加qq群: 521386980 进入技术交流群 请先star，谢谢！",
-        "title": "go-admin API",
+        "description": "Go Admin Plus 管理平台的 HTTP API。",
+        "title": "Go Admin Plus API",
         "contact": {},
         "license": {
             "name": "MIT",
-            "url": "https://github.com/go-admin-team/go-admin/blob/master/LICENSE.md"
+            "url": "https://github.com/NAMEWTA/go-admin-plus/blob/main/LICENSE"
         },
         "version": "2.0.0"
     },
@@ -1508,16 +1508,17 @@
                         "Bearer": []
                     }
                 ],
-                "description": "获取JSON",
+                "description": "获取操作系统、内存、CPU、磁盘和网络运行信息",
                 "tags": [
-                    "系统信息"
+                    "系统监控"
                 ],
-                "summary": "系统信息",
+                "summary": "获取服务器运行信息",
                 "responses": {
                     "200": {
-                        "description": "{\"code\": 200, \"data\": [...]}",
+                        "description": "运行信息",
                         "schema": {
-                            "$ref": "#/definitions/response.Response"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -1670,7 +1671,7 @@
                                                         "list": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/models.SysApi"
+                                                                "$ref": "#/definitions/go-admin_app_admin_models.SysApi"
                                                             }
                                                         }
                                                     }
@@ -1748,7 +1749,7 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/models.SysApi"
+                                            "$ref": "#/definitions/go-admin_app_admin_models.SysApi"
                                         }
                                     }
                                 }
@@ -1864,7 +1865,7 @@
                                                         "list": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/definitions/models.SysApi"
+                                                                "$ref": "#/definitions/go-admin_app_admin_models.SysApi"
                                                             }
                                                         }
                                                     }
@@ -3032,17 +3033,11 @@
         "dto.SysDictDataDeleteReq": {
             "type": "object",
             "properties": {
-                "createBy": {
-                    "type": "integer"
-                },
                 "ids": {
                     "type": "array",
                     "items": {
                         "type": "integer"
                     }
-                },
-                "updateBy": {
-                    "type": "integer"
                 }
             }
         },
@@ -3310,7 +3305,7 @@
                 "sysApi": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysApi"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysApi"
                     }
                 },
                 "title": {
@@ -3397,7 +3392,7 @@
                 "sysApi": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysApi"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysApi"
                     }
                 },
                 "title": {
@@ -3565,13 +3560,13 @@
                 "sysDept": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysDept"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysDept"
                     }
                 },
                 "sysMenu": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysMenu"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysMenu"
                     }
                 },
                 "updateBy": {
@@ -3634,13 +3629,13 @@
                 "sysDept": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysDept"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysDept"
                     }
                 },
                 "sysMenu": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysMenu"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysMenu"
                     }
                 },
                 "updateBy": {
@@ -3786,30 +3781,7 @@
                 }
             }
         },
-        "handler.Login": {
-            "type": "object",
-            "required": [
-                "code",
-                "password",
-                "username",
-                "uuid"
-            ],
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                },
-                "uuid": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.SysApi": {
+        "go-admin_app_admin_models.SysApi": {
             "type": "object",
             "properties": {
                 "action": {
@@ -3844,7 +3816,7 @@
                 }
             }
         },
-        "models.SysConfig": {
+        "go-admin_app_admin_models.SysConfig": {
             "type": "object",
             "properties": {
                 "configKey": {
@@ -3882,13 +3854,13 @@
                 }
             }
         },
-        "models.SysDept": {
+        "go-admin_app_admin_models.SysDept": {
             "type": "object",
             "properties": {
                 "children": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysDept"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysDept"
                     }
                 },
                 "createBy": {
@@ -3946,7 +3918,7 @@
                 }
             }
         },
-        "models.SysMenu": {
+        "go-admin_app_admin_models.SysMenu": {
             "type": "object",
             "properties": {
                 "action": {
@@ -3964,7 +3936,7 @@
                 "children": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysMenu"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysMenu"
                     }
                 },
                 "component": {
@@ -4018,13 +3990,16 @@
                 "roleId": {
                     "type": "integer"
                 },
+                "routeKey": {
+                    "type": "string"
+                },
                 "sort": {
                     "type": "integer"
                 },
                 "sysApi": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/models.SysApi"
+                        "$ref": "#/definitions/go-admin_app_admin_models.SysApi"
                     }
                 },
                 "title": {
@@ -4037,6 +4012,29 @@
                     "type": "string"
                 },
                 "visible": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.Login": {
+            "type": "object",
+            "required": [
+                "code",
+                "password",
+                "username",
+                "uuid"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }
@@ -4106,9 +4104,6 @@
                     "type": "integer"
                 },
                 "createdAt": {
-                    "type": "string"
-                },
-                "deletedAt": {
                     "type": "string"
                 },
                 "dictType": {
@@ -4241,9 +4236,6 @@
                     "type": "boolean"
                 },
                 "dataScope": {
-                    "type": "string"
-                },
-                "deletedAt": {
                     "type": "string"
                 },
                 "functionAuthor": {

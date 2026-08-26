@@ -39,7 +39,7 @@ export default {
       return variables
     },
     appName() {
-      return (this.appInfo && this.appInfo.sys_app_name) || 'Go Admin'
+      return (this.appInfo && this.appInfo.sys_app_name) || 'Go Admin Plus'
     },
     titleColor() {
       return this.themeStyle === 'dark'

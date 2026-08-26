@@ -127,8 +127,8 @@ INSERT INTO sys_config VALUES
 (1, '皮肤样式', 'sys_index_skinName', 'skin-green', 'Y', '0', '主框架页-默认皮肤样式名称:蓝色 skin-blue、绿色 skin-green、紫色 skin-purple、红色 skin-red、黄色 skin-yellow', 1, 1, '2021-05-13 19:56:37.913', '2021-06-05 13:50:13.123', NULL),
 (2, '初始密码', 'sys_user_initPassword', '123456', 'Y', '0', '用户管理-账号初始密码:123456', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL),
 (3, '侧栏主题', 'sys_index_sideTheme', 'theme-dark', 'Y', '0', '主框架页-侧边栏主题:深色主题theme-dark，浅色主题theme-light', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL),
-(4, '系统名称', 'sys_app_name', 'go-admin管理系统', 'Y', '1', '', 1, 0, '2021-03-17 08:52:06.067', '2021-05-28 10:08:25.248', NULL),
-(5, '系统logo', 'sys_app_logo', 'https://gitee.com/mydearzwj/image/raw/master/img/go-admin.png', 'Y', '1', '', 1, 0, '2021-03-17 08:53:19.462', '2021-03-17 08:53:19.462', NULL);
+(4, '系统名称', 'sys_app_name', 'Go Admin Plus', 'Y', '1', '', 1, 0, '2021-03-17 08:52:06.067', '2021-05-28 10:08:25.248', NULL),
+(5, '系统logo', 'sys_app_logo', '', 'Y', '1', '', 1, 0, '2021-03-17 08:53:19.462', '2021-03-17 08:53:19.462', NULL);
 
 SET IDENTITY_INSERT sys_dept ON;
 INSERT INTO sys_dept (dept_id, parent_id, dept_path, dept_name, sort, leader, phone, email, status, create_by, update_by, created_at, updated_at, deleted_at)VALUES
@@ -337,5 +337,5 @@ INSERT INTO sys_post (post_id, post_name, post_code, sort, status, remark, creat
 (3, '首席运营官', 'COO', 3, '2','测试工程师', 1, 1,'2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL);
 INSERT INTO sys_role (role_id, role_name, status, role_key, role_sort, flag, remark, admin, data_scope, create_by, update_by, created_at, updated_at, deleted_at)VALUES 
 (1, '系统管理员', '2', 'admin', 1, '', '', 1, '', 1, 1, '2021-05-13 19:56:37.913', '2021-05-13 19:56:37.913', NULL);
-INSERT INTO sys_user VALUES (1, 'admin', '$2a$10$/Glr4g9Svr6O0kvjsRJCXu3f0W8/dsP3XZyVNi1019ratWpSPMyw.', 'zhangwj', '13818888888', 1, '', '', '1', '1@qq.com', 1, 1, '', '2', 1, 1, '2021-05-13 19:56:37.914', '2021-05-13 19:56:40.205', NULL);
+INSERT INTO sys_user VALUES (1, 'admin', '$2a$10$/Glr4g9Svr6O0kvjsRJCXu3f0W8/dsP3XZyVNi1019ratWpSPMyw.', 'Administrator', '', 1, '', '', '1', '', 1, 1, '', '2', 1, 1, '2021-05-13 19:56:37.914', '2021-05-13 19:56:40.205', NULL);
 -- 数据完成 ;

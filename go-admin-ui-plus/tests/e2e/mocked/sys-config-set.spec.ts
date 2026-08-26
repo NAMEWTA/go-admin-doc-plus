@@ -16,7 +16,7 @@ test.describe('sys-config set', () => {
     await page.goto('/#/admin/sys-config/set')
     await page.waitForSelector('.config-section')
 
-    await expect(page.getByPlaceholder('请输入系统名称')).toHaveValue('go-admin')
+    await expect(page.getByPlaceholder('请输入系统名称')).toHaveValue('Go Admin Plus')
     await expect(page.getByPlaceholder('请输入初始密码')).toHaveValue('Init@123')
   })
 
@@ -63,7 +63,7 @@ test.describe('sys-config set', () => {
 
     await expect(page.locator('.theme-card.is-active')).toHaveCount(0)
     await page.locator('.nav-item').filter({ hasText: '基础信息' }).click()
-    await expect(name).toHaveValue('go-admin')
+    await expect(name).toHaveValue('Go Admin Plus')
   })
 
   test('saving sends every key as a configKey/configValue pair', async({ page }) => {

@@ -59,7 +59,7 @@ test.describe('analytics', () => {
     // The path is what tells the login page apart, not the title: the /login
     // route declares no meta.title, so getPageTitle falls back to the site name
     // and reports the same string every untitled route does.
-    expect(hit.page_title).toBe('go-admin 后台管理系统')
+    expect(hit.page_title).toBe('Go Admin Plus')
   })
 
   test('a page the guard turned away is not reported as visited', async({ page }) => {

@@ -79,7 +79,7 @@ for (const [path, item] of Object.entries(source.paths ?? {})) {
 }
 
 const genericEnvelope = () => ({
-  description: 'Standard go-admin response envelope',
+  description: 'Standard Go Admin Plus response envelope',
   content: { 'application/json': { schema: { $ref: '#/components/schemas/response.Response' } } }
 })
 const moduleOperation = (method, operationId, path) => {
@@ -297,8 +297,8 @@ schemas.RuntimeCapabilities = {
 const document = sortDeep({
   openapi: '3.0.3',
   info: {
-    title: source.info?.title ?? 'go-admin API',
-    description: 'Authoritative Phase 1 HTTP wire contract for every go-admin host.',
+    title: source.info?.title ?? 'Go Admin Plus API',
+    description: 'Authoritative HTTP contract shared by every Go Admin Plus host.',
     version: source.info?.version ?? '2.0.0'
   },
   servers: [{ url: '/', description: 'Same-origin Web or host-provided Desktop endpoint' }],

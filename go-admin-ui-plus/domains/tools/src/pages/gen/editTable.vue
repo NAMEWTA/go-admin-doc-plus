@@ -56,13 +56,7 @@
               <el-checkbox v-model="scope.row.isInsert" true-value="1" false-value="0" />
             </template>
           </el-table-column>
-          <!--
-            #header, not :render-header. The render functions this replaces were
-            Vue 2 syntax -- h('el-popover', { props }) with slot: 'reference' --
-            which throws under Vue 3, and one throwing header renderer takes the
-            whole header row with it: the table rendered with zero <th> and no
-            column labels at all.
-          -->
+          <!-- Header slots keep the label and field guidance in one stable cell. -->
           <el-table-column label="列表" width="80" align="center">
             <template #header><FieldLabel label="列表" tip="是否在列表中展示，打勾表示展示" /></template>
             <template #default="scope">

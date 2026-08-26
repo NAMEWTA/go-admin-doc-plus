@@ -138,7 +138,7 @@ const githubJson = async path => {
   const headers = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'go-admin-product-release-contract'
+    'User-Agent': 'go-admin-plus-product-release-contract'
   }
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
   if (token) headers.Authorization = `Bearer ${token}`

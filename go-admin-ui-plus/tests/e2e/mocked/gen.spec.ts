@@ -163,11 +163,7 @@ test.describe('dev-tools import', () => {
   })
 })
 
-/**
- * The edit page. Its 字段信息 table had no header at all: two columns used
- * :render-header with Vue 2 render functions, those threw, and one throwing
- * header renderer takes the whole header row down with it.
- */
+/** The edit page must keep every 字段信息 header visible. */
 test.describe('dev-tools editTable', () => {
   test.beforeEach(async({ context }) => {
     await authenticate(context)

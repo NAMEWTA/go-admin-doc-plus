@@ -6,9 +6,9 @@ describe('Utils:validate', () => {
     expect(validUsername('xxxx')).toBe(false)
   })
   it('validURL', () => {
-    expect(validURL('https://github.com/PanJiaChen/vue-element-admin')).toBe(true)
-    expect(validURL('http://github.com/PanJiaChen/vue-element-admin')).toBe(true)
-    expect(validURL('github.com/PanJiaChen/vue-element-admin')).toBe(false)
+    expect(validURL('https://github.com/NAMEWTA/go-admin-plus')).toBe(true)
+    expect(validURL('http://github.com/NAMEWTA/go-admin-plus')).toBe(true)
+    expect(validURL('github.com/NAMEWTA/go-admin-plus')).toBe(false)
   })
   it('validLowerCase', () => {
     expect(validLowerCase('abc')).toBe(true)

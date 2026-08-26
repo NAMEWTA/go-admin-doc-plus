@@ -741,7 +741,7 @@ export const configRows = [
     id: 2,
     configName: '应用名称',
     configKey: 'sys_app_name',
-    configValue: 'go-admin',
+    configValue: 'Go Admin Plus',
     configType: 'N',
     isFrontend: '1',
     remark: '',
@@ -979,7 +979,7 @@ export async function installApiMocks(page: Page) {
     await route.fulfill(json({
       code: 200,
       data: {
-        sys_app_name: 'go-admin',
+        sys_app_name: 'Go Admin Plus',
         sys_app_logo: '',
         sys_user_initPassword: 'Init@123',
         sys_index_skinName: 'skin-blue'

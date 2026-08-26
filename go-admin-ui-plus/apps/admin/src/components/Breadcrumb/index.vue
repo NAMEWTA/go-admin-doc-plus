@@ -50,7 +50,7 @@ export default {
       return name.trim() === '首页'
     },
     pathCompile(path) {
-      // To solve this problem https://github.com/PanJiaChen/vue-element-admin/issues/561
+      // Fill dynamic path parameters before navigating from a breadcrumb.
       const { params } = this.$route
       var toPath = compile(path)
       return toPath(params)

@@ -19,17 +19,7 @@ export interface UserInfo {
   permissions: string[]
 }
 
-/**
- * Session, profile and permission identifiers.
- *
- * Ported from src/store/modules/user.js. Behaviour is covered by
- * tests/unit/store/user.spec.js.
- *
- * The Vuex module also carried a `changeRoles` action, a vue-element-admin
- * demo that minted a fake `<role>-token`. Nothing referenced it, and it was the
- * only dependency this store had on the permission module, so it is dropped
- * here rather than ported.
- */
+/** Session, profile and permission identifiers. */
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: getToken() || '',
@@ -55,12 +45,7 @@ export const useUserStore = defineStore('user', {
       setToken(response.token)
     },
 
-    /**
-     * Returns the profile itself rather than the raw envelope. The Vuex version
-     * resolved with the full `{ code, data }` response while the router guard
-     * destructured `{ roles }` straight off it, so `roles` was always
-     * undefined. It went unnoticed because generateRoutes ignores the argument.
-     */
+    /** Return the profile consumed by the router permission guard. */
     async getInfo(): Promise<UserInfo | undefined> {
       const response = await getInfo()
 

@@ -18,9 +18,9 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:          "go-admin",
-	Short:        "go-admin",
+	Short:        "Go Admin Plus command line",
 	SilenceUsage: true,
-	Long:         `go-admin`,
+	Long:         `Go Admin Plus command line`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			tip()
@@ -35,8 +35,8 @@ var rootCmd = &cobra.Command{
 }
 
 func tip() {
-	usageStr := `欢迎使用 ` + pkg.Green(`go-admin `+global.Version) + ` 可以使用 ` + pkg.Red(`-h`) + ` 查看命令`
-	usageStr1 := `也可以参考 https://doc.go-admin.dev/guide/ksks 的相关内容`
+	usageStr := `欢迎使用 ` + pkg.Green(`Go Admin Plus `+global.Version) + `，使用 ` + pkg.Red(`-h`) + ` 查看命令`
+	usageStr1 := `项目文档：https://github.com/NAMEWTA/go-admin-plus`
 	fmt.Printf("%s\n", usageStr)
 	fmt.Printf("%s\n", usageStr1)
 }
@@ -49,7 +49,7 @@ func init() {
 	rootCmd.AddCommand(app.StartCmd)
 }
 
-//Execute : apply commands
+// Execute : apply commands
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(-1)

@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "package_version": "0.8.4",
+  "package_version": "0.8.5",
   "workflows": [
     "specdev"
   ],

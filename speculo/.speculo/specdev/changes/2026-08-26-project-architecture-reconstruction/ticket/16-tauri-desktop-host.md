@@ -1,0 +1,119 @@
+---
+schema_version: 3
+artifact: ticket
+change: 2026-08-26-project-architecture-reconstruction
+id: T-16
+title: Tauri 2 Desktop 安全宿主闭环
+status: ready
+planning_depth: deep
+planning_depth_reason: 原生宿主、sidecar、Stronghold、随机 loopback、SQLite 迁移与进程监督构成关键桌面安全边界
+ready: true
+risk: critical
+blocked_by: [T-06, T-08, T-14]
+contract_ids: [AC-006, AC-007, AC-009, AC-021, AC-027, AC-036]
+owner: unassigned
+expected_changes: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>go-admin-plus/test/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>"]
+shared_paths: ["<Path>release/shared/sidecar/**</Path>"]
+shared_path_owners: ["<Path>release/shared/sidecar/**</Path> => T-16"]
+---
+
+# Ticket T-16: Tauri 2 Desktop 安全宿主闭环
+
+- **Ticket 文件：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>`
+- **总体 Map：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/tickets-map.md</Path>`
+- **上游 Spec：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>`
+- **完成 Evidence：** `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>`
+
+## 1. 战略与来源
+
+- **目标：** 用 Tauri 2 管理 Go sidecar 和本地 SQLite，交付安全登录、Demo CRUD、备份迁移与重启闭环。
+- **可观察产出：** 首次启动在 ready 后开窗，sidecar 仅随机 loopback；Session 存 Stronghold，WebView JS 永不可见。
+- **来源：** `US-004`、`US-019`、`AC-006`、`AC-007`、`AC-009`、`ADR-007`、`ADR-008`。
+- **当前事实：** 现有 Desktop 是 Wails 路径，缺少 Tauri 2、Stronghold 和目标发行 triple 合同。
+- **Planning Depth 原因：** 进程、凭据、数据库升级和原生宿主失败可导致本地数据或会话泄露。
+
+## 2. 决策状态
+
+### 已锁定决策
+
+- Tauri 2 取得单实例锁，提供路径/一次性启动材料并监督 Go sidecar；sidecar 仅绑定随机 loopback。
+- Session 由 Stronghold 保存并由 transport proxy 注入，JS/localStorage/URL/log 不可读取。
+- Desktop 仅 SQLite，迁移前按策略备份，失败不打开主窗口。
+
+### 已采用的低影响假设
+
+- Sidecar readiness 使用一次性 nonce 绑定的本地握手和超时。
+
+### 未决问题
+
+无。
+
+## 3. 范围边界
+
+| IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |
+|---|---|---|
+| Tauri App、sidecar、Stronghold proxy、迁移/重启 tracer | kernel、IAM、Outbox、Demo、App Shell | Linux Desktop、远程 Server 模式、Wails 兼容 |
+
+## 4. 要构建什么
+
+用户启动安装后的 Desktop，Tauri 先锁实例、准备路径/备份/启动材料并监督 sidecar；sidecar 迁移 SQLite 和 ready 后才开窗，登录凭据由宿主代理，退出时 drain 并关闭资源。
+
+## 5. 实现契约
+
+- **入口或接缝：** Tauri lifecycle/commands、sidecar launcher/handshake、Stronghold transport proxy、Desktop adapter。
+- **输入与输出：** Tauri 路径/nonce/session command；返回脱敏 runtime capability 和业务响应。
+- **公共接口变化：** 新 Desktop runtime adapter 与 sidecar launch protocol。
+- **不变量：** 单实例；随机 loopback；nonce 一次性；ready 前不开窗；JS 不见 token；退出按序 drain。
+- **状态或数据流：** lock -> paths/backup -> launch -> migrate -> handshake/ready -> window -> proxy -> drain/stop。
+- **错误与失败行为：** 非 loopback、材料缺失、握手超时、migration/asset 失败均不开窗并保留原库/备份。
+- **兼容要求：** 不保留 Wails、固定端口或 Desktop PostgreSQL。
+- **安全与隐私要求：** Stronghold、CSP、allowlist、sidecar origin、日志和进程参数泄露测试。
+
+## 6. 执行路线
+
+1. 建立首次启动、失败不开窗、JS token 不可见和重启 tracer。
+2. 创建 Tauri 2 App、capabilities/CSP 和 target triple sidecar 配置。
+3. 实现 Go sidecar launch protocol、SQLite backup/migration/readiness。
+4. 实现 Stronghold transport proxy、Demo tracer 和有序 shutdown。
+5. 在 macOS/Windows 开发 runner 验证构建与原生行为。
+
+## 7. 路径访问契约
+
+- **预计修改点：** Desktop App、sidecar、desktop platform 和共享 sidecar packaging。
+- **可写范围：** 仅 frontmatter `writable_paths`。
+- **只读上下文：** kernel、IAM、Demo 和 App Shell。
+- **共享路径：** sidecar 打包布局由 T-16 唯一拥有，平台发行 Ticket 只消费。
+- **保留或不动：** macOS/Windows 安装器分别归 T-19/T-20。
+
+## 8. 验证矩阵
+
+| 行为或风险 | 验证接缝 | 命令或步骤 | 预期结果 | Evidence |
+|---|---|---|---|---|
+| 正常路径 | Desktop native tracer | `task test -- desktop-native` | 首启、登录、Demo CRUD、退出重启持久 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>` |
+| 失败路径 | hardening tracer | 非 loopback/nonce/asset/migration 失败与 JS 读取探针 | 不开窗、不泄露、保留数据库/备份 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>` |
+| 回归 | package/build suite | 构建目标 sidecar 并检查资产/triple | Tauri 正确打包且无 Wails 依赖 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>` |
+
+- **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 运行 Go/Rust/TS 非 E2E 检查。
+- **E2E disposition：** required：必须在原生宿主运行真实 sidecar、Stronghold、迁移和窗口 Gate。
+- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、native E2E 与父分支包含关系。
+
+## 9. 发布、迁移与恢复
+
+- **迁移顺序：** 新 Desktop 首次建库；新架构升级先备份再只前进迁移，成功才开窗。
+- **兼容窗口：** 只支持上一新架构 fixture，不读取 Wails/旧数据库。
+- **监控信号：** launch/handshake/migration/window/shutdown 阶段和 crash reason。
+- **回滚或前向恢复：** migration 失败保留原库/备份；修复版本前向恢复，不自动覆盖原库。
+- **不可逆操作与批准点：** 破坏性 migration 和备份清理需独立批准。
+- **收缩条件：** T-21 证明 Wails、固定端口和 JS session 存储零命中。
+
+## 10. 验收标准
+
+- [ ] `AC-006/AC-007`：单实例、随机 sidecar、迁移/备份、开窗 Gate 和重启持久化成立。
+- [ ] `AC-009`：Stronghold proxy 生效且 WebView/URL/log 不可读取 Session。
+- [ ] `AC-021/AC-027/AC-036`：Desktop SQLite Demo、配置来源和 Shell 状态成立。
+- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>`。
+- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。

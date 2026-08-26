@@ -4,7 +4,7 @@ settings:
     enabledp: true
     host: 0.0.0.0
     mode: demo
-    name: testApp
+    name: go-admin-plus
     port: 8000
     readtimeout: 10000
     writertimeout: 20000
@@ -12,10 +12,10 @@ settings:
     driver: sqlite3
     source: ./go-admin-db.db
   gen:
-    dbname: testhhh
-    frontpath: ../go-admin-ui/src
+    dbname: go-admin-plus
+    frontpath: ../go-admin-ui-plus/apps/admin/src
   jwt:
-    secret: go-admin
+    secret: go-admin-plus-development-only
     timeout: 3600
   logger:
     # 日志存放路径

@@ -43,6 +43,12 @@ func GetHourDiffer(startTime, endTime string) int64 {
 }
 
 // ServerInfo 获取系统信息
+// @Summary 获取服务器运行信息
+// @Description 获取操作系统、内存、CPU、磁盘和网络运行信息
+// @Tags 系统监控
+// @Success 200 {object} map[string]interface{} "运行信息"
+// @Router /api/v1/server-monitor [get]
+// @Security Bearer
 func (e ServerMonitor) ServerInfo(c *gin.Context) {
 	e.Context = c
 

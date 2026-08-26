@@ -1,29 +1,22 @@
-# Install Go Admin Plus on macOS
+# 在 macOS 安装 Go Admin Plus
 
-This ARM64 package is for self-use. It has an ad-hoc integrity signature, but it
-is not signed with Apple Developer ID and has not been notarized by Apple.
-macOS cannot verify its publisher or confirm that Apple checked it for malware.
+当前 ARM64 包用于自主使用，只有 ad-hoc 完整性签名，没有 Apple Developer ID 签名，也未
+经过 Apple notarization。macOS 无法验证发布者或证明 Apple 已检查该应用。
 
-Only continue when you obtained the artifact from the expected release source.
-From the directory containing `SHA256SUMS`, verify every distributed file first:
+只使用来自预期 Actions run 的工件。进入包含 `SHA256SUMS` 的目录后先验证全部文件：
 
-```sh
+```bash
 shasum -a 256 -c SHA256SUMS
 ```
 
-Do not continue if any checksum fails. Open the DMG and drag `Go Admin Plus.app`
-to Applications. Try to open the app once. If macOS blocks it, open System
-Settings, select Privacy & Security, scroll to Security, choose Open Anyway for
-Go Admin Plus, then confirm Open. macOS saves an exception for this app.
+任意校验失败都必须停止。打开 DMG，将 `Go Admin Plus.app` 拖入 Applications 并尝试启动。
+若系统阻止，在“系统设置 > 隐私与安全性”中仅为 Go Admin Plus 选择“仍要打开”。
 
-If Open Anyway is unavailable and you have independently verified all checksums,
-the scoped command below removes quarantine only from this installed app:
+只有独立核对全部校验和后，才可用以下命令移除这个应用的 quarantine：
 
-```sh
+```bash
 xattr -dr com.apple.quarantine "/Applications/Go Admin Plus.app"
 ```
 
-Never use `spctl --master-disable` or disable Gatekeeper globally. A managed Mac
-may prevent local exceptions; this self-use package does not bypass management
-policy. Application data is stored outside the app bundle, so replacing the app
-during an upgrade preserves the existing data and migration backups.
+不得全局关闭 Gatekeeper。受管理设备可能禁止本地例外；当前包不会绕过组织策略。应用数据
+位于 app bundle 之外，替换应用不会删除现有数据和迁移备份。

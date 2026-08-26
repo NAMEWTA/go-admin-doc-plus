@@ -1,16 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia'
 
-/**
- * Ported from the Vuex version together with the store itself.
- *
- * Two intentional differences from the Vuex behaviour, both asserted below:
- *   - getInfo resolves with the profile instead of the raw `{ code, data }`
- *     envelope, so the router guard's `const { roles } = ...` finally works
- *   - changeRoles is gone; it was an unreferenced vue-element-admin demo
- *
- * The store reads the token at creation time, so the auth mock must be hoisted
- * above the import — vi.mock does that.
- */
+// The store reads the token at creation time, so vi.mock must be hoisted above
+// the dynamic import.
 
 const api = {
   login: vi.fn(),

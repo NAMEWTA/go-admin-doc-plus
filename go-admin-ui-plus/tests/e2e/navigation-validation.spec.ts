@@ -56,7 +56,7 @@ test.describe('go-admin-ui Navigation and Content Rendering Validation', () => {
     console.log('Body length:', bodyLen, 'chars')
 
     expect(url).toContain('login')
-    expect(title).toContain('go-admin')
+    expect(title).toContain('Go Admin Plus')
     expect(bodyLen).toBeGreaterThan(10000)
 
     const jsErrors = errors.filter(e =>

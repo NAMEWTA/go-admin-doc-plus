@@ -1,8 +1,8 @@
 {
-  "name": "@go-admin/workspace",
+  "name": "@go-admin-plus/workspace",
   "version": "3.1.0",
-  "description": "A magical vue admin. An out-of-box UI solution for enterprise applications. Newest development stack of vue. Lots of awesome features",
-  "author": "https://github.com/wenjianzhang",
+  "description": "Go Admin Plus Web administration workspace",
+  "author": "NAMEWTA",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -31,20 +31,18 @@
   "keywords": [
     "vue",
     "admin",
-    "go-admin",
-    "go-admin-ui",
+    "go-admin-plus",
     "dashboard",
-    "element-ui",
-    "boilerplate",
-    "admin-template",
+    "element-plus",
+    "vue3",
     "management-system"
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/go-admin-team/go-admin.git"
+    "url": "git+https://github.com/NAMEWTA/go-admin-plus.git"
   },
   "bugs": {
-    "url": "https://github.com/go-admin-team/go-admin/issues"
+    "url": "https://github.com/NAMEWTA/go-admin-plus/issues"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

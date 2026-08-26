@@ -4,9 +4,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/go-admin-team/go-admin-core/v2/response"
 	"github.com/go-admin-team/go-admin-core/v2/sdk/api"
 	"github.com/go-admin-team/go-admin-core/v2/sdk/pkg"
-	_ "github.com/go-admin-team/go-admin-core/v2/response"
 	"gorm.io/gorm"
 
 	"go-admin/app/other/models/tools"
@@ -79,7 +79,7 @@ func (e SysTable) Get(c *gin.Context) {
 
 	var data tools.SysTables
 	data.TableId, _ = pkg.StringToInt(c.Param("tableId"))
-	result, err := data.Get(db,true)
+	result, err := data.Get(db, true)
 	if err != nil {
 		log.Errorf("Get error, %s", err.Error())
 		e.Error(500, err, "")
@@ -106,7 +106,7 @@ func (e SysTable) GetSysTablesInfo(c *gin.Context) {
 	if c.Request.FormValue("tableName") != "" {
 		data.TBName = c.Request.FormValue("tableName")
 	}
-	result, err := data.Get(db,true)
+	result, err := data.Get(db, true)
 	if err != nil {
 		log.Errorf("Get error, %s", err.Error())
 		e.Error(500, err, "抱歉未找到相关信息")
@@ -235,7 +235,7 @@ func genTableInit(tx *gorm.DB, tablesList []string, i int, c *gin.Context) (tool
 	data.IsDataScope = 1
 	data.IsAuth = 1
 
-	data.FunctionAuthor = "wenjianzhang"
+	data.FunctionAuthor = "NAMEWTA"
 	for i := 0; i < len(dbcolumn); i++ {
 		var column tools.SysColumns
 		column.ColumnComment = dbcolumn[i].ColumnComment

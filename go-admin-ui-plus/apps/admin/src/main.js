@@ -67,10 +67,7 @@ import '@/utils/dialog'
 
 import 'remixicon/fonts/remixicon.css'
 
-console.info(`欢迎使用go-admin，谢谢您对我们的支持，在使用过程中如果有什么问题，
-请访问https://github.com/go-admin-team/go-admin 或者
- https://github.com/go-admin-team/go-admin-ui 向我们反馈，
- 谢谢！`)
+console.info('Go Admin Plus: https://github.com/NAMEWTA/go-admin-plus')
 
 // 创建 Vue 应用实例
 const app = createApp(App)

@@ -46,15 +46,14 @@ const filters = {
   active: todos => todos.filter(todo => !todo.done),
   completed: todos => todos.filter(todo => todo.done)
 }
-const defalutList = [
+const defaultList = [
   { text: 'star this repository', done: false },
-  { text: 'fork this repository', done: false },
+  { text: 'review repository documentation', done: false },
   { text: 'follow author', done: false },
-  { text: 'vue-element-admin', done: true },
-  { text: 'vue', done: true },
-  { text: 'element-ui', done: true },
-  { text: 'axios', done: true },
-  { text: 'webpack', done: true }
+  { text: 'Go Admin Plus', done: true },
+  { text: 'Vue 3', done: true },
+  { text: 'Element Plus', done: true },
+  { text: 'Vite', done: true }
 ]
 export default {
   components: { Todo },
@@ -62,8 +61,8 @@ export default {
     return {
       visibility: 'all',
       filters,
-      // todos: JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || defalutList
-      todos: defalutList
+      // todos: JSON.parse(window.localStorage.getItem(STORAGE_KEY)) || defaultList
+      todos: defaultList
     }
   },
   computed: {
