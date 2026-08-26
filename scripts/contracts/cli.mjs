@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync
@@ -36,6 +37,47 @@ const canonicalOutputs = {
   client: join('go-admin-plus-ui', 'packages', 'api-client', 'src', 'generated', 'client.ts')
 }
 const canonicalGeneratedFiles = Object.values(canonicalOutputs)
+
+const lstatIfPresent = path => {
+  try {
+    return lstatSync(path)
+  } catch (error) {
+    if (error && typeof error === 'object' && error.code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+const assertSafeOutputLocation = (outputRoot, path, { directory = false } = {}) => {
+  const root = resolve(outputRoot)
+  const rootStat = lstatIfPresent(root)
+  if (!rootStat?.isDirectory() || rootStat.isSymbolicLink()) fail('generated output root must be a real directory')
+  const realRoot = realpathSync(root)
+  const destination = resolve(root, path)
+  const location = relative(root, destination)
+  if (location === '' || location === '..' || location.startsWith(`..${sep}`) || isAbsolute(location)) {
+    fail(`generated output resolves outside its root: ${path}`)
+  }
+
+  const segments = location.split(sep)
+  let current = root
+  let nearestExisting = root
+  for (const [index, segment] of segments.entries()) {
+    current = join(current, segment)
+    const stat = lstatIfPresent(current)
+    if (!stat) break
+    nearestExisting = current
+    if (stat.isSymbolicLink()) fail(`generated output path contains a symbolic link: ${path}`)
+    const final = index === segments.length - 1
+    if (!final && !stat.isDirectory()) fail(`generated output parent is not a directory: ${path}`)
+    if (final && directory && !stat.isDirectory()) fail(`generated output directory is not a directory: ${path}`)
+    if (final && !directory && !stat.isFile()) fail(`generated output is not a regular file: ${path}`)
+  }
+  const physicalLocation = relative(realRoot, realpathSync(nearestExisting))
+  if (physicalLocation === '..' || physicalLocation.startsWith(`..${sep}`) || isAbsolute(physicalLocation)) {
+    fail(`generated output resolves outside its physical root: ${path}`)
+  }
+  return destination
+}
 
 class ContractError extends Error {
   constructor(message, exitCode = 1) {
@@ -156,7 +198,7 @@ const generateTypescript = (input, schemaOutput, clientOutput, clientSource) => 
 }
 
 const outputAt = (outputRoot, path) => {
-  const output = join(outputRoot, path)
+  const output = assertSafeOutputLocation(outputRoot, path)
   mkdirSync(dirname(output), { recursive: true })
   return output
 }
@@ -232,7 +274,7 @@ const isCanonicalGeneratedOutput = path => {
 }
 
 const readManifest = outputRoot => {
-  const path = join(outputRoot, manifestPath)
+  const path = assertSafeOutputLocation(outputRoot, manifestPath)
   if (!existsSync(path)) return []
   let manifest
   try {
@@ -255,14 +297,59 @@ const readManifest = outputRoot => {
 
 const moduleManifestName = 'openapi.manifest.json'
 
+const collectManagedModuleOutputs = (outputRoot, relativeRoot) => {
+  const root = join(outputRoot, ...relativeRoot.split('/'))
+  if (!lstatIfPresent(root)) return []
+  assertSafeOutputLocation(outputRoot, relativeRoot, { directory: true })
+  const outputs = []
+  const visit = directory => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name)
+      const relativePath = relative(outputRoot, path).split(sep).join('/')
+      if (entry.isSymbolicLink()) fail(`module generated output tree contains a symbolic link: ${relativePath}`)
+      if (entry.isDirectory()) {
+        visit(path)
+        continue
+      }
+      if (!entry.isFile()) continue
+      const kind = parseManagedModuleOutput(relativePath)?.kind
+      if (kind === 'go-code' || kind === 'go-spec' || kind === 'go-manifest' || kind === 'typescript-file') {
+        outputs.push(relativePath)
+      }
+    }
+  }
+  visit(root)
+  return outputs
+}
+
+const discoverManagedModuleOutputs = outputRoot => {
+  const outputs = collectManagedModuleOutputs(outputRoot, 'go-admin-plus/internal/modules')
+  const domainsRoot = join(outputRoot, 'go-admin-plus-ui', 'packages', 'domains')
+  if (!lstatIfPresent(domainsRoot)) return outputs.sort((left, right) => left.localeCompare(right))
+  assertSafeOutputLocation(outputRoot, 'go-admin-plus-ui/packages/domains', { directory: true })
+  for (const entry of readdirSync(domainsRoot, { withFileTypes: true })) {
+    const ownerPath = join(domainsRoot, entry.name)
+    if (entry.isSymbolicLink()) {
+      fail(`module generated output tree contains a symbolic link: ${relative(outputRoot, ownerPath)}`)
+    }
+    if (!entry.isDirectory()) continue
+    outputs.push(...collectManagedModuleOutputs(
+      outputRoot,
+      `go-admin-plus-ui/packages/domains/${entry.name}/src`
+    ))
+  }
+  return [...new Set(outputs)].sort((left, right) => left.localeCompare(right))
+}
+
 const discoverModuleManifests = outputRoot => {
   const modulesRoot = join(outputRoot, 'go-admin-plus', 'internal', 'modules')
   if (!existsSync(modulesRoot)) return []
+  assertSafeOutputLocation(outputRoot, join('go-admin-plus', 'internal', 'modules'), { directory: true })
   const manifests = []
   const visit = directory => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name)
-      if (entry.isSymbolicLink()) continue
+      if (entry.isSymbolicLink()) fail(`module generated output tree contains a symbolic link: ${relative(outputRoot, path)}`)
       if (entry.isDirectory()) {
         visit(path)
         continue
@@ -312,12 +399,16 @@ const readModuleManifestOutputs = outputRoot => {
 }
 
 const materializeGeneration = (stagingRoot, outputRoot, generatedFiles) => {
-  const previousOutputs = [...readManifest(outputRoot), ...readModuleManifestOutputs(outputRoot)]
+  const previousOutputs = [
+    ...readManifest(outputRoot),
+    ...readModuleManifestOutputs(outputRoot),
+    ...discoverManagedModuleOutputs(outputRoot)
+  ]
   const pending = []
   let temporaryManifest
   try {
     generatedFiles.forEach((path, index) => {
-      const destination = join(outputRoot, path)
+      const destination = assertSafeOutputLocation(outputRoot, path)
       mkdirSync(dirname(destination), { recursive: true })
       const temporary = join(dirname(destination), `.${basename(destination)}.contract-${process.pid}-${index}.tmp`)
       copyFileSync(join(stagingRoot, path), temporary)
@@ -327,10 +418,10 @@ const materializeGeneration = (stagingRoot, outputRoot, generatedFiles) => {
 
     const expected = new Set(generatedFiles.map(path => path.split(sep).join('/')))
     for (const stale of previousOutputs.filter(path => !expected.has(path))) {
-      rmSync(join(outputRoot, ...stale.split('/')), { force: true })
+      rmSync(assertSafeOutputLocation(outputRoot, stale), { force: true })
     }
 
-    const manifest = join(outputRoot, manifestPath)
+    const manifest = assertSafeOutputLocation(outputRoot, manifestPath)
     mkdirSync(dirname(manifest), { recursive: true })
     temporaryManifest = `${manifest}.contract-${process.pid}.tmp`
     writeFileSync(temporaryManifest, manifestContent(canonicalGeneratedFiles))
@@ -363,15 +454,19 @@ export const checkGeneration = (
   try {
     const generatedFiles = generate(stagingRoot, moduleContracts)
     const drift = generatedFiles.filter(path => {
-      const expected = join(outputRoot, path)
+      const expected = assertSafeOutputLocation(outputRoot, path)
       const actual = join(stagingRoot, path)
       return !existsSync(expected) || readFileSync(expected).compare(readFileSync(actual)) !== 0
     })
     const expectedOutputs = new Set(generatedFiles.map(path => path.split(sep).join('/')))
-    for (const stale of readModuleManifestOutputs(outputRoot).filter(path => !expectedOutputs.has(path))) {
+    const managedOutputs = [
+      ...readModuleManifestOutputs(outputRoot),
+      ...discoverManagedModuleOutputs(outputRoot)
+    ]
+    for (const stale of [...new Set(managedOutputs)].filter(path => !expectedOutputs.has(path))) {
       drift.push(stale)
     }
-    const manifest = join(outputRoot, manifestPath)
+    const manifest = assertSafeOutputLocation(outputRoot, manifestPath)
     if (!existsSync(manifest) || readFileSync(manifest, 'utf8') !== manifestContent(canonicalGeneratedFiles)) {
       drift.push(manifestPath)
     }

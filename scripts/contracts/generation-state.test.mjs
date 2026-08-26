@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
@@ -45,6 +54,26 @@ test('detects and contracts outputs left by a removed module fragment', () => {
 
     synchronizeGeneration(outputRoot, [])
     assert.doesNotThrow(() => checkGeneration(outputRoot, []))
+    assert.equal(existsSync(join(
+      outputRoot,
+      'go-admin-plus-ui/packages/domains/contract-fixture/src/generated/client.ts'
+    )), false)
+  } finally {
+    rmSync(outputRoot, { recursive: true, force: true })
+  }
+})
+
+test('detects and contracts orphaned module outputs when the fragment manifest is also removed', () => {
+  const outputRoot = mkdtempSync(join(tmpdir(), 'contract-state-output-'))
+  try {
+    synchronizeGeneration(outputRoot, [fixture('valid-module.yaml')])
+    rmSync(join(
+      outputRoot,
+      'go-admin-plus/internal/modules/contract-fixture/transport/openapi.manifest.json'
+    ))
+
+    assert.throws(() => checkGeneration(outputRoot, []), /openapi\.gen\.go|drift/i)
+    synchronizeGeneration(outputRoot, [])
     assert.equal(existsSync(join(
       outputRoot,
       'go-admin-plus-ui/packages/domains/contract-fixture/src/generated/client.ts'
@@ -131,5 +160,31 @@ test('rejects a module manifest that claims a sibling slice output', () => {
     )
   } finally {
     rmSync(outputRoot, { recursive: true, force: true })
+  }
+})
+
+test('rejects a symbolic-link output ancestor without writing outside the output root', () => {
+  const outputRoot = mkdtempSync(join(tmpdir(), 'contract-state-output-'))
+  const outsideRoot = mkdtempSync(join(tmpdir(), 'contract-state-outside-'))
+  try {
+    const sentinel = join(outsideRoot, 'sentinel.txt')
+    writeFileSync(sentinel, 'preserve outside data')
+    const modulesRoot = join(outputRoot, 'go-admin-plus', 'internal', 'modules')
+    mkdirSync(modulesRoot, { recursive: true })
+    symlinkSync(
+      outsideRoot,
+      join(modulesRoot, 'contract-fixture'),
+      process.platform === 'win32' ? 'junction' : 'dir'
+    )
+
+    assert.throws(
+      () => synchronizeGeneration(outputRoot, [fixture('valid-module.yaml')]),
+      /symbolic link/
+    )
+    assert.deepEqual(readdirSync(outsideRoot), ['sentinel.txt'])
+    assert.equal(readFileSync(sentinel, 'utf8'), 'preserve outside data')
+  } finally {
+    rmSync(outputRoot, { recursive: true, force: true })
+    rmSync(outsideRoot, { recursive: true, force: true })
   }
 })
