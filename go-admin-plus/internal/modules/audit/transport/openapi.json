@@ -549,9 +549,9 @@
           },
           "actorRef": {
             "type": "string",
-            "minLength": 16,
+            "minLength": 9,
             "maxLength": 72,
-            "pattern": "^account:[a-z0-9][a-z0-9_-]{7,63}$"
+            "pattern": "^account:[a-z0-9][a-z0-9_-]{0,63}$"
           },
           "occurredAt": {
             "type": "string",

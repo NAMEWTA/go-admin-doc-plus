@@ -12,8 +12,8 @@ CREATE TABLE audit_facts (
 			AND business_key ~ '^login:[a-f0-9]{32}$')
 		OR
 		(topic IN ('operation.created', 'operation.updated', 'operation.deleted') AND (
-			business_key ~ '^resource:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}:system$'
-			OR business_key ~ '^resource:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}:account:[a-z0-9][a-z0-9_-]{7,63}$'
+			business_key ~ '^resource:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}$'
+			OR business_key ~ '^resource:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}:[a-z0-9][a-z0-9_-]{0,63}$'
 		))
 	),
     actor_ref TEXT CHECK (actor_ref ~ '^account:[a-z0-9][a-z0-9_-]{7,63}$'),

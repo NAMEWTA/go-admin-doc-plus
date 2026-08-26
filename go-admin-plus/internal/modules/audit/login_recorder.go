@@ -95,6 +95,19 @@ func validActorRef(value string) bool {
 	return true
 }
 
+func validOperationActorID(value string) bool {
+	if !stableKeyPart.MatchString(value) {
+		return false
+	}
+	lower := strings.ToLower(value)
+	for _, sensitive := range []string{"password", "secret", "session", "token", "credential"} {
+		if strings.Contains(lower, sensitive) {
+			return false
+		}
+	}
+	return true
+}
+
 func newLoginBusinessID() (string, error) {
 	raw := make([]byte, 16)
 	if _, err := rand.Read(raw); err != nil {

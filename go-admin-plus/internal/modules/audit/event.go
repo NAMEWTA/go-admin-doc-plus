@@ -51,9 +51,9 @@ type topicDefinition struct {
 var topicDefinitions = map[string]topicDefinition{
 	TopicLoginSucceeded:   {kind: KindLogin, action: "login", outcome: OutcomeSucceeded, keyPrefix: "login", minParts: 1, maxParts: 2},
 	TopicLoginFailed:      {kind: KindLogin, action: "login", outcome: OutcomeFailed, keyPrefix: "login", minParts: 1, maxParts: 2},
-	TopicOperationCreated: {kind: KindOperation, action: "create", outcome: OutcomeSucceeded, keyPrefix: "resource", minParts: 4, maxParts: 5},
-	TopicOperationUpdated: {kind: KindOperation, action: "update", outcome: OutcomeSucceeded, keyPrefix: "resource", minParts: 4, maxParts: 5},
-	TopicOperationDeleted: {kind: KindOperation, action: "delete", outcome: OutcomeSucceeded, keyPrefix: "resource", minParts: 4, maxParts: 5},
+	TopicOperationCreated: {kind: KindOperation, action: "create", outcome: OutcomeSucceeded, keyPrefix: "resource", minParts: 2, maxParts: 3},
+	TopicOperationUpdated: {kind: KindOperation, action: "update", outcome: OutcomeSucceeded, keyPrefix: "resource", minParts: 2, maxParts: 3},
+	TopicOperationDeleted: {kind: KindOperation, action: "delete", outcome: OutcomeSucceeded, keyPrefix: "resource", minParts: 2, maxParts: 3},
 }
 
 // TopicSchemas returns a closed, non-sensitive contract for every event Audit consumes.

@@ -284,7 +284,7 @@ func applyFilter(query *bun.SelectQuery, dialect database.Dialect, filter Filter
 }
 
 func validateFilter(filter Filter) error {
-	if filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 ||
+	if filter.Page < 1 || filter.Page > 1_000_000 || filter.PageSize < 1 || filter.PageSize > 100 ||
 		filter.Kind != "" && filter.Kind != KindLogin && filter.Kind != KindOperation ||
 		filter.Action != "" && filter.Action != "login" && filter.Action != "create" && filter.Action != "update" && filter.Action != "delete" ||
 		filter.Outcome != "" && filter.Outcome != OutcomeSucceeded && filter.Outcome != OutcomeFailed ||
@@ -350,8 +350,7 @@ func validStoredBusinessKey(topic, businessKey string) bool {
 	if definition.kind == KindLogin {
 		return len(parts) == 2 && opaqueLoginBusinessID.MatchString(parts[1])
 	}
-	return len(parts) == 5 && parts[4] == "system" ||
-		len(parts) == 6 && parts[4] == "account" && validActorRef("account:"+parts[5])
+	return len(parts) == 3 || len(parts) == 4 && validOperationActorID(parts[3])
 }
 
 func decodeFactID(id string) (string, string, bool) {
@@ -416,18 +415,16 @@ func presentIdentity(kind Kind, topic, businessKey string, payloadActor ActorTyp
 		return "", "", nil, false
 	}
 	if kind == KindOperation {
-		if payloadActor != "" || storedActorRef != nil || len(parts) != 5 && len(parts) != 6 {
+		if payloadActor != "" || storedActorRef != nil {
 			return "", "", nil, false
 		}
 		subject := strings.Join(parts[1:3], ":")
-		if len(parts) == 5 && parts[4] == "system" {
+		if len(parts) == 3 {
 			return subject, ActorSystem, nil, true
 		}
-		if len(parts) == 6 && parts[4] == "account" {
-			actorRef := "account:" + parts[5]
-			if validActorRef(actorRef) {
-				return subject, ActorAccount, &actorRef, true
-			}
+		if len(parts) == 4 {
+			actorRef := "account:" + parts[3]
+			return subject, ActorAccount, &actorRef, true
 		}
 		return "", "", nil, false
 	}

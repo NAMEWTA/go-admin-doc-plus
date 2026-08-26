@@ -9,10 +9,14 @@ import {
 export interface AuditController {
   readonly list: ListController<AuditFilters, AuditFact, string>
   detail(id: string): Promise<AuditFact>
-  cleanup(before: string): Promise<RemovalRunResult>
+  cleanup(before: string): Promise<AuditCleanupRunResult>
+  repairCleanup(): Promise<AuditCleanupRepairResult>
   lastCleanup(): CleanupResult | null
   lastFailure(): AuditFailure | null
 }
+
+export type AuditCleanupRunResult = RemovalRunResult | 'repair-required'
+export type AuditCleanupRepairResult = 'completed' | 'empty' | 'busy' | 'refresh-failed'
 
 export const createAuditController = (
   client: AuditClient,
@@ -43,28 +47,36 @@ export const createAuditController = (
     clearSelection: list.clearSelection,
     refreshed: list.refresh,
   })
-	let cleanupNeedsRefresh = false
+  let pendingRepairBoundary: string | null = null
+  let repairInFlight = false
   return {
     list,
     detail: (id) => client.detail(id),
-	async cleanup(before) {
-		if (cleanupNeedsRefresh) {
-			cleanupFailure = null
-			try {
-				await list.refresh()
-				cleanupNeedsRefresh = false
-				return 'completed'
-			} catch {
-				return 'refresh-failed'
-			}
-		}
-		cleanupResult = null
-		cleanupFailure = null
-		const result = await removal.run([before])
-		if (result === 'refresh-failed') cleanupNeedsRefresh = true
-		return result
-	},
+    async cleanup(before) {
+      if (repairInFlight || removal.busy) return 'busy'
+      if (pendingRepairBoundary !== null) return 'repair-required'
+      cleanupResult = null
+      cleanupFailure = null
+      const result = await removal.run([before])
+      if (result === 'refresh-failed') pendingRepairBoundary = before
+      return result
+    },
+    async repairCleanup() {
+      if (pendingRepairBoundary === null) return 'empty'
+      if (repairInFlight || removal.busy) return 'busy'
+      repairInFlight = true
+      cleanupFailure = null
+      try {
+        await list.refresh()
+        pendingRepairBoundary = null
+        return 'completed'
+      } catch {
+        return 'refresh-failed'
+      } finally {
+        repairInFlight = false
+      }
+    },
     lastCleanup: () => cleanupResult,
-		lastFailure: () => cleanupFailure,
+    lastFailure: () => cleanupFailure,
   }
 }

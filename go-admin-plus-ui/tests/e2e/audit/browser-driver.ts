@@ -44,7 +44,7 @@ const driver = {
 		assert(!/(payload|businessKey|password|secret|session|credential)/i.test(rawFacts), 'Audit response exposed a private envelope')
 		const facts = JSON.parse(rawFacts) as { records: Array<{ kind: string; actorRef?: string; subject: string }> }
 		assert(facts.records.some((fact) => fact.kind === 'login' && fact.actorRef === 'account:account-00000011' && /^login:[a-f0-9]{32}$/.test(fact.subject)), 'Audit login actor fact is missing')
-		assert(facts.records.some((fact) => fact.kind === 'operation' && fact.actorRef === 'account:account-00000011' && fact.subject === 'demo:ui-record'), 'Audit operation actor fact is missing')
+		assert(facts.records.some((fact) => fact.kind === 'operation' && fact.actorRef === 'account:account-00000011' && fact.subject === 'demo:ui-record-revision-2'), 'Audit operation actor fact is missing')
     select('audit-source', 'web')
     select('audit-action', 'update')
     click('audit-search')
@@ -53,7 +53,7 @@ const driver = {
     click('audit-view')
     await waitFor(() => Boolean(document.querySelector('dialog[open]')), 'Audit browser detail did not open')
     const detail = document.querySelector('dialog')?.textContent ?? ''
-		assert(detail.includes('demo:ui-record') && detail.includes('account:account-00000011') && detail.includes('Succeeded'), 'Audit browser detail content failed')
+		assert(detail.includes('demo:ui-record-revision-2') && detail.includes('account:account-00000011') && detail.includes('Succeeded'), 'Audit browser detail content failed')
 
     const before = document.querySelector<HTMLInputElement>('[data-testid="audit-cleanup-before"]')
     assert(before, 'Audit cleanup boundary is unavailable')

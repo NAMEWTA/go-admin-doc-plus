@@ -11,7 +11,7 @@ const cleanupBefore = ref('')
 const selected = ref<AuditFact | null>(null)
 const failure = ref<AuditFailure | null>(null)
 const busy = ref(false)
-const cleanupStatus = ref<'completed' | 'refresh-failed' | null>(null)
+const cleanupStatus = ref<'completed' | 'refresh-failed' | 'repair-required' | null>(null)
 const snapshot = computed(() => { void version.value; return props.controller.list.snapshot() })
 const run = async (action: () => Promise<unknown>) => {
 	if (busy.value) return
@@ -44,11 +44,15 @@ const detail = (id: string) => run(async () => { selected.value = await props.co
 const cleanup = () => run(async () => {
 	cleanupStatus.value = null
 	const result = await props.controller.cleanup(new Date(`${cleanupBefore.value}T00:00:00Z`).toISOString())
-	if (result === 'completed' || result === 'refresh-failed') cleanupStatus.value = result
+	if (result === 'completed' || result === 'refresh-failed' || result === 'repair-required') cleanupStatus.value = result
 	if (result === 'failed') {
 		failure.value = props.controller.lastFailure() ?? 'unavailable'
 		if (failure.value === 'relogin') emit('relogin')
 	}
+})
+const repairCleanup = () => run(async () => {
+	const result = await props.controller.repairCleanup()
+	if (result === 'completed' || result === 'refresh-failed') cleanupStatus.value = result
 })
 const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value))
 onMounted(() => { void run(() => props.controller.list.refresh()) })
@@ -87,7 +91,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
 			<button type="button" data-testid="audit-cleanup" :disabled="busy || !cleanupBefore" @click="cleanup">Delete eligible records</button>
     </section>
 		<p v-if="cleanupStatus === 'completed'" role="status" data-testid="audit-cleanup-status">Deleted {{ controller.lastCleanup()?.deleted ?? 0 }} records.<span v-if="controller.lastCleanup()?.moreEligible"> More eligible records remain.</span></p>
-		<p v-else-if="cleanupStatus === 'refresh-failed'" role="status">Cleanup completed, but the list could not be refreshed. Retry to refresh the list.</p>
+		<p v-else-if="cleanupStatus === 'refresh-failed' || cleanupStatus === 'repair-required'" role="status">Cleanup completed, but the list must be refreshed before another cleanup.<button type="button" data-testid="audit-cleanup-repair" :disabled="busy" @click="repairCleanup">Retry refresh</button></p>
 		<dialog :open="selected !== null"><template v-if="selected"><h2>Audit detail</h2><dl><dt>Subject</dt><dd class="long-text">{{ selected.subject }}</dd><dt>Actor</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>Outcome</dt><dd>{{ selected.outcome }}</dd><dt>Occurred</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl><button type="button" @click="selected = null">Close</button></template></dialog>
   </main>
 </template>

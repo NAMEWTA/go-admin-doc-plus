@@ -41,24 +41,33 @@ describe('audit controller', () => {
     expect(writes).toBe(0)
   })
 
-	it('repairs a failed post-write refresh without repeating cleanup', async () => {
-		let writes = 0
-		let loads = 0
-		const client: AuditClient = {
-			list: async () => {
-				loads += 1
-				if (loads === 1) throw new Error('temporary read failure')
-				return { records: [], total: 0, page: 1, pageSize: 20 }
-			},
-			detail: async () => fact,
-			cleanup: async () => { writes += 1; return { deleted: 1, moreEligible: false } },
-		}
-		const controller = createAuditController(client, async () => true)
-		expect(await controller.cleanup('2026-06-01T00:00:00Z')).toBe('refresh-failed')
-		expect(await controller.cleanup('2026-06-01T00:00:00Z')).toBe('completed')
-		expect(writes).toBe(1)
-		expect(loads).toBe(2)
-	})
+  it('fences new cleanup until repeated refresh repair succeeds', async () => {
+    const writes: string[] = []
+    let confirmations = 0
+    let loads = 0
+    const client: AuditClient = {
+      list: async () => {
+        loads += 1
+        if (loads <= 2) throw new Error('temporary read failure')
+        return { records: [], total: 0, page: 1, pageSize: 20 }
+      },
+      detail: async () => fact,
+      cleanup: async (before) => { writes.push(before); return { deleted: 1, moreEligible: false } },
+    }
+    const controller = createAuditController(client, async () => { confirmations += 1; return true })
+    const firstBoundary = '2026-06-01T00:00:00Z'
+    const secondBoundary = '2026-05-01T00:00:00Z'
+    expect(await controller.cleanup(firstBoundary)).toBe('refresh-failed')
+    expect(await controller.cleanup(secondBoundary)).toBe('repair-required')
+    expect(writes).toEqual([firstBoundary])
+    expect(confirmations).toBe(1)
+    expect(await controller.repairCleanup()).toBe('refresh-failed')
+    expect(await controller.repairCleanup()).toBe('completed')
+    expect(await controller.cleanup(secondBoundary)).toBe('completed')
+    expect(writes).toEqual([firstBoundary, secondBoundary])
+    expect(confirmations).toBe(2)
+    expect(loads).toBe(4)
+  })
 
 	it.each(['relogin', 'forbidden'] as const)('preserves the %s cleanup failure category', async (category) => {
 		const client: AuditClient = {

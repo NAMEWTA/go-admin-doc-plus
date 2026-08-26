@@ -32,19 +32,19 @@ func TestAuditPostgresMigrationProjectionQueryAndCleanup(t *testing.T) {
 	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO audit_facts (topic, business_key, actor_ref, payload, occurred_at) VALUES (?, ?, ?, ?, ?)`, audit.TopicLoginSucceeded, "login:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "account:x", []byte(`{"actorType":"account","source":"web"}`), time.Now().UTC()); err == nil {
 		t.Fatal("PostgreSQL accepted a short non-opaque actor reference")
 	}
-	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO audit_facts (topic, business_key, payload, occurred_at) VALUES (?, ?, ?, ?)`, audit.TopicOperationUpdated, "resource:demo:invalid:revision-1:system:account-00000001", []byte(`{"source":"web"}`), time.Now().UTC()); err == nil {
+	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO audit_facts (topic, business_key, payload, occurred_at) VALUES (?, ?, ?, ?)`, audit.TopicOperationUpdated, "evil:bad space:x:y:system", []byte(`{"source":"web"}`), time.Now().UTC()); err == nil {
 		t.Fatal("PostgreSQL accepted an ambiguous operation actor")
 	}
 	store := newAuditStore(t, db)
 	now := time.Date(2026, 8, 27, 8, 0, 0, 0, time.UTC)
-	enqueue(t, db, store, outbox.Event{ID: "audit-pg-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:record-pg:revision-2:account:account-00000009", Payload: []byte(`{"source":"server"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
+	enqueue(t, db, store, outbox.Event{ID: "audit-pg-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:record-pg-revision-2:account-00000009", Payload: []byte(`{"source":"server"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
 	dispatch(t, db, store, mustConsumers(t), now)
-	if _, err := db.Bun().ExecContext(ctx, "UPDATE audit_facts SET payload = ? WHERE topic = ? AND business_key = ?", []byte(`{"source":"server"}`), audit.TopicOperationUpdated, "resource:demo:record-pg:revision-2:account:account-00000009"); err != nil {
+	if _, err := db.Bun().ExecContext(ctx, "UPDATE audit_facts SET payload = ? WHERE topic = ? AND business_key = ?", []byte(`{"source":"server"}`), audit.TopicOperationUpdated, "resource:demo:record-pg-revision-2:account-00000009"); err != nil {
 		t.Fatal("update PostgreSQL payload fixture failed")
 	}
 	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
 	page, err := service.List(ctx, audit.Principal{ID: "auditor-00000001"}, audit.Filter{Page: 1, PageSize: 20, Source: audit.SourceServer})
-	if err != nil || page.Total != 1 || page.Records[0].Subject != "demo:record-pg" || page.Records[0].ActorRef == nil || *page.Records[0].ActorRef != "account:account-00000009" {
+	if err != nil || page.Total != 1 || page.Records[0].Subject != "demo:record-pg-revision-2" || page.Records[0].ActorRef == nil || *page.Records[0].ActorRef != "account:account-00000009" {
 		t.Fatalf("PostgreSQL Audit page = %#v, %v", page, err)
 	}
 	result, err := service.Cleanup(ctx, audit.Principal{ID: "auditor-00000001"}, audit.CleanupCommand{Before: now.Add(-45 * 24 * time.Hour), Confirmation: audit.CleanupConfirmation})

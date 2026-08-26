@@ -1,10 +1,10 @@
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { request as httpsRequest } from 'node:https'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { terminateChild, waitForExit } from './process-lifecycle.mjs'
+import { cleanupTrackedChildren, didSpawnFail, spawnTracked, terminateChild, waitForExit } from './process-lifecycle.mjs'
 
 if (process.env.GO_ADMIN_REQUIRE_AUDIT_E2E !== '1') {
   console.log('AUDIT_E2E_SKIP: set GO_ADMIN_REQUIRE_AUDIT_E2E=1 for the required SQLite/PostgreSQL browser harness')
@@ -48,13 +48,6 @@ const remaining = (maximum = 60_000) => {
   return milliseconds
 }
 
-const spawnTracked = (command, args, options) => {
-  const child = spawn(command, args, options)
-  activeChildren.add(child)
-  child.once('exit', () => activeChildren.delete(child))
-  return child
-}
-
 class CDPClient {
   constructor(socket) {
     this.socket = socket
@@ -96,7 +89,8 @@ const waitForReady = async (path, host) => {
   const timeout = Date.now() + remaining()
   while (Date.now() < timeout) {
     if (existsSync(path)) return readFileSync(path, 'utf8').trim()
-    if (host.exitCode !== null) fail('Audit HTTPS host exited before readiness')
+    if (didSpawnFail(host)) fail('Audit HTTPS host could not start')
+    if (host.exitCode !== null || host.signalCode !== null) fail('Audit HTTPS host exited before readiness')
     await delay(100)
   }
   fail('Audit HTTPS host readiness timed out')
@@ -114,6 +108,7 @@ const waitForDevTools = (browser) => new Promise((resolvePromise, reject) => {
     resolvePromise(match[1])
   })
   browser.once('exit', () => { clearTimeout(timer); reject(new Error('Chromium exited before readiness')) })
+  browser.once('error', () => { clearTimeout(timer); reject(new Error('Chromium could not start')) })
 })
 
 const connect = (url) => new Promise((resolvePromise, reject) => {
@@ -162,9 +157,9 @@ const runProfile = async (profile) => {
       GO_ADMIN_AUDIT_E2E_READY_FILE: readyFile, GO_ADMIN_AUDIT_E2E_STATIC_DIR: staticRoot,
     }, profile === 'postgres'),
     stdio: ['ignore', 'pipe', 'pipe'],
-  })
-  host.stdout.resume()
-  host.stderr.resume()
+  }, activeChildren)
+  host.stdout?.resume()
+  host.stderr?.resume()
   let browser
   let socket
   let client
@@ -175,7 +170,7 @@ const runProfile = async (profile) => {
     browser = spawnTracked(chromium, [
       '--headless=new', '--disable-gpu', '--ignore-certificate-errors', '--no-first-run',
       '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${browserRoot}`, baseURL,
-    ], { env: childEnvironment(), stdio: ['ignore', 'ignore', 'pipe'] })
+    ], { env: childEnvironment(), stdio: ['ignore', 'ignore', 'pipe'] }, activeChildren)
     const devToolsURL = await waitForDevTools(browser)
     socket = await connect(devToolsURL)
     client = new CDPClient(socket)
@@ -226,10 +221,7 @@ try {
 } catch (error) {
   scenarioError = error
 } finally {
-  for (const child of activeChildren) {
-    if (child.exitCode !== null || child.signalCode !== null) continue
-    try { await terminateChild(child, 5_000) } catch (error) { cleanupError ??= error }
-  }
+  try { await cleanupTrackedChildren(activeChildren, 5_000) } catch (error) { cleanupError = error }
   rmSync(temporaryRoot, { recursive: true, force: true })
 }
 if (scenarioError) throw scenarioError

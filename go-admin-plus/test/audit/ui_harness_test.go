@@ -69,7 +69,7 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	}); err != nil {
 		t.Fatal("seed Audit login fact failed")
 	}
-	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record:revision-2:account:account-00000011", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
+	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000011", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
 	dispatch(t, db, store, mustConsumers(t), now)
 
 	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})

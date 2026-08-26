@@ -182,7 +182,7 @@ components:
         actorType: { $ref: '#/components/schemas/ActorType' }
         source: { $ref: '#/components/schemas/AuditSource' }
         subject: { type: string, minLength: 3, maxLength: 132, pattern: '^[a-z0-9][a-z0-9_:-]+$' }
-        actorRef: { type: string, minLength: 16, maxLength: 72, pattern: '^account:[a-z0-9][a-z0-9_-]{7,63}$' }
+        actorRef: { type: string, minLength: 9, maxLength: 72, pattern: '^account:[a-z0-9][a-z0-9_-]{0,63}$' }
         occurredAt: { type: string, format: date-time }
     AuditPage:
       type: object

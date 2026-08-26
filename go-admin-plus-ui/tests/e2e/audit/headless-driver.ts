@@ -26,7 +26,7 @@ const run = async () => {
   const controller = createAuditController(client, async () => true)
   await controller.list.search({ source: 'web', action: 'update' })
   const listed = controller.list.snapshot()
-  assert(listed.total === 1 && listed.rows[0]?.subject === 'demo:ui-record', 'Audit E2E filtered list failed')
+  assert(listed.total === 1 && listed.rows[0]?.subject === 'demo:ui-record-revision-2', 'Audit E2E filtered list failed')
   const detail = await controller.detail(listed.rows[0].id)
   assert(detail.action === 'update' && detail.source === 'web', 'Audit E2E detail failed')
   assert(!JSON.stringify(detail).includes('payload') && !JSON.stringify(detail).includes('businessKey'), 'Audit E2E detail leaked envelope')
