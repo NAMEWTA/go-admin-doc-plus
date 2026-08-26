@@ -60,5 +60,7 @@ test('browser administration interactions wait for Vue DOM updates', () => {
   assert.doesNotMatch(driver, /clickRow\([^\n]+, 'edit'\)/)
   assert.match(driver, /clickRow\(key, action\)\n  await waitUntil/)
   assert.doesNotMatch(driver, /nextTick/)
+  assert.match(driver, /target\.dispatchEvent\([\s\S]*?\n  await Promise\.resolve\(\)/)
+  assert.doesNotMatch(driver, /(?<!await )input\('/)
   assert.match(driver, /await waitUntil\(\(\) => !element<HTMLButtonElement>\('\[data-testid="delete-selected-users"\]'\)\.disabled/)
 })
