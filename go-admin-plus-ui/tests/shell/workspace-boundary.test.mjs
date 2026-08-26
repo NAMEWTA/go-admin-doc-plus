@@ -1,0 +1,136 @@
+import assert from 'node:assert/strict'
+import { readFile, readdir } from 'node:fs/promises'
+import { dirname, join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import test from 'node:test'
+
+const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
+const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
+
+const sourceFiles = async root => {
+  const files = []
+  for (const entry of await readdir(root, { withFileTypes: true }).catch(() => [])) {
+    if (entry.name === 'node_modules' || entry.name === 'dist') continue
+    const path = join(root, entry.name)
+    if (entry.isDirectory()) files.push(...await sourceFiles(path))
+    else if (/\.(?:[cm]?[jt]s|vue)$/.test(entry.name)) files.push(path)
+  }
+  return files
+}
+
+const packageDirectories = async () => {
+  const roots = [
+    ['apps'],
+    ['packages'],
+    ['packages', 'domains'],
+    ['packages', 'web-domains']
+  ]
+  const directories = []
+  for (const segments of roots) {
+    const root = join(workspaceRoot, ...segments)
+    for (const entry of await readdir(root, { withFileTypes: true }).catch(() => [])) {
+      if (!entry.isDirectory()) continue
+      const directory = join(root, entry.name)
+      try {
+        await readFile(join(directory, 'package.json'))
+        directories.push(directory)
+      } catch {}
+    }
+  }
+  return directories
+}
+
+test('all planned packages are private and expose only public entry points', async () => {
+  const directories = await packageDirectories()
+  const manifests = await Promise.all(directories.map(async directory => ({
+    directory,
+    manifest: await readJson(join(directory, 'package.json'))
+  })))
+  const names = new Set(manifests.map(({ manifest }) => manifest.name))
+
+  assert.equal(names.size, 21)
+  for (const { directory, manifest } of manifests) {
+    assert.equal(manifest.private, true, relative(workspaceRoot, directory))
+    assert.equal(manifest.type, 'module', relative(workspaceRoot, directory))
+    assert.ok(manifest.exports, `${relative(workspaceRoot, directory)} has no public exports`)
+    for (const [dependency, version] of Object.entries({
+      ...manifest.dependencies,
+      ...manifest.devDependencies
+    })) {
+      if (dependency.startsWith('@go-admin/')) {
+        assert.equal(version, 'workspace:*', `${manifest.name} must link ${dependency} through the workspace`)
+      }
+    }
+  }
+})
+
+test('workspace dependencies are acyclic', async () => {
+  const manifests = await Promise.all((await packageDirectories()).map(async directory =>
+    readJson(join(directory, 'package.json'))
+  ))
+  const graph = new Map(manifests.map(manifest => [
+    manifest.name,
+    Object.keys(manifest.dependencies ?? {}).filter(name => name.startsWith('@go-admin/'))
+  ]))
+  for (const [name, dependencies] of graph) {
+    for (const dependency of dependencies) {
+      assert.ok(graph.has(dependency), `${name} references unknown workspace package ${dependency}`)
+    }
+  }
+  const visited = new Set()
+  const active = new Set()
+
+  const visit = name => {
+    if (active.has(name)) throw new Error(`workspace dependency cycle at ${name}`)
+    if (visited.has(name)) return
+    active.add(name)
+    for (const dependency of graph.get(name) ?? []) visit(dependency)
+    active.delete(name)
+    visited.add(name)
+  }
+  for (const name of graph.keys()) visit(name)
+})
+
+test('workspace consumers use package exports rather than source paths', async () => {
+  const rootManifest = await readJson(join(workspaceRoot, 'package.json'))
+  for (const [dependency, version] of Object.entries({
+    ...rootManifest.dependencies,
+    ...rootManifest.devDependencies
+  })) {
+    if (dependency.startsWith('@go-admin/')) assert.equal(version, 'workspace:*')
+  }
+
+  for (const file of await sourceFiles(workspaceRoot)) {
+    const source = await readFile(file, 'utf8')
+    assert.doesNotMatch(
+      source,
+      /from\s+['"]@go-admin\/[^'"]+\/src(?:\/|['"])/,
+      relative(workspaceRoot, file)
+    )
+  }
+
+  const activeExports = [
+    'packages/app-shell/src/core/index.ts',
+    'packages/platform/src/index.ts',
+    'packages/ui/src/index.ts',
+    'apps/admin-web/src/main.ts'
+  ]
+  for (const target of activeExports) assert.ok(await readFile(join(workspaceRoot, target), 'utf8'))
+})
+
+test('headless packages do not depend on Vue, DOM globals, deep imports, or credential values', async () => {
+  const headlessRoots = [
+    join(workspaceRoot, 'packages/app-shell/src/core'),
+    join(workspaceRoot, 'packages/platform/src')
+  ]
+  for (const root of headlessRoots) {
+    for (const entry of await readdir(root, { withFileTypes: true })) {
+      if (!entry.isFile()) continue
+      const source = await readFile(join(root, entry.name), 'utf8')
+      assert.doesNotMatch(source, /from\s+['"](?:vue|vue-router)['"]|\b(?:window|document|localStorage)\b/)
+      assert.doesNotMatch(source, /@go-admin\/[^'"]+\/src\//)
+    }
+  }
+  const platformSource = await readFile(join(workspaceRoot, 'packages/platform/src/index.ts'), 'utf8')
+  assert.doesNotMatch(platformSource, /\b(?:secret|password|sessionToken|authorization)\b/i)
+})

@@ -1,0 +1,38 @@
+{
+  "name": "@go-admin/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@go-admin/app-shell": "workspace:*",
+    "@go-admin/platform": "workspace:*",
+    "@go-admin/ui": "workspace:*"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @go-admin/admin-web dev",
+    "build": "pnpm --filter @go-admin/admin-web build",
+    "build:prod": "pnpm build",
+    "lint": "oxlint --ignore-pattern '**/node_modules/**' --ignore-pattern '**/dist/**' --deny-warnings apps packages tests",
+    "typecheck": "pnpm --filter @go-admin/admin-web typecheck && tsc -p tests/shell/tsconfig.json",
+    "type-check": "pnpm typecheck",
+    "test": "vitest run --config tests/shell/vitest.config.ts",
+    "test:unit": "pnpm test",
+    "check:workspace": "node --test tests/shell/workspace-boundary.test.mjs",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm check:workspace && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vue/compiler-sfc": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
+  "packageManager": "pnpm@11.1.3"
+}
