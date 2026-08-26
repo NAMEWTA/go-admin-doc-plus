@@ -68,6 +68,7 @@ const readJson = async (fetch: Fetch, path: string): Promise<unknown> => {
   return response.json()
 }
 
+/** Creates the browser adapter; cookie credentials remain inside fetch and never cross the port. */
 export const createWebRuntime = (fetch: Fetch = globalThis.fetch): ShellRuntimePort => ({
   async loadIdentity() {
     const response = await fetch('/api/runtime/identity', {

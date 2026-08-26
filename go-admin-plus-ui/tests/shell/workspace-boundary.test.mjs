@@ -22,6 +22,7 @@ const packageDirectories = async () => {
   const roots = [
     ['apps'],
     ['packages'],
+    ['packages', 'adapters'],
     ['packages', 'domains'],
     ['packages', 'web-domains']
   ]
@@ -48,7 +49,7 @@ test('all planned packages are private and expose only public entry points', asy
   })))
   const names = new Set(manifests.map(({ manifest }) => manifest.name))
 
-  assert.equal(names.size, 21)
+  assert.equal(names.size, 23)
   for (const { directory, manifest } of manifests) {
     assert.equal(manifest.private, true, relative(workspaceRoot, directory))
     assert.equal(manifest.type, 'module', relative(workspaceRoot, directory))
@@ -110,12 +111,35 @@ test('workspace consumers use package exports rather than source paths', async (
   }
 
   const activeExports = [
+    'packages/adapters/browser/src/index.ts',
     'packages/app-shell/src/core/index.ts',
     'packages/platform/src/index.ts',
     'packages/ui/src/index.ts',
     'apps/admin-web/src/main.ts'
   ]
   for (const target of activeExports) assert.ok(await readFile(join(workspaceRoot, target), 'utf8'))
+})
+
+test('apps select adapters without owning runtime transport', async () => {
+  const adminWeb = await readJson(join(workspaceRoot, 'apps/admin-web/package.json'))
+  assert.equal(adminWeb.dependencies['@go-admin/adapter-browser'], 'workspace:*')
+  assert.equal(adminWeb.dependencies['@go-admin/platform'], undefined)
+  assert.deepEqual(
+    Object.keys(adminWeb.dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
+    ['@go-admin/adapter-browser', '@go-admin/app-shell']
+  )
+
+  const browserAdapter = await readJson(join(workspaceRoot, 'packages/adapters/browser/package.json'))
+  assert.deepEqual(browserAdapter.dependencies, { '@go-admin/platform': 'workspace:*' })
+
+  const adminDesktop = await readJson(join(workspaceRoot, 'apps/admin-desktop/package.json'))
+  assert.equal(adminDesktop.dependencies['@go-admin/adapter-desktop'], 'workspace:*')
+
+  const appSource = (await sourceFiles(join(workspaceRoot, 'apps/admin-web/src')))
+  for (const file of appSource) {
+    const source = await readFile(file, 'utf8')
+    assert.doesNotMatch(source, /\bfetch\s*\(|implements\s+ShellRuntimePort/)
+  }
 })
 
 test('headless packages do not depend on Vue, DOM globals, deep imports, or credential values', async () => {

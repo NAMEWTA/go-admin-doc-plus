@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 
+import { createWebRuntime } from '@go-admin/adapter-browser'
 import { resolveShellState } from '@go-admin/app-shell'
 import type { ShellState } from '@go-admin/app-shell'
-
-import { createWebRuntime } from './runtime/web-runtime'
 
 const runtime = createWebRuntime()
 const state = ref<ShellState>()

@@ -38,6 +38,9 @@ importers:
 
   .:
     dependencies:
+      '@go-admin/adapter-browser':
+        specifier: workspace:*
+        version: link:packages/adapters/browser
       '@go-admin/app-shell':
         specifier: workspace:*
         version: link:packages/app-shell
@@ -75,12 +78,12 @@ importers:
 
   apps/admin-desktop:
     dependencies:
+      '@go-admin/adapter-desktop':
+        specifier: workspace:*
+        version: link:../../packages/adapters/desktop
       '@go-admin/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
-      '@go-admin/platform':
-        specifier: workspace:*
-        version: link:../../packages/platform
       '@go-admin/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -90,15 +93,12 @@ importers:
 
   apps/admin-web:
     dependencies:
+      '@go-admin/adapter-browser':
+        specifier: workspace:*
+        version: link:../../packages/adapters/browser
       '@go-admin/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
-      '@go-admin/platform':
-        specifier: workspace:*
-        version: link:../../packages/platform
-      '@go-admin/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       vue:
         specifier: 'catalog:'
         version: 3.5.41(typescript@6.0.3)
@@ -121,6 +121,18 @@ importers:
       vue-tsc:
         specifier: 'catalog:'
         version: 3.3.10(typescript@6.0.3)
+
+  packages/adapters/browser:
+    dependencies:
+      '@go-admin/platform':
+        specifier: workspace:*
+        version: link:../../platform
+
+  packages/adapters/desktop:
+    dependencies:
+      '@go-admin/platform':
+        specifier: workspace:*
+        version: link:../../platform
 
   packages/app-shell:
     dependencies:

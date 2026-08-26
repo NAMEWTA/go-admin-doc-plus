@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@go-admin/adapter-browser": "workspace:*",
     "@go-admin/app-shell": "workspace:*",
     "@go-admin/platform": "workspace:*",
     "@go-admin/ui": "workspace:*"
