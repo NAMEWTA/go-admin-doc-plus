@@ -3,7 +3,6 @@
 script_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 backend_root=$repo_root/go-admin-plus
-artifacts_root=${GO_ADMIN_ARTIFACTS_DIR:-$repo_root/.artifacts}
 
 fail() {
   printf '%s\n' "go-admin-plus task: $*" >&2
@@ -13,6 +12,15 @@ fail() {
 require_tool() {
   command -v "$1" >/dev/null 2>&1 || fail "required tool is not installed: $1"
 }
+
+resolve_repo_path() {
+  case $1 in
+    /*|[A-Za-z]:[\\/]*) printf '%s\n' "$1" ;;
+    *) printf '%s/%s\n' "$repo_root" "$1" ;;
+  esac
+}
+
+artifacts_root=$(resolve_repo_path "${GO_ADMIN_ARTIFACTS_DIR:-.artifacts}")
 
 validate_profile() {
   case $1 in
@@ -30,8 +38,9 @@ profile_config() {
     server-postgres)
       test -n "${GO_ADMIN_CONFIG_FILE:-}" ||
         fail 'server-postgres requires GO_ADMIN_CONFIG_FILE to name an explicit config file'
-      test -f "$GO_ADMIN_CONFIG_FILE" || fail 'GO_ADMIN_CONFIG_FILE does not name a readable file'
-      printf '%s\n' "$GO_ADMIN_CONFIG_FILE"
+      config_file=$(resolve_repo_path "$GO_ADMIN_CONFIG_FILE")
+      test -r "$config_file" || fail 'GO_ADMIN_CONFIG_FILE does not name a readable file'
+      printf '%s\n' "$config_file"
       ;;
   esac
 }

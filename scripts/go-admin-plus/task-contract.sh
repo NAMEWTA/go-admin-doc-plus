@@ -2,35 +2,28 @@
 set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-taskfile=$repo_root/Taskfile.yml
 
 fail() {
   printf '%s\n' "task contract: $*" >&2
   exit 1
 }
 
-for task_name in dev build test lint generate migrate package release; do
-  grep -Eq "^  ${task_name}:$" "$taskfile" || fail "missing public task: $task_name"
-done
+task_command=$(command -v task 2>/dev/null) || fail 'Go Task is required to verify the command contract'
+node_command=$(command -v node 2>/dev/null) || fail 'Node.js is required to verify the command contract'
 
-grep -Eq '^  governance:check:$' "$taskfile" || fail 'missing governance:check task'
-grep -Eq '^  task:contract:$' "$taskfile" || fail 'missing task:contract task'
-
-for task_name in dev build test lint generate migrate package release; do
-  awk -v task_name="$task_name" '
-    $0 == "  " task_name ":" { in_task = 1; next }
-    in_task && /^  [^ ].*:$/ { exit }
-    in_task && /scripts\/(go-admin-plus|go-admin-plus-ui)\/[^[:space:]]+\.sh/ { found = 1 }
-    END { exit found ? 0 : 1 }
-  ' "$taskfile" || fail "$task_name does not delegate to a managed script"
-done
-
-managed_scripts=$(grep -Eo 'scripts/(go-admin-plus|go-admin-plus-ui)/[a-z0-9-]+\.sh' "$taskfile" | sort -u)
-test -n "$managed_scripts" || fail 'Taskfile has no managed script references'
-for relative_script in $managed_scripts; do
-  test -f "$repo_root/$relative_script" || fail "missing managed script: $relative_script"
-  test -x "$repo_root/$relative_script" || fail "managed script is not executable: $relative_script"
-done
+task_list=$("$task_command" --list --json)
+printf '%s' "$task_list" | "$node_command" -e '
+  const { tasks } = JSON.parse(require("node:fs").readFileSync(0, "utf8"))
+  const actual = tasks.map(({ name }) => name).sort()
+  const expected = [
+    "build", "default", "dev", "generate", "governance:check", "lint",
+    "lint:staged", "migrate", "package", "release", "task:contract", "test",
+  ].sort()
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    console.error(`task contract: public tasks differ\nexpected=${expected}\nactual=${actual}`)
+    process.exit(1)
+  }
+' || exit 1
 
 hook=$repo_root/.husky/pre-commit
 test -f "$hook" || fail 'missing root pre-commit hook'
@@ -42,25 +35,52 @@ if ( . "$repo_root/scripts/go-admin-plus/common.sh"; require_tool go-admin-contr
   fail 'managed scripts do not propagate a missing-tool failure'
 fi
 
+shell_command=$(command -v sh 2>/dev/null) || fail 'POSIX sh is required to verify the Hook contract'
 hook_status=0
-PATH=/nonexistent /bin/sh "$hook" >/dev/null 2>&1 || hook_status=$?
+PATH=/nonexistent "$shell_command" "$hook" >/dev/null 2>&1 || hook_status=$?
 test "$hook_status" -ne 0 || fail 'pre-commit hook hides a missing Task CLI failure'
 
-if task_command=$(command -v task 2>/dev/null); then
-  for task_name in dev build test lint generate migrate package; do
-    "$task_command" --dry "$task_name" >/dev/null ||
-      fail "$task_name cannot resolve from the repository root with default inputs"
-  done
-  "$task_command" --dry release VERSION=0.0.0-contract >/dev/null ||
-    fail 'release cannot resolve from the repository root with an explicit version'
+for task_name in dev build test lint generate migrate package; do
+  dry_output=$("$task_command" --verbose --dry "$task_name" 2>&1) ||
+    fail "$task_name cannot resolve from the repository root with default inputs"
+  case $dry_output in
+    *run-script.mjs*scripts/*) ;;
+    *) fail "$task_name does not delegate through the managed script runner" ;;
+  esac
+done
+release_dry=$("$task_command" --verbose --dry release VERSION=0.0.0-contract 2>&1) ||
+  fail 'release cannot resolve from the repository root with an explicit version'
+case $release_dry in
+  *run-script.mjs*scripts/*) ;;
+  *) fail 'release does not delegate through the managed script runner' ;;
+esac
 
-  unknown_status=0
-  "$task_command" __contract_unknown_task__ >/dev/null 2>&1 || unknown_status=$?
-  test "$unknown_status" -ne 0 || fail 'unknown root tasks do not fail'
+unknown_status=0
+"$task_command" __contract_unknown_task__ >/dev/null 2>&1 || unknown_status=$?
+test "$unknown_status" -ne 0 || fail 'unknown root tasks do not fail'
 
-  child_status=0
-  "$task_command" task:failure-probe >/dev/null 2>&1 || child_status=$?
-  test "$child_status" -ne 0 || fail 'managed child failures do not propagate through Task'
-fi
+child_status=0
+child_output=$("$task_command" task:failure-probe 2>&1) || child_status=$?
+test "$child_status" -ne 0 || fail 'managed child failures do not propagate through Task'
+case $child_output in
+  *'intentional task contract failure'*) ;;
+  *) fail 'failure probe did not reach the managed child script' ;;
+esac
+
+runner_status=0
+runner_output=$(GO_ADMIN_POSIX_SHELL=go-admin-missing-shell \
+  "$node_command" "$repo_root/scripts/go-admin-plus/run-script.mjs" \
+  scripts/go-admin-plus/failure-probe.sh 2>&1) || runner_status=$?
+test "$runner_status" -eq 127 || fail 'missing POSIX shell does not return exit code 127'
+case $runner_output in
+  *'required POSIX shell is not installed'*) ;;
+  *) fail 'missing POSIX shell does not return a deterministic diagnostic' ;;
+esac
+
+GO_ADMIN_ARTIFACTS_DIR='.artifacts/path with spaces' \
+GO_ADMIN_CONFIG_FILE='go-admin-plus/config/settings.yml' \
+  "$shell_command" "$repo_root/scripts/go-admin-plus/path-contract.sh"
+GO_ADMIN_ARTIFACTS_DIR='.artifacts/path with spaces' \
+  "$shell_command" "$repo_root/scripts/go-admin-plus-ui/path-contract.sh"
 
 printf '%s\n' 'TASK_CONTRACT_PASS'

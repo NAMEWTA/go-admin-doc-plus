@@ -2,8 +2,8 @@
 
 `release/` owns product packaging, platform identity, manifests, SBOM and provenance checks.
 The public `task release VERSION=x.y.z` command performs local preflight only. Remote workflow
-dispatch remains an explicit internal operation and requires the GitHub CLI plus an exact
-`origin/main` match.
+dispatch is intentionally absent from the root command plane; the platform release Tickets own
+their idempotent orchestration and approval contracts.
 
 Platform-specific scripts must fail when signing, notarization, native packaging or other
 required tools are unavailable. They must never print release credentials or silently replace
