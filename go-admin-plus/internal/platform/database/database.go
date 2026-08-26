@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -178,7 +179,7 @@ func openPostgres(ctx context.Context, cfg Config) (*Database, error) {
 	configurePool(sqlDB, cfg, 20)
 	if err := sqlDB.PingContext(ctx); err != nil {
 		_ = sqlDB.Close()
-		return nil, errors.New("postgres connection check failed")
+		return nil, sanitizedContextError(ctx, "postgres connection check failed", err)
 	}
 	bunDB := bun.NewDB(sqlDB, pgdialect.New())
 	return &Database{sqlDB: sqlDB, bunDB: bunDB, dialect: DialectPostgres}, nil
@@ -201,31 +202,39 @@ func openSQLite(ctx context.Context, cfg Config) (*Database, error) {
 		return nil, err
 	}
 
-	sqlDB, err := sql.Open("sqlite", path)
+	dsn := url.URL{Scheme: "file", Path: filepath.ToSlash(path)}
+	query := dsn.Query()
+	query.Add("_pragma", "foreign_keys(1)")
+	query.Add("_pragma", "busy_timeout(5000)")
+	query.Add("_pragma", "journal_mode(WAL)")
+	dsn.RawQuery = query.Encode()
+	sqlDB, err := sql.Open("sqlite", dsn.String())
 	if err != nil {
 		_ = release()
 		return nil, errors.New("sqlite open failed")
 	}
 	sqlDB.SetMaxOpenConns(1)
 	sqlDB.SetMaxIdleConns(1)
-	for _, statement := range []string{
-		"PRAGMA foreign_keys = ON",
-		"PRAGMA busy_timeout = 5000",
-		"PRAGMA journal_mode = WAL",
-	} {
-		if _, err := sqlDB.ExecContext(ctx, statement); err != nil {
-			_ = sqlDB.Close()
-			_ = release()
-			return nil, errors.New("sqlite initialization failed")
-		}
-	}
 	if err := sqlDB.PingContext(ctx); err != nil {
 		_ = sqlDB.Close()
 		_ = release()
-		return nil, errors.New("sqlite connection check failed")
+		return nil, sanitizedContextError(ctx, "sqlite connection check failed", err)
 	}
 	bunDB := bun.NewDB(sqlDB, sqlitedialect.New())
 	return &Database{sqlDB: sqlDB, bunDB: bunDB, dialect: DialectSQLite, release: release}, nil
+}
+
+func sanitizedContextError(ctx context.Context, stage string, err error) error {
+	if contextErr := ctx.Err(); contextErr != nil {
+		return fmt.Errorf("%s: %w", stage, contextErr)
+	}
+	if errors.Is(err, context.Canceled) {
+		return fmt.Errorf("%s: %w", stage, context.Canceled)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("%s: %w", stage, context.DeadlineExceeded)
+	}
+	return errors.New(stage)
 }
 
 type instanceLock interface {

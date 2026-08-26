@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"go-admin/internal/platform/config"
 	"go-admin/internal/platform/database"
@@ -63,6 +64,74 @@ func TestProcessOpensOneSQLiteDatabaseAndRunsTransactions(t *testing.T) {
 	}
 	if _, err := process.Open(context.Background(), cfg); !errors.Is(err, database.ErrAlreadyOpened) {
 		t.Fatalf("second Open() error = %v, want ErrAlreadyOpened", err)
+	}
+}
+
+func TestSQLitePragmasSurvivePhysicalConnectionReplacement(t *testing.T) {
+	t.Parallel()
+
+	db, err := database.NewProcess().Open(context.Background(), database.Config{
+		Profile: config.ProfileServerSQLite, SQLitePath: filepath.Join(t.TempDir(), "pragmas.db"),
+	})
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	db.SQL().SetMaxIdleConns(0)
+	db.SQL().SetConnMaxLifetime(time.Nanosecond)
+	for attempt := range 2 {
+		conn, err := db.SQL().Conn(context.Background())
+		if err != nil {
+			t.Fatalf("Conn(%d) error = %v", attempt, err)
+		}
+		var foreignKeys, busyTimeout int
+		var journalMode string
+		if err := conn.QueryRowContext(context.Background(), `PRAGMA foreign_keys`).Scan(&foreignKeys); err != nil {
+			_ = conn.Close()
+			t.Fatalf("foreign_keys(%d): %v", attempt, err)
+		}
+		if err := conn.QueryRowContext(context.Background(), `PRAGMA busy_timeout`).Scan(&busyTimeout); err != nil {
+			_ = conn.Close()
+			t.Fatalf("busy_timeout(%d): %v", attempt, err)
+		}
+		if err := conn.QueryRowContext(context.Background(), `PRAGMA journal_mode`).Scan(&journalMode); err != nil {
+			_ = conn.Close()
+			t.Fatalf("journal_mode(%d): %v", attempt, err)
+		}
+		if err := conn.Close(); err != nil {
+			t.Fatalf("Conn(%d).Close() error = %v", attempt, err)
+		}
+		if foreignKeys != 1 || busyTimeout != 5000 || !strings.EqualFold(journalMode, "wal") {
+			t.Fatalf("connection %d pragmas = (%d, %d, %q), want (1, 5000, wal)", attempt, foreignKeys, busyTimeout, journalMode)
+		}
+	}
+
+	if _, err := db.SQL().Exec(`CREATE TABLE parent (id INTEGER PRIMARY KEY)`); err != nil {
+		t.Fatalf("create parent: %v", err)
+	}
+	if _, err := db.SQL().Exec(`CREATE TABLE child (parent_id INTEGER REFERENCES parent(id))`); err != nil {
+		t.Fatalf("create child: %v", err)
+	}
+	if _, err := db.SQL().Exec(`INSERT INTO child(parent_id) VALUES (99)`); err == nil {
+		t.Fatal("replacement connection did not enforce foreign key")
+	}
+}
+
+func TestCanceledOpenPreservesCancellationWithoutPathDisclosure(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	const privatePath = "/private/canceled-secret.db"
+	_, err := database.NewProcess().Open(ctx, database.Config{
+		Profile: config.ProfileServerSQLite, SQLitePath: filepath.Join(t.TempDir(), "canceled-secret.db"),
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Open() error = %v, want context.Canceled", err)
+	}
+	if strings.Contains(err.Error(), privatePath) || strings.Contains(err.Error(), "canceled-secret.db") {
+		t.Fatalf("Open() exposed path: %v", err)
 	}
 }
 

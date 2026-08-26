@@ -2,6 +2,7 @@
 package migrations
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
+	gooselock "github.com/pressly/goose/v3/lock"
 
 	platformdb "go-admin/internal/platform/database"
 )
@@ -97,12 +99,8 @@ func (r *Runner) Compose(dialect platformdb.Dialect) (fs.FS, error) {
 			if readErr != nil {
 				return errors.New("migration file is unreadable")
 			}
-			text := string(content)
-			if !strings.Contains(text, "-- +goose Up") {
-				return errors.New("migration is missing forward directive")
-			}
-			if strings.Contains(text, "-- +goose Down") || strings.Contains(text, "-- +goose NO TRANSACTION") {
-				return errors.New("migration violates forward atomic policy")
+			if err := validateForwardAnnotations(content); err != nil {
+				return err
 			}
 			versions[version] = struct{}{}
 			files[base] = bytes.Clone(content)
@@ -133,23 +131,111 @@ func (r *Runner) Up(ctx context.Context, db *platformdb.Database) (Result, error
 	default:
 		return Result{}, errors.New("migration dialect is unsupported")
 	}
-	provider, err := goose.NewProvider(dialect, db.SQL(), composed,
+	options := []goose.ProviderOption{
 		goose.WithLogger(goose.NopLogger()),
 		goose.WithDisableGlobalRegistry(true),
 		goose.WithAllowOutofOrder(false),
-	)
+	}
+	if db.Dialect() == platformdb.DialectPostgres {
+		locker, lockErr := gooselock.NewPostgresSessionLocker()
+		if lockErr != nil {
+			return Result{}, errors.New("migration lock initialization failed")
+		}
+		options = append(options, goose.WithSessionLocker(locker))
+	}
+	provider, err := goose.NewProvider(dialect, db.SQL(), composed, options...)
 	if err != nil {
 		return Result{}, errors.New("migration provider initialization failed")
 	}
 	applied, err := provider.Up(ctx)
 	if err != nil {
-		return Result{}, errors.New("migration execution failed")
+		return Result{}, sanitizedMigrationError(ctx, "migration execution failed", err)
 	}
 	current, err := provider.GetDBVersion(ctx)
 	if err != nil {
-		return Result{}, errors.New("migration version check failed")
+		return Result{}, sanitizedMigrationError(ctx, "migration version check failed", err)
 	}
 	return Result{Applied: len(applied), CurrentVersion: current}, nil
+}
+
+func sanitizedMigrationError(ctx context.Context, stage string, err error) error {
+	if contextErr := ctx.Err(); contextErr != nil {
+		return fmt.Errorf("%s: %w", stage, contextErr)
+	}
+	if errors.Is(err, context.Canceled) {
+		return fmt.Errorf("%s: %w", stage, context.Canceled)
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("%s: %w", stage, context.DeadlineExceeded)
+	}
+	return errors.New(stage)
+}
+
+func validateForwardAnnotations(content []byte) error {
+	scanner := bufio.NewScanner(bytes.NewReader(content))
+	scanner.Buffer(make([]byte, 4096), 1024*1024)
+	upSeen := false
+	statementBlock := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(strings.TrimSpace(line), "--") || !strings.Contains(line, "+goose") {
+			continue
+		}
+		annotation, err := extractAnnotation(line)
+		if err != nil {
+			return errors.New("migration annotation is invalid")
+		}
+		switch annotation {
+		case "up":
+			if upSeen || statementBlock {
+				return errors.New("migration annotation is invalid")
+			}
+			upSeen = true
+		case "down", "no transaction":
+			return errors.New("migration violates forward atomic policy")
+		case "statementbegin":
+			if !upSeen || statementBlock {
+				return errors.New("migration annotation is invalid")
+			}
+			statementBlock = true
+		case "statementend":
+			if !statementBlock {
+				return errors.New("migration annotation is invalid")
+			}
+			statementBlock = false
+		case "envsub on", "envsub off":
+		default:
+			return errors.New("migration annotation is invalid")
+		}
+	}
+	if scanner.Err() != nil {
+		return errors.New("migration annotation is unreadable")
+	}
+	if !upSeen {
+		return errors.New("migration is missing forward directive")
+	}
+	if statementBlock {
+		return errors.New("migration annotation is invalid")
+	}
+	return nil
+}
+
+func extractAnnotation(line string) (string, error) {
+	if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
+		return "", errors.New("leading whitespace")
+	}
+	command := strings.ReplaceAll(line, "--", "")
+	command = strings.Replace(command, "+goose", "", 1)
+	if strings.Contains(command, "+goose") {
+		return "", errors.New("multiple annotations")
+	}
+	command = strings.TrimSpace(command)
+	for _, allowed := range []string{"up", "down", "statementbegin", "statementend", "no transaction", "envsub on", "envsub off"} {
+		if strings.EqualFold(command, allowed) {
+			return allowed, nil
+		}
+	}
+	return "", errors.New("unsupported annotation")
 }
 
 type immutableFS struct {

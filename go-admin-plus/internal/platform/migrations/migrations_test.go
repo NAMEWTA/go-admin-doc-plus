@@ -2,6 +2,7 @@ package migrations_test
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -140,9 +141,9 @@ func TestComposeRejectsNonForwardOrNonAtomicFiles(t *testing.T) {
 	t.Parallel()
 
 	for name, source := range map[string]string{
-		"down":           "-- +goose Up\nSELECT 1;\n-- +goose Down\nSELECT 1;",
-		"no-transaction": "-- +goose NO TRANSACTION\n-- +goose Up\nSELECT 1;",
-		"missing-up":     "SELECT 1;",
+		"down":                      "-- +goose Up\nSELECT 1;\n-- +goose Down\nSELECT 1;",
+		"mixed-case-no-transaction": "-- +goose no transaction\n-- +goose Up\nSELECT 1;",
+		"missing-up":                "SELECT 1;",
 	} {
 		t.Run(name, func(t *testing.T) {
 			runner, err := migrations.NewRunner(provider{module: "module", files: fstest.MapFS{
@@ -155,6 +156,37 @@ func TestComposeRejectsNonForwardOrNonAtomicFiles(t *testing.T) {
 				t.Fatal("Compose() accepted policy violation")
 			}
 		})
+	}
+}
+
+func TestComposeAcceptsStatementBlockAndIgnoresSQLAnnotationSubstring(t *testing.T) {
+	t.Parallel()
+
+	runner, err := migrations.NewRunner(provider{module: "module", files: fstest.MapFS{
+		"00001_function.sql": {Data: []byte("-- +goose Up\n-- +goose StatementBegin\nSELECT '-- +goose Down';\nSELECT 1;\n-- +goose StatementEnd\n")},
+	}})
+	if err != nil {
+		t.Fatalf("NewRunner() error = %v", err)
+	}
+	if _, err := runner.Compose(database.DialectPostgres); err != nil {
+		t.Fatalf("Compose() rejected valid statement block: %v", err)
+	}
+}
+
+func TestCanceledMigrationPreservesCancellation(t *testing.T) {
+	t.Parallel()
+
+	db := openSQLite(t)
+	runner, err := migrations.NewRunner(provider{module: "module", files: fstest.MapFS{
+		"00001_cancel.sql": {Data: []byte("-- +goose Up\nCREATE TABLE canceled_table (id INTEGER);\n")},
+	}})
+	if err != nil {
+		t.Fatalf("NewRunner() error = %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := runner.Up(ctx, db); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Up() error = %v, want context.Canceled", err)
 	}
 }
 
