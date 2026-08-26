@@ -21,6 +21,15 @@
         "level": { "enum": ["debug", "info", "warn", "error"], "default": "info" }
       }
     },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idleTimeoutSeconds": { "type": "integer", "minimum": 60, "maximum": 86400, "default": 1800 },
+        "absoluteTimeoutSeconds": { "type": "integer", "minimum": 300, "maximum": 2592000, "default": 43200 },
+        "rotationIntervalSeconds": { "type": "integer", "minimum": 60, "maximum": 86400, "default": 900 }
+      }
+    },
     "database": {
       "type": "object",
       "additionalProperties": false,

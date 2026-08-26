@@ -45,7 +45,7 @@ export const createSessionController = (client: SessionClient): SessionControlle
       if (sequence === operation) publish({ status: 'authenticated', profile, error: null })
     } catch (error) {
       if (sequence !== operation) return
-      if (isAuthenticationError(error)) publish({ status: 'unauthenticated', profile: null, error: null })
+      if (requiresRelogin(error)) publish({ status: 'unauthenticated', profile: null, error: null })
       else publish({ status: 'error', profile: state.profile, error: publicError(error) })
     }
   }
@@ -57,8 +57,13 @@ export const createSessionController = (client: SessionClient): SessionControlle
     async logout() {
       const sequence = ++operation
       publish({ status: 'loading', profile: state.profile, error: null })
-      try { await client.logout() } finally {
+      try {
+        await client.logout()
         if (sequence === operation) publish({ status: 'unauthenticated', profile: null, error: null })
+      } catch (error) {
+        if (sequence !== operation) return
+        if (requiresRelogin(error)) publish({ status: 'unauthenticated', profile: null, error: null })
+        else publish({ status: 'error', profile: state.profile, error: publicError(error) })
       }
     },
     updateProfile: (update) => run(() => client.updateProfile(update), true),
@@ -70,14 +75,15 @@ export const createSessionController = (client: SessionClient): SessionControlle
         if (sequence === operation) publish({ status: 'unauthenticated', profile: null, error: null })
       } catch (error) {
         if (sequence !== operation) return
-        if (isAuthenticationError(error)) publish({ status: 'unauthenticated', profile: null, error: null })
+        if (requiresRelogin(error)) publish({ status: 'unauthenticated', profile: null, error: null })
         else publish({ status: 'error', profile: state.profile, error: publicError(error) })
       }
     },
   }
 }
 
-const isAuthenticationError = (error: unknown) => error instanceof SessionRequestError && error.category === 'authentication'
+const requiresRelogin = (error: unknown) => error instanceof SessionRequestError
+  && (error.category === 'authentication' || error.category === 'authorization')
 const publicError = (error: unknown): 'validation' | 'conflict' | 'unavailable' => {
   if (error instanceof SessionRequestError && (error.category === 'validation' || error.category === 'conflict')) return error.category
   return 'unavailable'

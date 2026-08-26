@@ -298,6 +298,8 @@ export interface operations {
             /** @description The profile is returned. */
             200: {
                 headers: {
+                    "Set-Cookie"?: string;
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
                     [name: string]: unknown;
                 };
                 content: {
@@ -324,6 +326,8 @@ export interface operations {
             /** @description The updated profile is returned. */
             200: {
                 headers: {
+                    "Set-Cookie"?: string;
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
                     [name: string]: unknown;
                 };
                 content: {

@@ -9,9 +9,81 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	runtimeconfig "go-admin/internal/platform/config"
 )
+
+func TestSessionPolicyDefaultsAndPrecedenceAcrossProfiles(t *testing.T) {
+	serverFile := filepath.Join(t.TempDir(), "server.json")
+	if err := os.WriteFile(serverFile, []byte(`{
+  "profile":"server-sqlite",
+  "session":{"idleTimeoutSeconds":1200,"absoluteTimeoutSeconds":3600,"rotationIntervalSeconds":600}
+}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := runtimeconfig.Load(runtimeconfig.Input{
+		Profile:     runtimeconfig.ProfileServerSQLite,
+		File:        serverFile,
+		Environment: map[string]string{"GO_ADMIN_SESSION_IDLE_SECONDS": "1500"},
+		CLI:         map[string]string{"session.rotationIntervalSeconds": "300"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, _ := snapshot.ServerSQLite()
+	policy := server.SessionPolicy()
+	if policy.IdleTimeout() != 1500*time.Second || policy.AbsoluteTimeout() != time.Hour || policy.RotationInterval() != 5*time.Minute {
+		t.Fatalf("session precedence mismatch: idle=%s absolute=%s rotation=%s", policy.IdleTimeout(), policy.AbsoluteTimeout(), policy.RotationInterval())
+	}
+
+	postgres, err := runtimeconfig.Load(runtimeconfig.Input{Profile: runtimeconfig.ProfileServerPostgres, Environment: map[string]string{"GO_ADMIN_DATABASE_DSN": "postgres://private"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	postgresValue, _ := postgres.ServerPostgres()
+	desktop, err := runtimeconfig.Load(runtimeconfig.Input{
+		Profile: runtimeconfig.ProfileDesktopSQLite,
+		Desktop: runtimeconfig.DesktopMaterial{DataDirectory: filepath.Join(t.TempDir(), "data"), LogDirectory: filepath.Join(t.TempDir(), "logs"), LoopbackPort: 43127, StartupToken: "0123456789abcdef0123456789abcdef"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	desktopValue, _ := desktop.DesktopSQLite()
+	for name, value := range map[string]runtimeconfig.SessionPolicy{"postgres": postgresValue.SessionPolicy(), "desktop": desktopValue.SessionPolicy()} {
+		if value.IdleTimeout() != 30*time.Minute || value.AbsoluteTimeout() != 12*time.Hour || value.RotationInterval() != 15*time.Minute {
+			t.Fatalf("%s default session policy mismatch", name)
+		}
+	}
+}
+
+func TestSessionPolicyRejectsInvalidRelationsAndUnknownFields(t *testing.T) {
+	for name, document := range map[string]string{
+		"rotation exceeds idle": `{"profile":"server-sqlite","session":{"idleTimeoutSeconds":600,"absoluteTimeoutSeconds":3600,"rotationIntervalSeconds":601}}`,
+		"idle exceeds absolute": `{"profile":"server-sqlite","session":{"idleTimeoutSeconds":3600,"absoluteTimeoutSeconds":1800,"rotationIntervalSeconds":300}}`,
+		"unknown session field": `{"profile":"server-sqlite","session":{"idleTimeoutSeconds":600,"legacyRefreshSeconds":30}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "runtime.json")
+			if err := os.WriteFile(path, []byte(document), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := runtimeconfig.Load(runtimeconfig.Input{Profile: runtimeconfig.ProfileServerSQLite, File: path})
+			if err == nil {
+				t.Fatal("invalid session policy accepted")
+			}
+			if strings.Contains(err.Error(), "601") {
+				t.Fatal("configuration value leaked")
+			}
+			if name == "unknown session field" && !strings.Contains(err.Error(), "unknown field") {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+	if _, err := runtimeconfig.NewSessionPolicy(0, time.Hour, time.Minute); err == nil {
+		t.Fatal("zero policy accepted")
+	}
+}
 
 func TestLoadAppliesDocumentedPrecedence(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime.json")

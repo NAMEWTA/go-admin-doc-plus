@@ -10,5 +10,16 @@
   "dependencies": {
     "@go-admin/domain-iam": "workspace:*",
     "vue": "catalog:"
+  },
+  "scripts": {
+    "test": "vitest run src/session",
+    "typecheck": "vue-tsc -p src/session/tsconfig.json"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }

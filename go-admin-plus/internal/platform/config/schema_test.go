@@ -49,6 +49,14 @@ func TestRuntimeFileSchemasAreIndependentAndSecretFree(t *testing.T) {
 			if hasDatabase != test.wantDatabase {
 				t.Fatalf("database property present = %t", hasDatabase)
 			}
+			session, ok := properties["session"].(map[string]any)
+			if !ok || session["additionalProperties"] != false {
+				t.Fatal("session schema must exist and reject unknown properties")
+			}
+			sessionProperties, ok := session["properties"].(map[string]any)
+			if !ok || len(sessionProperties) != 3 {
+				t.Fatal("session schema must declare exactly three policy fields")
+			}
 			for _, property := range test.forbiddenProps {
 				if _, exists := properties[property]; exists {
 					t.Fatalf("forbidden property %q exists", property)

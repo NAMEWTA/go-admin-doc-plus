@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Profile identifies one independently validated runtime configuration shape.
@@ -126,6 +127,7 @@ type ServerSQLite struct {
 	httpListen   string
 	logLevel     string
 	databasePath string
+	session      SessionPolicy
 }
 
 // HTTPListen returns the validated server listen address.
@@ -135,15 +137,17 @@ func (profile ServerSQLite) HTTPListen() string { return profile.httpListen }
 func (profile ServerSQLite) LogLevel() string { return profile.logLevel }
 
 // DatabasePath returns the Server SQLite database path.
-func (profile ServerSQLite) DatabasePath() string { return profile.databasePath }
-func (profile ServerSQLite) String() string       { return "server-sqlite configuration redacted" }
-func (profile ServerSQLite) GoString() string     { return "config.ServerSQLite{redacted}" }
+func (profile ServerSQLite) DatabasePath() string         { return profile.databasePath }
+func (profile ServerSQLite) SessionPolicy() SessionPolicy { return profile.session }
+func (profile ServerSQLite) String() string               { return "server-sqlite configuration redacted" }
+func (profile ServerSQLite) GoString() string             { return "config.ServerSQLite{redacted}" }
 
 // ServerPostgres is the immutable Server PostgreSQL runtime profile.
 type ServerPostgres struct {
 	httpListen  string
 	logLevel    string
 	databaseDSN string
+	session     SessionPolicy
 }
 
 // HTTPListen returns the validated server listen address.
@@ -154,9 +158,10 @@ func (profile ServerPostgres) LogLevel() string { return profile.logLevel }
 
 // DatabaseDSN returns the resolved in-memory secret for dependency construction.
 // Callers must never log, format, persist, or expose the returned value.
-func (profile ServerPostgres) DatabaseDSN() string { return profile.databaseDSN }
-func (profile ServerPostgres) String() string      { return "server-postgres configuration redacted" }
-func (profile ServerPostgres) GoString() string    { return "config.ServerPostgres{redacted}" }
+func (profile ServerPostgres) DatabaseDSN() string          { return profile.databaseDSN }
+func (profile ServerPostgres) SessionPolicy() SessionPolicy { return profile.session }
+func (profile ServerPostgres) String() string               { return "server-postgres configuration redacted" }
+func (profile ServerPostgres) GoString() string             { return "config.ServerPostgres{redacted}" }
 
 // DesktopSQLite is the immutable native-host-provided Desktop SQLite profile.
 type DesktopSQLite struct {
@@ -165,6 +170,7 @@ type DesktopSQLite struct {
 	logDirectory    string
 	loopbackAddress string
 	startupToken    string
+	session         SessionPolicy
 }
 
 // LogLevel returns the validated log level.
@@ -181,26 +187,30 @@ func (profile DesktopSQLite) LoopbackAddress() string { return profile.loopbackA
 
 // StartupToken returns the one-time Tauri launch token. Callers must not log,
 // persist, place in a URL, or expose this value to WebView JavaScript.
-func (profile DesktopSQLite) StartupToken() string { return profile.startupToken }
-func (profile DesktopSQLite) String() string       { return "desktop-sqlite configuration redacted" }
-func (profile DesktopSQLite) GoString() string     { return "config.DesktopSQLite{redacted}" }
+func (profile DesktopSQLite) StartupToken() string         { return profile.startupToken }
+func (profile DesktopSQLite) SessionPolicy() SessionPolicy { return profile.session }
+func (profile DesktopSQLite) String() string               { return "desktop-sqlite configuration redacted" }
+func (profile DesktopSQLite) GoString() string             { return "config.DesktopSQLite{redacted}" }
 
 type serverSQLiteFile struct {
 	Profile  Profile        `json:"profile"`
 	HTTP     httpConfig     `json:"http"`
 	Log      logConfig      `json:"log"`
 	Database databaseConfig `json:"database"`
+	Session  sessionConfig  `json:"session"`
 }
 
 type serverPostgresFile struct {
-	Profile Profile    `json:"profile"`
-	HTTP    httpConfig `json:"http"`
-	Log     logConfig  `json:"log"`
+	Profile Profile       `json:"profile"`
+	HTTP    httpConfig    `json:"http"`
+	Log     logConfig     `json:"log"`
+	Session sessionConfig `json:"session"`
 }
 
 type desktopSQLiteFile struct {
-	Profile Profile   `json:"profile"`
-	Log     logConfig `json:"log"`
+	Profile Profile       `json:"profile"`
+	Log     logConfig     `json:"log"`
+	Session sessionConfig `json:"session"`
 }
 
 type httpConfig struct {
@@ -213,6 +223,47 @@ type logConfig struct {
 
 type databaseConfig struct {
 	Path *string `json:"path"`
+}
+
+// SessionPolicy is an immutable, non-sensitive runtime security policy.
+type SessionPolicy struct {
+	idleTimeout      time.Duration
+	absoluteTimeout  time.Duration
+	rotationInterval time.Duration
+}
+
+func (policy SessionPolicy) IdleTimeout() time.Duration      { return policy.idleTimeout }
+func (policy SessionPolicy) AbsoluteTimeout() time.Duration  { return policy.absoluteTimeout }
+func (policy SessionPolicy) RotationInterval() time.Duration { return policy.rotationInterval }
+
+func NewSessionPolicy(idle, absolute, rotation time.Duration) (SessionPolicy, error) {
+	if idle < time.Minute || idle > 24*time.Hour {
+		return SessionPolicy{}, fmt.Errorf("configuration session.idleTimeoutSeconds: must be between 60 and 86400")
+	}
+	if absolute < 5*time.Minute || absolute > 30*24*time.Hour {
+		return SessionPolicy{}, fmt.Errorf("configuration session.absoluteTimeoutSeconds: must be between 300 and 2592000")
+	}
+	if rotation < time.Minute || rotation > idle {
+		return SessionPolicy{}, fmt.Errorf("configuration session.rotationIntervalSeconds: must be between 60 and idle timeout")
+	}
+	if idle > absolute {
+		return SessionPolicy{}, fmt.Errorf("configuration session.idleTimeoutSeconds: must not exceed absolute timeout")
+	}
+	return SessionPolicy{idleTimeout: idle, absoluteTimeout: absolute, rotationInterval: rotation}, nil
+}
+
+func DefaultSessionPolicy() SessionPolicy {
+	policy, err := NewSessionPolicy(30*time.Minute, 12*time.Hour, 15*time.Minute)
+	if err != nil {
+		panic("invalid built-in session policy")
+	}
+	return policy
+}
+
+type sessionConfig struct {
+	IdleTimeoutSeconds      *int64 `json:"idleTimeoutSeconds"`
+	AbsoluteTimeoutSeconds  *int64 `json:"absoluteTimeoutSeconds"`
+	RotationIntervalSeconds *int64 `json:"rotationIntervalSeconds"`
 }
 
 // Load applies defaults, file, environment, then CLI and returns an owned
@@ -235,12 +286,18 @@ func Load(input Input) (Snapshot, error) {
 
 func validateSourceKeys(input Input) error {
 	commonEnvironment := map[string]struct{}{
-		"GO_ADMIN_HTTP_LISTEN": {},
-		"GO_ADMIN_LOG_LEVEL":   {},
+		"GO_ADMIN_HTTP_LISTEN":              {},
+		"GO_ADMIN_LOG_LEVEL":                {},
+		"GO_ADMIN_SESSION_IDLE_SECONDS":     {},
+		"GO_ADMIN_SESSION_ABSOLUTE_SECONDS": {},
+		"GO_ADMIN_SESSION_ROTATION_SECONDS": {},
 	}
 	commonCLI := map[string]struct{}{
-		"http.listen": {},
-		"log.level":   {},
+		"http.listen":                     {},
+		"log.level":                       {},
+		"session.idleTimeoutSeconds":      {},
+		"session.absoluteTimeoutSeconds":  {},
+		"session.rotationIntervalSeconds": {},
 	}
 	allowedEnvironment := commonEnvironment
 	allowedCLI := commonCLI
@@ -252,8 +309,14 @@ func validateSourceKeys(input Input) error {
 		allowedEnvironment["GO_ADMIN_SQLITE_PATH"] = struct{}{}
 		allowedCLI["database.path"] = struct{}{}
 	case ProfileDesktopSQLite:
-		allowedEnvironment = map[string]struct{}{"GO_ADMIN_LOG_LEVEL": {}}
-		allowedCLI = map[string]struct{}{"log.level": {}}
+		allowedEnvironment = map[string]struct{}{
+			"GO_ADMIN_LOG_LEVEL": {}, "GO_ADMIN_SESSION_IDLE_SECONDS": {},
+			"GO_ADMIN_SESSION_ABSOLUTE_SECONDS": {}, "GO_ADMIN_SESSION_ROTATION_SECONDS": {},
+		}
+		allowedCLI = map[string]struct{}{
+			"log.level": {}, "session.idleTimeoutSeconds": {},
+			"session.absoluteTimeoutSeconds": {}, "session.rotationIntervalSeconds": {},
+		}
 	default:
 		return fmt.Errorf("configuration profile: unsupported profile")
 	}
@@ -295,7 +358,9 @@ func loadDesktopSQLite(input Input) (Snapshot, error) {
 		logDirectory:    filepath.Clean(input.Desktop.LogDirectory),
 		loopbackAddress: net.JoinHostPort("127.0.0.1", strconv.Itoa(int(input.Desktop.LoopbackPort))),
 		startupToken:    input.Desktop.StartupToken,
+		session:         DefaultSessionPolicy(),
 	}
+	var sessionFile sessionConfig
 	if input.File != "" {
 		file, err := decodeFile[desktopSQLiteFile](input.File)
 		if err != nil {
@@ -307,6 +372,7 @@ func loadDesktopSQLite(input Input) (Snapshot, error) {
 		if file.Log.Level != nil {
 			value.logLevel = *file.Log.Level
 		}
+		sessionFile = file.Session
 	}
 	if candidate, exists := input.Environment["GO_ADMIN_LOG_LEVEL"]; exists {
 		value.logLevel = candidate
@@ -317,6 +383,11 @@ func loadDesktopSQLite(input Input) (Snapshot, error) {
 	if err := validateLogLevel(value.logLevel); err != nil {
 		return Snapshot{}, err
 	}
+	policy, err := resolveSessionPolicy(value.session, sessionFile, input.Environment, input.CLI)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	value.session = policy
 	return Snapshot{profile: input.Profile, desktopSQLite: value}, nil
 }
 
@@ -341,7 +412,9 @@ func loadServerPostgres(input Input) (Snapshot, error) {
 		httpListen:  "127.0.0.1:8080",
 		logLevel:    "info",
 		databaseDSN: dsn,
+		session:     DefaultSessionPolicy(),
 	}
+	var sessionFile sessionConfig
 	if input.File != "" {
 		file, err := decodeFile[serverPostgresFile](input.File)
 		if err != nil {
@@ -356,6 +429,7 @@ func loadServerPostgres(input Input) (Snapshot, error) {
 		if file.Log.Level != nil {
 			value.logLevel = *file.Log.Level
 		}
+		sessionFile = file.Session
 	}
 	if candidate, exists := input.Environment["GO_ADMIN_HTTP_LISTEN"]; exists {
 		value.httpListen = candidate
@@ -372,6 +446,11 @@ func loadServerPostgres(input Input) (Snapshot, error) {
 	if err := validateServer(value.httpListen, value.logLevel); err != nil {
 		return Snapshot{}, err
 	}
+	policy, err := resolveSessionPolicy(value.session, sessionFile, input.Environment, input.CLI)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	value.session = policy
 	return Snapshot{profile: input.Profile, serverPostgres: value}, nil
 }
 
@@ -380,7 +459,9 @@ func loadServerSQLite(input Input) (Snapshot, error) {
 		httpListen:   "127.0.0.1:8080",
 		logLevel:     "info",
 		databasePath: "go-admin-plus.sqlite3",
+		session:      DefaultSessionPolicy(),
 	}
+	var sessionFile sessionConfig
 	if input.File != "" {
 		file, err := decodeFile[serverSQLiteFile](input.File)
 		if err != nil {
@@ -398,6 +479,7 @@ func loadServerSQLite(input Input) (Snapshot, error) {
 		if file.Database.Path != nil {
 			value.databasePath = *file.Database.Path
 		}
+		sessionFile = file.Session
 	}
 	if candidate, exists := input.Environment["GO_ADMIN_HTTP_LISTEN"]; exists {
 		value.httpListen = candidate
@@ -423,7 +505,73 @@ func loadServerSQLite(input Input) (Snapshot, error) {
 	if strings.TrimSpace(value.databasePath) == "" || strings.ContainsRune(value.databasePath, '\x00') {
 		return Snapshot{}, fmt.Errorf("configuration database.path: non-empty filesystem path is required")
 	}
+	policy, err := resolveSessionPolicy(value.session, sessionFile, input.Environment, input.CLI)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	value.session = policy
 	return Snapshot{profile: input.Profile, serverSQLite: value}, nil
+}
+
+func resolveSessionPolicy(base SessionPolicy, file sessionConfig, environment, cli map[string]string) (SessionPolicy, error) {
+	idle := int64(base.IdleTimeout() / time.Second)
+	absolute := int64(base.AbsoluteTimeout() / time.Second)
+	rotation := int64(base.RotationInterval() / time.Second)
+	if file.IdleTimeoutSeconds != nil {
+		idle = *file.IdleTimeoutSeconds
+	}
+	if file.AbsoluteTimeoutSeconds != nil {
+		absolute = *file.AbsoluteTimeoutSeconds
+	}
+	if file.RotationIntervalSeconds != nil {
+		rotation = *file.RotationIntervalSeconds
+	}
+	var err error
+	if value, ok := environment["GO_ADMIN_SESSION_IDLE_SECONDS"]; ok {
+		idle, err = parseSessionSeconds("session.idleTimeoutSeconds", value)
+		if err != nil {
+			return SessionPolicy{}, err
+		}
+	}
+	if value, ok := environment["GO_ADMIN_SESSION_ABSOLUTE_SECONDS"]; ok {
+		absolute, err = parseSessionSeconds("session.absoluteTimeoutSeconds", value)
+		if err != nil {
+			return SessionPolicy{}, err
+		}
+	}
+	if value, ok := environment["GO_ADMIN_SESSION_ROTATION_SECONDS"]; ok {
+		rotation, err = parseSessionSeconds("session.rotationIntervalSeconds", value)
+		if err != nil {
+			return SessionPolicy{}, err
+		}
+	}
+	if value, ok := cli["session.idleTimeoutSeconds"]; ok {
+		idle, err = parseSessionSeconds("session.idleTimeoutSeconds", value)
+		if err != nil {
+			return SessionPolicy{}, err
+		}
+	}
+	if value, ok := cli["session.absoluteTimeoutSeconds"]; ok {
+		absolute, err = parseSessionSeconds("session.absoluteTimeoutSeconds", value)
+		if err != nil {
+			return SessionPolicy{}, err
+		}
+	}
+	if value, ok := cli["session.rotationIntervalSeconds"]; ok {
+		rotation, err = parseSessionSeconds("session.rotationIntervalSeconds", value)
+		if err != nil {
+			return SessionPolicy{}, err
+		}
+	}
+	return NewSessionPolicy(time.Duration(idle)*time.Second, time.Duration(absolute)*time.Second, time.Duration(rotation)*time.Second)
+}
+
+func parseSessionSeconds(field, value string) (int64, error) {
+	seconds, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("configuration %s: must be an integer number of seconds", field)
+	}
+	return seconds, nil
 }
 
 func validateServer(listen, logLevel string) error {

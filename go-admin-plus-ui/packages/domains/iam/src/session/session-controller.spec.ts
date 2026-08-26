@@ -35,4 +35,37 @@ describe('session controller', () => {
     await controller.changePassword('wrong-old-value', 'invalid-new-value')
     expect(controller.state()).toEqual({ status: 'error', profile, error: 'validation' })
   })
+
+  it('keeps the profile and allows retry when logout is unavailable', async () => {
+    const controller = createSessionController(client({ logout: async () => { throw new SessionRequestError('internal') } }))
+    await controller.restore()
+    await controller.logout()
+    expect(controller.state()).toEqual({ status: 'error', profile, error: 'unavailable' })
+  })
+
+  it.each(['authentication', 'authorization'])('requires login after %s logout rejection', async (category) => {
+    const controller = createSessionController(client({ logout: async () => { throw new SessionRequestError(category) } }))
+    await controller.restore()
+    await controller.logout()
+    expect(controller.state()).toEqual({ status: 'unauthenticated', profile: null, error: null })
+  })
+
+  it('does not let a stale rejected logout overwrite a newer login', async () => {
+    let rejectLogout: ((reason: unknown) => void) | undefined
+    const pendingLogout = new Promise<void>((_, reject) => { rejectLogout = reject })
+    const controller = createSessionController(client({ logout: () => pendingLogout }))
+    await controller.restore()
+    const stale = controller.logout()
+    await controller.login({ username: 'admin', password: 'sensitive-value' })
+    rejectLogout?.(new SessionRequestError('internal'))
+    await stale
+    expect(controller.state()).toEqual({ status: 'authenticated', profile, error: null })
+  })
+
+  it('requires login after CSRF rejection on a protected mutation', async () => {
+    const controller = createSessionController(client({ updateProfile: async () => { throw new SessionRequestError('authorization') } }))
+    await controller.restore()
+    await controller.updateProfile({ displayName: 'Admin', email: 'admin@example.test' })
+    expect(controller.state()).toEqual({ status: 'unauthenticated', profile: null, error: null })
+  })
 })

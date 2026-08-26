@@ -540,15 +540,27 @@ type GetIamAccountProfileResponseObject interface {
 	VisitGetIamAccountProfileResponse(w http.ResponseWriter) error
 }
 
-type GetIamAccountProfile200JSONResponse Profile
+type GetIamAccountProfile200ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken string
+}
+
+type GetIamAccountProfile200JSONResponse struct {
+	Body    Profile
+	Headers GetIamAccountProfile200ResponseHeaders
+}
 
 func (response GetIamAccountProfile200JSONResponse) VisitGetIamAccountProfileResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
 	w.WriteHeader(200)
 	_, err := buf.WriteTo(w)
 	return err
@@ -594,15 +606,27 @@ type UpdateIamAccountProfileResponseObject interface {
 	VisitUpdateIamAccountProfileResponse(w http.ResponseWriter) error
 }
 
-type UpdateIamAccountProfile200JSONResponse Profile
+type UpdateIamAccountProfile200ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken string
+}
+
+type UpdateIamAccountProfile200JSONResponse struct {
+	Body    Profile
+	Headers UpdateIamAccountProfile200ResponseHeaders
+}
 
 func (response UpdateIamAccountProfile200JSONResponse) VisitUpdateIamAccountProfileResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
 	w.WriteHeader(200)
 	_, err := buf.WriteTo(w)
 	return err

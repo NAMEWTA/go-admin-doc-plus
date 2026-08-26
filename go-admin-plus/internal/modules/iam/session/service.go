@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"go-admin/internal/modules/iam/account"
+	"go-admin/internal/platform/config"
 	"go-admin/internal/platform/database"
 )
 
@@ -30,48 +32,51 @@ var (
 
 var avatarReference = regexp.MustCompile(`^files/[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$`)
 
-type Policy struct {
-	IdleTimeout      time.Duration
-	AbsoluteTimeout  time.Duration
-	RotationInterval time.Duration
-}
-
-func (p Policy) validate() error {
-	if p.IdleTimeout <= 0 || p.AbsoluteTimeout <= 0 || p.RotationInterval <= 0 || p.IdleTimeout > p.AbsoluteTimeout || p.RotationInterval > p.AbsoluteTimeout {
-		return errors.New("session policy is invalid")
-	}
-	return nil
-}
-
 type Database interface {
 	WithinTx(context.Context, func(context.Context, database.Tx) error) error
 	Dialect() database.Dialect
 }
 
 type Service struct {
-	db       Database
-	accounts *account.Repository
-	policy   Policy
-	now      func() time.Time
+	db           Database
+	accounts     *account.Repository
+	policy       config.SessionPolicy
+	now          func() time.Time
+	passwordWork *account.PasswordWorkBudget
+	lockProbe    func(accountLockPoint)
 }
+
+type accountLockPoint uint8
+
+const (
+	accountLockHeld accountLockPoint = iota + 1
+	accountRevokeLockRequested
+	accountRevokeLockHeld
+)
 
 type Option func(*Service)
 
 func WithClock(clock func() time.Time) Option { return func(s *Service) { s.now = clock } }
+func WithPasswordWorkBudget(budget *account.PasswordWorkBudget) Option {
+	return func(s *Service) { s.passwordWork = budget }
+}
 
-func NewService(db Database, policy Policy, options ...Option) (*Service, error) {
+func NewService(db Database, policy config.SessionPolicy, options ...Option) (*Service, error) {
 	if db == nil {
 		return nil, errors.New("database is required")
 	}
-	if err := policy.validate(); err != nil {
+	if _, err := config.NewSessionPolicy(policy.IdleTimeout(), policy.AbsoluteTimeout(), policy.RotationInterval()); err != nil {
 		return nil, err
 	}
-	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now}
+	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget()}
 	for _, option := range options {
 		option(s)
 	}
 	if s.now == nil {
 		return nil, errors.New("clock is required")
+	}
+	if s.passwordWork == nil {
+		return nil, errors.New("password work budget is required")
 	}
 	return s, nil
 }
@@ -94,6 +99,7 @@ func (i Issued) MarshalJSON() ([]byte, error) {
 
 type record struct {
 	ID, AccountID, TokenHash, CSRFHash, State                         string
+	Generation                                                        int64
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt, RotateAt time.Time
 }
 
@@ -101,6 +107,11 @@ func (s *Service) Login(ctx context.Context, username, password string) (Issued,
 	if len(strings.TrimSpace(username)) < 3 || len(username) > 64 || len(password) < 12 || len(password) > 128 {
 		return Issued{}, ErrCredentials
 	}
+	releasePasswordWork, acquired := s.passwordWork.TryAcquire()
+	if !acquired {
+		return Issued{}, ErrCredentials
+	}
+	defer releasePasswordWork()
 	var observed account.Credential
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		credential, err := s.accounts.FindCredential(ctx, tx, username, false)
@@ -121,6 +132,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (Issued,
 	if observed.Disabled || !passwordValid {
 		return Issued{}, ErrCredentials
 	}
+	releasePasswordWork()
 
 	var result Issued
 	now := s.now().UTC()
@@ -135,7 +147,7 @@ func (s *Service) Login(ctx context.Context, username, password string) (Issued,
 		if subtle.ConstantTimeCompare([]byte(credential.PasswordHash), []byte(observed.PasswordHash)) != 1 {
 			return ErrCredentials
 		}
-		issued, err := s.create(ctx, tx, credential.Profile, now, now.Add(s.policy.AbsoluteTimeout))
+		issued, err := s.create(ctx, tx, credential.Profile, credential.SessionGeneration, now, now.Add(s.policy.AbsoluteTimeout()))
 		if err == nil {
 			result = issued
 		}
@@ -148,98 +160,55 @@ func (s *Service) Current(ctx context.Context, token string) (Issued, error) {
 	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, err := s.active(ctx, tx, token, now)
+		rec, credential, err := s.active(ctx, tx, token, now)
 		if err != nil {
 			return err
 		}
-		credential, err := s.accounts.FindByID(ctx, tx, rec.AccountID, false)
-		if errors.Is(err, account.ErrNotFound) || credential.Disabled {
-			return ErrAuthentication
-		}
-		if err != nil {
-			return err
-		}
-		if !now.Before(rec.RotateAt) {
-			issued, err := s.create(ctx, tx, credential.Profile, now, rec.AbsoluteExpiresAt)
-			if err != nil {
-				return err
-			}
-			updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'rotated', replaced_by = ? WHERE id = ? AND state = 'active'`, tokenDigest(issued.Token), rec.ID)
-			if err != nil {
-				return errors.New("session rotation failed")
-			}
-			if count, _ := updated.RowsAffected(); count != 1 {
-				return ErrAuthentication
-			}
-			issued.Rotated = true
-			result = issued
-			return nil
-		}
-		csrf, err := randomSecret()
-		if err != nil {
-			return err
-		}
-		updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET csrf_hash = ?, last_seen_at = ?, idle_expires_at = ? WHERE id = ? AND state = 'active'`, tokenDigest(csrf), now, minTime(now.Add(s.policy.IdleTimeout), rec.AbsoluteExpiresAt), rec.ID)
-		if err != nil {
-			return errors.New("session refresh failed")
-		}
-		if count, _ := updated.RowsAffected(); count != 1 {
-			return ErrAuthentication
-		}
-		result = Issued{Profile: credential.Profile, CSRF: csrf}
-		return nil
+		result, err = s.refresh(ctx, tx, rec, credential.Profile, now)
+		return err
 	})
 	return result, sanitize(err)
 }
 
-func (s *Service) Profile(ctx context.Context, token string) (account.Profile, error) {
-	var profile account.Profile
+func (s *Service) Profile(ctx context.Context, token string) (Issued, error) {
+	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, err := s.active(ctx, tx, token, now)
+		rec, credential, err := s.active(ctx, tx, token, now)
 		if err != nil {
 			return err
 		}
-		value, err := s.accounts.FindByID(ctx, tx, rec.AccountID, false)
-		if errors.Is(err, account.ErrNotFound) {
-			return ErrAuthentication
-		}
-		if err != nil || value.Disabled {
-			if err == nil {
-				return ErrAuthentication
-			}
-			return err
-		}
-		profile = value.Profile
-		return s.touch(ctx, tx, rec, now)
+		result, err = s.refresh(ctx, tx, rec, credential.Profile, now)
+		return err
 	})
-	return profile, sanitize(err)
+	return result, sanitize(err)
 }
 
-func (s *Service) UpdateProfile(ctx context.Context, token, csrf, displayName, email string, avatar *string) (account.Profile, error) {
+func (s *Service) UpdateProfile(ctx context.Context, token, csrf, displayName, email string, avatar *string) (Issued, error) {
 	displayName = strings.TrimSpace(displayName)
 	email = strings.ToLower(strings.TrimSpace(email))
 	parsedEmail, emailErr := mail.ParseAddress(email)
 	if displayName == "" || len(displayName) > 80 || emailErr != nil || parsedEmail.Address != email || len(email) > 254 || (avatar != nil && !avatarReference.MatchString(*avatar)) {
-		return account.Profile{}, ErrValidation
+		return Issued{}, ErrValidation
 	}
-	var profile account.Profile
+	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, err := s.authorizeMutation(ctx, tx, token, csrf, now)
+		rec, _, err := s.authorizeMutation(ctx, tx, token, csrf, now)
 		if err != nil {
 			return err
 		}
-		profile, err = s.accounts.UpdateProfile(ctx, tx, rec.AccountID, displayName, email, avatar, now)
+		profile, err := s.accounts.UpdateProfile(ctx, tx, rec.AccountID, displayName, email, avatar, now)
 		if errors.Is(err, account.ErrNotFound) {
 			return ErrAuthentication
 		}
 		if err != nil {
 			return err
 		}
-		return s.touch(ctx, tx, rec, now)
+		result, err = s.refresh(ctx, tx, rec, profile, now)
+		return err
 	})
-	return profile, sanitize(err)
+	return result, sanitize(err)
 }
 
 func (s *Service) ChangePassword(ctx context.Context, token, csrf, current, replacement string) error {
@@ -247,63 +216,66 @@ func (s *Service) ChangePassword(ctx context.Context, token, csrf, current, repl
 		return ErrValidation
 	}
 	var accountID, observedHash string
+	var observedGeneration int64
 	// Fence cheaply first, then perform the memory-hard work without holding a database transaction.
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, err := s.authorizeMutation(ctx, tx, token, csrf, s.now().UTC())
+		rec, credential, err := s.authorizeMutation(ctx, tx, token, csrf, s.now().UTC())
 		if err != nil {
 			return err
 		}
-		credential, err := s.accounts.FindByID(ctx, tx, rec.AccountID, false)
-		if err != nil || credential.Disabled {
-			if err == nil {
-				return ErrAuthentication
-			}
-			return err
-		}
-		accountID, observedHash = rec.AccountID, credential.PasswordHash
+		accountID, observedHash, observedGeneration = rec.AccountID, credential.PasswordHash, credential.SessionGeneration
 		return nil
 	})
 	if err != nil {
 		return sanitize(err)
 	}
+	releasePasswordWork, acquired := s.passwordWork.TryAcquire()
+	if !acquired {
+		return ErrConflict
+	}
+	defer releasePasswordWork()
 	if !account.VerifyPassword(observedHash, current) {
 		return ErrCredentials
 	}
 	newHash, err := account.HashPassword(replacement)
 	if err != nil {
-		return ErrValidation
+		return sanitize(err)
 	}
+	releasePasswordWork()
 	now := s.now().UTC()
 	err = s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, err := s.authorizeMutation(ctx, tx, token, csrf, now)
+		rec, credential, err := s.authorizeMutation(ctx, tx, token, csrf, now)
 		if err != nil {
 			return err
 		}
 		if rec.AccountID != accountID {
 			return ErrAuthentication
 		}
-		credential, err := s.accounts.FindByID(ctx, tx, accountID, true)
-		if err != nil {
-			return err
-		}
-		if credential.Disabled {
-			return ErrAuthentication
-		}
-		if subtle.ConstantTimeCompare([]byte(credential.PasswordHash), []byte(observedHash)) != 1 {
+		if credential.SessionGeneration != observedGeneration || subtle.ConstantTimeCompare([]byte(credential.PasswordHash), []byte(observedHash)) != 1 {
 			return ErrConflict
 		}
-		if err := s.accounts.UpdatePassword(ctx, tx, accountID, newHash, now); err != nil {
+		if err := s.accounts.UpdatePasswordAndAdvanceGeneration(ctx, tx, accountID, newHash, rec.Generation, now); err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE account_id = ? AND state = 'active'`, now, accountID)
-		return err
+		revoked, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE account_id = ? AND generation <= ? AND state = 'active'`, now, accountID, rec.Generation)
+		if err != nil {
+			return errors.New("session revoke failed")
+		}
+		count, countErr := revoked.RowsAffected()
+		if countErr != nil {
+			return errors.New("session revoke result failed")
+		}
+		if count < 1 {
+			return ErrConflict
+		}
+		return nil
 	})
 	return sanitize(err)
 }
 
 func (s *Service) Logout(ctx context.Context, token, csrf string) error {
 	return sanitize(s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, err := s.authorizeMutation(ctx, tx, token, csrf, s.now().UTC())
+		rec, _, err := s.authorizeMutation(ctx, tx, token, csrf, s.now().UTC())
 		if err != nil {
 			return err
 		}
@@ -311,7 +283,11 @@ func (s *Service) Logout(ctx context.Context, token, csrf string) error {
 		if err != nil {
 			return errors.New("session revoke failed")
 		}
-		if n, _ := result.RowsAffected(); n != 1 {
+		n, countErr := result.RowsAffected()
+		if countErr != nil {
+			return errors.New("session revoke result failed")
+		}
+		if n != 1 {
 			return ErrAuthentication
 		}
 		return nil
@@ -320,12 +296,31 @@ func (s *Service) Logout(ctx context.Context, token, csrf string) error {
 
 func (s *Service) RevokeAccount(ctx context.Context, accountID string) error {
 	return sanitize(s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		_, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE account_id = ? AND state = 'active'`, s.now().UTC(), accountID)
-		return err
+		now := s.now().UTC()
+		s.probeLock(accountRevokeLockRequested)
+		credential, err := s.accounts.FindByID(ctx, tx, accountID, true)
+		if errors.Is(err, account.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		s.probeLock(accountRevokeLockHeld)
+		if err := s.accounts.AdvanceSessionGeneration(ctx, tx, accountID, credential.SessionGeneration, now); err != nil {
+			return err
+		}
+		result, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE account_id = ? AND generation <= ? AND state = 'active'`, now, accountID, credential.SessionGeneration)
+		if err != nil {
+			return errors.New("session revoke failed")
+		}
+		if _, err := result.RowsAffected(); err != nil {
+			return errors.New("session revoke result failed")
+		}
+		return nil
 	}))
 }
 
-func (s *Service) create(ctx context.Context, tx database.Tx, profile account.Profile, now, absolute time.Time) (Issued, error) {
+func (s *Service) create(ctx context.Context, tx database.Tx, profile account.Profile, generation int64, now, absolute time.Time) (Issued, error) {
 	token, err := randomSecret()
 	if err != nil {
 		return Issued{}, err
@@ -339,52 +334,105 @@ func (s *Service) create(ctx context.Context, tx database.Tx, profile account.Pr
 		return Issued{}, err
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO iam_sessions
-		(id, account_id, token_hash, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at)
-		VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), tokenDigest(csrf), now, now,
-		minTime(now.Add(s.policy.IdleTimeout), absolute), absolute, minTime(now.Add(s.policy.RotationInterval), absolute))
+		(id, account_id, token_hash, generation, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at)
+		VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), generation, tokenDigest(csrf), now, now,
+		minTime(now.Add(s.policy.IdleTimeout()), absolute), absolute, minTime(now.Add(s.policy.RotationInterval()), absolute))
 	if err != nil {
 		return Issued{}, errors.New("session creation failed")
 	}
 	return Issued{Profile: profile, Token: token, CSRF: csrf}, nil
 }
 
-func (s *Service) active(ctx context.Context, tx database.Tx, token string, now time.Time) (record, error) {
+func (s *Service) active(ctx context.Context, tx database.Tx, token string, now time.Time) (record, account.Credential, error) {
 	if len(token) != 43 {
-		return record{}, ErrAuthentication
+		return record{}, account.Credential{}, ErrAuthentication
 	}
-	query := `SELECT id, account_id, token_hash, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at
+	digest := tokenDigest(token)
+	var accountID string
+	if err := tx.QueryRowContext(ctx, `SELECT account_id FROM iam_sessions WHERE token_hash = ?`, digest).Scan(&accountID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return record{}, account.Credential{}, ErrAuthentication
+		}
+		return record{}, account.Credential{}, errors.New("session lookup failed")
+	}
+	credential, err := s.accounts.FindByID(ctx, tx, accountID, true)
+	if errors.Is(err, account.ErrNotFound) || credential.Disabled {
+		return record{}, account.Credential{}, ErrAuthentication
+	}
+	if err != nil {
+		return record{}, account.Credential{}, err
+	}
+	s.probeLock(accountLockHeld)
+	query := `SELECT id, account_id, token_hash, generation, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at
 		FROM iam_sessions WHERE token_hash = ?`
 	if s.db.Dialect() == database.DialectPostgres {
 		query += " FOR UPDATE"
 	}
 	var rec record
-	err := tx.QueryRowContext(ctx, query, tokenDigest(token)).Scan(&rec.ID, &rec.AccountID, &rec.TokenHash, &rec.CSRFHash, &rec.State, &rec.CreatedAt, &rec.LastSeenAt, &rec.IdleExpiresAt, &rec.AbsoluteExpiresAt, &rec.RotateAt)
-	if err != nil || rec.State != "active" {
-		return record{}, ErrAuthentication
+	err = tx.QueryRowContext(ctx, query, digest).Scan(&rec.ID, &rec.AccountID, &rec.TokenHash, &rec.Generation, &rec.CSRFHash, &rec.State, &rec.CreatedAt, &rec.LastSeenAt, &rec.IdleExpiresAt, &rec.AbsoluteExpiresAt, &rec.RotateAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return record{}, account.Credential{}, ErrAuthentication
+	}
+	if err != nil {
+		return record{}, account.Credential{}, errors.New("session lookup failed")
+	}
+	if rec.State != "active" || rec.AccountID != credential.ID || rec.Generation != credential.SessionGeneration {
+		return record{}, account.Credential{}, ErrAuthentication
 	}
 	if !now.Before(rec.IdleExpiresAt) || !now.Before(rec.AbsoluteExpiresAt) {
 		updated, updateErr := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'expired' WHERE id = ? AND state = 'active'`, rec.ID)
 		if updateErr != nil {
-			return record{}, errors.New("session expiry failed")
+			return record{}, account.Credential{}, errors.New("session expiry failed")
 		}
-		if count, _ := updated.RowsAffected(); count != 1 {
-			return record{}, ErrAuthentication
+		count, countErr := updated.RowsAffected()
+		if countErr != nil {
+			return record{}, account.Credential{}, errors.New("session expiry result failed")
 		}
-		return record{}, errExpired
+		if count != 1 {
+			return record{}, account.Credential{}, ErrAuthentication
+		}
+		return record{}, account.Credential{}, errExpired
 	}
-	return rec, nil
+	return rec, credential, nil
 }
 
-func (s *Service) touch(ctx context.Context, tx database.Tx, rec record, now time.Time) error {
-	updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET last_seen_at = ?, idle_expires_at = ? WHERE id = ? AND state = 'active'`,
-		now, minTime(now.Add(s.policy.IdleTimeout), rec.AbsoluteExpiresAt), rec.ID)
+func (s *Service) refresh(ctx context.Context, tx database.Tx, rec record, profile account.Profile, now time.Time) (Issued, error) {
+	if !now.Before(rec.RotateAt) {
+		issued, err := s.create(ctx, tx, profile, rec.Generation, now, rec.AbsoluteExpiresAt)
+		if err != nil {
+			return Issued{}, err
+		}
+		updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'rotated', replaced_by = ? WHERE id = ? AND generation = ? AND state = 'active'`, tokenDigest(issued.Token), rec.ID, rec.Generation)
+		if err != nil {
+			return Issued{}, errors.New("session rotation failed")
+		}
+		count, countErr := updated.RowsAffected()
+		if countErr != nil {
+			return Issued{}, errors.New("session rotation result failed")
+		}
+		if count != 1 {
+			return Issued{}, ErrAuthentication
+		}
+		issued.Rotated = true
+		return issued, nil
+	}
+	csrf, err := randomSecret()
 	if err != nil {
-		return errors.New("session refresh failed")
+		return Issued{}, err
 	}
-	if count, _ := updated.RowsAffected(); count != 1 {
-		return ErrAuthentication
+	updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET csrf_hash = ?, last_seen_at = ?, idle_expires_at = ? WHERE id = ? AND generation = ? AND state = 'active'`,
+		tokenDigest(csrf), now, minTime(now.Add(s.policy.IdleTimeout()), rec.AbsoluteExpiresAt), rec.ID, rec.Generation)
+	if err != nil {
+		return Issued{}, errors.New("session refresh failed")
 	}
-	return nil
+	count, countErr := updated.RowsAffected()
+	if countErr != nil {
+		return Issued{}, errors.New("session refresh result failed")
+	}
+	if count != 1 {
+		return Issued{}, ErrAuthentication
+	}
+	return Issued{Profile: profile, CSRF: csrf}, nil
 }
 
 // withinTx commits the active->expired transition while preserving an authentication result.
@@ -404,16 +452,16 @@ func (s *Service) withinTx(ctx context.Context, fn func(context.Context, databas
 	return err
 }
 
-func (s *Service) authorizeMutation(ctx context.Context, tx database.Tx, token, csrf string, now time.Time) (record, error) {
-	rec, err := s.active(ctx, tx, token, now)
+func (s *Service) authorizeMutation(ctx context.Context, tx database.Tx, token, csrf string, now time.Time) (record, account.Credential, error) {
+	rec, credential, err := s.active(ctx, tx, token, now)
 	if err != nil {
-		return record{}, err
+		return record{}, account.Credential{}, err
 	}
 	got := tokenDigest(csrf)
 	if subtle.ConstantTimeCompare([]byte(got), []byte(rec.CSRFHash)) != 1 {
-		return record{}, ErrCSRF
+		return record{}, account.Credential{}, ErrCSRF
 	}
-	return rec, nil
+	return rec, credential, nil
 }
 
 func randomSecret() (string, error) {
@@ -435,9 +483,21 @@ func minTime(a, b time.Time) time.Time {
 	return b
 }
 
+func (s *Service) probeLock(point accountLockPoint) {
+	if s.lockProbe != nil {
+		s.lockProbe(point)
+	}
+}
+
 func sanitize(err error) error {
 	if err == nil || errors.Is(err, ErrAuthentication) || errors.Is(err, ErrCredentials) || errors.Is(err, ErrCSRF) || errors.Is(err, ErrValidation) || errors.Is(err, ErrConflict) {
 		return err
+	}
+	if errors.Is(err, context.Canceled) {
+		return context.Canceled
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return context.DeadlineExceeded
 	}
 	if errors.Is(err, account.ErrConflict) {
 		return ErrConflict

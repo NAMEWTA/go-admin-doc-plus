@@ -23,8 +23,9 @@ type Profile struct {
 
 type Credential struct {
 	Profile
-	PasswordHash string
-	Disabled     bool
+	PasswordHash      string
+	SessionGeneration int64
+	Disabled          bool
 }
 
 func (c Credential) String() string   { return "account.Credential{PasswordHash:[redacted]}" }
@@ -51,7 +52,7 @@ func (r *Repository) Create(ctx context.Context, tx database.Tx, value Credentia
 }
 
 func (r *Repository) FindCredential(ctx context.Context, tx database.Tx, username string, lock bool) (Credential, error) {
-	query := `SELECT id, username, display_name, email, avatar_ref, password_hash, disabled_at
+	query := `SELECT id, username, display_name, email, avatar_ref, password_hash, session_generation, disabled_at
 		FROM iam_accounts WHERE username = ?`
 	if lock && r.dialect == database.DialectPostgres {
 		query += " FOR UPDATE"
@@ -60,7 +61,7 @@ func (r *Repository) FindCredential(ctx context.Context, tx database.Tx, usernam
 }
 
 func (r *Repository) FindByID(ctx context.Context, tx database.Tx, id string, lock bool) (Credential, error) {
-	query := `SELECT id, username, display_name, email, avatar_ref, password_hash, disabled_at
+	query := `SELECT id, username, display_name, email, avatar_ref, password_hash, session_generation, disabled_at
 		FROM iam_accounts WHERE id = ?`
 	if lock && r.dialect == database.DialectPostgres {
 		query += " FOR UPDATE"
@@ -72,7 +73,7 @@ func scanCredential(row *sql.Row) (Credential, error) {
 	var value Credential
 	var avatar sql.NullString
 	var disabled sql.NullTime
-	err := row.Scan(&value.ID, &value.Username, &value.DisplayName, &value.Email, &avatar, &value.PasswordHash, &disabled)
+	err := row.Scan(&value.ID, &value.Username, &value.DisplayName, &value.Email, &avatar, &value.PasswordHash, &value.SessionGeneration, &disabled)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Credential{}, ErrNotFound
 	}
@@ -99,13 +100,32 @@ func (r *Repository) UpdateProfile(ctx context.Context, tx database.Tx, id, disp
 	return value.Profile, err
 }
 
-func (r *Repository) UpdatePassword(ctx context.Context, tx database.Tx, id, hash string, now time.Time) error {
-	result, err := tx.ExecContext(ctx, `UPDATE iam_accounts SET password_hash = ?, password_changed_at = ?, updated_at = ? WHERE id = ? AND disabled_at IS NULL`, hash, now.UTC(), now.UTC(), id)
+func (r *Repository) UpdatePasswordAndAdvanceGeneration(ctx context.Context, tx database.Tx, id, hash string, generation int64, now time.Time) error {
+	result, err := tx.ExecContext(ctx, `UPDATE iam_accounts SET password_hash = ?, password_changed_at = ?, session_generation = session_generation + 1, updated_at = ? WHERE id = ? AND disabled_at IS NULL AND session_generation = ?`, hash, now.UTC(), now.UTC(), id, generation)
 	if err != nil {
 		return errors.New("password update failed")
 	}
-	if count, _ := result.RowsAffected(); count != 1 {
-		return ErrNotFound
+	count, err := result.RowsAffected()
+	if err != nil {
+		return errors.New("password update result failed")
+	}
+	if count != 1 {
+		return ErrConflict
+	}
+	return nil
+}
+
+func (r *Repository) AdvanceSessionGeneration(ctx context.Context, tx database.Tx, id string, generation int64, now time.Time) error {
+	result, err := tx.ExecContext(ctx, `UPDATE iam_accounts SET session_generation = session_generation + 1, updated_at = ? WHERE id = ? AND session_generation = ?`, now.UTC(), id, generation)
+	if err != nil {
+		return errors.New("session generation update failed")
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return errors.New("session generation result failed")
+	}
+	if count != 1 {
+		return ErrConflict
 	}
 	return nil
 }

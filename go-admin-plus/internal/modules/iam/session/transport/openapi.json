@@ -144,6 +144,16 @@
         "responses": {
           "200": {
             "description": "The profile is returned.",
+            "headers": {
+              "X-CSRF-Token": {
+                "$ref": "#/components/headers/CsrfToken"
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -182,6 +192,16 @@
         "responses": {
           "200": {
             "description": "The updated profile is returned.",
+            "headers": {
+              "X-CSRF-Token": {
+                "$ref": "#/components/headers/CsrfToken"
+              },
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

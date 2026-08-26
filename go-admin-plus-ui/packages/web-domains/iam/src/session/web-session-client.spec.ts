@@ -37,6 +37,22 @@ describe('web session client', () => {
     expect(headers[2]?.has('X-CSRF-Token')).toBe(false)
   })
 
+  it('clears the CSRF capability after CSRF rejection', async () => {
+    let call = 0
+    const headers: Headers[] = []
+    const fetcher: typeof fetch = async (input, init) => {
+      headers.push(new Request(input, init).headers)
+      call += 1
+      if (call === 1) return json({ profile: { id: '1', username: 'a', displayName: 'A', email: 'a@b.test' }, csrfToken: 'csrf-value' })
+      return json({ category: 'authorization' }, { status: 403 })
+    }
+    const client = createWebSessionClient(fetcher, 'https://app.example.test/api')
+    await client.login({ username: 'a', password: 'long-enough-password' })
+    await expect(client.updateProfile({ displayName: 'A', email: 'a@b.test' })).rejects.toThrow('Session request failed')
+    await expect(client.logout()).rejects.toThrow()
+    expect(headers[2]?.has('X-CSRF-Token')).toBe(false)
+  })
+
   it('serializes requests so a rotated CSRF value cannot be overwritten out of order', async () => {
     let release: (() => void) | undefined
     const gate = new Promise<void>((resolve) => { release = resolve })
@@ -55,5 +71,44 @@ describe('web session client', () => {
     release?.()
     await Promise.all([first, second])
     expect(calls).toBe(2)
+  })
+
+  it('uses replacement CSRF response headers on the next protected request', async () => {
+    const headers: Headers[] = []
+    let call = 0
+    const fetcher: typeof fetch = async (input, init) => {
+      headers.push(new Request(input, init).headers)
+      call += 1
+      if (call === 1) return json({ profile: { id: '1', username: 'a', displayName: 'A', email: 'a@b.test' }, csrfToken: 'csrf-first' })
+      if (call === 2) return json(
+        { id: '1', username: 'a', displayName: 'Updated', email: 'a@b.test' },
+        { headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'csrf-replacement' } },
+      )
+      return new Response(null, { status: 204 })
+    }
+    const client = createWebSessionClient(fetcher, 'https://app.example.test/api')
+    await client.login({ username: 'a', password: 'long-enough-password' })
+    await client.updateProfile({ displayName: 'Updated', email: 'a@b.test' })
+    await client.logout()
+    expect(headers[1]?.get('X-CSRF-Token')).toBe('csrf-first')
+    expect(headers[2]?.get('X-CSRF-Token')).toBe('csrf-replacement')
+  })
+
+  it('retains CSRF after unavailable logout so the request can be retried', async () => {
+    const headers: Headers[] = []
+    let call = 0
+    const fetcher: typeof fetch = async (input, init) => {
+      headers.push(new Request(input, init).headers)
+      call += 1
+      if (call === 1) return json({ profile: { id: '1', username: 'a', displayName: 'A', email: 'a@b.test' }, csrfToken: 'csrf-value' })
+      if (call === 2) return json({ category: 'internal' }, { status: 500 })
+      return new Response(null, { status: 204 })
+    }
+    const client = createWebSessionClient(fetcher, 'https://app.example.test/api')
+    await client.login({ username: 'a', password: 'long-enough-password' })
+    await expect(client.logout()).rejects.toThrow('Session request failed')
+    await client.logout()
+    expect(headers[1]?.get('X-CSRF-Token')).toBe('csrf-value')
+    expect(headers[2]?.get('X-CSRF-Token')).toBe('csrf-value')
   })
 })

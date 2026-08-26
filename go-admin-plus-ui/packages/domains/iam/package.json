@@ -9,5 +9,13 @@
   },
   "dependencies": {
     "@go-admin/api-client": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run src/session",
+    "typecheck": "tsc -p src/session/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -18,7 +18,7 @@ export const createWebSessionClient = (fetcher: typeof fetch = fetch, baseUrl = 
       const response = await fetcher(new Request(input, { credentials: 'include', headers }))
       const nextCSRF = response.headers.get('X-CSRF-Token')
       if (nextCSRF) csrf = nextCSRF
-      if (response.status === 401) csrf = ''
+      if (response.status === 401 || response.status === 403) csrf = ''
       return response
     },
   })

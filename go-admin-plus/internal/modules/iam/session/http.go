@@ -96,11 +96,7 @@ func (s *HTTPServer) GetCurrentIamSession(ctx context.Context, _ transport.GetCu
 	if err != nil {
 		return transport.GetCurrentIamSession500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(credentials.trace)}, nil
 	}
-	headers := transport.GetCurrentIamSession200ResponseHeaders{XCSRFToken: issued.CSRF}
-	if issued.Rotated {
-		cookie := sessionCookie(issued.Token, false)
-		headers.SetCookie = &cookie
-	}
+	headers := transport.GetCurrentIamSession200ResponseHeaders{XCSRFToken: issued.CSRF, SetCookie: replacementCookie(issued)}
 	return transport.GetCurrentIamSession200JSONResponse{Body: sessionResponse(issued), Headers: headers}, nil
 }
 
@@ -122,14 +118,17 @@ func (s *HTTPServer) LogoutIamSession(ctx context.Context, _ transport.LogoutIam
 
 func (s *HTTPServer) GetIamAccountProfile(ctx context.Context, _ transport.GetIamAccountProfileRequestObject) (transport.GetIamAccountProfileResponseObject, error) {
 	c := credentials(ctx)
-	profile, err := s.service.Profile(ctx, c.token)
+	issued, err := s.service.Profile(ctx, c.token)
 	if errors.Is(err, ErrAuthentication) {
 		return transport.GetIamAccountProfile401ApplicationProblemPlusJSONResponse{AuthenticationProblemApplicationProblemPlusJSONResponse: authProblem(c.trace)}, nil
 	}
 	if err != nil {
 		return transport.GetIamAccountProfile500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(c.trace)}, nil
 	}
-	return transport.GetIamAccountProfile200JSONResponse(transportProfile(profile)), nil
+	return transport.GetIamAccountProfile200JSONResponse{
+		Body:    transportProfile(issued.Profile),
+		Headers: transport.GetIamAccountProfile200ResponseHeaders{XCSRFToken: issued.CSRF, SetCookie: replacementCookie(issued)},
+	}, nil
 }
 
 func (s *HTTPServer) UpdateIamAccountProfile(ctx context.Context, request transport.UpdateIamAccountProfileRequestObject) (transport.UpdateIamAccountProfileResponseObject, error) {
@@ -137,7 +136,7 @@ func (s *HTTPServer) UpdateIamAccountProfile(ctx context.Context, request transp
 	if request.Body == nil {
 		return transport.UpdateIamAccountProfile400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(c.trace)}, nil
 	}
-	profile, err := s.service.UpdateProfile(ctx, c.token, c.csrf, request.Body.DisplayName, string(request.Body.Email), request.Body.AvatarRef)
+	issued, err := s.service.UpdateProfile(ctx, c.token, c.csrf, request.Body.DisplayName, string(request.Body.Email), request.Body.AvatarRef)
 	if errors.Is(err, ErrValidation) {
 		return transport.UpdateIamAccountProfile400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(c.trace)}, nil
 	}
@@ -153,7 +152,10 @@ func (s *HTTPServer) UpdateIamAccountProfile(ctx context.Context, request transp
 	if err != nil {
 		return transport.UpdateIamAccountProfile500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(c.trace)}, nil
 	}
-	return transport.UpdateIamAccountProfile200JSONResponse(transportProfile(profile)), nil
+	return transport.UpdateIamAccountProfile200JSONResponse{
+		Body:    transportProfile(issued.Profile),
+		Headers: transport.UpdateIamAccountProfile200ResponseHeaders{XCSRFToken: issued.CSRF, SetCookie: replacementCookie(issued)},
+	}, nil
 }
 
 func (s *HTTPServer) ChangeIamAccountPassword(ctx context.Context, request transport.ChangeIamAccountPasswordRequestObject) (transport.ChangeIamAccountPasswordResponseObject, error) {
@@ -193,6 +195,14 @@ func sessionCookie(value string, clear bool) string {
 		cookie.MaxAge = -1
 	}
 	return cookie.String()
+}
+
+func replacementCookie(issued Issued) *string {
+	if !issued.Rotated {
+		return nil
+	}
+	cookie := sessionCookie(issued.Token, false)
+	return &cookie
 }
 
 func sessionResponse(value Issued) transport.SessionResponse {

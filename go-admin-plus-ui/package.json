@@ -14,7 +14,7 @@
     "build": "pnpm --filter @go-admin/admin-web build",
     "build:prod": "pnpm build",
     "lint": "oxlint --ignore-pattern '**/node_modules/**' --ignore-pattern '**/dist/**' --deny-warnings apps packages tests",
-    "typecheck": "pnpm --filter @go-admin/admin-web typecheck && tsc -p tests/shell/tsconfig.json",
+    "typecheck": "pnpm --filter @go-admin/domain-iam typecheck && pnpm --filter @go-admin/web-domain-iam typecheck && pnpm --filter @go-admin/admin-web typecheck && tsc -p tests/shell/tsconfig.json",
     "type-check": "pnpm typecheck",
     "test": "vitest run --config tests/shell/vitest.config.ts",
     "test:unit": "pnpm test",

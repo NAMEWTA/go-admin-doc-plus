@@ -19,7 +19,7 @@ import (
 )
 
 func TestHTTPLoginUsesHostCookieAndDoesNotReturnToken(t *testing.T) {
-	_, service, _ := newFixture(t, session.Policy{IdleTimeout: time.Hour, AbsoluteTimeout: 8 * time.Hour, RotationInterval: 2 * time.Hour})
+	_, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute))
 	handler, err := session.NewHTTPHandler(service, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
@@ -37,7 +37,7 @@ func TestHTTPLoginUsesHostCookieAndDoesNotReturnToken(t *testing.T) {
 	cookie := response.Header().Get("Set-Cookie")
 	for _, required := range []string{"__Host-go-admin-session=", "Path=/", "HttpOnly", "Secure", "SameSite=Strict"} {
 		if !strings.Contains(cookie, required) {
-			t.Fatalf("cookie missing %q: %s", required, cookie)
+			t.Fatalf("cookie attribute missing: %q", required)
 		}
 	}
 	var body map[string]any
@@ -76,7 +76,7 @@ func TestHTTPLoginUsesHostCookieAndDoesNotReturnToken(t *testing.T) {
 }
 
 func TestHTTPInfrastructureFailureIsNotReportedAsLogout(t *testing.T) {
-	service, err := session.NewService(failingDatabase{}, session.Policy{IdleTimeout: time.Hour, AbsoluteTimeout: 2 * time.Hour, RotationInterval: time.Hour})
+	service, err := session.NewService(failingDatabase{}, mustPolicy(t, time.Hour, 2*time.Hour, time.Hour))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,6 +93,13 @@ func TestHTTPInfrastructureFailureIsNotReportedAsLogout(t *testing.T) {
 	}
 	if strings.Contains(response.Body.String(), "database") || strings.Contains(response.Body.String(), "secret") || strings.Contains(response.Body.String(), "path") {
 		t.Fatal("internal detail escaped the stable problem")
+	}
+	protected := httptest.NewRequest(http.MethodGet, "/iam/session/current", nil)
+	protected.AddCookie(&http.Cookie{Name: session.CookieName, Value: strings.Repeat("a", 43)})
+	protectedResponse := httptest.NewRecorder()
+	handler.ServeHTTP(protectedResponse, protected)
+	if protectedResponse.Code != http.StatusInternalServerError || !strings.Contains(protectedResponse.Body.String(), `"category":"internal"`) {
+		t.Fatalf("protected dependency failure was misclassified: status=%d", protectedResponse.Code)
 	}
 }
 
@@ -126,7 +133,7 @@ func TestArgon2idPolicyRejectsLegacyAndWrongCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.HasPrefix(hash, "$argon2id$v=19$m=65536,t=3,p=4$") {
-		t.Fatalf("unexpected password format: %q", hash)
+		t.Fatal("password hash does not use the required Argon2id parameters")
 	}
 	if !account.VerifyPassword(hash, "correct horse battery") {
 		t.Fatal("correct password rejected")
@@ -136,8 +143,61 @@ func TestArgon2idPolicyRejectsLegacyAndWrongCredentials(t *testing.T) {
 	}
 }
 
+func TestPasswordWorkBudgetFailsFastWithoutEnumeratingAccounts(t *testing.T) {
+	budget, err := account.NewPasswordWorkBudget(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release, acquired := budget.TryAcquire()
+	if !acquired {
+		t.Fatal("failed to reserve password work slot")
+	}
+	defer release()
+
+	_, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithPasswordWorkBudget(budget))
+	start := make(chan struct{})
+	results := make(chan error, 8)
+	for index := range 8 {
+		username := "admin"
+		if index%2 == 1 {
+			username = "missing"
+		}
+		go func() {
+			<-start
+			_, loginErr := service.Login(context.Background(), username, "incorrect password")
+			results <- loginErr
+		}()
+	}
+	close(start)
+	for range 8 {
+		if loginErr := <-results; !errors.Is(loginErr, session.ErrCredentials) {
+			t.Fatalf("saturated login returned a distinguishable error class: %v", loginErr)
+		}
+	}
+}
+
+func TestSanitizePreservesContextTermination(t *testing.T) {
+	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded} {
+		service, err := session.NewService(errorDatabase{err: sentinel}, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, loginErr := service.Login(context.Background(), "admin", "correct horse battery")
+		if !errors.Is(loginErr, sentinel) {
+			t.Fatalf("context sentinel was sanitized to a different error: %v", loginErr)
+		}
+	}
+}
+
+type errorDatabase struct{ err error }
+
+func (value errorDatabase) WithinTx(context.Context, func(context.Context, database.Tx) error) error {
+	return value.err
+}
+func (errorDatabase) Dialect() database.Dialect { return database.DialectSQLite }
+
 func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
-	db, service, clock := newFixture(t, session.Policy{IdleTimeout: 2 * time.Hour, AbsoluteTimeout: 8 * time.Hour, RotationInterval: time.Hour})
+	db, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	issued, err := service.Login(context.Background(), "ADMIN", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
@@ -179,12 +239,12 @@ func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
 }
 
 func TestCSRFPasswordAndTimeoutFailuresArePermanentAndAtomic(t *testing.T) {
-	db, service, clock := newFixture(t, session.Policy{IdleTimeout: 10 * time.Minute, AbsoluteTimeout: 30 * time.Minute, RotationInterval: 20 * time.Minute})
+	db, service, clock := newFixture(t, mustPolicy(t, 10*time.Minute, 30*time.Minute, 5*time.Minute))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, err := service.Profile(context.Background(), issued.Token)
+	beforeAccess, err := service.Profile(context.Background(), issued.Token)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,12 +263,12 @@ func TestCSRFPasswordAndTimeoutFailuresArePermanentAndAtomic(t *testing.T) {
 	if !idleAfter.Equal(idleBefore) {
 		t.Fatal("CSRF failure refreshed idle timeout")
 	}
-	after, _ := service.Profile(context.Background(), issued.Token)
-	if before != after {
+	afterAccess, _ := service.Profile(context.Background(), issued.Token)
+	if beforeAccess.Profile != afterAccess.Profile {
 		t.Fatal("CSRF failure mutated profile")
 	}
 
-	if err := service.ChangePassword(context.Background(), issued.Token, issued.CSRF, "correct horse battery", "replacement password value"); err != nil {
+	if err := service.ChangePassword(context.Background(), issued.Token, afterAccess.CSRF, "correct horse battery", "replacement password value"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.Current(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
@@ -232,7 +292,7 @@ func TestCSRFPasswordAndTimeoutFailuresArePermanentAndAtomic(t *testing.T) {
 }
 
 func TestProtectedReadsTouchIdleButAbsoluteExpiryWins(t *testing.T) {
-	db, service, clock := newFixture(t, session.Policy{IdleTimeout: 10 * time.Minute, AbsoluteTimeout: 25 * time.Minute, RotationInterval: 20 * time.Minute})
+	db, service, clock := newFixture(t, mustPolicy(t, 10*time.Minute, 25*time.Minute, 10*time.Minute))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
@@ -265,22 +325,114 @@ func TestProtectedReadsTouchIdleButAbsoluteExpiryWins(t *testing.T) {
 	}
 }
 
+func TestEveryContinuingProtectedRoutePropagatesRotation(t *testing.T) {
+	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
+	first, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	*clock = clock.Add(61 * time.Minute)
+	readReplacement, err := service.Profile(context.Background(), first.Token)
+	if err != nil || !readReplacement.Rotated || readReplacement.Token == "" || readReplacement.CSRF == "" {
+		t.Fatalf("profile route did not return replacement credentials: rotated=%t err=%v", readReplacement.Rotated, err)
+	}
+	if _, err := service.Current(context.Background(), first.Token); !errors.Is(err, session.ErrAuthentication) {
+		t.Fatal("profile rotation left the original token active")
+	}
+
+	second, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	*clock = clock.Add(61 * time.Minute)
+	mutationReplacement, err := service.UpdateProfile(context.Background(), second.Token, second.CSRF, "Updated", "updated@example.test", nil)
+	if err != nil || !mutationReplacement.Rotated || mutationReplacement.Token == "" || mutationReplacement.CSRF == "" {
+		t.Fatalf("profile mutation did not return replacement credentials: rotated=%t err=%v", mutationReplacement.Rotated, err)
+	}
+	if _, err := service.Current(context.Background(), second.Token); !errors.Is(err, session.ErrAuthentication) {
+		t.Fatal("mutation rotation left the original token active")
+	}
+}
+
+func TestHTTPProfileRotationSetsReplacementCookieAndCSRFHeader(t *testing.T) {
+	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
+	handler, err := session.NewHTTPHandler(service, func(*http.Request) string { return "0123456789abcdef" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	*clock = clock.Add(61 * time.Minute)
+	request := httptest.NewRequest(http.MethodGet, "/iam/account/profile", nil)
+	request.AddCookie(&http.Cookie{Name: session.CookieName, Value: issued.Token})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("profile rotation status=%d", response.Code)
+	}
+	if response.Header().Get("Set-Cookie") == "" || response.Header().Get("X-CSRF-Token") == "" {
+		t.Fatal("profile rotation omitted replacement credentials from response headers")
+	}
+}
+
+func TestAdministrativeRevokeFencesConcurrentRotation(t *testing.T) {
+	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
+	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	*clock = clock.Add(61 * time.Minute)
+	start := make(chan struct{})
+	rotated := make(chan session.Issued, 1)
+	rotationErr := make(chan error, 1)
+	revokeErr := make(chan error, 1)
+	go func() {
+		<-start
+		value, currentErr := service.Current(context.Background(), issued.Token)
+		rotated <- value
+		rotationErr <- currentErr
+	}()
+	go func() {
+		<-start
+		revokeErr <- service.RevokeAccount(context.Background(), issued.Profile.ID)
+	}()
+	close(start)
+	value := <-rotated
+	currentErr := <-rotationErr
+	if currentErr != nil && !errors.Is(currentErr, session.ErrAuthentication) {
+		t.Fatalf("concurrent rotation returned an unexpected error: %v", currentErr)
+	}
+	if err := <-revokeErr; err != nil {
+		t.Fatalf("concurrent revoke failed: %v", err)
+	}
+	for _, token := range []string{issued.Token, value.Token} {
+		if token == "" {
+			continue
+		}
+		if _, err := service.Current(context.Background(), token); !errors.Is(err, session.ErrAuthentication) {
+			t.Fatal("generation fence allowed a token after administrative revoke")
+		}
+	}
+}
+
 func TestProfilePersistenceAndAdministrativeRevoke(t *testing.T) {
-	_, service, _ := newFixture(t, session.Policy{IdleTimeout: time.Hour, AbsoluteTimeout: 8 * time.Hour, RotationInterval: 2 * time.Hour})
+	_, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
 	}
 	avatar := "files/avatar-1"
-	profile, err := service.UpdateProfile(context.Background(), issued.Token, issued.CSRF, "New Name", "new@example.test", &avatar)
+	profileAccess, err := service.UpdateProfile(context.Background(), issued.Token, issued.CSRF, "New Name", "new@example.test", &avatar)
 	if err != nil {
 		t.Fatal(err)
 	}
 	persisted, err := service.Profile(context.Background(), issued.Token)
-	if err != nil || persisted.DisplayName != profile.DisplayName || persisted.Email != "new@example.test" {
+	if err != nil || persisted.Profile.DisplayName != profileAccess.Profile.DisplayName || persisted.Profile.Email != "new@example.test" {
 		t.Fatalf("profile was not persisted: %#v %v", persisted, err)
 	}
-	if err := service.RevokeAccount(context.Background(), profile.ID); err != nil {
+	if err := service.RevokeAccount(context.Background(), profileAccess.Profile.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.Current(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
@@ -289,7 +441,7 @@ func TestProfilePersistenceAndAdministrativeRevoke(t *testing.T) {
 }
 
 func TestDisabledAccountCannotAuthenticateOrMutate(t *testing.T) {
-	db, service, clock := newFixture(t, session.Policy{IdleTimeout: time.Hour, AbsoluteTimeout: 8 * time.Hour, RotationInterval: 2 * time.Hour})
+	db, service, clock := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
@@ -305,7 +457,7 @@ func TestDisabledAccountCannotAuthenticateOrMutate(t *testing.T) {
 	}
 }
 
-func newFixture(t *testing.T, policy session.Policy) (*database.Database, *session.Service, *time.Time) {
+func newFixture(t *testing.T, policy config.SessionPolicy, options ...session.Option) (*database.Database, *session.Service, *time.Time) {
 	t.Helper()
 	ctx := context.Background()
 	process := database.NewProcess()
@@ -335,9 +487,19 @@ func newFixture(t *testing.T, policy session.Policy) (*database.Database, *sessi
 	}
 	// The pointer controls the closure without exporting clock mutation into production APIs.
 	clock := &now
-	service, err := session.NewService(db, policy, session.WithClock(func() time.Time { return *clock }))
+	options = append([]session.Option{session.WithClock(func() time.Time { return *clock })}, options...)
+	service, err := session.NewService(db, policy, options...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return db, service, clock
+}
+
+func mustPolicy(t *testing.T, idle, absolute, rotation time.Duration) config.SessionPolicy {
+	t.Helper()
+	policy, err := config.NewSessionPolicy(idle, absolute, rotation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return policy
 }
