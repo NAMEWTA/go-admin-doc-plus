@@ -39,16 +39,15 @@ tasks:
       - '{{.RUN_SCRIPT}} scripts/go-admin-plus-ui/lint.sh'
 
   generate:
-    desc: Regenerate backend and frontend contracts
+    desc: Regenerate canonical backend and frontend transports
     cmds:
-      - '{{.RUN_SCRIPT}} scripts/go-admin-plus/generate.sh'
-      - '{{.RUN_SCRIPT}} scripts/go-admin-plus-ui/generate.sh'
+      - '{{.RUN_SCRIPT}} scripts/contracts/generate.sh'
 
   contract:lint:
     desc: Lint and test the modular OpenAPI contract policy
     cmds:
       - node scripts/contracts/cli.mjs lint
-      - node --test scripts/contracts/*.test.mjs
+      - node --test --test-concurrency=1 scripts/contracts/*.test.mjs
       - pnpm --dir go-admin-ui-plus --filter @go-admin/api-client type-check
       - pnpm --dir go-admin-ui-plus --filter @go-admin/api-client test
 

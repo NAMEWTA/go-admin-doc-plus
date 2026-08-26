@@ -1,7 +1,16 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { discoverModuleContracts, resolveModuleMetadata } from './modules.mjs'
 import { validatePolicy } from './policy.mjs'
@@ -11,17 +20,26 @@ const uiRoot = join(repositoryRoot, 'go-admin-ui-plus')
 const canonicalContract = join(repositoryRoot, 'contracts', 'openapi', 'openapi.yaml')
 const config = join(repositoryRoot, 'scripts', 'contracts', 'redocly.yaml')
 const goConfigPath = join(repositoryRoot, 'scripts', 'contracts', 'oapi-codegen.yaml')
+const manifestPath = join('scripts', 'contracts', 'generated', 'manifest.json')
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-const canonicalGeneratedFiles = [
-  join('scripts', 'contracts', 'generated', 'openapi.json'),
-  join('go-admin-plus', 'internal', 'contracts', 'openapi.gen.go'),
-  join('go-admin-ui-plus', 'packages', 'api-client', 'src', 'generated', 'schema.ts'),
-  join('go-admin-ui-plus', 'packages', 'api-client', 'src', 'generated', 'client.ts')
-]
+const canonicalOutputs = {
+  bundle: join('scripts', 'contracts', 'generated', 'openapi.json'),
+  go: join('go-admin-plus', 'internal', 'contracts', 'openapi.gen.go'),
+  runtimeSpec: join('go-admin-plus', 'internal', 'contracts', 'openapi.json'),
+  typescript: join('go-admin-ui-plus', 'packages', 'api-client', 'src', 'generated', 'schema.ts'),
+  client: join('go-admin-ui-plus', 'packages', 'api-client', 'src', 'generated', 'client.ts')
+}
+const canonicalGeneratedFiles = Object.values(canonicalOutputs)
 
-const fail = message => {
-  console.error(`contract: ${message}`)
-  process.exit(1)
+class ContractError extends Error {
+  constructor(message, exitCode = 1) {
+    super(message)
+    this.exitCode = exitCode
+  }
+}
+
+const fail = (message, exitCode = 1) => {
+  throw new ContractError(`contract: ${message}`, exitCode)
 }
 
 const run = (command, args, options = {}) => {
@@ -30,8 +48,13 @@ const run = (command, args, options = {}) => {
     encoding: 'utf8',
     stdio: options.capture ? 'pipe' : 'inherit'
   })
-  if (result.error) fail(`${command} is required: ${result.error.message}`)
-  if (result.status !== 0) process.exit(result.status ?? 1)
+  if (result.error) fail(`${command} is required: ${result.error.message}`, 127)
+  if (result.status !== 0) {
+    const detail = options.capture
+      ? `\n${[result.stdout, result.stderr].filter(Boolean).join('\n').trim()}`
+      : ''
+    fail(`${command} exited with status ${result.status ?? 1}${detail}`, result.status ?? 1)
+  }
   return result.stdout ?? ''
 }
 
@@ -42,11 +65,15 @@ const redocly = (...args) => run(pnpm, [
   ...args
 ])
 
-const optionValue = name => {
-  const index = process.argv.indexOf(name)
-  if (index < 0) return undefined
-  if (!process.argv[index + 1]) fail(`${name} requires a value`)
-  return process.argv[index + 1]
+const optionValues = name => {
+  const values = []
+  for (let index = 0; index < process.argv.length; index += 1) {
+    if (process.argv[index] !== name) continue
+    if (!process.argv[index + 1]) fail(`${name} requires a value`)
+    values.push(process.argv[index + 1])
+    index += 1
+  }
+  return values
 }
 
 const bundle = (input, output, { dereferenced = false } = {}) => {
@@ -55,28 +82,45 @@ const bundle = (input, output, { dereferenced = false } = {}) => {
   redocly(...args, '--ext', 'json', '--output', output, '--config', config)
 }
 
-const lintOne = input => {
+const lintOne = (input, operationIds) => {
   redocly('lint', input, '--config', config)
   const temporaryDirectory = mkdtempSync(join(tmpdir(), 'go-admin-contract-'))
   const output = join(temporaryDirectory, 'bundle.json')
   try {
     bundle(input, output, { dereferenced: true })
-    validatePolicy(JSON.parse(readFileSync(output, 'utf8')), {
-      canonical: resolve(input) === resolve(canonicalContract)
+    const document = JSON.parse(readFileSync(output, 'utf8'))
+    validatePolicy(document, {
+      canonical: resolve(input) === resolve(canonicalContract),
+      operationIds,
+      source: relative(repositoryRoot, input)
     })
-  } catch (error) {
-    fail(error instanceof Error ? error.message : String(error))
+    if (document['x-go-admin-module'] !== undefined || document['x-go-admin-codegen'] !== undefined) {
+      return resolveModuleMetadata(repositoryRoot, document, relative(repositoryRoot, input))
+    }
+    return undefined
   } finally {
     rmSync(temporaryDirectory, { recursive: true, force: true })
   }
 }
 
-const lintAll = () => {
-  lintOne(canonicalContract)
-  for (const moduleContract of discoverModuleContracts(repositoryRoot)) lintOne(moduleContract)
+export const lintContracts = inputs => {
+  const operationIds = new Map()
+  const fragments = new Map()
+  for (const input of inputs) {
+    const metadata = lintOne(resolve(input), operationIds)
+    if (!metadata) continue
+    const first = fragments.get(metadata.id)
+    if (first) fail(`module fragment id ${metadata.id} is declared by both ${first} and ${metadata.source}`)
+    fragments.set(metadata.id, metadata.source)
+  }
 }
 
-const generatedClient = `// Code generated by scripts/contracts/cli.mjs. DO NOT EDIT.\nimport createClient, { type ClientOptions } from 'openapi-fetch'\nimport type { paths } from './schema'\n\nexport const createContractClient = (options: ClientOptions) => createClient<paths>(options)\nexport type ContractClient = ReturnType<typeof createContractClient>\nexport type { components, operations, paths } from './schema'\n`
+const allContracts = () => [canonicalContract, ...discoverModuleContracts(repositoryRoot)]
+const lintAll = () => lintContracts(allContracts())
+
+const canonicalClient = `// Code generated by scripts/contracts/cli.mjs. DO NOT EDIT.\nimport createOpenAPIClient, { type ClientOptions } from 'openapi-fetch'\nimport type { paths } from './schema'\n\nexport { createOpenAPIClient }\nexport type { ClientOptions }\nexport const createContractClient = (options: ClientOptions) => createOpenAPIClient<paths>(options)\nexport type ContractClient = ReturnType<typeof createContractClient>\nexport type { components, operations, paths } from './schema'\n`
+
+const moduleClient = `// Code generated by scripts/contracts/cli.mjs. DO NOT EDIT.\nimport { createOpenAPIClient, type ClientOptions } from '@go-admin/api-client/contract'\nimport type { paths } from './schema'\n\nexport const createContractClient = (options: ClientOptions) => createOpenAPIClient<paths>(options)\nexport type ContractClient = ReturnType<typeof createContractClient>\nexport type { components, operations, paths } from './schema'\n`
 
 const generateGo = (input, output, packageName) => {
   const goConfig = JSON.parse(readFileSync(goConfigPath, 'utf8'))
@@ -94,7 +138,7 @@ const generateGo = (input, output, packageName) => {
   }
 }
 
-const generateTypescript = (input, schemaOutput, clientOutput) => {
+const generateTypescript = (input, schemaOutput, clientOutput, clientSource) => {
   run(pnpm, [
     '--dir', uiRoot,
     '--filter', '@go-admin/api-client',
@@ -102,7 +146,7 @@ const generateTypescript = (input, schemaOutput, clientOutput) => {
     '--output', schemaOutput,
     '--alphabetize'
   ])
-  writeFileSync(clientOutput, generatedClient)
+  writeFileSync(clientOutput, clientSource)
 }
 
 const outputAt = (outputRoot, path) => {
@@ -113,44 +157,39 @@ const outputAt = (outputRoot, path) => {
 
 export const generate = (outputRoot, moduleContracts = discoverModuleContracts(repositoryRoot)) => {
   const generatedFiles = [...canonicalGeneratedFiles]
-  const canonicalOutputs = Object.fromEntries(
-    canonicalGeneratedFiles.map(path => [path, outputAt(outputRoot, path)])
+  const outputs = Object.fromEntries(
+    Object.entries(canonicalOutputs).map(([name, path]) => [name, outputAt(outputRoot, path)])
   )
-  bundle(canonicalContract, canonicalOutputs[canonicalGeneratedFiles[0]])
-  generateGo(
-    canonicalOutputs[canonicalGeneratedFiles[0]],
-    canonicalOutputs[canonicalGeneratedFiles[1]],
-    'contracts'
-  )
-  generateTypescript(
-    canonicalOutputs[canonicalGeneratedFiles[0]],
-    canonicalOutputs[canonicalGeneratedFiles[2]],
-    canonicalOutputs[canonicalGeneratedFiles[3]]
-  )
+  bundle(canonicalContract, outputs.bundle)
+  copyFileSync(outputs.bundle, outputs.runtimeSpec)
+  generateGo(outputs.bundle, outputs.go, 'contracts')
+  generateTypescript(outputs.bundle, outputs.typescript, outputs.client, canonicalClient)
 
   const stagingDirectory = mkdtempSync(join(tmpdir(), 'go-admin-module-contracts-'))
   const moduleIds = new Set()
   const moduleOutputs = new Set()
   try {
-    for (const moduleContract of moduleContracts) {
-      const moduleBundle = join(stagingDirectory, `${basename(moduleContract).replace(/\.[^.]+$/, '')}.json`)
+    for (const [index, moduleContract] of moduleContracts.entries()) {
+      const stem = basename(moduleContract).replace(/\.[^.]+$/, '')
+      const moduleBundle = join(stagingDirectory, `${String(index).padStart(3, '0')}-${stem}.json`)
       bundle(moduleContract, moduleBundle)
       const metadata = resolveModuleMetadata(
         repositoryRoot,
         JSON.parse(readFileSync(moduleBundle, 'utf8')),
         relative(repositoryRoot, moduleContract)
       )
-      if (moduleIds.has(metadata.id)) fail(`duplicate module id ${metadata.id}`)
+      if (moduleIds.has(metadata.id)) fail(`duplicate module fragment id ${metadata.id}`)
       moduleIds.add(metadata.id)
 
       const relativeGoOutput = relative(repositoryRoot, metadata.goOutput)
       const relativeTypescriptDirectory = relative(repositoryRoot, metadata.typescriptOutput)
-      const outputs = [
+      const moduleFiles = [
         relativeGoOutput,
+        join(dirname(relativeGoOutput), 'openapi.json'),
         join(relativeTypescriptDirectory, 'schema.ts'),
         join(relativeTypescriptDirectory, 'client.ts')
       ]
-      for (const output of outputs) {
+      for (const output of moduleFiles) {
         if (moduleOutputs.has(output) || canonicalGeneratedFiles.includes(output)) {
           fail(`multiple contracts generate ${output}`)
         }
@@ -158,30 +197,116 @@ export const generate = (outputRoot, moduleContracts = discoverModuleContracts(r
         generatedFiles.push(output)
       }
 
-      const goOutput = outputAt(outputRoot, outputs[0])
-      const schemaOutput = outputAt(outputRoot, outputs[1])
-      const clientOutput = outputAt(outputRoot, outputs[2])
+      const goOutput = outputAt(outputRoot, moduleFiles[0])
+      const runtimeSpec = outputAt(outputRoot, moduleFiles[1])
+      const schemaOutput = outputAt(outputRoot, moduleFiles[2])
+      const clientOutput = outputAt(outputRoot, moduleFiles[3])
+      copyFileSync(moduleBundle, runtimeSpec)
       generateGo(moduleBundle, goOutput, metadata.goPackage)
-      generateTypescript(moduleBundle, schemaOutput, clientOutput)
+      generateTypescript(moduleBundle, schemaOutput, clientOutput, moduleClient)
     }
   } finally {
     rmSync(stagingDirectory, { recursive: true, force: true })
   }
-  return generatedFiles
+  return generatedFiles.sort((left, right) => left.localeCompare(right))
 }
 
-const checkGeneration = () => {
-  const temporaryDirectory = mkdtempSync(join(tmpdir(), 'go-admin-generate-'))
+const manifestContent = generatedFiles => `${JSON.stringify({
+  schemaVersion: 1,
+  outputs: generatedFiles.map(path => path.split(sep).join('/')).sort()
+}, null, 2)}\n`
+
+const isManagedOutput = path => {
+  if (typeof path !== 'string' || path.length === 0 || isAbsolute(path) || path.includes('\\')) return false
+  if (path.split('/').includes('..')) return false
+  if (canonicalGeneratedFiles.map(item => item.split(sep).join('/')).includes(path)) return true
+  return /^go-admin-plus\/internal\/modules\/[a-z0-9/-]+\/transport\/(?:openapi\.gen\.go|openapi\.json)$/.test(path) ||
+    /^go-admin-plus-ui\/packages\/domains\/[a-z0-9/-]+\/generated\/(?:schema\.ts|client\.ts)$/.test(path)
+}
+
+const readManifest = outputRoot => {
+  const path = join(outputRoot, manifestPath)
+  if (!existsSync(path)) return []
+  let manifest
   try {
-    const generatedFiles = generate(temporaryDirectory)
+    manifest = JSON.parse(readFileSync(path, 'utf8'))
+  } catch (error) {
+    fail(`generated manifest is invalid: ${error instanceof Error ? error.message : String(error)}`)
+  }
+  if (manifest?.schemaVersion !== 1 || !Array.isArray(manifest.outputs)) {
+    fail('generated manifest must use schemaVersion 1 and an outputs array')
+  }
+  const outputs = [...new Set(manifest.outputs)]
+  if (outputs.length !== manifest.outputs.length || outputs.some(path => !isManagedOutput(path))) {
+    fail('generated manifest contains duplicate or unmanaged output paths')
+  }
+  return outputs
+}
+
+const materializeGeneration = (stagingRoot, outputRoot, generatedFiles) => {
+  const previousOutputs = readManifest(outputRoot)
+  const pending = []
+  let temporaryManifest
+  try {
+    generatedFiles.forEach((path, index) => {
+      const destination = join(outputRoot, path)
+      mkdirSync(dirname(destination), { recursive: true })
+      const temporary = join(dirname(destination), `.${basename(destination)}.contract-${process.pid}-${index}.tmp`)
+      copyFileSync(join(stagingRoot, path), temporary)
+      pending.push({ destination, temporary })
+    })
+    for (const { destination, temporary } of pending) renameSync(temporary, destination)
+
+    const expected = new Set(generatedFiles.map(path => path.split(sep).join('/')))
+    for (const stale of previousOutputs.filter(path => !expected.has(path))) {
+      rmSync(join(outputRoot, ...stale.split('/')), { force: true })
+    }
+
+    const manifest = join(outputRoot, manifestPath)
+    mkdirSync(dirname(manifest), { recursive: true })
+    temporaryManifest = `${manifest}.contract-${process.pid}.tmp`
+    writeFileSync(temporaryManifest, manifestContent(generatedFiles))
+    renameSync(temporaryManifest, manifest)
+  } finally {
+    for (const { temporary } of pending) rmSync(temporary, { force: true })
+    if (temporaryManifest) rmSync(temporaryManifest, { force: true })
+  }
+}
+
+export const synchronizeGeneration = (
+  outputRoot = repositoryRoot,
+  moduleContracts = discoverModuleContracts(repositoryRoot)
+) => {
+  const stagingRoot = mkdtempSync(join(tmpdir(), 'go-admin-generate-write-'))
+  try {
+    const generatedFiles = generate(stagingRoot, moduleContracts)
+    materializeGeneration(stagingRoot, outputRoot, generatedFiles)
+    return generatedFiles
+  } finally {
+    rmSync(stagingRoot, { recursive: true, force: true })
+  }
+}
+
+export const checkGeneration = (
+  outputRoot = repositoryRoot,
+  moduleContracts = discoverModuleContracts(repositoryRoot)
+) => {
+  const stagingRoot = mkdtempSync(join(tmpdir(), 'go-admin-generate-check-'))
+  try {
+    const generatedFiles = generate(stagingRoot, moduleContracts)
     const drift = generatedFiles.filter(path => {
-      const expected = join(repositoryRoot, path)
-      const actual = join(temporaryDirectory, path)
+      const expected = join(outputRoot, path)
+      const actual = join(stagingRoot, path)
       return !existsSync(expected) || readFileSync(expected).compare(readFileSync(actual)) !== 0
     })
+    const manifest = join(outputRoot, manifestPath)
+    if (!existsSync(manifest) || readFileSync(manifest, 'utf8') !== manifestContent(generatedFiles)) {
+      drift.push(manifestPath)
+    }
     if (drift.length) fail(`generated transport drift:\n- ${drift.join('\n- ')}`)
+    return generatedFiles
   } finally {
-    rmSync(temporaryDirectory, { recursive: true, force: true })
+    rmSync(stagingRoot, { recursive: true, force: true })
   }
 }
 
@@ -189,9 +314,8 @@ const main = () => {
   const command = process.argv[2]
   switch (command) {
     case 'lint': {
-      const input = optionValue('--contract')
-      if (input) lintOne(resolve(repositoryRoot, input))
-      else lintAll()
+      const inputs = optionValues('--contract')
+      lintContracts(inputs.length ? inputs.map(input => resolve(repositoryRoot, input)) : allContracts())
       console.log('CONTRACT_LINT_PASS')
       break
     }
@@ -201,7 +325,7 @@ const main = () => {
         checkGeneration()
         console.log('CONTRACT_GENERATE_CHECK_PASS')
       } else {
-        generate(repositoryRoot)
+        synchronizeGeneration()
         console.log('CONTRACT_GENERATE_PASS')
       }
       break
@@ -210,4 +334,11 @@ const main = () => {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main()
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    main()
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error))
+    process.exitCode = error instanceof ContractError ? error.exitCode : 1
+  }
+}

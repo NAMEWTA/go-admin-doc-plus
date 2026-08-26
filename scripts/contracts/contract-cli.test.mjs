@@ -36,3 +36,13 @@ for (const [name, expected] of [
     assert.match(`${result.stdout}\n${result.stderr}`, expected)
   })
 }
+
+test('rejects duplicate operationIds across separate fragments', () => {
+  const result = run(
+    'lint',
+    '--contract', fixture('duplicate-operation-a.yaml'),
+    '--contract', fixture('duplicate-operation-b.yaml')
+  )
+  assert.notEqual(result.status, 0, 'cross-fragment duplicate unexpectedly passed')
+  assert.match(`${result.stdout}\n${result.stderr}`, /duplicate-operation-a.*duplicates|duplicates.*duplicate-operation-a/i)
+})

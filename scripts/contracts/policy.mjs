@@ -23,7 +23,10 @@ const visitStrings = (value, path, visit) => {
   }
 }
 
-export const validatePolicy = (document, { canonical = false } = {}) => {
+export const validatePolicy = (
+  document,
+  { canonical = false, operationIds = new Map(), source = 'contract' } = {}
+) => {
   const problems = []
   if (typeof document?.openapi !== 'string' || !document.openapi.startsWith('3.1.')) {
     problems.push('/openapi must declare OpenAPI 3.1')
@@ -33,14 +36,14 @@ export const validatePolicy = (document, { canonical = false } = {}) => {
     if (sensitiveDetail.test(value)) problems.push(`${path} exposes sensitive internal detail`)
   })
 
-  const operationIds = new Map()
   for (const [path, pathItem] of Object.entries(document?.paths ?? {})) {
     for (const [method, operation] of Object.entries(pathItem ?? {})) {
       if (!methods.has(method) || !operation || typeof operation !== 'object') continue
       if (typeof operation.operationId === 'string') {
         const first = operationIds.get(operation.operationId)
-        if (first) problems.push(`${path}/${method}/operationId duplicates ${first}`)
-        else operationIds.set(operation.operationId, `${path}/${method}`)
+        const current = `${source}:${path}/${method}`
+        if (first) problems.push(`${current}/operationId duplicates ${first}`)
+        else operationIds.set(operation.operationId, current)
       }
       for (const [status, response] of Object.entries(operation.responses ?? {})) {
         if (!/^[45](?:\d\d|XX)$/.test(status)) continue

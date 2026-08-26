@@ -13,7 +13,7 @@ test('generates Go and TypeScript transports for a module contract', () => {
   try {
     const outputs = generate(outputRoot, [join(directory, 'fixtures', 'valid-module.yaml')])
     const goOutput = join('go-admin-plus', 'internal', 'modules', 'contract-fixture', 'transport', 'openapi.gen.go')
-    const typescriptRoot = join('go-admin-ui-plus', 'packages', 'domains', 'contract-fixture', 'src', 'generated')
+    const typescriptRoot = join('go-admin-plus-ui', 'packages', 'domains', 'contract-fixture', 'src', 'generated')
 
     assert.ok(outputs.includes(goOutput))
     assert.ok(outputs.includes(join(typescriptRoot, 'schema.ts')))
@@ -21,6 +21,7 @@ test('generates Go and TypeScript transports for a module contract', () => {
     assert.match(readFileSync(join(outputRoot, goOutput), 'utf8'), /package contractfixturetransport/)
     assert.ok(existsSync(join(outputRoot, typescriptRoot, 'schema.ts')))
     assert.ok(existsSync(join(outputRoot, typescriptRoot, 'client.ts')))
+    assert.match(readFileSync(join(outputRoot, typescriptRoot, 'client.ts'), 'utf8'), /@go-admin\/api-client\/contract/)
   } finally {
     rmSync(outputRoot, { recursive: true, force: true })
   }

@@ -30,18 +30,21 @@ export const resolveModuleMetadata = (repositoryRoot, document, source = 'module
     throw new Error(`${source}: module codegen metadata is required`)
   }
   const codegenKeys = Object.keys(codegen).sort()
-  const expectedCodegenKeys = ['goOutput', 'goPackage', 'typescriptOutput']
+  const expectedCodegenKeys = ['goOutput', 'goPackage', 'owner', 'typescriptOutput']
   if (JSON.stringify(codegenKeys) !== JSON.stringify(expectedCodegenKeys)) {
     throw new Error(`${source}: module codegen metadata must contain only ${expectedCodegenKeys.join(', ')}`)
   }
   if (typeof codegen.goPackage !== 'string' || !goPackagePattern.test(codegen.goPackage)) {
     throw new Error(`${source}: Go package must match ${goPackagePattern}`)
   }
+  if (typeof codegen.owner !== 'string' || !moduleIdPattern.test(codegen.owner)) {
+    throw new Error(`${source}: module owner must match ${moduleIdPattern}`)
+  }
 
   const goOutput = assertRelativeOutput(
     repositoryRoot,
     codegen.goOutput,
-    join('go-admin-plus', 'internal', 'modules', id),
+    join('go-admin-plus', 'internal', 'modules', codegen.owner),
     'Go',
     source
   )
@@ -52,15 +55,19 @@ export const resolveModuleMetadata = (repositoryRoot, document, source = 'module
   const typescriptOutput = assertRelativeOutput(
     repositoryRoot,
     codegen.typescriptOutput,
-    join('go-admin-ui-plus', 'packages', 'domains', id),
+    join('go-admin-plus-ui', 'packages', 'domains', codegen.owner),
     'TypeScript',
     source
   )
-  if (!typescriptOutput.endsWith(`${sep}src${sep}generated`)) {
-    throw new Error(`${source}: TypeScript output must end with src/generated`)
+  const typescriptRelative = relative(
+    resolve(repositoryRoot, 'go-admin-plus-ui', 'packages', 'domains', codegen.owner),
+    typescriptOutput
+  )
+  if (!typescriptRelative.split(sep).includes('src') || !typescriptOutput.endsWith(`${sep}generated`)) {
+    throw new Error(`${source}: TypeScript output must be under the owner src tree and end with generated`)
   }
 
-  return { id, goPackage: codegen.goPackage, goOutput, typescriptOutput, source }
+  return { id, owner: codegen.owner, goPackage: codegen.goPackage, goOutput, typescriptOutput, source }
 }
 
 export const discoverModuleContracts = repositoryRoot => {

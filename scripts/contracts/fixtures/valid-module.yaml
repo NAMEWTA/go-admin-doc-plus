@@ -5,9 +5,10 @@ info:
   version: 1.0.0
 x-go-admin-module: contract-fixture
 x-go-admin-codegen:
+  owner: contract-fixture
   goPackage: contractfixturetransport
   goOutput: go-admin-plus/internal/modules/contract-fixture/transport/openapi.gen.go
-  typescriptOutput: go-admin-ui-plus/packages/domains/contract-fixture/src/generated
+  typescriptOutput: go-admin-plus-ui/packages/domains/contract-fixture/src/generated
 paths:
   /contract-fixture:
     get:

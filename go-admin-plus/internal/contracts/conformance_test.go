@@ -15,10 +15,51 @@ type probeHandler struct{}
 var _ StrictServerInterface = probeHandler{}
 
 func (probeHandler) ProbeContract(_ context.Context, request ProbeContractRequestObject) (ProbeContractResponseObject, error) {
-	if request.Body.Value == "fail" {
+	switch request.Body.Value {
+	case "validation":
+		return probeProblemResponse(Validation), nil
+	case "authentication":
+		return probeProblemResponse(Authentication), nil
+	case "authorization":
+		return probeProblemResponse(Authorization), nil
+	case "not_found":
+		return probeProblemResponse(NotFound), nil
+	case "conflict":
+		return probeProblemResponse(Conflict), nil
+	case "internal":
 		return nil, errors.New("pq: secret=database-password at /var/lib/app/database.go:42")
 	}
 	return ProbeContract200JSONResponse{Value: request.Body.Value}, nil
+}
+
+func probeProblemResponse(category ProblemCategory) ProbeContractResponseObject {
+	problem, _ := NewStableProblem(category, "0123456789abcdef")
+	switch category {
+	case Validation:
+		return ProbeContract400ApplicationProblemPlusJSONResponse{
+			ValidationProblemApplicationProblemPlusJSONResponse: ValidationProblemApplicationProblemPlusJSONResponse(problem),
+		}
+	case Authentication:
+		return ProbeContract401ApplicationProblemPlusJSONResponse{
+			AuthenticationProblemApplicationProblemPlusJSONResponse: AuthenticationProblemApplicationProblemPlusJSONResponse(problem),
+		}
+	case Authorization:
+		return ProbeContract403ApplicationProblemPlusJSONResponse{
+			AuthorizationProblemApplicationProblemPlusJSONResponse: AuthorizationProblemApplicationProblemPlusJSONResponse(problem),
+		}
+	case NotFound:
+		return ProbeContract404ApplicationProblemPlusJSONResponse{
+			NotFoundProblemApplicationProblemPlusJSONResponse: NotFoundProblemApplicationProblemPlusJSONResponse(problem),
+		}
+	case Conflict:
+		return ProbeContract409ApplicationProblemPlusJSONResponse{
+			ConflictProblemApplicationProblemPlusJSONResponse: ConflictProblemApplicationProblemPlusJSONResponse(problem),
+		}
+	default:
+		return ProbeContract500ApplicationProblemPlusJSONResponse{
+			InternalProblemApplicationProblemPlusJSONResponse: InternalProblemApplicationProblemPlusJSONResponse(problem),
+		}
+	}
 }
 
 func fixedTraceID(*http.Request) string { return "0123456789abcdef" }
@@ -94,7 +135,7 @@ func TestStrictTransportNormalizesRequestAndInternalFailures(t *testing.T) {
 	}{
 		{name: "invalid request", url: "/contract/probe", body: `{`, status: http.StatusBadRequest, category: Validation},
 		{name: "invalid query", url: "/contract/probe?page=invalid", body: `{"value":"ok"}`, status: http.StatusBadRequest, category: Validation},
-		{name: "internal failure", url: "/contract/probe", body: `{"value":"fail"}`, status: http.StatusInternalServerError, category: Internal},
+		{name: "internal failure", url: "/contract/probe", body: `{"value":"internal"}`, status: http.StatusInternalServerError, category: Internal},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -123,6 +164,104 @@ func TestStrictTransportNormalizesRequestAndInternalFailures(t *testing.T) {
 			}
 			lower := strings.ToLower(response.Body.String())
 			for _, forbidden := range []string{"pq:", "secret", "password", "/var/", "database.go"} {
+				if strings.Contains(lower, forbidden) {
+					t.Fatalf("problem response leaked %q: %s", forbidden, response.Body.String())
+				}
+			}
+		})
+	}
+}
+
+func TestStrictTransportValidatesSchemaMediaTypeAndBodyLimit(t *testing.T) {
+	tests := []struct {
+		name        string
+		url         string
+		contentType string
+		body        string
+	}{
+		{name: "missing required value", url: "/contract/probe", contentType: "application/json", body: `{}`},
+		{name: "empty value", url: "/contract/probe", contentType: "application/json", body: `{"value":""}`},
+		{name: "unknown property", url: "/contract/probe", contentType: "application/json", body: `{"value":"ok","unknown":true}`},
+		{name: "value exceeds schema maximum", url: "/contract/probe", contentType: "application/json", body: `{"value":"` + strings.Repeat("x", 65) + `"}`},
+		{name: "page below minimum", url: "/contract/probe?page=0", contentType: "application/json", body: `{"value":"ok"}`},
+		{name: "page size above maximum", url: "/contract/probe?pageSize=201", contentType: "application/json", body: `{"value":"ok"}`},
+		{name: "wrong content type", url: "/contract/probe", contentType: "text/plain", body: `{"value":"ok"}`},
+		{name: "body exceeds transport limit", url: "/contract/probe", contentType: "application/json", body: `{"value":"` + strings.Repeat("x", int(DefaultMaxRequestBodyBytes)) + `"}`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			handler, err := NewHandler(probeHandler{}, fixedTraceID, nil)
+			if err != nil {
+				t.Fatalf("create handler: %v", err)
+			}
+			request := httptest.NewRequest(http.MethodPost, test.url, strings.NewReader(test.body))
+			request.Header.Set("Content-Type", test.contentType)
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d; body=%s", response.Code, http.StatusBadRequest, response.Body.String())
+			}
+			var problem Problem
+			if err := json.NewDecoder(response.Body).Decode(&problem); err != nil {
+				t.Fatalf("decode problem: %v", err)
+			}
+			if problem.Category != Validation || problem.Code != "REQUEST_INVALID" {
+				t.Fatalf("problem = %#v, want stable validation category", problem)
+			}
+		})
+	}
+}
+
+func TestStrictTransportReturnsEveryDeclaredProblemCategory(t *testing.T) {
+	tests := []struct {
+		category ProblemCategory
+		status   int
+		code     string
+	}{
+		{Validation, http.StatusBadRequest, "REQUEST_INVALID"},
+		{Authentication, http.StatusUnauthorized, "SESSION_REQUIRED"},
+		{Authorization, http.StatusForbidden, "PERMISSION_DENIED"},
+		{NotFound, http.StatusNotFound, "RESOURCE_NOT_FOUND"},
+		{Conflict, http.StatusConflict, "RESOURCE_CONFLICT"},
+		{Internal, http.StatusInternalServerError, "INTERNAL_ERROR"},
+	}
+
+	for _, test := range tests {
+		t.Run(string(test.category), func(t *testing.T) {
+			handler, err := NewHandler(probeHandler{}, fixedTraceID, nil)
+			if err != nil {
+				t.Fatalf("create handler: %v", err)
+			}
+			request := httptest.NewRequest(
+				http.MethodPost,
+				"/contract/probe",
+				strings.NewReader(`{"value":"`+string(test.category)+`"}`),
+			)
+			request.Header.Set("Content-Type", "application/json")
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != test.status {
+				t.Fatalf("status = %d, want %d; body=%s", response.Code, test.status, response.Body.String())
+			}
+			if contentType := response.Header().Get("Content-Type"); contentType != "application/problem+json" {
+				t.Fatalf("content type = %q, want application/problem+json", contentType)
+			}
+			var problem Problem
+			if err := json.NewDecoder(response.Body).Decode(&problem); err != nil {
+				t.Fatalf("decode problem: %v", err)
+			}
+			if problem.Category != test.category || problem.Code != test.code || problem.Status != test.status {
+				t.Fatalf("problem = %#v, want category=%s code=%s status=%d", problem, test.category, test.code, test.status)
+			}
+			lower := strings.ToLower(response.Body.String())
+			for _, forbidden := range []string{
+				"select password from", "stack trace", "/var/", `c:\\`, "secret=", "session=raw",
+			} {
 				if strings.Contains(lower, forbidden) {
 					t.Fatalf("problem response leaked %q: %s", forbidden, response.Body.String())
 				}

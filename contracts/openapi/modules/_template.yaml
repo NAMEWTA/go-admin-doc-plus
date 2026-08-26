@@ -6,9 +6,10 @@ info:
   description: Replace the module metadata and add only module-owned paths and schemas.
 x-go-admin-module: replace-me
 x-go-admin-codegen:
+  owner: replace-me
   goPackage: replacemetransport
   goOutput: go-admin-plus/internal/modules/replace-me/transport/openapi.gen.go
-  typescriptOutput: go-admin-ui-plus/packages/domains/replace-me/src/generated
+  typescriptOutput: go-admin-plus-ui/packages/domains/replace-me/src/generated
 paths: {}
 components:
   schemas: {}

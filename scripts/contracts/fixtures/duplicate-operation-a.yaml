@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+  title: Duplicate operation fixture A
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+security: []
+paths:
+  /fixture-a:
+    get:
+      operationId: duplicatedAcrossFragments
+      summary: Read fixture A
+      responses:
+        '204':
+          description: Accepted
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                type: object
+                additionalProperties: false
