@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-08
 title: 无 Redis 可靠运行时
-status: in_progress
+status: review
 planning_depth: deep
 planning_depth_reason: 事务 Outbox、幂等、缓存正确性和多实例执行权涉及并发与可靠副作用
 ready: true
