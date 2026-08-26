@@ -184,6 +184,29 @@ func (s *Service) Profile(ctx context.Context, token string) (Issued, error) {
 	return result, sanitize(err)
 }
 
+// AuthorizeRequest authenticates a generic protected route and advances the same idle/rotation
+// lifecycle as built-in session endpoints. Mutation failures are fenced before any refresh.
+func (s *Service) AuthorizeRequest(ctx context.Context, token, csrf string, mutation bool) (Issued, error) {
+	var result Issued
+	now := s.now().UTC()
+	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		var rec record
+		var credential account.Credential
+		var err error
+		if mutation {
+			rec, credential, err = s.authorizeMutation(ctx, tx, token, csrf, now)
+		} else {
+			rec, credential, err = s.active(ctx, tx, token, now)
+		}
+		if err != nil {
+			return err
+		}
+		result, err = s.refresh(ctx, tx, rec, credential.Profile, now)
+		return err
+	})
+	return result, sanitize(err)
+}
+
 func (s *Service) UpdateProfile(ctx context.Context, token, csrf, displayName, email string, avatar *string) (Issued, error) {
 	displayName = strings.TrimSpace(displayName)
 	email = strings.ToLower(strings.TrimSpace(email))

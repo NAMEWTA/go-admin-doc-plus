@@ -219,6 +219,9 @@ importers:
       '@go-admin/domain-iam':
         specifier: workspace:*
         version: link:../../domains/iam
+      '@go-admin/ui':
+        specifier: workspace:*
+        version: link:../../ui
       vue:
         specifier: 'catalog:'
         version: 3.5.41(typescript@6.0.3)

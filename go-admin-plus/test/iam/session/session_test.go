@@ -465,6 +465,42 @@ func TestEveryContinuingProtectedRoutePropagatesRotation(t *testing.T) {
 	}
 }
 
+func TestAuthorizeRequestFencesCSRFBeforeTouchAndPropagatesRotation(t *testing.T) {
+	db, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
+	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var idleBefore time.Time
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT idle_expires_at FROM iam_sessions WHERE state = 'active'`).Scan(&idleBefore); err != nil {
+		t.Fatal(err)
+	}
+	*clock = clock.Add(30 * time.Minute)
+	if _, err := service.AuthorizeRequest(context.Background(), issued.Token, "wrong-csrf", true); !errors.Is(err, session.ErrCSRF) {
+		t.Fatalf("mutation CSRF fence = %v", err)
+	}
+	var idleAfter time.Time
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT idle_expires_at FROM iam_sessions WHERE state = 'active'`).Scan(&idleAfter); err != nil {
+		t.Fatal(err)
+	}
+	if !idleAfter.Equal(idleBefore) {
+		t.Fatal("rejected generic mutation touched idle timeout")
+	}
+
+	read, err := service.AuthorizeRequest(context.Background(), issued.Token, "", false)
+	if err != nil || read.Profile.ID != issued.Profile.ID || read.CSRF == "" {
+		t.Fatalf("generic protected read = %#v, %v", read, err)
+	}
+	*clock = clock.Add(61 * time.Minute)
+	rotated, err := service.AuthorizeRequest(context.Background(), issued.Token, read.CSRF, true)
+	if err != nil || !rotated.Rotated || rotated.Token == "" || rotated.CSRF == "" {
+		t.Fatalf("generic mutation rotation = %#v, %v", rotated, err)
+	}
+	if _, err := service.AuthorizeRequest(context.Background(), issued.Token, "", false); !errors.Is(err, session.ErrAuthentication) {
+		t.Fatalf("old generic token recovered: %v", err)
+	}
+}
+
 func TestHTTPProfileRotationSetsReplacementCookieAndCSRFHeader(t *testing.T) {
 	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	handler, err := session.NewHTTPHandler(service, func(*http.Request) string { return "0123456789abcdef" })

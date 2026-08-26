@@ -5,14 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./session": "./src/session/index.ts"
+    "./session": "./src/session/index.ts",
+    "./administration": "./src/administration/index.ts"
   },
   "dependencies": {
     "@go-admin/api-client": "workspace:*"
   },
   "scripts": {
-    "test": "vitest run src/session",
-    "typecheck": "tsc -p src/session/tsconfig.json"
+    "test": "vitest run src/session src/administration",
+    "typecheck": "tsc -p src/session/tsconfig.json && tsc -p src/administration/tsconfig.json"
   },
   "devDependencies": {
     "typescript": "catalog:",
