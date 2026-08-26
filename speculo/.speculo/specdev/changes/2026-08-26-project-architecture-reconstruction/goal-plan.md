@@ -287,12 +287,13 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - Goal Plan 已选择 `required/candidate-merge`，Lead 为 `codex-root`，implementation agent 上限 3，integration attempt 上限 3。
 - G-BASELINE 已完成：原始 170 项 tracked 改动和 6 个 untracked 条目经 secret/大文件/生成物审计后，形成 `main@888900751ab2b04d2db5fa8d5e6a6b811599ce93` 不可变基线。
 - 基线 Go test、前端 unit/type/lint/build 与 Goal Plan validator 已实测通过，validator 结果为 0 error / 0 warning。
-- 当前 Gate 为 `G0 review`；T-01 source commit 已固定为 `a19199c251a140db399a31fcb3a8ddb7aac4e61e`，尚未形成 candidate 或 result SHA。
+- `G0 Root Command` 已关闭：T-01 source 为 `a19199c251a140db399a31fcb3a8ddb7aac4e61e`，parent before 为 `464a4d2c7ef5542b85ec6512837dbb47a6079b20`，通过验证并提升的 candidate/result 为 `249571939f7497fd7c216e6b5985847c0b941e2f`（tree `dad0853a660bc1d63fbe34cb8da758fc302d62a8`）。
+- 当前 Gate 为 `G1 Contract Stable`，下一工作为 T-02；T-02 必须基于包含 T-01 result 的最新 `main` checkpoint 创建 source worktree。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
 
-- 无阻止 T-01 开始的产品决定。
+- 无阻止 T-02 开始的产品决定。
 - G6 的生产签名、公证、受保护 runner、远端制品发布仍需到达该 Gate 后逐项批准；在此之前 T-19/T-20 不能以模拟或未签名制品关闭最终发行验收。
 - source branch/worktree cleanup 未授权，不阻止集成与 change 本地完成，但所有保留 locator 必须写入状态。
 

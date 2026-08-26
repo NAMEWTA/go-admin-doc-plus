@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-01
 title: 根级产品治理与统一命令面
-status: review
+status: done
 planning_depth: deep
 planning_depth_reason: 根级共享路径、治理资产迁移和后续全部 Ticket 的命令合同具有高事故半径
 ready: true
@@ -109,9 +109,9 @@ shared_path_owners: ["<Path>Taskfile.yml</Path> => T-01", "<Path>.husky/**</Path
 
 ## 10. 验收标准
 
-- [ ] `AC-001`：目标根治理资产具有唯一归属，子项目重复治理被明确纳入 T-21 收缩清单。
-- [ ] `AC-002`：九类根产品任务可解析，Hook 复用相同入口并正确传播失败。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-01.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，共享路径仅由 T-01 修改。
-- [ ] 形成非空 implementation/source commit，并记录 direct-parent 或 candidate/result SHA。
-- [ ] 未发生未批准偏差，Ticket、Map 和 Evidence 状态一致。
+- [x] `AC-001`：目标根治理资产具有唯一归属，子项目重复治理被明确纳入 T-21 收缩清单。
+- [x] `AC-002`：九类根产品任务可解析，Hook 复用相同入口并正确传播失败。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-01.md</Path>`。
+- [x] 修改未超出 `writable_paths`，共享路径仅由 T-01 修改。
+- [x] 形成非空 implementation/source commit，并记录 direct-parent 或 candidate/result SHA。
+- [x] 未发生未批准偏差，Ticket、Map 和 Evidence 状态一致。
