@@ -132,7 +132,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | P2 | T-03, T-05 | 无 | 后端 runtime 与前端 workspace 分离 |
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
 | P5 | T-07, T-11 | Session service/test 与 workspace lock 已按 result 串行移交 | T-07 已 done；T-11 写 `T11-D01` Audit importer、`T11-D02` 登录事实接缝与 `T11-D03` 四个 test-only 显式 Port 调用点，其他共享路径仍只读 |
-| P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行分配；T-14 另按 `T14-D02` 精确拥有 IAM Permission registry 两个文件 | 各模块独占合同/schema/backend/frontend；顺序为 T-11 lock -> T-14 verify/lock -> T-09 verify/lock |
+| P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行分配；T-14 另按 `T14-D02/T14-D03` 精确拥有 IAM Module Capability Registry 两个文件 | 各模块独占合同/schema/backend/frontend；顺序为 T-11 lock -> T-14 verify/lock -> T-09 verify/lock |
 | P7 | T-15, T-16 | 无 | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
 
@@ -145,7 +145,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02 先串行拥有合同工具/client lock 变更；`T07-D01` 已完成，现由 `T11-D01` 仅拥有 Audit importer；其 result 后由 `T14-D01` 仅拥有 Demo importer 与 Demo verify 接入 | 模块只写预建包的 `src` 和获批 manifest/importer；Desktop adapter 源码归 T-16 |
 | IAM Session request authorization seam | T-06；`T07-D02` 精确追加 `AuthorizeRequest` 与既有测试 | T-07 HTTP 只消费统一 token/CSRF/touch/rotation 结果，不读取 Session 私表或复制 secret/hash 规则 |
 | IAM Session login audit seam | T-06；T-07 result 已完成 `T07-D02`，现由 `T11-D02/T11-D03` 追加 fail-closed 模块无关 Login Fact Port 与精确 test-only 调用点 | T-11 Audit adapter 同步记录成功/失败登录；Session 不导入 Audit且无生产 discard，T-17 composition 必须注入 Port，密码/用户名/token/CSRF 不进入事实 |
-| IAM Permission registry | T-07 基座；T-14 under `T14-D02` 精确新增 `<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry.go</Path>` 与对应测试 | 模块声明 Permission Code 并调用 IAM registry；只有 IAM 写 `iam_permissions`/`iam_role_permissions`，T-17 composition 显式注册完整目录 |
+| IAM Module Capability Registry | T-07 基座；T-14 under `T14-D02/T14-D03` 精确新增 `<Path>go-admin-plus/internal/modules/iam/authorization/capability_registry.go</Path>` 与对应测试 | 模块声明 Permission Code 与 protected menu 并调用 IAM registry；只有 IAM 写 capability/role grant 表，T-17 composition 显式注册完整目录 |
 | IAM Organization consumer Port | T-09 under `T09-D01`，精确文件为 `<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>` | IAM 定义最小投影接口，Organization 提供 adapter，T-17 只负责显式注入；IAM 不导入 Organization |
 | Outbox/coordination/local cache | T-08 | Audit/Scheduler 只读消费 |
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |

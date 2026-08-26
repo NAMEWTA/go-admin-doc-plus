@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T07:17:36+08:00",
+  "updated_at": "2026-08-27T07:33:15+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -213,6 +213,16 @@
       "approved_at": "2026-08-27T07:17:36+08:00",
       "reason": "Independent review proved Demo bypasses real IAM and its Permission Codes cannot be assigned because IAM owns the catalog tables and exposes no module registration seam",
       "resolution": "Authorize only authorization/permission_registry.go and permission_registry_test.go for a generic dual-dialect transactional registry that validates and idempotently inserts module Permission Codes and grants them to the protected system administrator; Demo owns declarations/adapters/harness and may not write IAM tables directly, while IAM schema, Session, Administration, composition, and other modules remain unchanged"
+    },
+    {
+      "id": "T14-D03",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-14",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T07:33:15+08:00",
+      "reason": "T-09 review proved Permission registration alone leaves business navigation unregistrable because iam_menus and iam_role_menus are also IAM-owned and no production composition seam exists",
+      "resolution": "Supersede the T14-D02 file names with authorization/capability_registry.go and capability_registry_test.go and extend the same atomic dual-dialect registry to validated protected module menus plus protected system-admin grants; modules declare stable capabilities, while IAM schema, Session, Administration, composition, and direct cross-module table writes remain forbidden"
     }
   ],
   "worktrees": [
@@ -644,7 +654,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T07:17:36+08:00"
+      "updated_at": "2026-08-27T07:33:15+08:00"
     },
     {
       "ticket_id": "T-09",
@@ -656,7 +666,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-09",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-09",
-      "source_checkpoint": null,
+      "source_checkpoint": "86e21101c86b9672469f3bb5494f745ce2d4b4b3",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -687,7 +697,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T05:32:02+08:00"
+      "updated_at": "2026-08-27T07:33:15+08:00"
     }
   ]
 }
