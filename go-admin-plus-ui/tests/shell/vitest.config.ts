@@ -6,7 +6,9 @@ export default defineConfig({
     include: [
       'tests/shell/**/*.spec.ts',
       'packages/domains/iam/src/session/**/*.spec.ts',
-      'packages/web-domains/iam/src/session/**/*.spec.ts'
+      'packages/web-domains/iam/src/session/**/*.spec.ts',
+      'packages/domains/demo/src/**/*.spec.ts',
+      'packages/web-domains/demo/src/**/*.spec.ts'
     ]
   }
 })
