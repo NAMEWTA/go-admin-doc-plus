@@ -133,18 +133,51 @@ describe('administration controller', () => {
     expect(sessionRequired).toHaveBeenCalledTimes(expected === 'relogin' ? 1 : 0)
   })
 
-  it('classifies current search, reset and pagination failures', async () => {
+  it.each([
+    ['forbidden', 'search', new AdministrationRequestError('forbidden')],
+    ['relogin', 'page', new AdministrationRequestError('relogin')],
+    ['unavailable', 'reset', new Error('list unavailable')],
+  ] as const)('hides a successful user projection after a current %s failure and recovers after refresh', async (expected, operation, error) => {
     const api = client(); const controller = createAdministrationController(api, async () => true)
     await controller.refreshAuthorizationData(); await controller.users.refresh()
-    for (const operation of [
-      () => controller.users.search({ search: 'reader' }),
-      () => controller.users.reset(),
-      () => controller.users.setPage(2),
-    ]) {
-      vi.mocked(api.listUsers).mockRejectedValueOnce(new Error('list unavailable'))
-      await expect(operation()).rejects.toThrow('list unavailable')
-      expect(controller.failure()).toBe('unavailable')
-    }
+    controller.users.select(controller.users.snapshot().rows)
+    expect(controller.users.snapshot().rows).toHaveLength(1)
+    expect(controller.users.snapshot().selectedKeys).toHaveLength(1)
+
+    vi.mocked(api.listUsers).mockRejectedValueOnce(error)
+    const request = operation === 'search'
+      ? controller.users.search({ search: 'reader' })
+      : operation === 'page' ? controller.users.setPage(2) : controller.users.reset()
+    await expect(request).rejects.toBe(error)
+    expect(controller.failure()).toBe(expected)
+    expect(controller.can('iam.users.read')).toBe(false)
+    expect(controller.can('iam.users.write')).toBe(false)
+    expect(controller.users.snapshot().rows).toEqual([])
+    expect(controller.users.snapshot().total).toBe(0)
+    expect(controller.users.snapshot().selectedKeys).toEqual([])
+
+    await controller.refreshAuthorizationData(); await controller.users.refresh()
+    expect(controller.failure()).toBe(null)
+    expect(controller.can('iam.users.read')).toBe(true)
+    expect(controller.users.snapshot().rows).toHaveLength(1)
+    expect(controller.users.snapshot().selectedKeys).toEqual([])
+  })
+
+  it('hides a successful user projection when a refreshed manifest revokes users read', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData(); await controller.users.refresh()
+    controller.users.select(controller.users.snapshot().rows)
+    vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'all', permissionCodes: ['iam.manifest.read'], menus: [] })
+
+    await controller.refreshAuthorizationData()
+    expect(controller.can('iam.users.read')).toBe(false)
+    expect(controller.users.snapshot().rows).toEqual([])
+    expect(controller.users.snapshot().total).toBe(0)
+    expect(controller.users.snapshot().selectedKeys).toEqual([])
+
+    await controller.refreshAuthorizationData(); await controller.users.refresh()
+    expect(controller.can('iam.users.read')).toBe(true)
+    expect(controller.users.snapshot().rows).toHaveLength(1)
   })
 
   it('repairs create, removal and command projections without repeating successful writes', async () => {
@@ -231,6 +264,7 @@ describe('administration controller', () => {
     const repairing = controller.repairProjection()
     expect(await controller.deleteUsers.run([user.id])).toBe('busy')
     expect(api.deleteUsers).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(releaseRepair).toBeTypeOf('function'))
     releaseRepair()
     expect(await repairing).toBe('completed')
     expect(controller.hasPendingRepair()).toBe(false)

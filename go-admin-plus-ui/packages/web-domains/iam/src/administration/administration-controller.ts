@@ -41,12 +41,12 @@ export const createAdministrationController = (client: AdministrationClient, con
   let capabilityCodes = new Set<string>()
   let capabilityScope: 'all' | 'self' = 'self'
   let failure: AdministrationFailure | null = null
-  let userProjectionReady = false
+  let userProjectionVisible = false
   const pendingRepairs = new Map<string, () => Promise<void>>()
   let mutationBusy = false
   let repairBusy = false
   const clearAuthorizationProjection = () => {
-    capabilityCodes = new Set(); capabilityScope = 'self'; roles = []; menus = []; permissions = []; userProjectionReady = false
+    capabilityCodes = new Set(); capabilityScope = 'self'; roles = []; menus = []; permissions = []; userProjectionVisible = false
   }
   const recordFailure = (error: unknown) => {
     failure = error instanceof AdministrationRequestError && isAdministrationFailure(error.category)
@@ -64,15 +64,19 @@ export const createAdministrationController = (client: AdministrationClient, con
     clearFailure()
     try {
       await operation()
-      userProjectionReady = true
+      if (!userProjectionVisible) rawUsers.clearSelection()
+      userProjectionVisible = true
     } catch (error) {
       recordFailure(error)
-      if (!userProjectionReady) clearAuthorizationProjection()
+      clearAuthorizationProjection()
       throw error
     }
   }
   const users: ListController<UserFilters, User, string> = {
-    snapshot: () => rawUsers.snapshot(),
+    snapshot: () => {
+      const snapshot = rawUsers.snapshot()
+      return userProjectionVisible ? snapshot : { ...snapshot, rows: [], total: 0, selectedKeys: [] }
+    },
     refresh: () => observeUserList(() => rawUsers.refresh()),
     search: (filters) => observeUserList(() => rawUsers.search(filters)),
     reset: () => observeUserList(() => rawUsers.reset()),
@@ -82,17 +86,23 @@ export const createAdministrationController = (client: AdministrationClient, con
     select: (rows) => rawUsers.select(rows),
     clearSelection: () => rawUsers.clearSelection(),
   }
+  const canAccess = (permissionCode: string) => capabilityCodes.has(permissionCode) && (capabilityScope === 'all' || permissionCode === 'iam.users.read')
   const refreshAuthorizationData = async () => {
     clearFailure()
     try {
+      const previousUsersRead = canAccess('iam.users.read')
+      const previousScope = capabilityScope
       const manifest = await client.manifest()
       capabilityCodes = new Set(manifest.permissionCodes)
       capabilityScope = manifest.dataScope
-      const can = (permissionCode: string) => capabilityCodes.has(permissionCode) && (capabilityScope === 'all' || permissionCode === 'iam.users.read')
+      if (!canAccess('iam.users.read') || previousUsersRead !== canAccess('iam.users.read') || previousScope !== capabilityScope) {
+        userProjectionVisible = false
+        rawUsers.clearSelection()
+      }
       const [nextRoles, nextMenus, nextPermissions] = await Promise.all([
-        can('iam.roles.read') ? client.listRoles() : Promise.resolve([]),
-        can('iam.menus.read') ? client.listMenus() : Promise.resolve([]),
-        can('iam.permissions.read') ? client.listPermissions() : Promise.resolve([]),
+        canAccess('iam.roles.read') ? client.listRoles() : Promise.resolve([]),
+        canAccess('iam.menus.read') ? client.listMenus() : Promise.resolve([]),
+        canAccess('iam.permissions.read') ? client.listPermissions() : Promise.resolve([]),
       ])
       roles = [...nextRoles]; menus = [...nextMenus]; permissions = [...nextPermissions]
     } catch (error) {
@@ -100,6 +110,10 @@ export const createAdministrationController = (client: AdministrationClient, con
       recordFailure(error)
       throw error
     }
+  }
+  const refreshUsersProjection = async () => {
+    await refreshAuthorizationData()
+    if (canAccess('iam.users.read')) await users.refresh()
   }
   const form = <TModel>(key: string, options: {
     validate(model: Readonly<TModel>): Promise<boolean>
@@ -158,11 +172,11 @@ export const createAdministrationController = (client: AdministrationClient, con
   const createUser = form<CreateUserModel>('create-user', {
     validate: async (model) => validName(model.username, 64) && validName(model.displayName, 80) && model.email.includes('@') && model.password.length >= 12,
     submit: async (model) => { await client.createUser(model) },
-    refresh: () => users.refresh(),
+    refresh: refreshUsersProjection,
   })
   const deleteUsers = removal<string>('delete-users', {
     execute: (ids) => client.deleteUsers(ids),
-    refresh: () => users.refresh(),
+    refresh: refreshUsersProjection,
     clearSelection: () => users.clearSelection(),
   })
   const createRole = form<CreateRoleModel>('create-role', {
@@ -201,20 +215,20 @@ export const createAdministrationController = (client: AdministrationClient, con
   return {
     users, createUser, deleteUsers, createRole, createMenu,
     roles: () => [...roles], menus: () => [...menus], permissions: () => [...permissions], refreshAuthorizationData,
-    can: (permissionCode) => capabilityCodes.has(permissionCode) && (capabilityScope === 'all' || permissionCode === 'iam.users.read'),
+    can: canAccess,
     failure: () => failure,
     clearFailure,
     hasPendingRepair: () => pendingRepairs.size > 0,
     repairProjection,
     get busy() { return mutationBusy || repairBusy },
-    updateUser(user, enabled) { return command(`update-user:${user.id}`, async () => { await client.updateUser(user.id, { displayName: user.displayName, email: user.email, enabled }) }, () => users.refresh(), !enabled) },
+    updateUser(user, enabled) { return command(`update-user:${user.id}`, async () => { await client.updateUser(user.id, { displayName: user.displayName, email: user.email, enabled }) }, refreshUsersProjection, !enabled) },
     deleteRole(id) { return command(`delete-role:${id}`, () => client.deleteRole(id), refreshAuthorizationData, true) },
     updateRole(role) { if (!validStableKey(role.key) || !validName(role.name, 100)) return Promise.resolve('invalid'); return command(`update-role:${role.id}`, () => client.updateRole(role.id, { key: role.key, name: role.name, dataScope: role.dataScope, enabled: role.enabled }), refreshAuthorizationData, !role.enabled) },
     deleteMenu(id) { return command(`delete-menu:${id}`, () => client.deleteMenu(id), refreshAuthorizationData, true) },
     updateMenu(menu) { if (!validStableKey(menu.key)) return Promise.resolve('invalid'); return command(`update-menu:${menu.id}`, () => client.updateMenu(menu.id, { key: menu.key, label: menu.label, path: menu.path, permissionCode: menu.permissionCode, sortOrder: menu.sortOrder }), refreshAuthorizationData) },
-    setUserRoles(id, roleIds) { return command(`set-user-roles:${id}`, () => client.setUserRoles(id, roleIds), () => users.refresh()) },
+    setUserRoles(id, roleIds) { return command(`set-user-roles:${id}`, () => client.setUserRoles(id, roleIds), refreshUsersProjection) },
     setRoleGrants(id, permissionCodes, menuIds) { return command(`set-role-grants:${id}`, () => client.setRoleGrants(id, permissionCodes, menuIds), refreshAuthorizationData) },
-    resetPassword(id, password) { if (password.length < 12) return Promise.resolve('invalid'); return command(`reset-password:${id}`, () => client.resetPassword(id, password), () => users.refresh(), true) },
+    resetPassword(id, password) { if (password.length < 12) return Promise.resolve('invalid'); return command(`reset-password:${id}`, () => client.resetPassword(id, password), refreshUsersProjection, true) },
   }
 }
 
