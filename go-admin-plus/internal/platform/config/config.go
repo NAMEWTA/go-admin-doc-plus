@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -43,6 +44,23 @@ func (input Input) GoString() string {
 	return fmt.Sprintf("config.Input{profile:%q, values:redacted}", input.Profile)
 }
 
+// MarshalJSON prevents generic diagnostics from traversing configuration
+// sources. Callers must use the typed accessors after Load for actual values.
+func (input Input) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Profile Profile `json:"profile"`
+		Values  string  `json:"values"`
+	}{Profile: input.Profile, Values: "redacted"})
+}
+
+// LogValue prevents structured log handlers from reflecting sensitive fields.
+func (input Input) LogValue() slog.Value {
+	return slog.GroupValue(
+		slog.String("profile", string(input.Profile)),
+		slog.String("values", "redacted"),
+	)
+}
+
 // DesktopMaterial is supplied by the native host for one sidecar invocation.
 // It is deliberately separate from file, environment, and CLI configuration.
 type DesktopMaterial struct {
@@ -57,6 +75,16 @@ func (material DesktopMaterial) String() string { return "desktop launch materia
 
 // GoString intentionally omits paths and the one-time token.
 func (material DesktopMaterial) GoString() string { return "config.DesktopMaterial{redacted}" }
+
+// MarshalJSON prevents paths and launch material from entering JSON output.
+func (material DesktopMaterial) MarshalJSON() ([]byte, error) {
+	return []byte(`{"values":"redacted"}`), nil
+}
+
+// LogValue prevents structured log handlers from reflecting native material.
+func (material DesktopMaterial) LogValue() slog.Value {
+	return slog.GroupValue(slog.String("values", "redacted"))
+}
 
 // Snapshot owns one profile value. Its fields are intentionally unexported so
 // callers cannot mutate runtime configuration after construction.

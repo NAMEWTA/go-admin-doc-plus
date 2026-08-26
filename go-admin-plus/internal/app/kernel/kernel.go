@@ -113,6 +113,9 @@ func (runtime *Kernel) Start(ctx context.Context) error {
 			return runtime.failStart(ctx, unit.Name, err)
 		}
 		runtime.appendStarted(unit)
+		if err := ctx.Err(); err != nil {
+			return runtime.failStart(ctx, unit.Name, err)
+		}
 	}
 	runtime.setStatus(StateReady, FailureNone)
 	return nil

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"go-admin/internal/app/kernel"
@@ -124,6 +125,55 @@ func TestDependencyProbeFailureIsRedactedEverywhere(t *testing.T) {
 	if response.Code != http.StatusMethodNotAllowed || response.Header().Get("Cache-Control") != "no-store" {
 		t.Fatalf("POST status response = %d headers=%v", response.Code, response.Header())
 	}
+}
+
+func TestNonGETOperationsDoNotReadStateOrRunProbes(t *testing.T) {
+	var snapshots, probes atomic.Int32
+	source := countingSource{count: &snapshots, snapshot: kernel.Snapshot{State: kernel.StateReady}}
+	handler, err := observability.New(source, observability.Capabilities{
+		Profile:  "server-sqlite",
+		Version:  "test-version",
+		Database: "sqlite",
+	}, observability.Probe{
+		Name: "database",
+		Check: func(context.Context) error {
+			probes.Add(1)
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	wrapped := handler.Wrap(nil)
+	for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodOptions} {
+		for _, path := range []string{
+			observability.LivePath,
+			observability.ReadyPath,
+			observability.MetricsPath,
+			observability.CapabilitiesPath,
+			observability.StatusPath,
+		} {
+			request := httptest.NewRequest(method, path, nil)
+			response := httptest.NewRecorder()
+			wrapped.ServeHTTP(response, request)
+			if response.Code != http.StatusMethodNotAllowed || response.Header().Get("Cache-Control") != "no-store" {
+				t.Fatalf("%s %s response = %d headers=%v", method, path, response.Code, response.Header())
+			}
+		}
+	}
+	if snapshots.Load() != 0 || probes.Load() != 0 {
+		t.Fatalf("non-GET operations read snapshots=%d probes=%d", snapshots.Load(), probes.Load())
+	}
+}
+
+type countingSource struct {
+	count    *atomic.Int32
+	snapshot kernel.Snapshot
+}
+
+func (source countingSource) Snapshot() kernel.Snapshot {
+	source.count.Add(1)
+	return source.snapshot
 }
 
 func assertEndpoint(t *testing.T, endpoint string, wantStatus int, wantBody string) string {

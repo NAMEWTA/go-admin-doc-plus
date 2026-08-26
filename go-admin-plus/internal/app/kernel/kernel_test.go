@@ -5,7 +5,10 @@ import (
 	"errors"
 	"reflect"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"go-admin/internal/app/kernel"
 )
@@ -141,5 +144,169 @@ func TestStartFailureStopsPartialRuntimeAndNeverBecomesReady(t *testing.T) {
 	want := []string{"start:database", "start:worker", "stop:database"}
 	if !reflect.DeepEqual(events, want) {
 		t.Fatalf("events = %v, want %v", events, want)
+	}
+}
+
+func TestConcurrentLifecycleRequestsHaveOneTerminalTransition(t *testing.T) {
+	startEntered := make(chan struct{})
+	releaseStart := make(chan struct{})
+	var starts, drains, stops atomic.Int32
+	runtime, err := kernel.New(kernel.Lifecycle{
+		Name: "runtime",
+		Start: func(context.Context) error {
+			starts.Add(1)
+			close(startEntered)
+			<-releaseStart
+			return nil
+		},
+		Drain: func(context.Context) error {
+			drains.Add(1)
+			return nil
+		},
+		Stop: func(context.Context) error {
+			stops.Add(1)
+			return nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+
+	startResult := make(chan error, 1)
+	go func() { startResult <- runtime.Start(context.Background()) }()
+	waitSignal(t, startEntered, "initial Start callback")
+
+	const readers = 8
+	readerGate := make(chan struct{})
+	var readersReady sync.WaitGroup
+	readersReady.Add(readers)
+	var readersDone sync.WaitGroup
+	readersDone.Add(readers)
+	for range readers {
+		go func() {
+			defer readersDone.Done()
+			readersReady.Done()
+			<-readerGate
+			for range 100 {
+				snapshot := runtime.Snapshot()
+				switch snapshot.State {
+				case kernel.StateStarting, kernel.StateReady, kernel.StateDraining, kernel.StateStopped, kernel.StateFailed:
+				default:
+					t.Errorf("Snapshot state = %q", snapshot.State)
+					return
+				}
+			}
+		}()
+	}
+	readersReady.Wait()
+	close(readerGate)
+
+	operationGate := make(chan struct{})
+	drainResult := make(chan error, 1)
+	dependencyResult := make(chan error, 1)
+	repeatStartResult := make(chan error, 1)
+	var operationsReady sync.WaitGroup
+	operationsReady.Add(3)
+	go func() { operationsReady.Done(); <-operationGate; drainResult <- runtime.Drain(context.Background()) }()
+	go func() {
+		operationsReady.Done()
+		<-operationGate
+		dependencyResult <- runtime.DependencyFailed(context.Background())
+	}()
+	go func() {
+		operationsReady.Done()
+		<-operationGate
+		repeatStartResult <- runtime.Start(context.Background())
+	}()
+	operationsReady.Wait()
+	close(operationGate)
+	close(releaseStart)
+
+	if err := waitResult(t, startResult, "initial Start"); err != nil {
+		t.Fatalf("initial Start error = %v", err)
+	}
+	drainErr := waitResult(t, drainResult, "concurrent Drain")
+	dependencyErr := waitResult(t, dependencyResult, "concurrent DependencyFailed")
+	repeatErr := waitResult(t, repeatStartResult, "repeated Start")
+	readersDone.Wait()
+
+	if !errors.Is(repeatErr, kernel.ErrAlreadyStarted) {
+		t.Fatalf("repeated Start error = %v", repeatErr)
+	}
+	oneSucceeded := (drainErr == nil && errors.Is(dependencyErr, kernel.ErrNotReady)) ||
+		(dependencyErr == nil && errors.Is(drainErr, kernel.ErrNotReady))
+	if !oneSucceeded {
+		t.Fatalf("Drain error = %v, DependencyFailed error = %v", drainErr, dependencyErr)
+	}
+	if starts.Load() != 1 || drains.Load() != 1 || stops.Load() != 1 {
+		t.Fatalf("callback counts start=%d drain=%d stop=%d", starts.Load(), drains.Load(), stops.Load())
+	}
+	snapshot := runtime.Snapshot()
+	if snapshot.State != kernel.StateStopped && snapshot.State != kernel.StateFailed {
+		t.Fatalf("terminal Snapshot() = %#v", snapshot)
+	}
+	if snapshot.State == kernel.StateStopped && snapshot.Failure != kernel.FailureNone {
+		t.Fatalf("stopped failure = %q", snapshot.Failure)
+	}
+	if snapshot.State == kernel.StateFailed && snapshot.Failure != kernel.FailureDependency {
+		t.Fatalf("failed reason = %q", snapshot.Failure)
+	}
+	if len(snapshot.Started) != 0 {
+		t.Fatalf("terminal started lifecycles = %v", snapshot.Started)
+	}
+}
+
+func TestStartCancellationCleansStartedLifecycleAndJoinsCleanupError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cleanupFailure := errors.New("cleanup failed with private detail")
+	var stops atomic.Int32
+	runtime, err := kernel.New(kernel.Lifecycle{
+		Name: "database",
+		Start: func(context.Context) error {
+			cancel()
+			return nil
+		},
+		Drain: func(context.Context) error { return nil },
+		Stop: func(context.Context) error {
+			stops.Add(1)
+			return cleanupFailure
+		},
+	})
+	if err != nil {
+		t.Fatalf("New() error = %v", err)
+	}
+	err = runtime.Start(ctx)
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, cleanupFailure) {
+		t.Fatalf("Start() error = %v, want cancellation and cleanup failure", err)
+	}
+	if strings.Contains(err.Error(), "private detail") {
+		t.Fatalf("Start() leaked cleanup error: %v", err)
+	}
+	if stops.Load() != 1 {
+		t.Fatalf("Stop calls = %d, want 1", stops.Load())
+	}
+	snapshot := runtime.Snapshot()
+	if snapshot.State != kernel.StateFailed || snapshot.Failure != kernel.FailureStartup || len(snapshot.Started) != 0 {
+		t.Fatalf("Snapshot() = %#v", snapshot)
+	}
+}
+
+func waitSignal(t *testing.T, signal <-chan struct{}, operation string) {
+	t.Helper()
+	select {
+	case <-signal:
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timed out waiting for %s", operation)
+	}
+}
+
+func waitResult(t *testing.T, result <-chan error, operation string) error {
+	t.Helper()
+	select {
+	case err := <-result:
+		return err
+	case <-time.After(5 * time.Second):
+		t.Fatalf("timed out waiting for %s", operation)
+		return nil
 	}
 }

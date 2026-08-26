@@ -1,7 +1,10 @@
 package config_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -293,6 +296,61 @@ func TestSnapshotIsOwnedAndSafeToFormat(t *testing.T) {
 		}
 		if !strings.Contains(formatted, "redacted") {
 			t.Fatalf("formatted snapshot = %q, want redaction marker", formatted)
+		}
+	}
+}
+
+func TestSensitiveInputsAreSafeForJSONAndStructuredLogging(t *testing.T) {
+	const (
+		dsn        = "postgres://admin:structured-secret@example.invalid/product"
+		startup    = "0123456789abcdef0123456789abcdef"
+		configPath = "/private/runtime/config.json"
+		secretPath = "/private/runtime/database-secret"
+		dataPath   = "/private/runtime/data"
+		logPath    = "/private/runtime/logs"
+		sqlitePath = "/private/runtime/data.sqlite3"
+	)
+	material := runtimeconfig.DesktopMaterial{
+		DataDirectory: dataPath,
+		LogDirectory:  logPath,
+		LoopbackPort:  41234,
+		StartupToken:  startup,
+	}
+	input := runtimeconfig.Input{
+		Profile: runtimeconfig.ProfileServerPostgres,
+		File:    configPath,
+		Environment: map[string]string{
+			"GO_ADMIN_DATABASE_DSN":      dsn,
+			"GO_ADMIN_DATABASE_DSN_FILE": secretPath,
+		},
+		CLI:     map[string]string{"database.path": sqlitePath},
+		Desktop: material,
+	}
+
+	encodedInput, err := json.Marshal(input)
+	if err != nil {
+		t.Fatalf("json.Marshal(Input) error = %v", err)
+	}
+	encodedMaterial, err := json.Marshal(material)
+	if err != nil {
+		t.Fatalf("json.Marshal(DesktopMaterial) error = %v", err)
+	}
+	var logs bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&logs, nil))
+	logger.Info("runtime configuration", slog.Any("input", input), slog.Any("desktop", material))
+
+	for name, output := range map[string]string{
+		"input JSON":     string(encodedInput),
+		"desktop JSON":   string(encodedMaterial),
+		"structured log": logs.String(),
+	} {
+		for _, forbidden := range []string{dsn, startup, configPath, secretPath, dataPath, logPath, sqlitePath, "structured-secret"} {
+			if strings.Contains(output, forbidden) {
+				t.Fatalf("%s leaked %q: %s", name, forbidden, output)
+			}
+		}
+		if !strings.Contains(output, "redacted") {
+			t.Fatalf("%s = %q, want redaction marker", name, output)
 		}
 	}
 }

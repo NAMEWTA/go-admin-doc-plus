@@ -95,23 +95,27 @@ func (handler *Handler) Wrap(next http.Handler) http.Handler {
 		next = http.NotFoundHandler()
 	}
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		if isOperationalPath(request.URL.Path) && request.Method != http.MethodGet {
+			serveMethodNotAllowed(response)
+			return
+		}
 		switch request.URL.Path {
 		case LivePath:
-			handler.serveJSON(response, request, http.StatusOK, stateBody{Status: "live"})
+			handler.serveJSON(response, http.StatusOK, stateBody{Status: "live"})
 		case ReadyPath:
 			snapshot := handler.source.Snapshot()
 			if handler.isReady(request.Context(), snapshot) {
-				handler.serveJSON(response, request, http.StatusOK, stateBody{Status: "ready"})
+				handler.serveJSON(response, http.StatusOK, stateBody{Status: "ready"})
 				return
 			}
-			handler.serveJSON(response, request, http.StatusServiceUnavailable, stateBody{Status: "not_ready"})
+			handler.serveJSON(response, http.StatusServiceUnavailable, stateBody{Status: "not_ready"})
 		case MetricsPath:
 			handler.serveMetrics(response, request)
 		case CapabilitiesPath:
-			handler.serveJSON(response, request, http.StatusOK, handler.capabilities)
+			handler.serveJSON(response, http.StatusOK, handler.capabilities)
 		case StatusPath:
 			snapshot := handler.source.Snapshot()
-			handler.serveJSON(response, request, http.StatusOK, statusBody{
+			handler.serveJSON(response, http.StatusOK, statusBody{
 				Profile: handler.capabilities.Profile,
 				Version: handler.capabilities.Version,
 				State:   snapshot.State,
@@ -122,6 +126,23 @@ func (handler *Handler) Wrap(next http.Handler) http.Handler {
 			next.ServeHTTP(response, request)
 		}
 	})
+}
+
+func isOperationalPath(path string) bool {
+	switch path {
+	case LivePath, ReadyPath, MetricsPath, CapabilitiesPath, StatusPath:
+		return true
+	default:
+		return false
+	}
+}
+
+func serveMethodNotAllowed(response http.ResponseWriter) {
+	setNoStore(response)
+	response.Header().Set("Content-Type", "application/json; charset=utf-8")
+	response.Header().Set("Allow", http.MethodGet)
+	response.WriteHeader(http.StatusMethodNotAllowed)
+	_ = json.NewEncoder(response).Encode(stateBody{Status: "method_not_allowed"})
 }
 
 func (handler *Handler) isReady(ctx context.Context, snapshot kernel.Snapshot) bool {
@@ -136,15 +157,9 @@ func (handler *Handler) isReady(ctx context.Context, snapshot kernel.Snapshot) b
 	return true
 }
 
-func (handler *Handler) serveJSON(response http.ResponseWriter, request *http.Request, status int, body any) {
+func (handler *Handler) serveJSON(response http.ResponseWriter, status int, body any) {
 	setNoStore(response)
 	response.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if request.Method != http.MethodGet {
-		response.Header().Set("Allow", http.MethodGet)
-		response.WriteHeader(http.StatusMethodNotAllowed)
-		_ = json.NewEncoder(response).Encode(stateBody{Status: "method_not_allowed"})
-		return
-	}
 	response.WriteHeader(status)
 	_ = json.NewEncoder(response).Encode(body)
 }
@@ -152,11 +167,6 @@ func (handler *Handler) serveJSON(response http.ResponseWriter, request *http.Re
 func (handler *Handler) serveMetrics(response http.ResponseWriter, request *http.Request) {
 	setNoStore(response)
 	response.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-	if request.Method != http.MethodGet {
-		response.Header().Set("Allow", http.MethodGet)
-		response.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	snapshot := handler.source.Snapshot()
 	ready := 0
 	if handler.isReady(request.Context(), snapshot) {
