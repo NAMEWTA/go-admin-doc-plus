@@ -12,11 +12,11 @@ risk: medium
 blocked_by: [T-04, T-05, T-07]
 contract_ids: [AC-021, AC-024, AC-035]
 owner: codex-t14-demo
-expected_changes: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/demo/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/demo/**</Path>"]
-read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T14-D01; Demo aggregate scripts only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-14 under T14-D01; Demo specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-14 under T14-D01 after T-11 result; Demo importers only"]
+expected_changes: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus/test/demo/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/demo/**</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T14-D01; Demo aggregate scripts only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-14 under T14-D01; Demo specs only"]
 ---
 
 # Ticket T-14: Demo 双方言业务曳光弹
@@ -83,7 +83,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T
 - **预计修改点：** Demo 独占路径，以及经 `T14-D01` 批准的两个 Demo package manifest、根聚合脚本、测试 include 与两个 Demo lock importer。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM、Database 和共享 UI。
-- **共享路径：** 根 package 只增加 Demo 聚合脚本，shell Vitest config 只纳入 Demo specs；lockfile 与 T-11 串行，必须等待 T-11 result 并 rebase 后才可只更新两个 Demo importer。
+- **共享路径：** 根 package 只增加 Demo 聚合脚本，shell Vitest config 只纳入 Demo specs；lockfile 当前继续只读。必须等待 T-11 result、Lead amendment 并 rebase 后，才可只更新两个 Demo importer。
 - **批准偏差：** `T14-D01` 允许两个 Demo package manifest 补齐 canonical API client、`@go-admin/ui`、Vue 直接依赖、公开 export 与标准 test/typecheck 入口，并把 Demo checks 接入根 `pnpm verify`。只可复用既有 catalog/lock 版本，禁止外部版本、其他 importer、共享 UI 或产品 composition 漂移。
 - **保留或不动：** Desktop App 归 T-16，Generator 归 T-15。
 
