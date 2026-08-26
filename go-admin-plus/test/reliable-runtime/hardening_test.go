@@ -27,8 +27,12 @@ func TestTopicSchemaRejectsUnknownSensitiveAndUnstructuredPayloads(t *testing.T)
 	store := newReliableStore(t, db)
 	now := time.Date(2026, 8, 26, 18, 0, 0, 0, time.UTC)
 	valid := reliableEvent("event-schema-1", "order:42", now)
-	valid.Payload = []byte(`{"revision":1,"sessionTimeout":30,"tokenCount":2}`)
+	valid.Payload = []byte(" { \"tokenCount\" : 2, \"revision\" : 1, \"sessionTimeout\" : 30 } ")
 	enqueueEvent(t, db, store, valid)
+	record, found, err := store.Lookup(context.Background(), valid.ID)
+	if err != nil || !found || string(record.Event.Payload) != `{"revision":1,"sessionTimeout":30,"tokenCount":2}` {
+		t.Fatalf("normalized persisted payload = %q, found %v, err %v", record.Event.Payload, found, err)
+	}
 
 	invalid := []struct {
 		key     string
@@ -39,6 +43,7 @@ func TestTopicSchemaRejectsUnknownSensitiveAndUnstructuredPayloads(t *testing.T)
 		{key: "order:42", payload: `[]`},
 		{key: "order:42", payload: `{"revision":1,"unknown":true}`},
 		{key: "order:42", payload: `{"revision":1,"profile":{"secret":"value"}}`},
+		{key: "order:42", payload: `{"revision":{"secret":"raw"},"revision":1}`},
 	}
 	for index, item := range invalid {
 		event := reliableEvent("event-schema-invalid-"+string(rune('a'+index)), item.key, now)
@@ -48,6 +53,13 @@ func TestTopicSchemaRejectsUnknownSensitiveAndUnstructuredPayloads(t *testing.T)
 			t.Fatalf("Enqueue(%q, %s) error = %v", item.key, item.payload, err)
 		}
 	}
+	stringEvent := outbox.Event{
+		ID: "event-schema-sensitive-string", Topic: "settings.changed", BusinessKey: "settings:site-name:1",
+		Payload: []byte(`{"value":"raw-session-secret"}`), OccurredAt: now,
+	}
+	if err := enqueueError(db, store, stringEvent); !errors.Is(err, outbox.ErrInvalidEvent) {
+		t.Fatalf("Enqueue(unconstrained string payload) error = %v", err)
+	}
 }
 
 func TestTopicSchemaRegistrationRejectsSensitiveFieldsButAllowsAggregateMetadata(t *testing.T) {
@@ -55,13 +67,31 @@ func TestTopicSchemaRegistrationRejectsSensitiveFieldsButAllowsAggregateMetadata
 	db := openReliableSQLite(t)
 	for _, name := range []string{"password", "clientSecret", "rawSession", "accessToken", "credentialBundle"} {
 		_, err := outbox.NewStore(db, outbox.TopicSchema{
-			Topic:       "orders.changed",
-			Payload:     []outbox.PayloadFieldSchema{{Name: name, Kind: outbox.PayloadString}},
+			Topic: "orders.changed",
+			Payload: []outbox.PayloadFieldSchema{{
+				Name: name, Kind: outbox.PayloadString, AllowedStrings: []string{"enabled"},
+			}},
 			BusinessKey: outbox.BusinessKeySchema{Prefix: "order", MinParts: 1, MaxParts: 1},
 		})
 		if err == nil {
 			t.Fatalf("sensitive schema field %q was accepted", name)
 		}
+	}
+	if _, err := outbox.NewStore(db, outbox.TopicSchema{
+		Topic:       "display.changed",
+		Payload:     []outbox.PayloadFieldSchema{{Name: "displayMode", Kind: outbox.PayloadString}},
+		BusinessKey: outbox.BusinessKeySchema{Prefix: "display", MinParts: 1, MaxParts: 1},
+	}); err == nil {
+		t.Fatal("string schema without explicit allowed values was accepted")
+	}
+	if _, err := outbox.NewStore(db, outbox.TopicSchema{
+		Topic: "display.changed",
+		Payload: []outbox.PayloadFieldSchema{{
+			Name: "displayMode", Kind: outbox.PayloadString, AllowedStrings: []string{"compact", "comfortable"},
+		}},
+		BusinessKey: outbox.BusinessKeySchema{Prefix: "display", MinParts: 1, MaxParts: 1},
+	}); err != nil {
+		t.Fatalf("explicit string enum schema rejected: %v", err)
 	}
 	if _, err := outbox.NewStore(db, outbox.TopicSchema{
 		Topic: "orders.changed",

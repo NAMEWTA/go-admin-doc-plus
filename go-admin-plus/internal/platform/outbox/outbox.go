@@ -80,9 +80,14 @@ func NewStore(db *database.Database, schemas ...TopicSchema) (*Store, error) {
 // Enqueue writes through the caller's transaction so domain state and the event share one commit.
 // A repeated topic/business key is accepted only when the immutable envelope is identical.
 func (s *Store) Enqueue(ctx context.Context, tx database.Tx, event Event) (bool, error) {
-	if s == nil || s.db == nil || tx == nil || s.validateEvent(event) != nil {
+	if s == nil || s.db == nil || tx == nil {
 		return false, ErrInvalidEvent
 	}
+	normalizedPayload, err := s.normalizeEvent(event)
+	if err != nil {
+		return false, err
+	}
+	event.Payload = normalizedPayload
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO reliable_outbox (
 			id, topic, business_key, payload, state, attempts,
@@ -397,22 +402,26 @@ func scanRecord(row rowScanner) (Record, error) {
 	return record, nil
 }
 
-func (s *Store) validateEvent(event Event) error {
+func (s *Store) normalizeEvent(event Event) ([]byte, error) {
 	if !keyPattern.MatchString(event.ID) || !topicPattern.MatchString(event.Topic) {
-		return ErrInvalidEvent
+		return nil, ErrInvalidEvent
 	}
 	if event.OccurredAt.IsZero() || event.OccurredAt.Location() != time.UTC {
-		return ErrInvalidEvent
+		return nil, ErrInvalidEvent
 	}
 	if event.OccurredAt.Nanosecond()%1000 != 0 {
-		return ErrInvalidEvent
+		return nil, ErrInvalidEvent
 	}
 	if len(event.Payload) == 0 || len(event.Payload) > 1<<20 {
-		return ErrInvalidEvent
+		return nil, ErrInvalidEvent
 	}
 	validator, exists := s.schemas[event.Topic]
-	if !exists || !validator.validate(event.Payload, event.BusinessKey) {
-		return ErrInvalidEvent
+	if !exists {
+		return nil, ErrInvalidEvent
 	}
-	return nil
+	normalized, valid := validator.normalize(event.Payload, event.BusinessKey)
+	if !valid {
+		return nil, ErrInvalidEvent
+	}
+	return normalized, nil
 }

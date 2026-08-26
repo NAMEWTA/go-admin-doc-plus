@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"regexp"
 	"strings"
 )
@@ -20,6 +21,8 @@ type PayloadFieldSchema struct {
 	Name     string
 	Kind     PayloadKind
 	Required bool
+	// AllowedStrings is the closed set of non-sensitive domain labels accepted by PayloadString.
+	AllowedStrings []string
 }
 
 type BusinessKeySchema struct {
@@ -35,8 +38,14 @@ type TopicSchema struct {
 }
 
 type topicValidator struct {
-	payload     map[string]PayloadFieldSchema
+	payload     map[string]payloadFieldValidator
 	businessKey BusinessKeySchema
+}
+
+type payloadFieldValidator struct {
+	kind           PayloadKind
+	required       bool
+	allowedStrings map[string]struct{}
 }
 
 var (
@@ -59,7 +68,7 @@ func compileTopicSchemas(schemas []TopicSchema) (map[string]topicValidator, erro
 		if _, exists := compiled[schema.Topic]; exists {
 			return nil, errors.New("outbox topic schema is duplicated")
 		}
-		fields := make(map[string]PayloadFieldSchema, len(schema.Payload))
+		fields := make(map[string]payloadFieldValidator, len(schema.Payload))
 		for _, field := range schema.Payload {
 			if !payloadFieldPattern.MatchString(field.Name) || !validPayloadFieldName(field.Name) ||
 				field.Kind < PayloadString || field.Kind > PayloadBoolean {
@@ -68,62 +77,143 @@ func compileTopicSchemas(schemas []TopicSchema) (map[string]topicValidator, erro
 			if _, exists := fields[field.Name]; exists {
 				return nil, errors.New("outbox payload schema is duplicated")
 			}
-			fields[field.Name] = field
+			allowed, err := compileAllowedStrings(field)
+			if err != nil {
+				return nil, err
+			}
+			fields[field.Name] = payloadFieldValidator{
+				kind: field.Kind, required: field.Required, allowedStrings: allowed,
+			}
 		}
 		compiled[schema.Topic] = topicValidator{payload: fields, businessKey: schema.BusinessKey}
 	}
 	return compiled, nil
 }
 
-func (validator topicValidator) validate(payload []byte, businessKey string) bool {
+func compileAllowedStrings(field PayloadFieldSchema) (map[string]struct{}, error) {
+	if field.Kind != PayloadString {
+		if len(field.AllowedStrings) != 0 {
+			return nil, errors.New("outbox non-string payload schema has string values")
+		}
+		return nil, nil
+	}
+	if len(field.AllowedStrings) == 0 || len(field.AllowedStrings) > 64 {
+		return nil, errors.New("outbox string payload schema requires an explicit value set")
+	}
+	allowed := make(map[string]struct{}, len(field.AllowedStrings))
+	for _, value := range field.AllowedStrings {
+		if value == "" || len(value) > 128 {
+			return nil, errors.New("outbox string payload schema value is invalid")
+		}
+		if _, duplicate := allowed[value]; duplicate {
+			return nil, errors.New("outbox string payload schema value is duplicated")
+		}
+		allowed[value] = struct{}{}
+	}
+	return allowed, nil
+}
+
+func (validator topicValidator) normalize(payload []byte, businessKey string) ([]byte, bool) {
 	parts := strings.Split(businessKey, ":")
 	if len(parts) < 2 || parts[0] != validator.businessKey.Prefix {
-		return false
+		return nil, false
 	}
 	parts = parts[1:]
 	if len(parts) < validator.businessKey.MinParts || len(parts) > validator.businessKey.MaxParts {
-		return false
+		return nil, false
 	}
 	for _, part := range parts {
 		if !keyPartPattern.MatchString(part) || isSensitiveBusinessPart(part) {
-			return false
+			return nil, false
 		}
 	}
 
-	if !json.Valid(payload) {
-		return false
+	if !json.Valid(payload) || !uniqueJSONMembers(payload) {
+		return nil, false
 	}
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.UseNumber()
 	var object map[string]any
 	if err := decoder.Decode(&object); err != nil || object == nil {
-		return false
+		return nil, false
 	}
 	for name, value := range object {
 		field, allowed := validator.payload[name]
-		if !allowed || !matchesPayloadKind(value, field.Kind) {
-			return false
+		if !allowed || !matchesPayloadKind(value, field) {
+			return nil, false
 		}
 	}
 	for name, field := range validator.payload {
-		if _, exists := object[name]; field.Required && !exists {
-			return false
+		if _, exists := object[name]; field.required && !exists {
+			return nil, false
 		}
 	}
-	return true
+	normalized, err := json.Marshal(object)
+	return normalized, err == nil
 }
 
-func matchesPayloadKind(value any, kind PayloadKind) bool {
-	switch kind {
+func matchesPayloadKind(value any, field payloadFieldValidator) bool {
+	switch field.kind {
 	case PayloadString:
-		_, ok := value.(string)
-		return ok
+		text, ok := value.(string)
+		_, allowed := field.allowedStrings[text]
+		return ok && allowed
 	case PayloadNumber:
 		_, ok := value.(json.Number)
 		return ok
 	case PayloadBoolean:
 		_, ok := value.(bool)
 		return ok
+	default:
+		return false
+	}
+}
+
+func uniqueJSONMembers(payload []byte) bool {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.UseNumber()
+	token, err := decoder.Token()
+	if err != nil || !scanJSONValue(decoder, token) {
+		return false
+	}
+	_, err = decoder.Token()
+	return errors.Is(err, io.EOF)
+}
+
+func scanJSONValue(decoder *json.Decoder, token any) bool {
+	delimiter, structured := token.(json.Delim)
+	if !structured {
+		return true
+	}
+	switch delimiter {
+	case '{':
+		seen := make(map[string]struct{})
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			key, ok := keyToken.(string)
+			if err != nil || !ok {
+				return false
+			}
+			if _, duplicate := seen[key]; duplicate {
+				return false
+			}
+			seen[key] = struct{}{}
+			valueToken, err := decoder.Token()
+			if err != nil || !scanJSONValue(decoder, valueToken) {
+				return false
+			}
+		}
+		closing, err := decoder.Token()
+		return err == nil && closing == json.Delim('}')
+	case '[':
+		for decoder.More() {
+			valueToken, err := decoder.Token()
+			if err != nil || !scanJSONValue(decoder, valueToken) {
+				return false
+			}
+		}
+		closing, err := decoder.Token()
+		return err == nil && closing == json.Delim(']')
 	default:
 		return false
 	}

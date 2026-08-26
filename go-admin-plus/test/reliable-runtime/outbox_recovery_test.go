@@ -64,8 +64,10 @@ func newReliableStore(t *testing.T, db *database.Database) *outbox.Store {
 			BusinessKey: outbox.BusinessKeySchema{Prefix: "order", MinParts: 1, MaxParts: 3},
 		},
 		outbox.TopicSchema{
-			Topic:       "settings.changed",
-			Payload:     []outbox.PayloadFieldSchema{{Name: "value", Kind: outbox.PayloadString, Required: true}},
+			Topic: "settings.changed",
+			Payload: []outbox.PayloadFieldSchema{{
+				Name: "value", Kind: outbox.PayloadString, Required: true, AllowedStrings: []string{"current"},
+			}},
 			BusinessKey: outbox.BusinessKeySchema{Prefix: "settings", MinParts: 2, MaxParts: 2},
 		},
 	)
