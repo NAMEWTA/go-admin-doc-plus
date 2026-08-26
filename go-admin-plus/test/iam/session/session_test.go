@@ -20,6 +20,12 @@ import (
 	"go-admin/internal/platform/migrations"
 )
 
+type sessionTestLoginFactNoop struct{}
+
+func (sessionTestLoginFactNoop) RecordLoginFact(context.Context, database.Tx, session.LoginFact) error {
+	return nil
+}
+
 func TestHTTPLoginUsesHostCookieAndDoesNotReturnToken(t *testing.T) {
 	_, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute))
 	handler, err := session.NewHTTPHandler(service, func(*http.Request) string { return "0123456789abcdef" })
@@ -78,7 +84,7 @@ func TestHTTPLoginUsesHostCookieAndDoesNotReturnToken(t *testing.T) {
 }
 
 func TestHTTPInfrastructureFailureIsNotReportedAsLogout(t *testing.T) {
-	service, err := session.NewService(failingDatabase{}, mustPolicy(t, time.Hour, 2*time.Hour, time.Hour))
+	service, err := session.NewService(failingDatabase{}, mustPolicy(t, time.Hour, 2*time.Hour, time.Hour), session.WithLoginFactPort(sessionTestLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,6 +108,24 @@ func TestHTTPInfrastructureFailureIsNotReportedAsLogout(t *testing.T) {
 	handler.ServeHTTP(protectedResponse, protected)
 	if protectedResponse.Code != http.StatusInternalServerError || !strings.Contains(protectedResponse.Body.String(), `"category":"internal"`) {
 		t.Fatalf("protected dependency failure was misclassified: status=%d", protectedResponse.Code)
+	}
+}
+
+func TestNewServiceRequiresExplicitLoginFactPort(t *testing.T) {
+	policy := mustPolicy(t, time.Hour, 2*time.Hour, time.Hour)
+	for _, test := range []struct {
+		name    string
+		options []session.Option
+	}{
+		{name: "absent"},
+		{name: "nil", options: []session.Option{session.WithLoginFactPort(nil)}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			service, err := session.NewService(failingDatabase{}, policy, test.options...)
+			if err == nil || service != nil || !strings.Contains(err.Error(), "login fact port is required") {
+				t.Fatalf("NewService without an explicit LoginFactPort = %#v, %v", service, err)
+			}
+		})
 	}
 }
 
@@ -295,7 +319,7 @@ func TestPasswordWorkBudgetFailsFastWithoutEnumeratingAccounts(t *testing.T) {
 
 func TestSanitizePreservesContextTermination(t *testing.T) {
 	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded} {
-		service, err := session.NewService(errorDatabase{err: sentinel}, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute))
+		service, err := session.NewService(errorDatabase{err: sentinel}, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginFactPort(sessionTestLoginFactNoop{}))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -321,7 +345,7 @@ func TestCallbackSQLFailuresPreserveContextTermination(t *testing.T) {
 				case "rows-affected":
 					failure.resultErr = sentinel
 				}
-				service, err := session.NewService(failure, policy)
+				service, err := session.NewService(failure, policy, session.WithLoginFactPort(sessionTestLoginFactNoop{}))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -347,7 +371,7 @@ func TestCallbackSQLFailuresPreserveContextTermination(t *testing.T) {
 func TestCallbackSQLDetailsAreSanitized(t *testing.T) {
 	policy := mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute)
 	db, _, _ := newFixture(t, policy)
-	service, err := session.NewService(callbackFailureDatabase{db: db, execErr: errors.New("private SQL path and value")}, policy)
+	service, err := session.NewService(callbackFailureDatabase{db: db, execErr: errors.New("private SQL path and value")}, policy, session.WithLoginFactPort(sessionTestLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -750,7 +774,10 @@ func newFixture(t *testing.T, policy config.SessionPolicy, options ...session.Op
 	}
 	// The pointer controls the closure without exporting clock mutation into production APIs.
 	clock := &now
-	options = append([]session.Option{session.WithClock(func() time.Time { return *clock })}, options...)
+	options = append([]session.Option{
+		session.WithClock(func() time.Time { return *clock }),
+		session.WithLoginFactPort(sessionTestLoginFactNoop{}),
+	}, options...)
 	service, err := session.NewService(db, policy, options...)
 	if err != nil {
 		t.Fatal(err)

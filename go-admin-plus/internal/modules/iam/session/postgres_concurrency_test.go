@@ -20,6 +20,12 @@ import (
 
 const postgresDisposableDSNEnv = "GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN"
 
+type postgresLoginFactNoop struct{}
+
+func (postgresLoginFactNoop) RecordLoginFact(context.Context, database.Tx, LoginFact) error {
+	return nil
+}
+
 // TestPostgresGenerationFencesConcurrentRotationAndRevoke is intentionally gated.
 // Lead runs it against an isolated real PostgreSQL database in candidate verification.
 func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
@@ -75,7 +81,7 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 		t.Fatal(err)
 	}
 	clock := now
-	service, err := NewService(db, policy, WithClock(func() time.Time { return clock }))
+	service, err := NewService(db, policy, WithClock(func() time.Time { return clock }), WithLoginFactPort(postgresLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}

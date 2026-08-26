@@ -31,6 +31,56 @@ const (
 	auditE2EStaticEnv  = "GO_ADMIN_AUDIT_E2E_STATIC_DIR"
 )
 
+type auditHarnessClock struct {
+	mu  sync.RWMutex
+	now time.Time
+}
+
+type auditHarnessRotationProof struct {
+	mu                      sync.RWMutex
+	replacementCookie, csrf bool
+}
+
+func (proof *auditHarnessRotationProof) observe(header http.Header) {
+	proof.mu.Lock()
+	proof.replacementCookie = proof.replacementCookie || header.Get("Set-Cookie") != ""
+	proof.csrf = proof.csrf || header.Get("X-CSRF-Token") != ""
+	proof.mu.Unlock()
+}
+
+func (proof *auditHarnessRotationProof) snapshot() (bool, bool) {
+	proof.mu.RLock()
+	defer proof.mu.RUnlock()
+	return proof.replacementCookie, proof.csrf
+}
+
+type auditHarnessProofWriter struct {
+	http.ResponseWriter
+	proof *auditHarnessRotationProof
+}
+
+func (writer auditHarnessProofWriter) WriteHeader(status int) {
+	writer.proof.observe(writer.Header())
+	writer.ResponseWriter.WriteHeader(status)
+}
+
+func (writer auditHarnessProofWriter) Write(body []byte) (int, error) {
+	writer.proof.observe(writer.Header())
+	return writer.ResponseWriter.Write(body)
+}
+
+func (clock *auditHarnessClock) current() time.Time {
+	clock.mu.RLock()
+	defer clock.mu.RUnlock()
+	return clock.now
+}
+
+func (clock *auditHarnessClock) advance(duration time.Duration) {
+	clock.mu.Lock()
+	clock.now = clock.now.Add(duration)
+	clock.mu.Unlock()
+}
+
 // TestAuditUIHarnessServer is the tracked required-E2E host. Source gates compile it and skip;
 // the Lead-owned runner opts in for both SQLite and PostgreSQL and drives the actual Web client
 // and controller against this real Outbox-to-Audit process.
@@ -63,8 +113,9 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	db := openAuditUIHarnessDatabase(t, ctx, profile)
 	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
 	store := newAuditStore(t, db)
-	now := time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
-	createAuditIAMFixture(t, db, now)
+	fixtureTime := time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
+	clock := &auditHarnessClock{now: fixtureTime}
+	createAuditIAMFixture(t, db, fixtureTime)
 	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
 	if err != nil {
 		t.Fatal(err)
@@ -73,21 +124,21 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := session.NewService(db, policy, session.WithClock(func() time.Time { return now }), session.WithLoginFactPort(loginFacts))
+	sessions, err := session.NewService(db, policy, session.WithClock(clock.current), session.WithLoginFactPort(loginFacts))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := sessions.Login(ctx, "missing", "incorrect password"); !errors.Is(err, session.ErrCredentials) {
 		t.Fatal("seed failed login fact failed")
 	}
-	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
-	dispatch(t, db, store, mustConsumers(t), now)
+	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: fixtureTime.Add(-60 * 24 * time.Hour)})
+	dispatch(t, db, store, mustConsumers(t), fixtureTime)
 
 	permissionAdapter, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := mustServiceWithPolicy(t, db, permissionAdapter, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+	service := mustServiceWithPolicy(t, db, permissionAdapter, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: clock.current})
 	requestAdapter, err := audit.NewIAMRequestAuthorizer(sessions)
 	if err != nil {
 		t.Fatal(err)
@@ -103,9 +154,12 @@ func TestAuditUIHarnessServer(t *testing.T) {
 
 	shutdown := make(chan struct{})
 	var shutdownOnce sync.Once
+	rotationProof := &auditHarnessRotationProof{}
 	mux := http.NewServeMux()
 	api := http.NewServeMux()
-	api.Handle("/audit/", auditAPI)
+	api.Handle("/audit/", http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		auditAPI.ServeHTTP(auditHarnessProofWriter{ResponseWriter: response, proof: rotationProof}, request)
+	}))
 	api.Handle("/iam/", sessionAPI)
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	mux.HandleFunc("/__test/snapshot", func(response http.ResponseWriter, request *http.Request) {
@@ -120,6 +174,31 @@ func TestAuditUIHarnessServer(t *testing.T) {
 		}
 		response.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(response).Encode(map[string]int{"count": count})
+	})
+	mux.HandleFunc("/__test/advance-session", func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodPost {
+			response.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		clock.advance(31 * time.Minute)
+		response.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/__test/session-state", func(response http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet {
+			response.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var active, rotated int
+		if err := db.Bun().QueryRowContext(request.Context(), `SELECT
+			COALESCE(SUM(CASE WHEN state = 'active' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN state = 'rotated' THEN 1 ELSE 0 END), 0)
+			FROM iam_sessions`).Scan(&active, &rotated); err != nil {
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		replacementCookie, csrf := rotationProof.snapshot()
+		response.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(response).Encode(map[string]any{"active": active, "rotated": rotated, "replacementCookie": replacementCookie, "csrf": csrf})
 	})
 	mux.HandleFunc("/__test/audit-permission", func(response http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodPost {
@@ -147,7 +226,7 @@ func TestAuditUIHarnessServer(t *testing.T) {
 			response.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		if _, err := db.Bun().ExecContext(request.Context(), `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE state = 'active'`, now); err != nil {
+		if _, err := db.Bun().ExecContext(request.Context(), `UPDATE iam_sessions SET state = 'revoked', revoked_at = ? WHERE state = 'active'`, clock.current()); err != nil {
 			response.WriteHeader(http.StatusInternalServerError)
 			return
 		}

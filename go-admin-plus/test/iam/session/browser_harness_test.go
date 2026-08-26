@@ -32,6 +32,12 @@ const (
 	browserHarnessPostgresEnv = "GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN"
 )
 
+type browserLoginFactNoop struct{}
+
+func (browserLoginFactNoop) RecordLoginFact(context.Context, database.Tx, session.LoginFact) error {
+	return nil
+}
+
 type harnessClock struct {
 	mu  sync.Mutex
 	now time.Time
@@ -92,7 +98,7 @@ func TestIAMBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := session.NewService(db, policy, session.WithClock(clock.current))
+	service, err := session.NewService(db, policy, session.WithClock(clock.current), session.WithLoginFactPort(browserLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}

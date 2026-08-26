@@ -15,6 +15,12 @@ import (
 	"go-admin/internal/platform/database"
 )
 
+type authorizationHTTPLoginFactNoop struct{}
+
+func (authorizationHTTPLoginFactNoop) RecordLoginFact(context.Context, database.Tx, session.LoginFact) error {
+	return nil
+}
+
 func TestHTTPRotationHeadersSurviveAuthorizationConflictAndValidationResponses(t *testing.T) {
 	for _, test := range []struct {
 		name, method, path, body string
@@ -37,7 +43,7 @@ func TestHTTPRotationHeadersSurviveAuthorizationConflictAndValidationResponses(t
 			if err != nil {
 				t.Fatal(err)
 			}
-			sessions, err := session.NewService(db, policy, session.WithClock(func() time.Time { return clock }))
+			sessions, err := session.NewService(db, policy, session.WithClock(func() time.Time { return clock }), session.WithLoginFactPort(authorizationHTTPLoginFactNoop{}))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -83,7 +89,7 @@ func TestDirectUnauthorizedAPIProducesNoStateChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	policy, _ := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
-	sessions, err := session.NewService(db, policy)
+	sessions, err := session.NewService(db, policy, session.WithLoginFactPort(authorizationHTTPLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}

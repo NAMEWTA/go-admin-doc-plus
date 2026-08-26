@@ -31,6 +31,12 @@ const (
 	adminHarnessStatic  = "GO_ADMIN_IAM_ADMIN_E2E_STATIC_DIR"
 )
 
+type authorizationBrowserLoginFactNoop struct{}
+
+func (authorizationBrowserLoginFactNoop) RecordLoginFact(context.Context, database.Tx, session.LoginFact) error {
+	return nil
+}
+
 // TestIAMAdministrationBrowserHarnessServer is compiled by source gates and run only by the Lead
 // matrix. It serves production handlers and tracked test controls over same-origin HTTPS.
 func TestIAMAdministrationBrowserHarnessServer(t *testing.T) {
@@ -52,7 +58,7 @@ func TestIAMAdministrationBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := session.NewService(db, policy)
+	sessions, err := session.NewService(db, policy, session.WithLoginFactPort(authorizationBrowserLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}

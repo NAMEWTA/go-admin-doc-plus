@@ -75,12 +75,6 @@ type LoginFactPort interface {
 	RecordLoginFact(context.Context, database.Tx, LoginFact) error
 }
 
-type discardLoginFactPort struct{}
-
-func (discardLoginFactPort) RecordLoginFact(context.Context, database.Tx, LoginFact) error {
-	return nil
-}
-
 type Service struct {
 	db           Database
 	accounts     *account.Repository
@@ -114,7 +108,7 @@ func NewService(db Database, policy config.SessionPolicy, options ...Option) (*S
 	if _, err := config.NewSessionPolicy(policy.IdleTimeout(), policy.AbsoluteTimeout(), policy.RotationInterval()); err != nil {
 		return nil, err
 	}
-	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget(), loginFacts: discardLoginFactPort{}}
+	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget()}
 	for _, option := range options {
 		option(s)
 	}
