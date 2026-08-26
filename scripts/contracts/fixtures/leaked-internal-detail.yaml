@@ -1,0 +1,38 @@
+openapi: 3.1.0
+info:
+  title: Leaked internal detail fixture
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+security: []
+paths:
+  /fixture:
+    get:
+      operationId: leakedInternalDetailFixture
+      summary: Exercise unsafe error detail
+      responses:
+        '204':
+          description: Successful response.
+        '400':
+          description: Invalid request.
+          content:
+            application/problem+json:
+              schema:
+                type: object
+        '500':
+          description: Internal failure.
+          content:
+            application/problem+json:
+              schema:
+                type: object
+              example:
+                type: urn:fixture:internal
+                title: Internal server error
+                status: 500
+                category: internal
+                code: INTERNAL_ERROR
+                traceId: 0123456789abcdef
+                detail: 'pq: relation users does not exist at /var/lib/app/database.go:42'

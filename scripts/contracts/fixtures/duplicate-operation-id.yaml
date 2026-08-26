@@ -1,0 +1,37 @@
+openapi: 3.1.0
+info:
+  title: Duplicate operation fixture
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+security: []
+paths:
+  /first:
+    get:
+      operationId: duplicateFixture
+      summary: Exercise the first duplicate
+      responses:
+        '204':
+          description: First response.
+        '400':
+          description: Invalid request.
+          content:
+            application/problem+json:
+              schema:
+                type: object
+  /second:
+    get:
+      operationId: duplicateFixture
+      summary: Exercise the second duplicate
+      responses:
+        '204':
+          description: Second response.
+        '400':
+          description: Invalid request.
+          content:
+            application/problem+json:
+              schema:
+                type: object

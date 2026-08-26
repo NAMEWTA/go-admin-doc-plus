@@ -12,9 +12,11 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-admin-team/go-admin-core/v2 v2.1.0
+	github.com/go-chi/chi/v5 v5.3.2
 	github.com/google/uuid v1.6.0
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.26.6+incompatible
 	github.com/mssola/user_agent v0.6.0
+	github.com/oapi-codegen/runtime v1.7.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.24.1
@@ -45,6 +47,7 @@ require (
 	github.com/alex-ant/gomath v0.0.0-20160516115720-89013a210a82 // indirect
 	github.com/andeya/ameda v1.5.3 // indirect
 	github.com/andeya/goutil v1.1.2 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
@@ -57,9 +60,11 @@ require (
 	github.com/chanxuehong/rand v0.0.0-20211009035549-2f07823e8e99 // indirect
 	github.com/chanxuehong/wechat v0.0.0-20230222024006-36f0325263cd // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
+	github.com/dprotaso/go-yit v0.0.0-20220510233725-9ba8df137936 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
+	github.com/getkin/kin-openapi v0.142.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/glebarez/go-sqlite v1.22.0 // indirect
@@ -97,7 +102,7 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
-	github.com/labstack/echo/v4 v4.13.3 // indirect
+	github.com/labstack/echo/v4 v4.15.1 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/leaanthony/go-ansi-parser v1.6.1 // indirect
 	github.com/leaanthony/gosod v1.0.4 // indirect
@@ -105,7 +110,7 @@ require (
 	github.com/leaanthony/u v1.1.1 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-sqlite3 v1.14.49 // indirect
 	github.com/microsoft/go-mssqldb v1.10.0 // indirect
@@ -115,6 +120,9 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/nyaruka/phonenumbers v1.2.2 // indirect
+	github.com/oapi-codegen/oapi-codegen/v2 v2.8.0 // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
@@ -127,10 +135,13 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/samber/lo v1.49.1 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/shamsher31/goimgext v1.0.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
+	github.com/speakeasy-api/jsonpath v0.6.3 // indirect
+	github.com/speakeasy-api/openapi v1.24.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
@@ -140,6 +151,7 @@ require (
 	github.com/ugorji/go/codec v1.3.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.22 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
@@ -161,6 +173,7 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/plugin/dbresolver v1.6.2 // indirect
 	modernc.org/fileutil v1.3.40 // indirect
 	modernc.org/libc v1.67.4 // indirect
@@ -173,3 +186,5 @@ require (
 //	github.com/go-admin-team/go-admin-core v1.5.2-0.20231103105356-84418ed9252c => ../go-admin-core
 //	github.com/go-admin-team/go-admin-core/sdk v1.5.2-0.20231103105356-84418ed9252c => ../go-admin-core/sdk
 //)
+
+tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen

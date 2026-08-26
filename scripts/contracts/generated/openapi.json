@@ -1,0 +1,393 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Go Admin Plus API",
+    "version": "1.0.0",
+    "description": "Contract-first HTTP API shared by the Web and Desktop products.",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "servers": [
+    {
+      "url": "/api",
+      "description": "Same-origin API base path."
+    }
+  ],
+  "security": [
+    {
+      "SessionCookie": [],
+      "CsrfToken": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Contract",
+      "description": "Compile-time conformance surface for generated transports."
+    }
+  ],
+  "paths": {
+    "/contract/probe": {
+      "post": {
+        "operationId": "probeContract",
+        "tags": [
+          "Contract"
+        ],
+        "summary": "Validate generated transport conformance",
+        "description": "Returns the supplied value through the generated strict transport.",
+        "security": [],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/PageNumber"
+          },
+          {
+            "$ref": "#/components/parameters/PageSize"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContractProbeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The transport accepted the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContractProbeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationProblem"
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationProblem"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationProblem"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundProblem"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictProblem"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalProblem"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Problem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "title",
+          "status",
+          "category",
+          "code",
+          "traceId"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "format": "uri-reference",
+            "description": "Stable problem type identifier."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "validation",
+              "authentication",
+              "authorization",
+              "not_found",
+              "conflict",
+              "internal"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Safe client-facing context without infrastructure details."
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
+          "traceId": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 64,
+            "pattern": "^[a-f0-9]+$"
+          },
+          "violations": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ValidationViolation"
+            }
+          }
+        }
+      },
+      "ValidationViolation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "rule"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "rule": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      },
+      "PageMeta": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "ContractProbeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          }
+        }
+      },
+      "ContractProbeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "PageNumber": {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "One-based result page.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      },
+      "PageSize": {
+        "name": "pageSize",
+        "in": "query",
+        "required": false,
+        "description": "Maximum results returned per page.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        }
+      }
+    },
+    "responses": {
+      "ValidationProblem": {
+        "description": "The request does not satisfy the declared contract.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "example": {
+              "type": "urn:go-admin-plus:problem:validation",
+              "title": "Request validation failed",
+              "status": 400,
+              "category": "validation",
+              "code": "REQUEST_INVALID",
+              "traceId": "0123456789abcdef",
+              "violations": [
+                {
+                  "field": "value",
+                  "rule": "required",
+                  "message": "Value is required."
+                }
+              ]
+            }
+          }
+        }
+      },
+      "AuthenticationProblem": {
+        "description": "A valid authenticated session is required.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "example": {
+              "type": "urn:go-admin-plus:problem:authentication",
+              "title": "Authentication required",
+              "status": 401,
+              "category": "authentication",
+              "code": "SESSION_REQUIRED",
+              "traceId": "0123456789abcdef"
+            }
+          }
+        }
+      },
+      "AuthorizationProblem": {
+        "description": "The authenticated account cannot perform this operation.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "example": {
+              "type": "urn:go-admin-plus:problem:authorization",
+              "title": "Permission denied",
+              "status": 403,
+              "category": "authorization",
+              "code": "PERMISSION_DENIED",
+              "traceId": "0123456789abcdef"
+            }
+          }
+        }
+      },
+      "NotFoundProblem": {
+        "description": "The requested resource does not exist.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "example": {
+              "type": "urn:go-admin-plus:problem:not-found",
+              "title": "Resource not found",
+              "status": 404,
+              "category": "not_found",
+              "code": "RESOURCE_NOT_FOUND",
+              "traceId": "0123456789abcdef"
+            }
+          }
+        }
+      },
+      "ConflictProblem": {
+        "description": "The operation conflicts with current resource state.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "example": {
+              "type": "urn:go-admin-plus:problem:conflict",
+              "title": "Resource conflict",
+              "status": 409,
+              "category": "conflict",
+              "code": "RESOURCE_CONFLICT",
+              "traceId": "0123456789abcdef"
+            }
+          }
+        }
+      },
+      "InternalProblem": {
+        "description": "The operation failed without exposing infrastructure details.",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            },
+            "example": {
+              "type": "urn:go-admin-plus:problem:internal",
+              "title": "Internal server error",
+              "status": 500,
+              "category": "internal",
+              "code": "INTERNAL_ERROR",
+              "traceId": "0123456789abcdef"
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "SessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-go-admin-session",
+        "description": "Opaque server-side session identifier. JavaScript cannot read the production cookie."
+      },
+      "CsrfToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "Per-session anti-forgery token required for state-changing Web requests."
+      }
+    }
+  }
+}

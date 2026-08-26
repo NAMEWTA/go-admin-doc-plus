@@ -1,0 +1,92 @@
+Problem:
+  type: object
+  additionalProperties: false
+  required: [type, title, status, category, code, traceId]
+  properties:
+    type:
+      type: string
+      format: uri-reference
+      description: Stable problem type identifier.
+    title:
+      type: string
+      minLength: 1
+      maxLength: 120
+    status:
+      type: integer
+      minimum: 400
+      maximum: 599
+    category:
+      type: string
+      enum: [validation, authentication, authorization, not_found, conflict, internal]
+    code:
+      type: string
+      pattern: '^[A-Z][A-Z0-9_]{2,63}$'
+    detail:
+      type: string
+      maxLength: 512
+      description: Safe client-facing context without infrastructure details.
+    instance:
+      type: string
+      format: uri-reference
+    traceId:
+      type: string
+      minLength: 16
+      maxLength: 64
+      pattern: '^[a-f0-9]+$'
+    violations:
+      type: array
+      maxItems: 100
+      items:
+        $ref: '#/ValidationViolation'
+
+ValidationViolation:
+  type: object
+  additionalProperties: false
+  required: [field, rule]
+  properties:
+    field:
+      type: string
+      minLength: 1
+      maxLength: 128
+    rule:
+      type: string
+      minLength: 1
+      maxLength: 64
+    message:
+      type: string
+      maxLength: 256
+
+PageMeta:
+  type: object
+  additionalProperties: false
+  required: [page, pageSize, total]
+  properties:
+    page:
+      type: integer
+      minimum: 1
+    pageSize:
+      type: integer
+      minimum: 1
+      maximum: 200
+    total:
+      type: integer
+      format: int64
+      minimum: 0
+
+ContractProbeRequest:
+  type: object
+  additionalProperties: false
+  required: [value]
+  properties:
+    value:
+      type: string
+      minLength: 1
+      maxLength: 64
+
+ContractProbeResponse:
+  type: object
+  additionalProperties: false
+  required: [value]
+  properties:
+    value:
+      type: string

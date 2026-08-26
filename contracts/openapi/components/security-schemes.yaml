@@ -1,0 +1,11 @@
+SessionCookie:
+  type: apiKey
+  in: cookie
+  name: __Host-go-admin-session
+  description: Opaque server-side session identifier. JavaScript cannot read the production cookie.
+
+CsrfToken:
+  type: apiKey
+  in: header
+  name: X-CSRF-Token
+  description: Per-session anti-forgery token required for state-changing Web requests.

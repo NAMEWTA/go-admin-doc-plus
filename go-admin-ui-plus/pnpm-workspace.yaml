@@ -9,6 +9,9 @@ allowBuilds:
   core-js: true
   vue-demi: true
 
+minimumReleaseAgeExclude:
+  - '@redocly/cli@2.48.0'
+
 overrides:
   '@vue/devtools-api': '6.6.4'
   'postcss@<8.4.31': '>=8.4.31'

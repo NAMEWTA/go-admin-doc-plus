@@ -16,8 +16,9 @@ printf '%s' "$task_list" | "$node_command" -e '
   const { tasks } = JSON.parse(require("node:fs").readFileSync(0, "utf8"))
   const actual = tasks.map(({ name }) => name).sort()
   const expected = [
-    "build", "default", "dev", "generate", "governance:check", "lint",
-    "lint:staged", "migrate", "package", "release", "task:contract", "test",
+    "build", "contract:lint", "default", "dev", "generate", "generate:check",
+    "governance:check", "lint", "lint:staged", "migrate", "package", "release",
+    "task:contract", "test",
   ].sort()
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     console.error(`task contract: public tasks differ\nexpected=${expected}\nactual=${actual}`)

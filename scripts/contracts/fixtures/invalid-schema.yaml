@@ -1,0 +1,28 @@
+openapi: 3.1.0
+info:
+  title: Invalid schema fixture
+  version: 1.0.0
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+security: []
+paths:
+  /fixture:
+    get:
+      operationId: invalidSchemaFixture
+      summary: Exercise an invalid schema
+      responses:
+        '200':
+          description: Invalid schema response.
+          content:
+            application/json:
+              schema:
+                type: strnig
+        '400':
+          description: Invalid request.
+          content:
+            application/problem+json:
+              schema:
+                type: object

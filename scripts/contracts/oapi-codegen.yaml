@@ -1,0 +1,9 @@
+{
+  "package": "contracts",
+  "generate": {
+    "chi-server": true,
+    "strict-server": true,
+    "models": true
+  },
+  "output": "go-admin-plus/internal/contracts/openapi.gen.go"
+}
