@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-09
 title: Organization 部门与岗位垂直切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 模块新增公共 API、双方言 schema、组织树不变量和 IAM 消费者 Port
 ready: true
 risk: high
 blocked_by: [T-07]
 contract_ids: [AC-014, AC-035]
-owner: unassigned
+owner: codex-t09-organization
 expected_changes: ["<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/organization/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/organization/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus/test/organization/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/organization/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
