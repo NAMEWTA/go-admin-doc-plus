@@ -295,6 +295,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-02 修复中实测公开 `generate` 的旧 `swag` 链因未受管工具缺失而失败；`T02-D03` 随事实收紧为公开命令只委派 canonical generator，旧脚本不删除但退出公共命令面。
 - T-02 最终双轴审查已对固定范围 `9fb27f69e79b7acb84bf65a7328b2254d2d20359...201b4647e15da1e62a3c92012c9847ec9765b706` 返回 pass、0 findings；Lead parent-candidate G1 全门禁通过，父分支已提升至 result，Ticket 状态为 `done`。
 - G2 已从 `main@27a186cbda7e77c403b3c64074260a10e924ee92` 并行创建互不重叠的 T-03/T-05 source worktree；implementation owner 分别为 `codex-t03-runtime` 与 `codex-t05-frontend`，Lead 保留状态、required E2E 与 candidate integration 所有权。
+- T-05 implementation owner 触发并由 Lead 批准 Ticket 级偏差 `T05-D01`：初始路径合同漏列真实 app-shell workspace package 必需的 manifest，只新增 `<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>`，不扩大其他 app-shell 写入范围。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers

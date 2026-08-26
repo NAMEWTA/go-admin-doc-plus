@@ -13,10 +13,10 @@ blocked_by: [T-02]
 contract_ids: [AC-035, AC-036]
 owner: codex-t05-frontend
 expected_changes: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/.npmrc</Path>", "<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/package.json</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/domains/*/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/*/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/**</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/.npmrc</Path>", "<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/package.json</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/domains/*/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/*/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/**</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>", "<Path>go-admin-ui-plus/**</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-05", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path> => T-05", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-05", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path> => T-05", "<Path>go-admin-plus-ui/packages/platform/**</Path> => T-05", "<Path>go-admin-plus-ui/packages/ui/**</Path> => T-05"]
+shared_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-05", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path> => T-05", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-05", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path> => T-05", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path> => T-05", "<Path>go-admin-plus-ui/packages/platform/**</Path> => T-05", "<Path>go-admin-plus-ui/packages/ui/**</Path> => T-05"]
 ---
 
 # Ticket T-05: pnpm Workspace、App Shell 与交互基座
@@ -44,6 +44,10 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-05", "<Pat
 ### 已采用的低影响假设
 
 - 包之间只经公开 exports 导入，禁止 `src` deep import。
+
+### 已批准 Ticket 偏差
+
+- `T05-D01`：T-05 的目标和 `expected_changes` 要求 app-shell 是具有公开 exports 的真实 workspace package，但初始 `writable_paths` 漏列其 manifest。implementation owner 提交偏差后，Lead 于 2026-08-26 批准只新增 `<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>`；app-shell 的其他非 `src/core` 路径仍不授权。
 
 ### 未决问题
 

@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T19:25:00+08:00",
+  "updated_at": "2026-08-26T19:31:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -73,6 +73,16 @@
       "approved_at": "2026-08-26T18:28:00+08:00",
       "reason": "The existing public generate task invokes superseded generators, including an unmanaged swag executable that fails from a provisioned repository, and would otherwise split the public generation contract",
       "resolution": "Replace the public generate delegation with the canonical OpenAPI generator; legacy scripts remain read-only expand-phase inventory until their T-21 contraction owner removes them, but are no longer part of the public command plane"
+    },
+    {
+      "id": "T05-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-26T19:31:00+08:00",
+      "reason": "T-05 requires app-shell to be a real workspace package with public exports, but its writable path list omitted the package manifest while allowing only src/core",
+      "resolution": "Authorize only go-admin-plus-ui/packages/app-shell/package.json as a T-05 shared path; keep all other app-shell files outside src/core read-only"
     }
   ],
   "worktrees": [
