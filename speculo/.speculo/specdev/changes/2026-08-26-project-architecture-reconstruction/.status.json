@@ -163,6 +163,16 @@
       "approved_at": "2026-08-27T02:31:15+08:00",
       "reason": "T-06 keeps the only generic CSRF mutation fence private, while T-07 HTTP must preserve the same opaque token, CSRF, idle-touch, rotation, and failure semantics without reading Session private tables",
       "resolution": "Authorize only session/service.go and the existing session/session_test.go to add and prove a public AuthorizeRequest seam; Session schema, cookie and policy contracts, HTTP transport, and secret representations remain unchanged"
+    },
+    {
+      "id": "T11-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-11",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T03:07:24+08:00",
+      "reason": "Audit owns a synchronous LoginRecorder but T-06 Session has no injectable call seam, so the current implementation cannot produce real login facts or satisfy AC-016 event-to-UI without a precise shared-path correction",
+      "resolution": "After T-07 result and a Lead-owned T-11 rebase, authorize only session/service.go and the existing session/session_test.go for a module-neutral Login Fact Port and atomic success/failure tests; Session must not import Audit or expose username, password, token, CSRF, raw request, schema, HTTP, cookie, or policy changes, and operation events must use Audit-owned module-neutral topics rather than future Demo-private topics"
     }
   ],
   "worktrees": [

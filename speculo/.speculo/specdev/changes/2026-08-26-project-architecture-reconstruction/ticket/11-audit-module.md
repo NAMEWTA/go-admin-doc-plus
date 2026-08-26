@@ -80,11 +80,12 @@ shared_path_owners: []
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Audit 独占路径，以及经 `T11-D01` 批准的两个 Audit package manifest。
+- **预计修改点：** 当前阶段为 Audit 独占路径和经 `T11-D01` 批准的两个 Audit package manifest；T-07 result 后由 Lead 激活 `T11-D02`，再加入 Session 登录审计接缝与既有集成测试。
 - **可写范围：** 仅 frontmatter `writable_paths`。
-- **只读上下文：** IAM Session、Outbox、共享 UI。
-- **共享路径：** 当前无；workspace lock 仍归 T-07，T-11 可并行编写独占源码和 manifest，但不得写 lockfile。
+- **只读上下文：** 当前阶段全部 IAM Session、Outbox、共享 UI。
+- **共享路径：** 当前 frontmatter 无共享可写路径；workspace lock 和两个待开放 Session 路径都先归 T-07。T-11 可并行编写独占源码和 manifest，但必须等待 T-07 result、Lead 激活第二阶段 frontmatter 并 rebase 后，才可写 Audit importer 与 Session 登录审计接缝。
 - **批准偏差：** `T11-D01` 当前阶段仅允许两个 Audit package manifest 补齐 public export、canonical API client、`@go-admin/ui`、Vue 直接依赖与标准 test/typecheck 入口。T-07 result 进入父分支后，Lead 必须先更新本 Ticket 并 rebase，才能开放只更新两个 Audit importer 的第二阶段；其他漂移必须再次停止。
+- **批准偏差：** `T11-D02` 已批准但当前尚未激活；T-07 result 后由 Lead 把精确 Session service/test 路径加入 frontmatter 并 rebase，才允许增加模块无关的登录事实 Port。既有 Session 测试必须证明成功登录与 Session 创建同事务、失败登录同步记录、审计失败不产生已签发 Session、attempt ID 不含用户名且密码/token/CSRF 零泄露。Audit 通过结构化适配器消费该 Port；禁止 Session 导入 Audit、读取 Audit 私表、修改 Session schema/HTTP/Cookie/policy，或把未来业务模块事件硬编码为 Demo 私有 topic。
 - **保留或不动：** 事件生产者实现和全局产品注册。
 
 ## 8. 验证矩阵

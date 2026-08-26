@@ -131,7 +131,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 |---|---|---|---|
 | P2 | T-03, T-05 | 无 | 后端 runtime 与前端 workspace 分离 |
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
-| P5 | T-07, T-11 | 无当前交集 | IAM/Audit 源码和 manifests 独占；lock 当前只由 `T07-D01` 写入，T-11 必须等待 T-07 result、Ticket 更新和 rebase 后才能进入 `T11-D01` 第二阶段 |
+| P5 | T-07, T-11 | 当前无；第二阶段 Session service/test 与 workspace lock 串行相交 | IAM/Audit 独占源码可并行；lock 先由 `T07-D01`、Session 接缝先由 `T07-D02` 写入，T-11 必须等待 T-07 result、Lead 第二阶段更新和 rebase 后，才可进入 `T11-D01` importer 与 `T11-D02` 登录审计接缝 |
 | P6 | T-09, T-10, T-12, T-13, T-14 | 无 | 每模块独占合同/schema/backend/frontend |
 | P7 | T-15, T-16 | 无 | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
@@ -144,6 +144,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
 | Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02 先串行拥有合同工具/client lock 变更；`T07-D01` 后接 `T11-D01` 串行拥有各自 importer | 模块只写预建包的 `src` 和获批 manifest/importer；Desktop adapter 源码归 T-16 |
 | IAM Session request authorization seam | T-06；`T07-D02` 精确追加 `AuthorizeRequest` 与既有测试 | T-07 HTTP 只消费统一 token/CSRF/touch/rotation 结果，不读取 Session 私表或复制 secret/hash 规则 |
+| IAM Session login audit seam | T-06；`T07-D02` 完成后由 `T11-D02` 精确追加模块无关 Login Fact Port 与既有测试 | T-11 Audit adapter 同步记录成功/失败登录；Session 不导入 Audit，后续 composition 只注入 Port，密码/用户名/token/CSRF 不进入事实 |
 | Outbox/coordination/local cache | T-08 | Audit/Scheduler 只读消费 |
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |
 | product OpenAPI/composition/manifest | T-17 | 发行 Ticket 只读消费 |
