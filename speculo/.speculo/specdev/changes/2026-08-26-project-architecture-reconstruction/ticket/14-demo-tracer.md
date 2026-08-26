@@ -12,11 +12,11 @@ risk: medium
 blocked_by: [T-04, T-05, T-07]
 contract_ids: [AC-021, AC-024, AC-035]
 owner: codex-t14-demo
-expected_changes: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/demo/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/demo/**</Path>"]
-read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T14-D01; Demo aggregate scripts only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-14 under T14-D01; Demo specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-14 under T14-D01 after T-11 result; two Demo importers only"]
+expected_changes: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry.go</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry_test.go</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry.go</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry_test.go</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/demo/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/demo/**</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
+shared_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry.go</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry_test.go</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry.go</Path> => T-14 under T14-D02; IAM-owned generic registration only", "<Path>go-admin-plus/internal/modules/iam/authorization/permission_registry_test.go</Path> => T-14 under T14-D02; dual-dialect registry contract only", "<Path>go-admin-plus-ui/package.json</Path> => T-14 under T14-D01; Demo aggregate scripts only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-14 under T14-D01; Demo specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-14 under T14-D01 after T-11 result; two Demo importers only"]
 ---
 
 # Ticket T-14: Demo 双方言业务曳光弹
@@ -40,6 +40,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T
 
 - Demo 完整遵守私有 record/repository、显式 mapping、Permission Code 和无头/Vue 分层。
 - 该模块不包含特殊兼容逻辑或 tenant 字段。
+- Permission Code 由业务模块声明、IAM-owned registry 校验并写入 IAM 表；Demo migration 不得跨模块写 IAM 表。
 
 ### 已采用的低影响假设
 
@@ -68,23 +69,24 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T
 - **状态或数据流：** UI -> TS client -> strict handler -> use case -> repository transaction -> refreshed list。
 - **错误与失败行为：** validation/not-found/conflict/authorization 无意外状态变化。
 - **兼容要求：** 不兼容旧 Demo API/schema/ID。
-- **安全与隐私要求：** 后端最终授权，错误不泄露 SQL/stack。
+- **安全与隐私要求：** 后端通过真实 IAM Session 与最终权限决策授权；数据范围仅接受 `self|all` 闭集，未知值 fail closed；错误不泄露 SQL/stack。
 
 ## 6. 执行路线
 
 1. 建立双方言 CRUD、负向合同和页面行为测试。
-2. 实现 fragment、migration、repository、用例和 mapping。
-3. 实现 headless domain、Vue 页面和标准交互。
-4. 加入重启持久化、缓存禁用和架构边界检查。
+2. 实现 IAM-owned Permission registry、Demo IAM adapters、fragment、migration、repository、用例和 mapping。
+3. 实现 headless domain、Vue 页面和标准交互，闭合写入成功但投影刷新失败后的修复状态。
+4. 加入真实 IAM Session/CSRF/权限撤销/数据范围、重启持久化、缓存禁用和架构边界检查。
 5. 运行 PostgreSQL/Server SQLite Web E2E。
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Demo 独占路径，以及经 `T14-D01` 批准的两个 Demo package manifest、根聚合脚本、测试 include 与两个 Demo lock importer。
+- **预计修改点：** Demo 独占路径，经 `T14-D01` 批准的两个 Demo package manifest、根聚合脚本、测试 include 与两个 Demo lock importer，以及经 `T14-D02` 精确批准的 IAM Permission registry 实现和测试文件。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM、Database 和共享 UI。
 - **共享路径：** 根 package 只增加 Demo 聚合脚本，shell Vitest config 只纳入 Demo specs；T-11 result 已完成且本 amendment 已激活，source rebase 到最新 parent 后只可更新两个 Demo importer。
 - **批准偏差：** `T14-D01` 允许两个 Demo package manifest 补齐 canonical API client、`@go-admin/ui`、Vue 直接依赖、公开 export 与标准 test/typecheck 入口，并把 Demo checks 接入根 `pnpm verify`。只可复用既有 catalog/lock 版本，禁止外部版本、其他 importer、共享 UI 或产品 composition 漂移。
+- **批准偏差：** `T14-D02` 仅允许 IAM authorization 增加通用、双方言、事务化、幂等且 fail-closed 的 Permission registry；registry 拥有 `iam_permissions` 与系统管理员初始授权写入，Demo 只声明和调用，不得跨模块写 IAM 表。禁止修改 IAM schema、Session、Administration、产品 composition 或其他业务模块。
 - **保留或不动：** Desktop App 归 T-16，Generator 归 T-15。
 
 ## 8. 验证矩阵
@@ -92,8 +94,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-14 under T
 | 行为或风险 | 验证接缝 | 命令或步骤 | 预期结果 | Evidence |
 |---|---|---|---|---|
 | 正常路径 | API/Web CRUD | `task test -- demo` | 双方言 CRUD、分页和重启一致 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>` |
-| 失败路径 | negative contract | 校验、缺权、not-found、conflict | 稳定错误且状态不变 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>` |
+| 失败路径 | negative contract | 校验、权限撤销、未知数据范围、not-found、stale revision、批量回滚、写后刷新失败 | 稳定错误且状态不变；修复投影不重复 mutation | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>` |
 | 回归 | architecture/cache suite | 禁用缓存并扫描 mapping/边界 | 正确性不变且无跨层泄露 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>` |
+| 身份与权限 | real IAM browser/API harness | canonical Cookie、43 字符 CSRF、权限注册/撤销、self/all 与 Session revoke | Web 与 API 均由真实 IAM 最终授权且拒绝后状态不变 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 非 E2E 检查。
 - **E2E disposition：** required：真实 Web、API、双方言和重启路径必须验证。

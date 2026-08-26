@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T07:00:21+08:00",
+  "updated_at": "2026-08-27T07:17:36+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -203,6 +203,16 @@
       "approved_at": "2026-08-27T06:02:10+08:00",
       "reason": "The fixed review proved that a production discard default can silently issue Sessions without login facts, while four existing non-Audit test call sites require an explicit test-only replacement and the required browser fixture does not exercise real rotation",
       "resolution": "Make Session construction fail closed without an explicit Login Fact Port; authorize only four exact test files for local test noops, correct the Audit browser fixture, and use a movable clock to prove real IAM replacement Cookie and CSRF propagation without changing production composition outside T-17"
+    },
+    {
+      "id": "T14-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-14",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T07:17:36+08:00",
+      "reason": "Independent review proved Demo bypasses real IAM and its Permission Codes cannot be assigned because IAM owns the catalog tables and exposes no module registration seam",
+      "resolution": "Authorize only authorization/permission_registry.go and permission_registry_test.go for a generic dual-dialect transactional registry that validates and idempotently inserts module Permission Codes and grants them to the protected system administrator; Demo owns declarations/adapters/harness and may not write IAM tables directly, while IAM schema, Session, Administration, composition, and other modules remain unchanged"
     }
   ],
   "worktrees": [
@@ -603,7 +613,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-14",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-14",
-      "source_checkpoint": "64b906758795fa9dfcbd075d50c4e0b11749072b",
+      "source_checkpoint": "c6dca097c906ff91ae7b6db75d58aa2acb768bee",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -634,7 +644,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T07:00:21+08:00"
+      "updated_at": "2026-08-27T07:17:36+08:00"
     },
     {
       "ticket_id": "T-09",
