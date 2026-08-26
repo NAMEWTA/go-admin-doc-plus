@@ -1,0 +1,87 @@
+ValidationProblem:
+  description: The request does not satisfy the declared contract.
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/Problem
+      example:
+        type: urn:go-admin-plus:problem:validation
+        title: Request validation failed
+        status: 400
+        category: validation
+        code: REQUEST_INVALID
+        traceId: 0123456789abcdef
+        violations:
+          - field: value
+            rule: required
+            message: Value is required.
+
+AuthenticationProblem:
+  description: A valid authenticated session is required.
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/Problem
+      example:
+        type: urn:go-admin-plus:problem:authentication
+        title: Authentication required
+        status: 401
+        category: authentication
+        code: SESSION_REQUIRED
+        traceId: 0123456789abcdef
+
+AuthorizationProblem:
+  description: The authenticated account cannot perform this operation.
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/Problem
+      example:
+        type: urn:go-admin-plus:problem:authorization
+        title: Permission denied
+        status: 403
+        category: authorization
+        code: PERMISSION_DENIED
+        traceId: 0123456789abcdef
+
+NotFoundProblem:
+  description: The requested resource does not exist.
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/Problem
+      example:
+        type: urn:go-admin-plus:problem:not-found
+        title: Resource not found
+        status: 404
+        category: not_found
+        code: RESOURCE_NOT_FOUND
+        traceId: 0123456789abcdef
+
+ConflictProblem:
+  description: The operation conflicts with current resource state.
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/Problem
+      example:
+        type: urn:go-admin-plus:problem:conflict
+        title: Resource conflict
+        status: 409
+        category: conflict
+        code: RESOURCE_CONFLICT
+        traceId: 0123456789abcdef
+
+InternalProblem:
+  description: The operation failed without exposing infrastructure details.
+  content:
+    application/problem+json:
+      schema:
+        $ref: ./schemas.yaml#/Problem
+      example:
+        type: urn:go-admin-plus:problem:internal
+        title: Internal server error
+        status: 500
+        category: internal
+        code: INTERNAL_ERROR
+        traceId: 0123456789abcdef

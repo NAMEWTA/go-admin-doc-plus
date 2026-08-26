@@ -1,0 +1,15 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Module API
+  version: 1.0.0
+  description: Replace the module metadata and add only module-owned paths and schemas.
+x-go-admin-module: replace-me
+x-go-admin-codegen:
+  owner: replace-me
+  goPackage: replacemetransport
+  goOutput: go-admin-plus/internal/modules/replace-me/transport/openapi.gen.go
+  typescriptOutput: go-admin-plus-ui/packages/domains/replace-me/src/generated
+paths: {}
+components:
+  schemas: {}

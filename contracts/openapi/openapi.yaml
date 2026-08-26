@@ -1,0 +1,89 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Go Admin Plus API
+  version: 1.0.0
+  description: Contract-first HTTP API shared by the Web and Desktop products.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+    description: Same-origin API base path.
+security:
+  - SessionCookie: []
+    CsrfToken: []
+tags:
+  - name: Contract
+    description: Compile-time conformance surface for generated transports.
+paths:
+  /contract/probe:
+    post:
+      operationId: probeContract
+      tags: [Contract]
+      summary: Validate generated transport conformance
+      description: Returns the supplied value through the generated strict transport.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageNumber'
+        - $ref: '#/components/parameters/PageSize'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContractProbeRequest'
+      responses:
+        '200':
+          description: The transport accepted the request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractProbeResponse'
+        '400':
+          $ref: '#/components/responses/ValidationProblem'
+        '401':
+          $ref: '#/components/responses/AuthenticationProblem'
+        '403':
+          $ref: '#/components/responses/AuthorizationProblem'
+        '404':
+          $ref: '#/components/responses/NotFoundProblem'
+        '409':
+          $ref: '#/components/responses/ConflictProblem'
+        '500':
+          $ref: '#/components/responses/InternalProblem'
+components:
+  schemas:
+    Problem:
+      $ref: ./components/schemas.yaml#/Problem
+    ValidationViolation:
+      $ref: ./components/schemas.yaml#/ValidationViolation
+    PageMeta:
+      $ref: ./components/schemas.yaml#/PageMeta
+    ContractProbeRequest:
+      $ref: ./components/schemas.yaml#/ContractProbeRequest
+    ContractProbeResponse:
+      $ref: ./components/schemas.yaml#/ContractProbeResponse
+  parameters:
+    PageNumber:
+      $ref: ./components/parameters.yaml#/PageNumber
+    PageSize:
+      $ref: ./components/parameters.yaml#/PageSize
+  responses:
+    ValidationProblem:
+      $ref: ./components/responses.yaml#/ValidationProblem
+    AuthenticationProblem:
+      $ref: ./components/responses.yaml#/AuthenticationProblem
+    AuthorizationProblem:
+      $ref: ./components/responses.yaml#/AuthorizationProblem
+    NotFoundProblem:
+      $ref: ./components/responses.yaml#/NotFoundProblem
+    ConflictProblem:
+      $ref: ./components/responses.yaml#/ConflictProblem
+    InternalProblem:
+      $ref: ./components/responses.yaml#/InternalProblem
+  securitySchemes:
+    SessionCookie:
+      $ref: ./components/security-schemes.yaml#/SessionCookie
+    CsrfToken:
+      $ref: ./components/security-schemes.yaml#/CsrfToken
