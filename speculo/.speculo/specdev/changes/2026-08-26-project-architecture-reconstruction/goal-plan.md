@@ -298,6 +298,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-05 implementation owner 触发并由 Lead 批准 Ticket 级偏差 `T05-D01`：初始路径合同漏列真实 app-shell workspace package 必需的 manifest，只新增 `<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>`，不扩大其他 app-shell 写入范围。
 - T-05 安装验证暴露 T-01 根治理遗漏：根 `<Path>.gitignore</Path>` 只覆盖旧前端名称。Lead 在 T-01 已有可写范围内以 `63ea213008dd8fee591498d2566f15d1a3cf574c` 补齐 `<Path>go-admin-plus-ui</Path>` 的依赖、构建和测试产物规则；旧名称规则按 expand/migrate/contract 合同保留至 T-21。
 - T-05 implementation owner 已返回 clean source checkpoint `dd9c816ae8e0cddeb5160a6480a476459bf59384`；固定审查范围为 `27a186cbda7e77c403b3c64074260a10e924ee92..dd9c816ae8e0cddeb5160a6480a476459bf59384`，source 非 E2E workspace/lint/type/test/boundary/build checks 全部通过，required browser E2E 保持 pending。
+- T-05 规范轴初审发现 Runtime Adapter 被置于 Admin Web，且 Ticket 漏列 ADR-011 锁定的 `<Path>packages/adapters/{browser,desktop}</Path>`。Lead 批准 `T05-D02` 精确新增 browser adapter package 与 desktop manifest；旧 source checkpoint 失效，修正后的 checkpoint 将重新固定并执行双轴审查。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers

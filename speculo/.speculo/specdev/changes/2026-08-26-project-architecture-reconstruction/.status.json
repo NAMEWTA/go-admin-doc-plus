@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T20:02:00+08:00",
+  "updated_at": "2026-08-26T20:09:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -83,6 +83,16 @@
       "approved_at": "2026-08-26T19:31:00+08:00",
       "reason": "T-05 requires app-shell to be a real workspace package with public exports, but its writable path list omitted the package manifest while allowing only src/core",
       "resolution": "Authorize only go-admin-plus-ui/packages/app-shell/package.json as a T-05 shared path; keep all other app-shell files outside src/core read-only"
+    },
+    {
+      "id": "T05-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-26T20:09:00+08:00",
+      "reason": "ADR-011 requires runtime adapters under packages/adapters/{browser,desktop} and Apps to select rather than own adapters, but T-05 omitted adapter package paths",
+      "resolution": "Authorize go-admin-plus-ui/packages/adapters/browser/** and only the desktop adapter package manifest; move the browser runtime implementation out of admin-web while reserving desktop adapter source for T-16"
     }
   ],
   "worktrees": [
@@ -225,12 +235,12 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-05",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-05",
-      "source_checkpoint": "dd9c816ae8e0cddeb5160a6480a476459bf59384",
+      "source_checkpoint": null,
       "integration": {
         "status": "pending",
         "parent_ref": null,
         "parent_before_sha": null,
-        "source_sha": "dd9c816ae8e0cddeb5160a6480a476459bf59384",
+        "source_sha": null,
         "candidate_sha": null,
         "candidate_tree_sha": null,
         "candidate_branch": null,
@@ -256,7 +266,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T20:02:00+08:00"
+      "updated_at": "2026-08-26T20:09:00+08:00"
     }
   ]
 }
