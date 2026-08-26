@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://go-admin.plus/config/desktop-sqlite.schema.json",
+  "title": "Go Admin Plus Desktop SQLite runtime file",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile"],
+  "properties": {
+    "profile": { "const": "desktop-sqlite" },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": { "enum": ["debug", "info", "warn", "error"], "default": "info" }
+      }
+    }
+  },
+  "description": "Data and log directories, loopback port, and one-time startup token are intentionally absent and must come from the Tauri host launch channel."
+}
