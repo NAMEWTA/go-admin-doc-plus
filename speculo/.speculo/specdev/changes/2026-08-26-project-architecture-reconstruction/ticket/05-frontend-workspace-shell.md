@@ -49,6 +49,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-05", "<Pat
 
 - `T05-D01`：T-05 的目标和 `expected_changes` 要求 app-shell 是具有公开 exports 的真实 workspace package，但初始 `writable_paths` 漏列其 manifest。implementation owner 提交偏差后，Lead 于 2026-08-26 批准只新增 `<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>`；app-shell 的其他非 `src/core` 路径仍不授权。
 - `T05-D02`：规范轴检查发现 ADR-011 要求 Runtime Adapter 位于 `<Path>packages/adapters/{browser,desktop}</Path>`，App 只选择 adapter，但初始 Ticket 漏列 adapters。Lead 于 2026-08-26 批准新增 `<Path>go-admin-plus-ui/packages/adapters/browser/**</Path>` 与仅 `<Path>go-admin-plus-ui/packages/adapters/desktop/package.json</Path>`；browser 实现从 Admin Web 移出，desktop adapter 源码仍归 T-16。
+- `T05-D03`：T02-D04 把已规划但此前缺失的 `<Path>packages/api-client/</Path>` 加入新 Workspace 后，边界测试因把当时发现的 package 数量硬编码为 `23` 而失败。Lead/Ticket owner 于 2026-08-26 重新打开 T-05，批准只修改 `<Path>go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs</Path>`：固定必需 package 名称集合，同时继续逐一检查全部发现的未来 package，不再用脆弱总数阻止合法扩展。
 
 ### 未决问题
 
@@ -117,7 +118,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-05", "<Pat
 
 - [x] `AC-035`：共享 list/form 的正常、校验失败、确认和刷新合同可判定。
 - [x] `AC-036`：App Shell 对登录、授权和未知路由呈现稳定状态。
-- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>`。
+- [x] T05-D03 修正与验证记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>`。
 - [x] 修改未超出 `writable_paths`，共享路径仅由 T-05 修改。
-- [x] 形成非空 implementation/source commit，并记录 integration result SHA。
+- [x] 形成新的非空 source checkpoint，并记录新的 integration result SHA。
 - [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。

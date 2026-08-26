@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T22:26:11+08:00",
+  "updated_at": "2026-08-26T22:52:57+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -115,6 +115,16 @@
       "approved_at": "2026-08-26T22:26:11+08:00",
       "reason": "The precreated IAM workspace package manifests cannot expose or compile the Session slice without declaring public exports and direct API client, domain, and Vue dependencies",
       "resolution": "Authorize only the two IAM package manifests and the new workspace lockfile for exact Session exports and direct dependencies after T02-D04 is integrated"
+    },
+    {
+      "id": "T05-D03",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-26T22:41:31+08:00",
+      "reason": "Adding the planned canonical API client to the new workspace exposed a T-05 boundary assertion that hard-coded the previously discovered package count as 23",
+      "resolution": "Reopen T-05 and replace only the brittle count with an explicit required package set while continuing to validate every discovered current and future package"
     }
   ],
   "worktrees": [
@@ -250,25 +260,25 @@
     {
       "ticket_id": "T-05",
       "owner": "codex-t05-frontend",
-      "implementation_owner": "codex-t05-frontend",
+      "implementation_owner": "codex-root",
       "integration_owner": "codex-root",
       "provider": "git",
       "base_sha": "27a186cbda7e77c403b3c64074260a10e924ee92",
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-05",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-05",
-      "source_checkpoint": "a648baf851d25861ac04eef688b8856fcf439b71",
+      "source_checkpoint": "832aede2541ac8dc0ee02c587c59d709889b5aad",
       "integration": {
         "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "c2260191c86942f859088d15b9a3ba9af96c975b",
-        "source_sha": "a648baf851d25861ac04eef688b8856fcf439b71",
-        "candidate_sha": "d5d10dda68fb6b49850c7442bf036b195ba1d202",
-        "candidate_tree_sha": "0511250c439a3233d9217fb41de598dfdc17dadb",
+        "parent_before_sha": "12171f0a715b725ca5ddc5c48fd3393a5341afdb",
+        "source_sha": "832aede2541ac8dc0ee02c587c59d709889b5aad",
+        "candidate_sha": "832aede2541ac8dc0ee02c587c59d709889b5aad",
+        "candidate_tree_sha": "6cf2e4f63211a2b934881a495e176878c4b2a1eb",
         "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-05",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-05",
-        "result_sha": "d5d10dda68fb6b49850c7442bf036b195ba1d202",
-        "method": "merge-commit",
+        "result_sha": "832aede2541ac8dc0ee02c587c59d709889b5aad",
+        "method": "fast-forward",
         "conflict_paths": [],
         "verification": "passed",
         "full_suite": {
@@ -284,11 +294,11 @@
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>",
-        "attempts": 2,
+        "attempts": 1,
         "promotion_status": "applied"
       },
       "status": "integrated",
-      "updated_at": "2026-08-26T20:38:27+08:00"
+      "updated_at": "2026-08-26T22:52:57+08:00"
     },
     {
       "ticket_id": "T-04",
@@ -386,7 +396,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-08",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-08",
-      "source_checkpoint": null,
+      "source_checkpoint": "f6499cdccdbf45449b9761b65e9e31c421220405",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -417,7 +427,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T22:18:11+08:00"
+      "updated_at": "2026-08-26T22:41:31+08:00"
     }
   ]
 }
