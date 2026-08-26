@@ -1,4 +1,5 @@
-import { createApp, h, nextTick, type App, type Component } from 'vue'
+import { createApp, h, type App, type Component } from 'vue'
+import type { AdministrationClient } from '@go-admin/domain-iam/administration'
 import { createSessionController } from '@go-admin/domain-iam/session'
 import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
@@ -45,7 +46,6 @@ const clickRow = (key: string, action: string) => {
 }
 const clickRowAndWait = async (key: string, action: string, selector: string) => {
   clickRow(key, action)
-  await nextTick()
   await waitUntil(() => document.querySelector(selector) !== null, `row ${action} view did not render`)
 }
 const submit = (testID: string) => element<HTMLFormElement>(`[data-testid="${testID}"]`).requestSubmit()
@@ -60,13 +60,34 @@ const openTab = async (name: 'users' | 'roles' | 'menus') => {
 }
 
 interface MountedAdministration { app: App; controller: AdministrationController; api: ReturnType<typeof createWebAdministrationClient>; confirmations(): number }
+type RequestPhase = 'not-started' | 'pending' | 'success' | 'error'
+interface MountPhases { manifest: RequestPhase; users: RequestPhase }
+const observeRequest = async <T>(phases: MountPhases, key: keyof MountPhases, operation: () => Promise<T>): Promise<T> => {
+  phases[key] = 'pending'
+  try {
+    const result = await operation()
+    phases[key] = 'success'
+    return result
+  } catch (error) {
+    phases[key] = 'error'
+    throw error
+  }
+}
+const observedClient = (client: AdministrationClient, phases: MountPhases): AdministrationClient => ({
+  ...client,
+  manifest: () => observeRequest(phases, 'manifest', () => client.manifest()),
+  listUsers: (...arguments_) => observeRequest(phases, 'users', () => client.listUsers(...arguments_)),
+})
 const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdministration> => {
   document.body.innerHTML = '<div id="app"></div>'
   const api = createWebAdministrationClient(fetch, '/api')
+  const phases: MountPhases = { manifest: 'not-started', users: 'not-started' }
   let confirmations = 0
-  const controller = createAdministrationController(api, async () => { confirmations += 1; return true })
+  let pageMounted = false
+  const controller = createAdministrationController(observedClient(api, phases), async () => { confirmations += 1; return true })
   const app = createApp({ render: () => h(AdministrationPage as Component, { controller }) })
   app.mount('#app')
+  pageMounted = true
   await waitUntil(() => row(expectedUser) !== null, () => {
     const snapshot = controller.users.snapshot()
     return administrationMountDiagnostic({
@@ -76,6 +97,10 @@ const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdmin
       total: snapshot.total,
       loading: snapshot.loading,
       alertText: document.querySelector('[role="alert"]')?.textContent?.trim() ?? null,
+      manifest: phases.manifest,
+      users: phases.users,
+      readyState: document.readyState,
+      pageMounted,
     })
   })
   return { app, controller, api, confirmations: () => confirmations }

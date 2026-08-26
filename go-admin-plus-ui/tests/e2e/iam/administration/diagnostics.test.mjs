@@ -33,10 +33,10 @@ test('runner lifecycle remains an honest no-op without required opt-in', () => {
 })
 
 test('mount timeout exposes only stable controller state and known alert codes', () => {
-  assert.equal(administrationMountDiagnostic({ failure: 'forbidden', canUsersRead: false, rows: 0, total: 0, loading: false, alertText: 'You do not have permission for that action.' }),
-    'administration page did not load failure=forbidden can-users-read=false rows=0 total=0 loading=false alert=forbidden')
-  const unknown = administrationMountDiagnostic({ failure: 'unexpected-secret', canUsersRead: true, rows: 2, total: 9, loading: true, alertText: 'password=hunter2 https://private.example' })
-  assert.equal(unknown, 'administration page did not load failure=none can-users-read=true rows=2 total=9 loading=true alert=unrecognized')
+  assert.equal(administrationMountDiagnostic({ failure: 'forbidden', canUsersRead: false, rows: 0, total: 0, loading: false, alertText: 'You do not have permission for that action.', manifest: 'error', users: 'not-started', readyState: 'complete', pageMounted: true }),
+    'administration page did not load failure=forbidden can-users-read=false rows=0 total=0 loading=false alert=forbidden manifest=error users=not-started ready=complete mounted=true')
+  const unknown = administrationMountDiagnostic({ failure: 'unexpected-secret', canUsersRead: true, rows: 2, total: 9, loading: true, alertText: 'password=hunter2 https://private.example', manifest: 'secret-value', users: 'pending', readyState: 'secret-state', pageMounted: false })
+  assert.equal(unknown, 'administration page did not load failure=none can-users-read=true rows=2 total=9 loading=true alert=unrecognized manifest=not-started users=pending ready=loading mounted=false')
   assert.doesNotMatch(unknown, /hunter2|private\.example|password/)
 })
 
@@ -57,6 +57,7 @@ test('browser administration interactions wait for Vue DOM updates', () => {
   assert.match(openTab, /section\[aria-labelledby=/)
   assert.doesNotMatch(driver, /(?<!await )openTab\('/)
   assert.doesNotMatch(driver, /clickRow\([^\n]+, 'edit'\)/)
-  assert.match(driver, /clickRow\(key, action\)\n  await nextTick\(\)\n  await waitUntil/)
+  assert.match(driver, /clickRow\(key, action\)\n  await waitUntil/)
+  assert.doesNotMatch(driver, /nextTick/)
   assert.match(driver, /await waitUntil\(\(\) => !element<HTMLButtonElement>\('\[data-testid="delete-selected-users"\]'\)\.disabled/)
 })

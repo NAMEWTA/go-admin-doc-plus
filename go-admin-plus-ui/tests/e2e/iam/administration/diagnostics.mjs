@@ -22,11 +22,16 @@ const alertCodes = new Map([
   ['The administration service is unavailable.', 'unavailable'],
 ])
 
-export const administrationMountDiagnostic = ({ failure, canUsersRead, rows, total, loading, alertText }) => {
+const requestPhases = new Set(['not-started', 'pending', 'success', 'error'])
+const readyStates = new Set(['loading', 'interactive', 'complete'])
+
+export const administrationMountDiagnostic = ({ failure, canUsersRead, rows, total, loading, alertText, manifest, users, readyState, pageMounted }) => {
   const failureCode = failures.has(failure) ? failure : 'none'
   const alertCode = alertText ? alertCodes.get(alertText) ?? 'unrecognized' : 'none'
   const count = (value) => Number.isSafeInteger(value) && value >= 0 ? value : -1
-  return `administration page did not load failure=${failureCode} can-users-read=${Boolean(canUsersRead)} rows=${count(rows)} total=${count(total)} loading=${Boolean(loading)} alert=${alertCode}`
+  const phase = (value) => requestPhases.has(value) ? value : 'not-started'
+  const documentState = readyStates.has(readyState) ? readyState : 'loading'
+  return `administration page did not load failure=${failureCode} can-users-read=${Boolean(canUsersRead)} rows=${count(rows)} total=${count(total)} loading=${Boolean(loading)} alert=${alertCode} manifest=${phase(manifest)} users=${phase(users)} ready=${documentState} mounted=${Boolean(pageMounted)}`
 }
 
 export const browserDiagnostic = (output) => {

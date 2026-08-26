@@ -9,4 +9,8 @@ export function administrationMountDiagnostic(state: {
   total: number
   loading: boolean
   alertText: string | null
+  manifest: 'not-started' | 'pending' | 'success' | 'error'
+  users: 'not-started' | 'pending' | 'success' | 'error'
+  readyState: DocumentReadyState
+  pageMounted: boolean
 }): string
