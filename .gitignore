@@ -20,5 +20,39 @@ Desktop.ini
 .tmp/
 tmp/
 dev_store/
+.artifacts/
 specdev-worktree/
 speculo/.speculo/back/
+
+# Backend runtime and local configuration
+/go-admin-plus/static/uploadfile/
+/go-admin-plus/temp/
+/go-admin-plus/vendor/
+/go-admin-plus/go-admin
+/go-admin-plus/go-admin.exe
+/go-admin-plus/go-admin-server
+/go-admin-plus/main.exe
+/go-admin-plus/go-admin-db.db
+/go-admin-plus/config/settings.dev.yml
+/go-admin-plus/config/settings.dev.*.yml
+/go-admin-plus/config/settings.local.dev.yml
+/go-admin-plus/cmd/migrate/migration/version-local/*
+!/go-admin-plus/cmd/migrate/migration/version-local/doc.go
+
+# Frontend dependencies, builds and test reports
+/go-admin-ui-plus/node_modules/
+/go-admin-ui-plus/**/dist/
+/go-admin-ui-plus/tests/**/coverage/
+/go-admin-ui-plus/tests/e2e/reports/
+/go-admin-ui-plus/test-results/
+/go-admin-ui-plus/playwright-report/
+/go-admin-ui-plus/blob-report/
+/go-admin-ui-plus/.playwright/
+/go-admin-ui-plus/package-lock.json
+/go-admin-ui-plus/yarn.lock
+
+# Desktop build output
+/go-admin-plus/cmd/go-admin-desktop/build/bin/
+/go-admin-plus/cmd/go-admin-desktop/frontend/dist/*
+!/go-admin-plus/cmd/go-admin-desktop/frontend/dist/.gitkeep
+/go-admin-plus/cmd/go-admin-desktop/wailsjs/

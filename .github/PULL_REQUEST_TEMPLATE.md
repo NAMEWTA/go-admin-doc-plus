@@ -19,10 +19,9 @@
 
 <!-- 列出实际执行的命令和结果；UI 变更附桌面与移动端截图。 -->
 
-- [ ] `cd go-admin-plus && go test ./...`
-- [ ] `cd go-admin-ui-plus && pnpm test:ci`
-- [ ] `cd go-admin-ui-plus && pnpm e2e`
-- [ ] `cd go-admin-ui-plus && pnpm build:prod`
+- [ ] `task governance:check task:contract`
+- [ ] `task lint test build`
+- [ ] 适用的集成、数据库、Web 或原生桌面 E2E 已由对应 Gate 执行
 - [ ] 不适用的检查已在上方解释
 
 ## 提交前检查
