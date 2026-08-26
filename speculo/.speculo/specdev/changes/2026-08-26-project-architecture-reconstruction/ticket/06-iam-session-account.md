@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-06
 title: 安全登录、Session 与个人账户闭环
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 认证、密码、Session schema、Cookie/CSRF 和审计脱敏属于关键安全边界
 ready: true
@@ -115,9 +115,9 @@ shared_path_owners: ["<Path>go-admin-plus/internal/platform/config/config.go</Pa
 
 ## 10. 验收标准
 
-- [ ] `AC-008/AC-010`：安全 Cookie+CSRF 与 Session 全生命周期合同通过。
-- [ ] `AC-012`：资料/密码/退出持久化，Argon2id 和敏感值保护成立。
-- [ ] `AC-025/AC-036`：认证失败类别和 Shell 重新登录状态稳定。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-06.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
+- [x] `AC-008/AC-010`：安全 Cookie+CSRF 与 Session 全生命周期合同通过。
+- [x] `AC-012`：资料/密码/退出持久化，Argon2id 和敏感值保护成立。
+- [x] `AC-025/AC-036`：认证失败类别和 Shell 重新登录状态稳定。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-06.md</Path>`。
+- [x] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。

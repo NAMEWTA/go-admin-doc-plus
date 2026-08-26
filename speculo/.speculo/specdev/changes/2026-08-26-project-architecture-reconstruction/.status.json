@@ -361,38 +361,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-06",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-06",
-      "source_checkpoint": null,
+      "source_checkpoint": "529a6b5ce008390d71930249f1bf806f887d2de7",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "f4cd993f49bd7930b1d128ce00d128bbda58eb71",
+        "source_sha": "529a6b5ce008390d71930249f1bf806f887d2de7",
+        "candidate_sha": "529a6b5ce008390d71930249f1bf806f887d2de7",
+        "candidate_tree_sha": "6fbff592ba2ff4a7ab37f26c4b91654fe09007fe",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-06",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-06",
+        "result_sha": "529a6b5ce008390d71930249f1bf806f887d2de7",
+        "method": "fast-forward",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G3 requires IAM unit, API, security, Go/TypeScript, lint, type, and build checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-06.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-06 must prove secure Cookie, CSRF, Session rotation/revoke/timeout, account changes, and browser relogin state",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-06.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-06.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T01:35:38+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-27T02:08:40+08:00"
     },
     {
       "ticket_id": "T-08",
