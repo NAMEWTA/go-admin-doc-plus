@@ -6,6 +6,31 @@ import test from 'node:test'
 
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
+const requiredPackageNames = [
+  '@go-admin/adapter-browser',
+  '@go-admin/adapter-desktop',
+  '@go-admin/admin-desktop',
+  '@go-admin/admin-web',
+  '@go-admin/app-shell',
+  '@go-admin/domain-audit',
+  '@go-admin/domain-demo',
+  '@go-admin/domain-files',
+  '@go-admin/domain-generator',
+  '@go-admin/domain-iam',
+  '@go-admin/domain-organization',
+  '@go-admin/domain-scheduler',
+  '@go-admin/domain-settings',
+  '@go-admin/platform',
+  '@go-admin/ui',
+  '@go-admin/web-domain-audit',
+  '@go-admin/web-domain-demo',
+  '@go-admin/web-domain-files',
+  '@go-admin/web-domain-generator',
+  '@go-admin/web-domain-iam',
+  '@go-admin/web-domain-organization',
+  '@go-admin/web-domain-scheduler',
+  '@go-admin/web-domain-settings'
+]
 
 const sourceFiles = async root => {
   const files = []
@@ -49,7 +74,10 @@ test('all planned packages are private and expose only public entry points', asy
   })))
   const names = new Set(manifests.map(({ manifest }) => manifest.name))
 
-  assert.equal(names.size, 23)
+  assert.equal(names.size, manifests.length, 'workspace package names must be unique')
+  for (const name of requiredPackageNames) {
+    assert.ok(names.has(name), `required workspace package ${name} is missing`)
+  }
   for (const { directory, manifest } of manifests) {
     assert.equal(manifest.private, true, relative(workspaceRoot, directory))
     assert.equal(manifest.type, 'module', relative(workspaceRoot, directory))
