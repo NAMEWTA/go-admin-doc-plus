@@ -21,7 +21,7 @@ const allowedKeys = ['APPDATA', 'CC', 'CGO_ENABLED', 'COMSPEC', 'COREPACK_HOME',
 const remaining = (maximum) => { const value = Math.min(maximum, overallDeadline-Date.now()); if (value <= 0) throw new Error('overall deadline exceeded'); return value }
 const environment = (extra = {}, includePostgres = false) => { const result = {}; for (const key of allowedKeys) if (process.env[key] !== undefined) result[key] = process.env[key]; for (const [key, value] of Object.entries(extra)) if (value !== undefined) result[key] = String(value); delete result[postgresKey]; if (includePostgres) result[postgresKey] = postgres; return result }
 const checked = (command, args, options) => { const result = spawnSync(command, args, { ...options, encoding: 'utf8', timeout: remaining(120_000), killSignal: 'SIGKILL' }); if (result.status !== 0 || result.error || result.signal) throw new Error(options.failure ?? 'compile command failed') }
-const waitReady = async (path, child) => { const deadline = Date.now()+remaining(60_000); while (Date.now()<deadline) { if (existsSync(path)) return readFileSync(path, 'utf8').trim(); assertChildHealthy(child, 'HTTPS host'); await delay(100) } throw new Error('HTTPS host readiness timed out') }
+const waitReady = async (path, child, profile) => { const deadline = Date.now()+remaining(60_000); while (Date.now()<deadline) { if (existsSync(path)) return readFileSync(path, 'utf8').trim(); assertChildHealthy(child, `${profile} HTTPS host`); await delay(100) } throw new Error(`${profile} HTTPS host readiness timed out`) }
 const waitForDevTools = (child) => withTimeout(new Promise((resolvePromise, reject) => {
   let buffered = ''; child.stderr.setEncoding('utf8')
   child.stderr.on('data', (chunk) => { buffered = (buffered+chunk).slice(-8192); const match = buffered.match(/DevTools listening on (ws:\/\/[^\s]+)/); if (match) resolvePromise(match[1]) })
@@ -41,7 +41,7 @@ const runProfile = async (profile) => {
   const host = spawnTracked(spawn, 'go', ['test', './test/iam/authorization', '-run', '^TestIAMAdministrationBrowserHarnessServer$', '-count=1', '-v'], { cwd: backend, env: environment({ GO_ADMIN_IAM_ADMIN_E2E_SERVE: '1', GO_ADMIN_IAM_ADMIN_E2E_PROFILE: profile, GO_ADMIN_IAM_ADMIN_E2E_READY_FILE: ready, GO_ADMIN_IAM_ADMIN_E2E_STATIC_DIR: staticRoot }, profile === 'postgres'), stdio: ['ignore', 'pipe', 'pipe'], drainStdout: true, drainStderr: true })
   let browser; let baseURL; let socket; let cdp; let completed = false; let operationError
   try {
-    baseURL = await waitReady(ready, host)
+    baseURL = await waitReady(ready, host, profile)
     browser = spawnTracked(spawn, chromium, ['--headless=new', '--disable-gpu', '--ignore-certificate-errors', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${browserRoot}`, baseURL], { env: environment(), stdio: ['ignore', 'ignore', 'pipe'] })
     const devToolsURL = await waitForDevTools(browser); socket = await connectWebSocket(devToolsURL); cdp = new CDPClient(socket, 10_000)
     const targetID = await waitForTarget(cdp, baseURL); const { sessionId } = await cdp.send('Target.attachToTarget', { targetId: targetID, flatten: true }); await cdp.send('Runtime.enable', {}, sessionId)

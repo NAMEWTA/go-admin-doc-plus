@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"go-admin/internal/modules/iam/account"
 	"go-admin/internal/modules/iam/administration"
 	"go-admin/internal/modules/iam/authorization"
@@ -194,19 +192,24 @@ func openAdministrationBrowserDB(t *testing.T, ctx context.Context, profile stri
 		}
 		_ = admin.Close()
 	})
-	parsed, err := pgx.ParseConfig(dsn)
-	if err != nil {
-		t.Fatal("PostgreSQL harness material invalid")
-	}
-	if parsed.RuntimeParams == nil {
-		parsed.RuntimeParams = map[string]string{}
-	}
-	parsed.RuntimeParams["search_path"] = schema
-	db, err = database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString()})
+	db, err = database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: administrationBrowserPostgresDSN(t, dsn, schema)})
 	if err != nil {
 		t.Fatal("isolated PostgreSQL harness failed")
 	}
 	return db
+}
+
+func administrationBrowserPostgresDSN(t *testing.T, dsn, schema string) string {
+	t.Helper()
+	return withSearchPath(t, dsn, schema)
+}
+
+func TestAdministrationBrowserPostgresDSNIncludesIsolatedSearchPath(t *testing.T) {
+	const schema = "t07_browser_contract"
+	value := administrationBrowserPostgresDSN(t, "postgres://localhost/database?sslmode=disable", schema)
+	if !strings.Contains(value, "search_path="+schema) || !strings.Contains(value, "sslmode=disable") {
+		t.Fatal("browser PostgreSQL DSN lost its isolated search path")
+	}
 }
 
 func seedAdministrationBrowserAccounts(t *testing.T, ctx context.Context, db *database.Database) {
