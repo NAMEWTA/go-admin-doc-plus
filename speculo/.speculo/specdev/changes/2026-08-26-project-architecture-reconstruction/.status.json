@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T21:19:00+08:00",
+  "updated_at": "2026-08-26T22:15:09+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -280,36 +280,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-04",
       "source_checkpoint": "5f359381b7a3db09a5bd64e147ce4b22b80b0cda",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "00cbb1063cdd7ada8f54b798d1c2ec73240dced0",
         "source_sha": "5f359381b7a3db09a5bd64e147ce4b22b80b0cda",
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "candidate_sha": "8757554047a828e12712a1faf2d547412bcdf05b",
+        "candidate_tree_sha": "ada5ca6d19d02441b33dfcbc8e4c0535ee236ae9",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-04",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-04",
+        "result_sha": "8757554047a828e12712a1faf2d547412bcdf05b",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G2 requires dual-dialect migration, repository, lock, race, static, and build checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-04.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-04 must prove migrations and single-instance locking against real PostgreSQL and SQLite files",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-04.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-04.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-26T21:19:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-26T22:15:09+08:00"
     }
   ]
 }

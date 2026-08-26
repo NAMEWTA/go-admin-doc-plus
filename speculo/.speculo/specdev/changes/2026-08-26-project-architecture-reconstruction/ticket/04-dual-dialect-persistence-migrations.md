@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-04
 title: 双方言持久化与模块迁移基座
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 数据库双方言、schema 迁移、单实例约束和恢复直接影响数据完整性
 ready: true
@@ -110,9 +110,9 @@ shared_path_owners: ["<Path>go-admin-plus/internal/platform/database/**</Path> =
 
 ## 10. 验收标准
 
-- [ ] `AC-003/AC-004`：三个正式 profile 可迁移，Server SQLite 第二实例被拒绝。
-- [ ] `AC-024`：双方言空库/升级/幂等矩阵成立且无 AutoMigrate。
-- [ ] `AC-034`：缓存禁用不改变持久化和业务探针正确性且无 Redis 尝试。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-04.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
+- [x] `AC-003/AC-004`：三个正式 profile 可迁移，Server SQLite 第二实例被拒绝。
+- [x] `AC-024`：双方言空库/升级/幂等矩阵成立且无 AutoMigrate。
+- [x] `AC-034`：缓存禁用不改变持久化和业务探针正确性且无 Redis 尝试。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-04.md</Path>`。
+- [x] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
