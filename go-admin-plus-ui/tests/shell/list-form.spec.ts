@@ -8,8 +8,12 @@ import {
 
 const deferred = <T>() => {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>(done => { resolve = done })
-  return { promise, resolve }
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((done, fail) => {
+    resolve = done
+    reject = fail
+  })
+  return { promise, reject, resolve }
 }
 
 describe('shared list interaction', () => {
@@ -33,6 +37,60 @@ describe('shared list interaction', () => {
     await list.setPage(2)
     await list.refresh()
     expect(load).toHaveBeenLastCalledWith({ filters: { name: 'Ada' }, page: 2, pageSize: 20 })
+  })
+
+  it('ignores a stale successful request after the latest result is visible', async () => {
+    const first = deferred<{ rows: Array<{ id: string }>, total: number }>()
+    const second = deferred<{ rows: Array<{ id: string }>, total: number }>()
+    const load = vi.fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+    const list = createListController({
+      initialFilters: () => ({ name: '' }),
+      load,
+      rowKey: (row: { id: string }) => row.id
+    })
+
+    const staleRequest = list.search({ name: 'old' })
+    const latestRequest = list.search({ name: 'new' })
+    second.resolve({ rows: [{ id: 'new' }], total: 1 })
+    await latestRequest
+    first.resolve({ rows: [{ id: 'old' }], total: 99 })
+    await expect(staleRequest).resolves.toBeUndefined()
+
+    expect(list.snapshot()).toMatchObject({
+      filters: { name: 'new' },
+      loading: false,
+      rows: [{ id: 'new' }],
+      total: 1
+    })
+  })
+
+  it('silently discards a stale rejection without changing the latest state', async () => {
+    const first = deferred<{ rows: Array<{ id: string }>, total: number }>()
+    const second = deferred<{ rows: Array<{ id: string }>, total: number }>()
+    const load = vi.fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+    const list = createListController({
+      initialFilters: () => ({ name: '' }),
+      load,
+      rowKey: (row: { id: string }) => row.id
+    })
+
+    const staleRequest = list.search({ name: 'old' })
+    const latestRequest = list.search({ name: 'new' })
+    second.resolve({ rows: [{ id: 'new' }], total: 1 })
+    await latestRequest
+    first.reject(new Error('stale request failed'))
+    await expect(staleRequest).resolves.toBeUndefined()
+
+    expect(list.snapshot()).toMatchObject({
+      filters: { name: 'new' },
+      loading: false,
+      rows: [{ id: 'new' }],
+      total: 1
+    })
   })
 })
 
@@ -71,6 +129,21 @@ describe('shared form interaction', () => {
     await expect(form.run({ name: 'Ada' })).resolves.toBe('submitted')
     expect(refreshed).toHaveBeenCalledTimes(1)
   })
+
+  it('reports refresh failure separately after writing exactly once', async () => {
+    const submit = vi.fn(async () => undefined)
+    const failed = vi.fn(async () => undefined)
+    const form = createFormController({
+      validate: async () => true,
+      submit,
+      submitted: async () => { throw new Error('refresh failed') },
+      failed
+    })
+
+    await expect(form.run({ name: 'Ada' })).resolves.toBe('refresh-failed')
+    expect(submit).toHaveBeenCalledTimes(1)
+    expect(failed).not.toHaveBeenCalled()
+  })
 })
 
 describe('shared destructive interaction', () => {
@@ -106,5 +179,41 @@ describe('shared destructive interaction', () => {
     await expect(removal.run(['user-1'])).resolves.toBe('cancelled')
     expect(execute).not.toHaveBeenCalled()
     expect(refreshed).not.toHaveBeenCalled()
+  })
+
+  it('reports post-write UI failure separately without repeating the write', async () => {
+    const execute = vi.fn(async () => undefined)
+    const refreshed = vi.fn(async () => { throw new Error('refresh failed') })
+    const failed = vi.fn(async () => undefined)
+    const removal = createRemovalController({
+      confirm: async () => true,
+      execute,
+      refreshed,
+      clearSelection: vi.fn(),
+      failed
+    })
+
+    await expect(removal.run(['user-1'])).resolves.toBe('refresh-failed')
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(refreshed).toHaveBeenCalledTimes(1)
+    expect(failed).not.toHaveBeenCalled()
+  })
+
+  it('still refreshes after selection cleanup fails following a successful write', async () => {
+    const execute = vi.fn(async () => undefined)
+    const refreshed = vi.fn(async () => undefined)
+    const failed = vi.fn(async () => undefined)
+    const removal = createRemovalController({
+      confirm: async () => true,
+      execute,
+      refreshed,
+      clearSelection: () => { throw new Error('selection cleanup failed') },
+      failed
+    })
+
+    await expect(removal.run(['user-1'])).resolves.toBe('refresh-failed')
+    expect(execute).toHaveBeenCalledTimes(1)
+    expect(refreshed).toHaveBeenCalledTimes(1)
+    expect(failed).not.toHaveBeenCalled()
   })
 })

@@ -13,10 +13,14 @@ export interface NavigationEntry {
   readonly permission?: PermissionCode
 }
 
+export interface RuntimeRequest {
+  readonly signal?: AbortSignal
+}
+
 export interface ShellRuntimePort {
   /** Returns identity facts only; session material remains inside the adapter. */
-  loadIdentity(): Promise<RuntimeIdentity>
-  loadNavigation(): Promise<ReadonlyArray<NavigationEntry>>
+  loadIdentity(request?: RuntimeRequest): Promise<RuntimeIdentity>
+  loadNavigation(request?: RuntimeRequest): Promise<ReadonlyArray<NavigationEntry>>
 }
 
 export type HostCapability = 'clipboard-write' | 'file-open' | 'file-save' | 'notification'

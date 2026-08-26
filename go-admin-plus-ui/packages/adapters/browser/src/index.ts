@@ -2,19 +2,31 @@ import type {
   NavigationEntry,
   PermissionCode,
   RuntimeIdentity,
+  RuntimeRequest,
   ShellRuntimePort
 } from '@go-admin/platform'
 
 type Fetch = typeof globalThis.fetch
 const permissionPattern = /^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*){1,2}$/
 
+const hasExactKeys = (record: Record<string, unknown>, expected: ReadonlyArray<string>) => {
+  const keys = Object.keys(record).sort()
+  const expectedKeys = [...expected].sort()
+  return keys.length === expectedKeys.length && keys.every((key, index) => key === expectedKeys[index])
+}
+
 const parseIdentity = (value: unknown): RuntimeIdentity => {
   if (!value || typeof value !== 'object') throw new Error('invalid identity response')
   const record = value as Record<string, unknown>
-  if (record.kind === 'unauthenticated') return { kind: 'unauthenticated' }
+  if (record.kind === 'unauthenticated') {
+    if (!hasExactKeys(record, ['kind'])) throw new Error('invalid identity response')
+    return { kind: 'unauthenticated' }
+  }
   if (
     record.kind !== 'authenticated'
+    || !hasExactKeys(record, ['kind', 'permissions', 'subjectId'])
     || typeof record.subjectId !== 'string'
+    || record.subjectId.length === 0
     || !Array.isArray(record.permissions)
     || !record.permissions.every(permission =>
       typeof permission === 'string' && permissionPattern.test(permission)
@@ -59,10 +71,11 @@ const parseNavigation = (value: unknown): ReadonlyArray<NavigationEntry> => {
   return entries
 }
 
-const readJson = async (fetch: Fetch, path: string): Promise<unknown> => {
+const readJson = async (fetch: Fetch, path: string, request?: RuntimeRequest): Promise<unknown> => {
   const response = await fetch(path, {
     credentials: 'include',
-    headers: { accept: 'application/json' }
+    headers: { accept: 'application/json' },
+    ...(request?.signal ? { signal: request.signal } : {})
   })
   if (!response.ok) throw new Error(`runtime request failed with ${response.status}`)
   return response.json()
@@ -70,16 +83,17 @@ const readJson = async (fetch: Fetch, path: string): Promise<unknown> => {
 
 /** Creates the browser adapter; cookie credentials remain inside fetch and never cross the port. */
 export const createWebRuntime = (fetch: Fetch = globalThis.fetch): ShellRuntimePort => ({
-  async loadIdentity() {
+  async loadIdentity(request) {
     const response = await fetch('/api/runtime/identity', {
       credentials: 'include',
-      headers: { accept: 'application/json' }
+      headers: { accept: 'application/json' },
+      ...(request?.signal ? { signal: request.signal } : {})
     })
     if (response.status === 401) return { kind: 'unauthenticated' }
     if (!response.ok) throw new Error(`identity request failed with ${response.status}`)
     return parseIdentity(await response.json())
   },
-  async loadNavigation() {
-    return parseNavigation(await readJson(fetch, '/api/runtime/navigation'))
+  async loadNavigation(request) {
+    return parseNavigation(await readJson(fetch, '/api/runtime/navigation', request))
   }
 })

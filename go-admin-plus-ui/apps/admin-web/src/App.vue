@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 
 import { createWebRuntime } from '@go-admin/adapter-browser'
-import { resolveShellState } from '@go-admin/app-shell'
+import { createShellNavigator } from '@go-admin/app-shell'
 import type { ShellState } from '@go-admin/app-shell'
 
 const runtime = createWebRuntime()
@@ -11,21 +11,29 @@ const loading = ref(true)
 
 const currentPath = () => window.location.pathname
 
-const navigate = async () => {
-  loading.value = true
-  const resolved = await resolveShellState(runtime, currentPath())
-  if (resolved.kind === 'unauthenticated' && currentPath() !== resolved.redirectTo) {
-    window.history.replaceState({}, '', resolved.redirectTo)
+const navigator = createShellNavigator(runtime, {
+  setLoading(value) {
+    loading.value = value
+  },
+  commit(path, resolved) {
+    if (resolved.kind === 'unauthenticated' && path !== resolved.redirectTo) {
+      window.history.replaceState({}, '', resolved.redirectTo)
+    }
+    state.value = resolved
   }
-  state.value = resolved
-  loading.value = false
-}
+})
+
+const navigate = () => navigator.navigate(currentPath())
+const handlePopState = () => { void navigate() }
 
 onMounted(() => {
-  window.addEventListener('popstate', navigate)
+  window.addEventListener('popstate', handlePopState)
   void navigate()
 })
-onUnmounted(() => window.removeEventListener('popstate', navigate))
+onUnmounted(() => {
+  window.removeEventListener('popstate', handlePopState)
+  navigator.invalidate()
+})
 </script>
 
 <template>

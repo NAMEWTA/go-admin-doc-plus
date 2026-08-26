@@ -1,4 +1,4 @@
-export type FormRunResult = 'submitted' | 'invalid' | 'busy' | 'failed'
+export type FormRunResult = 'submitted' | 'invalid' | 'busy' | 'failed' | 'refresh-failed'
 
 export interface FormController<TModel> {
   readonly busy: boolean
@@ -13,19 +13,34 @@ export const createFormController = <TModel>(options: {
   readonly failed?: () => Promise<void> | void
 }): FormController<TModel> => {
   let inFlight = false
+  const notifyFailed = async () => {
+    try {
+      await options.failed?.()
+    } catch {
+      // Failure observers cannot change the command result.
+    }
+  }
   return {
     get busy() { return inFlight },
     async run(model) {
       if (inFlight) return 'busy'
       inFlight = true
       try {
-        if (!await options.validate(model)) return 'invalid'
-        await options.submit(model)
-        await options.submitted?.()
-        return 'submitted'
-      } catch {
-        await options.failed?.()
-        return 'failed'
+        try {
+          if (!await options.validate(model)) return 'invalid'
+          await options.submit(model)
+        } catch {
+          await notifyFailed()
+          return 'failed'
+        }
+
+        try {
+          await options.submitted?.()
+          return 'submitted'
+        } catch {
+          // The write completed; callers must repair UI state instead of retrying the command.
+          return 'refresh-failed'
+        }
       } finally {
         inFlight = false
       }
@@ -33,7 +48,13 @@ export const createFormController = <TModel>(options: {
   }
 }
 
-export type RemovalRunResult = 'completed' | 'cancelled' | 'empty' | 'busy' | 'failed'
+export type RemovalRunResult =
+  | 'completed'
+  | 'cancelled'
+  | 'empty'
+  | 'busy'
+  | 'failed'
+  | 'refresh-failed'
 
 export interface RemovalController<TKey> {
   readonly busy: boolean
@@ -49,6 +70,13 @@ export const createRemovalController = <TKey>(options: {
   readonly failed?: () => Promise<void> | void
 }): RemovalController<TKey> => {
   let inFlight = false
+  const notifyFailed = async () => {
+    try {
+      await options.failed?.()
+    } catch {
+      // Failure observers cannot change the command result.
+    }
+  }
   return {
     get busy() { return inFlight },
     async run(keys) {
@@ -56,14 +84,27 @@ export const createRemovalController = <TKey>(options: {
       if (inFlight) return 'busy'
       inFlight = true
       try {
-        if (!await options.confirm(keys.length)) return 'cancelled'
-        await options.execute([...keys])
-        options.clearSelection()
-        await options.refreshed()
-        return 'completed'
-      } catch {
-        await options.failed?.()
-        return 'failed'
+        try {
+          if (!await options.confirm(keys.length)) return 'cancelled'
+          await options.execute([...keys])
+        } catch {
+          await notifyFailed()
+          return 'failed'
+        }
+
+        let refreshFailed = false
+        try {
+          options.clearSelection()
+        } catch {
+          refreshFailed = true
+        }
+        try {
+          await options.refreshed()
+        } catch {
+          refreshFailed = true
+        }
+        // The write completed; callers must repair UI state instead of retrying the command.
+        return refreshFailed ? 'refresh-failed' : 'completed'
       } finally {
         inFlight = false
       }

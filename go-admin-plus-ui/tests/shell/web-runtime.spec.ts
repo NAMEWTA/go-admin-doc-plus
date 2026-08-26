@@ -36,6 +36,37 @@ describe('web runtime adapter', () => {
       .rejects.toThrow('invalid identity response')
   })
 
+  it('accepts only the exact unauthenticated identity shape', async () => {
+    const runtime = createWebRuntime(async () => response(200, { kind: 'unauthenticated' }) as never)
+    await expect(runtime.loadIdentity()).resolves.toEqual({ kind: 'unauthenticated' })
+
+    for (const extra of ['sessionToken', 'token', 'secret', 'unexpected']) {
+      const unsafe = createWebRuntime(async () => response(200, {
+        kind: 'unauthenticated',
+        [extra]: 'sensitive'
+      }) as never)
+      await expect(unsafe.loadIdentity()).rejects.toThrow('invalid identity response')
+    }
+  })
+
+  it('accepts only the exact authenticated identity shape', async () => {
+    const valid = {
+      kind: 'authenticated',
+      subjectId: 'user-1',
+      permissions: ['demo:read']
+    }
+    await expect(createWebRuntime(async () => response(200, valid) as never).loadIdentity())
+      .resolves.toEqual(valid)
+
+    for (const extra of ['sessionToken', 'token', 'secret', 'unexpected']) {
+      const unsafe = createWebRuntime(async () => response(200, {
+        ...valid,
+        [extra]: 'sensitive'
+      }) as never)
+      await expect(unsafe.loadIdentity()).rejects.toThrow('invalid identity response')
+    }
+  })
+
   it('rejects unsafe, duplicate, and malformed navigation entries', async () => {
     const unsafe = createWebRuntime(async () => response(200, [{ path: '//outside.example' }]) as never)
     await expect(unsafe.loadNavigation()).rejects.toThrow('invalid navigation entry')

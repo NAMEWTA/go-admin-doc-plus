@@ -71,7 +71,7 @@ export const createListController = <TFilters extends object, TRow, TKey>(
     loading
   })
 
-  const refresh = async () => {
+  const refresh = async (): Promise<void> => {
     const sequence = ++requestSequence
     loading = true
     try {
@@ -84,6 +84,10 @@ export const createListController = <TFilters extends object, TRow, TKey>(
       if (sequence !== requestSequence) return
       rows = [...result.rows]
       total = result.total
+    } catch (error) {
+      // Replaced requests are no longer observable operations, including their failures.
+      if (sequence !== requestSequence) return
+      throw error
     } finally {
       if (sequence === requestSequence) loading = false
     }
