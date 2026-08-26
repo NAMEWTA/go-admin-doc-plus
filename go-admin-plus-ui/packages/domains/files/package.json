@@ -1,0 +1,9 @@
+{
+  "name": "@go-admin/domain-files",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

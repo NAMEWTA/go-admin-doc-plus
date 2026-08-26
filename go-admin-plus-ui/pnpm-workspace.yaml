@@ -1,0 +1,27 @@
+packages:
+  - apps/*
+  - packages/*
+  - packages/adapters/*
+  - packages/domains/*
+  - packages/web-domains/*
+
+autoInstallPeers: false
+dedupePeerDependents: true
+disallowWorkspaceCycles: true
+engineStrict: true
+linkWorkspacePackages: true
+preferWorkspacePackages: true
+saveExact: true
+strictPeerDependencies: true
+
+catalog:
+  '@types/node': 26.2.0
+  '@vitejs/plugin-vue': 6.0.8
+  '@vue/compiler-sfc': 3.5.41
+  oxlint: 1.80.0
+  typescript: 6.0.3
+  vite: 8.2.1
+  vitest: 4.1.10
+  vue: 3.5.41
+  vue-router: 4.6.4
+  vue-tsc: 3.3.10

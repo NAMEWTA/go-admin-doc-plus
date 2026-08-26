@@ -1,0 +1,15 @@
+{
+  "name": "@go-admin/admin-desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/main.ts"
+  },
+  "dependencies": {
+    "@go-admin/adapter-desktop": "workspace:*",
+    "@go-admin/app-shell": "workspace:*",
+    "@go-admin/ui": "workspace:*",
+    "vue": "catalog:"
+  }
+}

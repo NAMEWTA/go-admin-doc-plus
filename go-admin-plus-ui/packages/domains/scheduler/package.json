@@ -1,0 +1,9 @@
+{
+  "name": "@go-admin/domain-scheduler",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
