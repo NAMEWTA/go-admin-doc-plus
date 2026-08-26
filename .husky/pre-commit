@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+if ! command -v task >/dev/null 2>&1; then
+  printf '%s\n' 'pre-commit: Go Task is required (https://taskfile.dev/installation/)' >&2
+  exit 127
+fi
+
+exec task lint:staged
