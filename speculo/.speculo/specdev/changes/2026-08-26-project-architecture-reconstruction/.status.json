@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T01:10:00+08:00",
+  "updated_at": "2026-08-27T02:16:37+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -133,6 +133,26 @@
       "approved_at": "2026-08-27T00:45:00+08:00",
       "reason": "The first dual-axis review proved that T-06 requires typed Session policy from the T-03 profile configuration and standard pnpm verification coverage, but its original writable paths omitted both shared seams",
       "resolution": "Authorize only config.go, its loader/schema tests, the three profile schemas, the root UI package manifest, and the shell Vitest config for non-sensitive Session policy assembly and IAM test inclusion; kernel, unrelated configuration, and other packages remain out of scope"
+    },
+    {
+      "id": "T07-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-07",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T02:16:37+08:00",
+      "reason": "The precreated IAM package manifests expose and verify only Session, so the approved Administration public slice cannot be consumed or included in standard pnpm verification",
+      "resolution": "Authorize only the two IAM package manifests for the Administration public export, aggregate test/typecheck scripts, and direct @go-admin/ui dependency, plus the matching workspace lock importer; T-07 owns the lock before T-11 and may not add external versions, kernel, or composition changes"
+    },
+    {
+      "id": "T11-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-11",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T02:16:37+08:00",
+      "reason": "The precreated Audit package manifests lack the direct canonical client and Vue dependencies, public subpath, and standard test/typecheck gates required by the approved vertical slice",
+      "resolution": "Authorize the two Audit package manifests now using existing dependencies including @go-admin/ui; the shared lock remains unauthorized for T-11 until T-07 result, a Lead-owned Ticket amendment, and rebase, after which only the matching Audit importers may be opened"
     }
   ],
   "worktrees": [

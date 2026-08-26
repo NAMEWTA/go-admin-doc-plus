@@ -131,7 +131,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 |---|---|---|---|
 | P2 | T-03, T-05 | 无 | 后端 runtime 与前端 workspace 分离 |
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
-| P5 | T-07, T-11 | 无 | IAM admin 与 Audit 独占模块路径 |
+| P5 | T-07, T-11 | 无当前交集 | IAM/Audit 源码和 manifests 独占；lock 当前只由 `T07-D01` 写入，T-11 必须等待 T-07 result、Ticket 更新和 rebase 后才能进入 `T11-D01` 第二阶段 |
 | P6 | T-09, T-10, T-12, T-13, T-14 | 无 | 每模块独占合同/schema/backend/frontend |
 | P7 | T-15, T-16 | 无 | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
@@ -142,7 +142,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | `<Path>contracts/openapi/openapi.yaml</Path>`、公共 components、合同工具与公共 client | T-02 | 模块写自有 fragment |
 | kernel/config/observability | T-03 | 宿主和模块只读依赖 |
 | Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
-| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02 先串行拥有合同工具/client lock 变更 | 模块只写预建包的 `src`；Desktop adapter 源码归 T-16 |
+| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02 先串行拥有合同工具/client lock 变更；`T07-D01` 后接 `T11-D01` 串行拥有各自 importer | 模块只写预建包的 `src` 和获批 manifest/importer；Desktop adapter 源码归 T-16 |
 | Outbox/coordination/local cache | T-08 | Audit/Scheduler 只读消费 |
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |
 | product OpenAPI/composition/manifest | T-17 | 发行 Ticket 只读消费 |

@@ -12,8 +12,8 @@ risk: high
 blocked_by: [T-06, T-08]
 contract_ids: [AC-016, AC-035]
 owner: codex-t11-audit
-expected_changes: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus/test/audit/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/audit/**</Path>"]
+expected_changes: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/package.json</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/package.json</Path>", "<Path>go-admin-plus/test/audit/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/audit/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
 shared_paths: []
 shared_path_owners: []
@@ -80,10 +80,11 @@ shared_path_owners: []
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Audit 独占路径。
+- **预计修改点：** Audit 独占路径，以及经 `T11-D01` 批准的两个 Audit package manifest。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM Session、Outbox、共享 UI。
-- **共享路径：** 无。
+- **共享路径：** 当前无；workspace lock 仍归 T-07，T-11 可并行编写独占源码和 manifest，但不得写 lockfile。
+- **批准偏差：** `T11-D01` 当前阶段仅允许两个 Audit package manifest 补齐 public export、canonical API client、`@go-admin/ui`、Vue 直接依赖与标准 test/typecheck 入口。T-07 result 进入父分支后，Lead 必须先更新本 Ticket 并 rebase，才能开放只更新两个 Audit importer 的第二阶段；其他漂移必须再次停止。
 - **保留或不动：** 事件生产者实现和全局产品注册。
 
 ## 8. 验证矩阵
