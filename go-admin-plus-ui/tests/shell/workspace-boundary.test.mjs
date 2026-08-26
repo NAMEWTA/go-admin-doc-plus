@@ -158,3 +158,14 @@ test('headless packages do not depend on Vue, DOM globals, deep imports, or cred
   const platformSource = await readFile(join(workspaceRoot, 'packages/platform/src/index.ts'), 'utf8')
   assert.doesNotMatch(platformSource, /\b(?:secret|password|sessionToken|authorization)\b/i)
 })
+
+test('mobile shell keeps navigation compact and assigns remaining height to content', async () => {
+  const styles = await readFile(join(workspaceRoot, 'apps/admin-web/src/styles.css'), 'utf8')
+  const mobileBreakpoint = styles.match(/@media \(max-width: 640px\) \{([\s\S]*)\}\s*$/)?.[1]
+
+  assert.ok(mobileBreakpoint, 'mobile shell breakpoint is missing')
+  assert.match(
+    mobileBreakpoint,
+    /\.shell__workspace\s*\{[^}]*grid-template-columns:\s*1fr;[^}]*grid-template-rows:\s*auto 1fr;[^}]*\}/
+  )
+})

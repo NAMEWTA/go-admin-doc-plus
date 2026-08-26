@@ -44,6 +44,6 @@ button {
 .shell__spinner { width: 24px; height: 24px; border: 2px solid #d9dfe2; border-top-color: #096b5b; border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 640px) {
-  .shell__workspace { grid-template-columns: 1fr; }
+  .shell__workspace { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .shell__nav { border-right: 0; border-bottom: 1px solid #d9dfe2; }
 }
