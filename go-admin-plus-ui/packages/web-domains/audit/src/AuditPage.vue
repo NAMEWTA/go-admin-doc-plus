@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { AuditRequestError, type AuditFact, type AuditFailure, type AuditFilters } from '@go-admin/domain-audit'
-import type { AuditController } from './audit-controller'
+import { consumeCleanupFailure, type AuditController } from './audit-controller'
 
 const props = defineProps<{ controller: AuditController }>()
 const emit = defineEmits<{ relogin: [] }>()
@@ -41,18 +41,20 @@ const reset = async () => {
 	await run(() => props.controller.list.reset())
 }
 const detail = (id: string) => run(async () => { selected.value = await props.controller.detail(id) })
+const consumeRefreshFailure = () => {
+	failure.value = consumeCleanupFailure(props.controller, () => emit('relogin'))
+}
 const cleanup = () => run(async () => {
 	cleanupStatus.value = null
 	const result = await props.controller.cleanup(new Date(`${cleanupBefore.value}T00:00:00Z`).toISOString())
 	if (result === 'completed' || result === 'refresh-failed' || result === 'repair-required') cleanupStatus.value = result
-	if (result === 'failed') {
-		failure.value = props.controller.lastFailure() ?? 'unavailable'
-		if (failure.value === 'relogin') emit('relogin')
-	}
+	if (result === 'failed') failure.value = consumeCleanupFailure(props.controller, () => emit('relogin'))
+	if (result === 'refresh-failed') consumeRefreshFailure()
 })
 const repairCleanup = () => run(async () => {
 	const result = await props.controller.repairCleanup()
 	if (result === 'completed' || result === 'refresh-failed') cleanupStatus.value = result
+	if (result === 'refresh-failed') consumeRefreshFailure()
 })
 const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value))
 onMounted(() => { void run(() => props.controller.list.refresh()) })

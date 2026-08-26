@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AuditRequestError, type AuditClient, type AuditFact } from '@go-admin/domain-audit'
-import { createAuditController } from './audit-controller'
+import { consumeCleanupFailure, createAuditController } from './audit-controller'
 
 const fact: AuditFact = {
   id: 'audit-web-000001', kind: 'login', action: 'login', outcome: 'succeeded',
@@ -67,6 +67,57 @@ describe('audit controller', () => {
     expect(writes).toEqual([firstBoundary, secondBoundary])
     expect(confirmations).toBe(2)
     expect(loads).toBe(4)
+  })
+
+  it.each(['relogin', 'forbidden'] as const)('preserves post-write refresh %s without repeating cleanup', async (category) => {
+    let writes = 0
+    let relogins = 0
+    let loads = 0
+    const client: AuditClient = {
+      list: async () => {
+        loads += 1
+        if (loads === 1) throw new AuditRequestError(category)
+        return { records: [], total: 0, page: 1, pageSize: 20 }
+      },
+      detail: async () => fact,
+      cleanup: async () => { writes += 1; return { deleted: 1, moreEligible: false } },
+    }
+    const controller = createAuditController(client, async () => true)
+    expect(await controller.cleanup('2026-06-01T00:00:00Z')).toBe('refresh-failed')
+    expect(consumeCleanupFailure(controller, () => { relogins += 1 })).toBe(category)
+    expect(relogins).toBe(category === 'relogin' ? 1 : 0)
+    expect(await controller.cleanup('2026-05-01T00:00:00Z')).toBe('repair-required')
+    expect(writes).toBe(1)
+    expect(await controller.repairCleanup()).toBe('completed')
+    expect(writes).toBe(1)
+  })
+
+  it('updates the stable category across repeated repair failures and eventually recovers', async () => {
+    let writes = 0
+    let relogins = 0
+    let loads = 0
+    const client: AuditClient = {
+      list: async () => {
+        loads += 1
+        if (loads === 1) throw new AuditRequestError('relogin')
+        if (loads === 2) throw new AuditRequestError('forbidden')
+        if (loads === 3) throw new AuditRequestError('relogin')
+        return { records: [], total: 0, page: 1, pageSize: 20 }
+      },
+      detail: async () => fact,
+      cleanup: async () => { writes += 1; return { deleted: 1, moreEligible: false } },
+    }
+    const controller = createAuditController(client, async () => true)
+    expect(await controller.cleanup('2026-06-01T00:00:00Z')).toBe('refresh-failed')
+    expect(consumeCleanupFailure(controller, () => { relogins += 1 })).toBe('relogin')
+    expect(await controller.repairCleanup()).toBe('refresh-failed')
+    expect(consumeCleanupFailure(controller, () => { relogins += 1 })).toBe('forbidden')
+    expect(await controller.repairCleanup()).toBe('refresh-failed')
+    expect(consumeCleanupFailure(controller, () => { relogins += 1 })).toBe('relogin')
+    expect(await controller.repairCleanup()).toBe('completed')
+    expect(controller.lastFailure()).toBeNull()
+    expect(relogins).toBe(2)
+    expect(writes).toBe(1)
   })
 
 	it.each(['relogin', 'forbidden'] as const)('preserves the %s cleanup failure category', async (category) => {

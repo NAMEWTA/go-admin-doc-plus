@@ -18,6 +18,15 @@ export interface AuditController {
 export type AuditCleanupRunResult = RemovalRunResult | 'repair-required'
 export type AuditCleanupRepairResult = 'completed' | 'empty' | 'busy' | 'refresh-failed'
 
+export const consumeCleanupFailure = (
+  controller: Pick<AuditController, 'lastFailure'>,
+  sessionRequired: () => void,
+): AuditFailure => {
+  const failure = controller.lastFailure() ?? 'unavailable'
+  if (failure === 'relogin') sessionRequired()
+  return failure
+}
+
 export const createAuditController = (
   client: AuditClient,
   confirmCleanup: (count: number) => Promise<boolean>,
@@ -32,20 +41,30 @@ export const createAuditController = (
     pageSize: 20,
   })
   let cleanupResult: CleanupResult | null = null
-	let cleanupFailure: AuditFailure | null = null
+  let cleanupFailure: AuditFailure | null = null
+  const captureCleanupFailure = (error: unknown) => {
+    cleanupFailure = error instanceof AuditRequestError ? error.category : 'unavailable'
+  }
   const removal = createRemovalController<string>({
     confirm: confirmCleanup,
     execute: async ([before]) => {
       if (!before) throw new Error('Cleanup boundary is required')
-			try {
-				cleanupResult = await client.cleanup(before)
-			} catch (error) {
-				cleanupFailure = error instanceof AuditRequestError ? error.category : 'unavailable'
-				throw error
-			}
+      try {
+        cleanupResult = await client.cleanup(before)
+      } catch (error) {
+        captureCleanupFailure(error)
+        throw error
+      }
     },
     clearSelection: list.clearSelection,
-    refreshed: list.refresh,
+    refreshed: async () => {
+      try {
+        await list.refresh()
+      } catch (error) {
+        captureCleanupFailure(error)
+        throw error
+      }
+    },
   })
   let pendingRepairBoundary: string | null = null
   let repairInFlight = false
@@ -70,7 +89,8 @@ export const createAuditController = (
         await list.refresh()
         pendingRepairBoundary = null
         return 'completed'
-      } catch {
+      } catch (error) {
+        captureCleanupFailure(error)
         return 'refresh-failed'
       } finally {
         repairInFlight = false
