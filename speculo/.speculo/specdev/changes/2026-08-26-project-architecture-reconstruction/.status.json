@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T05:36:33+08:00",
+  "updated_at": "2026-08-27T06:02:10+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -193,6 +193,16 @@
       "approved_at": "2026-08-27T05:36:33+08:00",
       "reason": "The precreated Organization package manifests lack direct dependencies and standard checks, and ADR-012 requires an IAM consumer-defined Organization projection Port that does not yet exist",
       "resolution": "Authorize the two Organization package manifests and exact iam/administration/organization_port.go now; keep root verify, Vitest configuration, and lock read-only until T-11 and T-14 results, then amend only Organization checks and importers using existing catalog versions"
+    },
+    {
+      "id": "T11-D03",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-11",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T06:02:10+08:00",
+      "reason": "The fixed review proved that a production discard default can silently issue Sessions without login facts, while four existing non-Audit test call sites require an explicit test-only replacement and the required browser fixture does not exercise real rotation",
+      "resolution": "Make Session construction fail closed without an explicit Login Fact Port; authorize only four exact test files for local test noops, correct the Audit browser fixture, and use a movable clock to prove real IAM replacement Cookie and CSRF propagation without changing production composition outside T-17"
     }
   ],
   "worktrees": [
