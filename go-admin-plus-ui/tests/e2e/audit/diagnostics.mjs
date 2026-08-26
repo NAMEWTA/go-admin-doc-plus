@@ -16,12 +16,50 @@ export const redactDiagnostic = (value, secrets = []) => {
 }
 
 export const createDiagnosticBuffer = (limit = 8_192, secrets = []) => {
-  let buffered = ''
+  const requestedLimit = Number.isFinite(limit) ? Math.trunc(limit) : 8_192
+  const outputLimit = Math.min(65_536, Math.max(1, requestedLimit))
+  const rawLineLimit = Math.min(65_536, Math.max(1_024, outputLimit * 2))
+  let output = ''
+  let pendingLine = ''
+  let discardingLine = false
+
+  const appendOutput = (value) => {
+    output = (output + value).slice(-outputLimit)
+  }
+  const finishLine = () => {
+    appendOutput(redactDiagnostic(pendingLine, secrets))
+    pendingLine = ''
+  }
   return {
     append(value) {
-      buffered = (buffered + redactDiagnostic(value, secrets)).slice(-limit)
+      let chunk = String(value ?? '')
+      while (chunk) {
+        const newline = chunk.indexOf('\n')
+        const complete = newline >= 0
+        const part = complete ? chunk.slice(0, newline + 1) : chunk
+        chunk = complete ? chunk.slice(newline + 1) : ''
+
+        if (discardingLine) {
+          if (complete) {
+            discardingLine = false
+            appendOutput('[truncated output line]\n')
+          }
+          continue
+        }
+        if (pendingLine.length + part.length > rawLineLimit) {
+          pendingLine = ''
+          if (complete) appendOutput('[truncated output line]\n')
+          else discardingLine = true
+          continue
+        }
+        pendingLine += part
+        if (complete) finishLine()
+      }
     },
-    text() { return buffered.trim() },
+    text() {
+      const tail = discardingLine ? '[truncated output line]' : pendingLine ? '[incomplete output line]' : ''
+      return (output + tail).slice(-outputLimit).trim()
+    },
   }
 }
 
