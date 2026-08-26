@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-02
 title: OpenAPI 合同与双方生成基座
-status: review
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 公共 API、错误语义和双方生成物是所有垂直切片共享的外部合同
 ready: true
