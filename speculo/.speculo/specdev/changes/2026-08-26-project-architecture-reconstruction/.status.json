@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T05:35:00+08:00",
+  "updated_at": "2026-08-27T05:36:33+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -183,6 +183,16 @@
       "approved_at": "2026-08-27T05:35:00+08:00",
       "reason": "The precreated Demo package manifests lack canonical client, shared UI, Vue, public exports, and standard checks, while the root verify configuration does not discover Demo tests and the lock lacks Demo importers",
       "resolution": "Authorize the two Demo package manifests, Demo-only root aggregate scripts, and Demo-only Vitest includes now; after T-11 result and rebase, authorize only the two Demo lock importers using existing catalog versions, with all other importers, shared UI, composition, and external dependency versions unchanged"
+    },
+    {
+      "id": "T09-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-09",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T05:36:33+08:00",
+      "reason": "The precreated Organization package manifests lack direct dependencies and standard checks, and ADR-012 requires an IAM consumer-defined Organization projection Port that does not yet exist",
+      "resolution": "Authorize the two Organization package manifests and exact iam/administration/organization_port.go now; keep root verify, Vitest configuration, and lock read-only until T-11 and T-14 results, then amend only Organization checks and importers using existing catalog versions"
     }
   ],
   "worktrees": [
