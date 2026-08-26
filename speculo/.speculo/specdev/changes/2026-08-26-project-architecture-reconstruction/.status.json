@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T00:40:00+08:00",
+  "updated_at": "2026-08-27T00:45:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -123,6 +123,16 @@
       "approved_at": "2026-08-26T22:41:31+08:00",
       "reason": "Adding the planned canonical API client to the new workspace exposed a T-05 boundary assertion that hard-coded the previously discovered package count as 23",
       "resolution": "Reopen T-05 and replace only the brittle count with an explicit required package set while continuing to validate every discovered current and future package"
+    },
+    {
+      "id": "T06-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-06",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T00:45:00+08:00",
+      "reason": "The first dual-axis review proved that T-06 requires typed Session policy from the T-03 profile configuration and standard pnpm verification coverage, but its original writable paths omitted both shared seams",
+      "resolution": "Authorize only config.go, its loader/schema tests, the three profile schemas, the root UI package manifest, and the shell Vitest config for non-sensitive Session policy assembly and IAM test inclusion; kernel, unrelated configuration, and other packages remain out of scope"
     }
   ],
   "worktrees": [
@@ -382,7 +392,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T23:34:34+08:00"
+      "updated_at": "2026-08-27T00:45:00+08:00"
     },
     {
       "ticket_id": "T-08",
