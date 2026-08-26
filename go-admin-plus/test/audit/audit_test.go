@@ -3,6 +3,7 @@ package audit_test
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -32,8 +34,8 @@ func TestIntegrationEventProjectsOneCanonicalAuditFact(t *testing.T) {
 	consumers := mustConsumers(t)
 	now := time.Date(2026, 8, 27, 2, 0, 0, 0, time.UTC)
 	event := outbox.Event{
-		ID: "audit-event-0001", Topic: audit.TopicLoginSucceeded,
-		BusinessKey: "login:attempt-0001", Payload: []byte(`{"source":"web","actorType":"account"}`), OccurredAt: now,
+		ID: "raw-session-secret", Topic: audit.TopicOperationCreated,
+		BusinessKey: "resource:demo:record-0001:revision-1:account:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: now,
 	}
 	enqueue(t, db, store, event)
 	dispatch(t, db, store, consumers, now)
@@ -47,8 +49,16 @@ func TestIntegrationEventProjectsOneCanonicalAuditFact(t *testing.T) {
 		t.Fatalf("audit page = %#v", page)
 	}
 	fact := page.Records[0]
-	if fact.ID != event.ID || fact.Kind != audit.KindLogin || fact.Action != "login" || fact.Outcome != audit.OutcomeSucceeded || fact.Source != audit.SourceWeb || fact.ActorType != audit.ActorAccount || fact.Subject != "login:attempt-0001" {
+	if fact.ID == event.ID || strings.Contains(fact.ID, "session") || fact.Kind != audit.KindOperation || fact.Action != "create" || fact.Outcome != audit.OutcomeSucceeded || fact.Source != audit.SourceWeb || fact.ActorType != audit.ActorAccount || fact.Subject != "demo:record-0001" || fact.ActorRef == nil || *fact.ActorRef != "account:account-00000001" {
 		t.Fatalf("projected fact = %#v", fact)
+	}
+	var persisted string
+	if err := db.Bun().QueryRowContext(context.Background(), "SELECT topic || ':' || business_key || ':' || CAST(payload AS TEXT) FROM audit_facts").Scan(&persisted); err != nil || strings.Contains(persisted, event.ID) {
+		t.Fatalf("Audit persisted unsafe event id: %q, %v", persisted, err)
+	}
+	encoded, _ := json.Marshal(page)
+	if strings.Contains(string(encoded), event.ID) {
+		t.Fatalf("Audit JSON exposed unsafe event id: %s", encoded)
 	}
 
 	created, err := dbEnqueue(context.Background(), db, store, event)
@@ -68,21 +78,25 @@ func TestAuditEventSchemaRejectsSensitiveAmbiguousAndUnboundedPayloads(t *testin
 	store := newAuditStore(t, db)
 	now := time.Date(2026, 8, 27, 2, 0, 0, 0, time.UTC)
 	tests := map[string]string{
-		"password":            `{"actorType":"account","source":"web","password":"private"}`,
-		"raw session":         `{"actorType":"account","source":"web","rawSession":"private"}`,
-		"nested request body": `{"actorType":"account","source":"web","requestBody":{"displayName":"private"}}`,
-		"sensitive value":     `{"actorType":"account","source":"raw-session-secret"}`,
-		"duplicate member":    `{"actorType":"system","actorType":"account","source":"web"}`,
-		"array":               `{"actorType":"account","source":["web"]}`,
+		"password":            `{"source":"web","password":"private"}`,
+		"raw session":         `{"source":"web","rawSession":"private"}`,
+		"nested request body": `{"source":"web","requestBody":{"displayName":"private"}}`,
+		"sensitive value":     `{"source":"raw-session-secret"}`,
+		"duplicate member":    `{"source":"server","source":"web"}`,
+		"array":               `{"source":["web"]}`,
 	}
 	for name, payload := range tests {
 		t.Run(name, func(t *testing.T) {
-			event := outbox.Event{ID: "audit-rejected-0001", Topic: audit.TopicLoginSucceeded, BusinessKey: "login:rejected-0001", Payload: []byte(payload), OccurredAt: now}
+			event := outbox.Event{ID: "audit-rejected-0001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:rejected-0001:revision-1:account:account-00000001", Payload: []byte(payload), OccurredAt: now}
 			created, err := dbEnqueue(context.Background(), db, store, event)
 			if created || !errors.Is(err, outbox.ErrInvalidEvent) {
 				t.Fatalf("sensitive event = %v, %v", created, err)
 			}
 		})
+	}
+	loginEvent := outbox.Event{ID: "audit-login-bypass", Topic: audit.TopicLoginSucceeded, BusinessKey: "login:bypass", Payload: []byte(`{"actorType":"account","source":"web"}`), OccurredAt: now}
+	if created, err := dbEnqueue(context.Background(), db, store, loginEvent); created || !errors.Is(err, outbox.ErrInvalidEvent) {
+		t.Fatalf("async login bypass = %v, %v", created, err)
 	}
 }
 
@@ -92,7 +106,7 @@ func TestFailedProjectionRetriesAndConvergesWithoutDuplicates(t *testing.T) {
 	store := newAuditStore(t, db)
 	consumers := mustConsumers(t)
 	now := time.Date(2026, 8, 27, 2, 0, 0, 0, time.UTC)
-	event := outbox.Event{ID: "audit-retry-0001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:record-0001:revision-2", Payload: []byte(`{"source":"server","actorType":"system"}`), OccurredAt: now}
+	event := outbox.Event{ID: "audit-retry-0001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:record-0001:revision-2:system", Payload: []byte(`{"source":"server"}`), OccurredAt: now}
 	enqueue(t, db, store, event)
 
 	result := dispatch(t, db, store, consumers, now)
@@ -118,11 +132,20 @@ func TestQueryDetailAndCleanupAreAuthorizedFilteredAndBounded(t *testing.T) {
 	store := newAuditStore(t, db)
 	consumers := mustConsumers(t)
 	now := time.Date(2026, 8, 27, 6, 0, 0, 0, time.UTC)
-	enqueue(t, db, store, outbox.Event{ID: "audit-query-00001", Topic: audit.TopicLoginFailed, BusinessKey: "login:attempt-0002", Payload: []byte(`{"actorType":"account","source":"desktop"}`), OccurredAt: now.Add(-90 * 24 * time.Hour)})
-	enqueue(t, db, store, outbox.Event{ID: "audit-query-00002", Topic: audit.TopicOperationCreated, BusinessKey: "resource:demo:record-0002:revision-1", Payload: []byte(`{"actorType":"system","source":"server"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
-	enqueue(t, db, store, outbox.Event{ID: "audit-query-00003", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:record-0003:revision-2", Payload: []byte(`{"actorType":"account","source":"web"}`), OccurredAt: now.Add(-24 * time.Hour)})
+	recorder, err := audit.NewLoginRecorder(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+		_, recordErr := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeFailed, ActorType: audit.ActorAccount, Source: audit.SourceDesktop, OccurredAt: now.Add(-90 * 24 * time.Hour)})
+		return recordErr
+	}); err != nil {
+		t.Fatal(err)
+	}
+	enqueue(t, db, store, outbox.Event{ID: "audit-query-00002", Topic: audit.TopicOperationCreated, BusinessKey: "resource:demo:record-0002:revision-1:system", Payload: []byte(`{"source":"server"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
+	enqueue(t, db, store, outbox.Event{ID: "audit-query-00003", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:record-0003:revision-2:account:account-00000003", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-24 * time.Hour)})
 	dispatch(t, db, store, consumers, now)
-	if _, err := db.Bun().ExecContext(context.Background(), "UPDATE audit_facts SET payload = ? WHERE event_id = ?", []byte(`{"source":"desktop","actorType":"account"}`), "audit-query-00001"); err != nil {
+	if _, err := db.Bun().ExecContext(context.Background(), "UPDATE audit_facts SET payload = ? WHERE topic = ?", []byte(`{"source":"desktop","actorType":"account"}`), audit.TopicLoginFailed); err != nil {
 		t.Fatal(err)
 	}
 
@@ -130,12 +153,22 @@ func TestQueryDetailAndCleanupAreAuthorizedFilteredAndBounded(t *testing.T) {
 	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 1, Now: func() time.Time { return now }, Observer: observer})
 	principal := audit.Principal{ID: "auditor-00000001"}
 	page, err := service.List(context.Background(), principal, audit.Filter{Page: 1, PageSize: 20, Kind: audit.KindLogin, Outcome: audit.OutcomeFailed, Source: audit.SourceDesktop})
-	if err != nil || page.Total != 1 || page.Records[0].ID != "audit-query-00001" {
+	if err != nil || page.Total != 1 || !regexp.MustCompile(`^login:[a-f0-9]{32}$`).MatchString(page.Records[0].Subject) {
 		t.Fatalf("filtered page = %#v, %v", page, err)
 	}
-	fact, err := service.Detail(context.Background(), principal, "audit-query-00002")
-	if err != nil || fact.Action != "create" || fact.Source != audit.SourceServer {
+	all, err := service.List(context.Background(), principal, audit.Filter{Page: 1, PageSize: 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	createdID := findFactID(t, all, "demo:record-0002")
+	updatedID := findFactID(t, all, "demo:record-0003")
+	fact, err := service.Detail(context.Background(), principal, createdID)
+	if err != nil || fact.Action != "create" || fact.Source != audit.SourceServer || fact.ActorType != audit.ActorSystem || fact.ActorRef != nil {
 		t.Fatalf("detail = %#v, %v", fact, err)
+	}
+	accountFact, err := service.Detail(context.Background(), principal, updatedID)
+	if err != nil || accountFact.ActorType != audit.ActorAccount || accountFact.ActorRef == nil || *accountFact.ActorRef != "account:account-00000003" {
+		t.Fatalf("account operation actor = %#v, %v", accountFact, err)
 	}
 	if _, err := service.List(context.Background(), principal, audit.Filter{Page: 1, PageSize: 20, Kind: "unknown"}); !errors.Is(err, audit.ErrInvalidArgument) {
 		t.Fatalf("unknown filter = %v", err)
@@ -175,13 +208,9 @@ func TestSynchronousLoginPortPersistsTypedFactInCallerTransaction(t *testing.T) 
 	}
 	now := time.Date(2026, 8, 27, 7, 0, 0, 0, time.UTC)
 	err = db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
-		created, err := recorder.Record(ctx, tx, audit.LoginFact{EventID: "audit-login-00001", AttemptID: "attempt-0003", Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: stringPointer("account:account-0003"), Source: audit.SourceWeb, OccurredAt: now})
+		created, err := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: stringPointer("account:account-00000003"), Source: audit.SourceWeb, OccurredAt: now})
 		if err != nil || !created {
 			return errors.New("login record failed")
-		}
-		created, err = recorder.Record(ctx, tx, audit.LoginFact{EventID: "audit-login-00001", AttemptID: "attempt-0003", Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: stringPointer("account:account-0003"), Source: audit.SourceWeb, OccurredAt: now})
-		if err != nil || created {
-			return errors.New("login record was not idempotent")
 		}
 		return nil
 	})
@@ -189,8 +218,60 @@ func TestSynchronousLoginPortPersistsTypedFactInCallerTransaction(t *testing.T) 
 		t.Fatal(err)
 	}
 	page, err := mustService(t, db, allowAll{}).List(context.Background(), audit.Principal{ID: "auditor-00000001"}, audit.Filter{Page: 1, PageSize: 20})
-	if err != nil || page.Total != 1 || page.Records[0].Outcome != audit.OutcomeSucceeded || page.Records[0].ActorRef == nil || *page.Records[0].ActorRef != "account:account-0003" {
+	if err != nil || page.Total != 1 || page.Records[0].Outcome != audit.OutcomeSucceeded || page.Records[0].ActorRef == nil || *page.Records[0].ActorRef != "account:account-00000003" ||
+		!regexp.MustCompile(`^a1\.ls\.[A-Za-z0-9_-]+$`).MatchString(page.Records[0].ID) || !regexp.MustCompile(`^login:[a-f0-9]{32}$`).MatchString(page.Records[0].Subject) {
 		t.Fatalf("synchronous fact = %#v, %v", page, err)
+	}
+}
+
+func TestSynchronousLoginPortRejectsSensitiveActorReferencesWithoutWriting(t *testing.T) {
+	db := openSQLite(t)
+	migrate(t, db, auditmigration.Provider{})
+	recorder, err := audit.NewLoginRecorder(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, actorRef := range []string{
+		"account:password000000", "account:secret00000000", "account:session0000000",
+		"account:token000000000", "account:credential0000", "account:admin",
+	} {
+		err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+			_, recordErr := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: &actorRef, Source: audit.SourceWeb, OccurredAt: time.Now().UTC()})
+			return recordErr
+		})
+		if !errors.Is(err, audit.ErrInvalidArgument) {
+			t.Fatalf("actor ref %q error = %v", actorRef, err)
+		}
+	}
+	validActor := "account:account-00000003"
+	for _, fact := range []audit.LoginFact{
+		{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, Source: audit.SourceWeb, OccurredAt: time.Now().UTC()},
+		{Outcome: audit.OutcomeFailed, ActorType: audit.ActorAccount, ActorRef: &validActor, Source: audit.SourceWeb, OccurredAt: time.Now().UTC()},
+		{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorSystem, ActorRef: &validActor, Source: audit.SourceServer, OccurredAt: time.Now().UTC()},
+		{Outcome: audit.OutcomeFailed, ActorType: audit.ActorSystem, Source: audit.SourceServer, OccurredAt: time.Now().UTC()},
+	} {
+		err := db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
+			_, recordErr := recorder.Record(ctx, tx, fact)
+			return recordErr
+		})
+		if !errors.Is(err, audit.ErrInvalidArgument) {
+			t.Fatalf("invalid login actor invariant error = %v", err)
+		}
+	}
+	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO audit_facts (topic, business_key, actor_ref, payload, occurred_at) VALUES (?, ?, ?, ?, ?)`, audit.TopicLoginSucceeded, "login:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "account:x", []byte(`{"actorType":"account","source":"web"}`), time.Now().UTC()); err == nil {
+		t.Fatal("SQLite accepted a short non-opaque actor reference")
+	}
+	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO audit_facts (topic, business_key, payload, occurred_at) VALUES (?, ?, ?, ?)`, audit.TopicOperationUpdated, "resource:demo:invalid:revision-1:system:account-00000001", []byte(`{"source":"web"}`), time.Now().UTC()); err == nil {
+		t.Fatal("SQLite accepted an ambiguous operation actor")
+	}
+	var count int
+	if err := db.Bun().QueryRowContext(context.Background(), "SELECT COUNT(*) FROM audit_facts").Scan(&count); err != nil || count != 0 {
+		t.Fatalf("rejected login facts = %d, %v", count, err)
+	}
+	page, err := mustService(t, db, allowAll{}).List(context.Background(), audit.Principal{ID: "auditor-00000001"}, audit.Filter{Page: 1, PageSize: 20})
+	encoded, _ := json.Marshal(page)
+	if err != nil || page.Total != 0 || regexp.MustCompile(`(?i)password|secret|session|token|credential`).Match(encoded) {
+		t.Fatalf("rejected login facts reached list JSON: %s, %v", encoded, err)
 	}
 }
 
@@ -199,11 +280,12 @@ func TestHTTPTransportUsesGeneratedContractAndNeverReturnsStoredEnvelope(t *test
 	migrate(t, db, auditmigration.Provider{})
 	recorder, _ := audit.NewLoginRecorder(db)
 	_ = db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
-		_, err := recorder.Record(ctx, tx, audit.LoginFact{EventID: "audit-http-000001", AttemptID: "attempt-http", Outcome: audit.OutcomeFailed, ActorType: audit.ActorAccount, Source: audit.SourceWeb, OccurredAt: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)})
+		_, err := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeFailed, ActorType: audit.ActorAccount, Source: audit.SourceWeb, OccurredAt: time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)})
 		return err
 	})
 	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) }})
-	authorized, err := audit.NewAuthorizedRequest(audit.Principal{ID: "auditor-00000001"}, strings.Repeat("c", 43), stringPointer("rotated-cookie-material"))
+	cookie := sessionCookie(strings.Repeat("r", 43))
+	authorized, err := audit.NewAuthorizedRequest(audit.Principal{ID: "auditor-00000001"}, strings.Repeat("c", 43), &cookie)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,11 +303,11 @@ func TestHTTPTransportUsesGeneratedContractAndNeverReturnsStoredEnvelope(t *test
 	request.Header.Set("X-Test-Identity", "auditor")
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
-	if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("X-CSRF-Token") != strings.Repeat("c", 43) || response.Header().Get("Set-Cookie") != "rotated-cookie-material" {
+	if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("X-CSRF-Token") != strings.Repeat("c", 43) || response.Header().Get("Set-Cookie") != cookie {
 		t.Fatalf("list response = %d, %s", response.Code, response.Body.String())
 	}
 	body := response.Body.String()
-	if strings.Contains(body, "payload") || strings.Contains(body, "businessKey") || !strings.Contains(body, `"subject":"login:attempt-http"`) {
+	if strings.Contains(body, "payload") || strings.Contains(body, "businessKey") || strings.Contains(body, "attempt-http") || !strings.Contains(body, `"subject":"login:`) {
 		t.Fatalf("HTTP response leaked stored envelope: %s", body)
 	}
 
@@ -242,12 +324,12 @@ func TestHTTPAuthorizationFailuresAreCategorizedAndRotationMaterialIsRedacted(t 
 	migrate(t, db, auditmigration.Provider{})
 	recorder, _ := audit.NewLoginRecorder(db)
 	_ = db.WithinTx(context.Background(), func(ctx context.Context, tx database.Tx) error {
-		_, err := recorder.Record(ctx, tx, audit.LoginFact{EventID: "audit-authz-00001", AttemptID: "attempt-authz", Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, Source: audit.SourceWeb, OccurredAt: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)})
+		_, err := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: stringPointer("account:account-00000001"), Source: audit.SourceWeb, OccurredAt: time.Date(2026, 5, 1, 0, 0, 0, 0, time.UTC)})
 		return err
 	})
 	now := time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC)
 	csrf := strings.Repeat("z", 43)
-	cookie := "private-rotated-cookie"
+	cookie := sessionCookie(strings.Repeat("p", 43))
 	authorized, err := audit.NewAuthorizedRequest(audit.Principal{ID: "auditor-00000001"}, csrf, &cookie)
 	if err != nil {
 		t.Fatal(err)
@@ -328,6 +410,108 @@ func TestHTTPAuthorizationFailuresAreCategorizedAndRotationMaterialIsRedacted(t 
 	assertResponse(http.MethodGet, "/audit/records?page=1&pageSize=20", "", "", http.StatusInternalServerError, true)
 }
 
+func TestPolicyDenyIsForbiddenButPolicyFaultsAreInternal(t *testing.T) {
+	db := openSQLite(t)
+	migrate(t, db, auditmigration.Provider{})
+	now := time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC)
+	principal := audit.Principal{ID: "auditor-00000001"}
+	operations := []struct {
+		name string
+		run  func(*audit.Service) error
+	}{
+		{name: "list", run: func(service *audit.Service) error {
+			_, err := service.List(context.Background(), principal, audit.Filter{Page: 1, PageSize: 20})
+			return err
+		}},
+		{name: "detail", run: func(service *audit.Service) error {
+			_, err := service.Detail(context.Background(), principal, testFactID("oc", "resource:demo:policy-0001:revision-1:system"))
+			return err
+		}},
+		{name: "cleanup", run: func(service *audit.Service) error {
+			_, err := service.Cleanup(context.Background(), principal, audit.CleanupCommand{Before: now.Add(-60 * 24 * time.Hour), Confirmation: audit.CleanupConfirmation})
+			return err
+		}},
+	}
+	for _, operation := range operations {
+		t.Run(operation.name+" deny", func(t *testing.T) {
+			service := mustServiceWithPolicy(t, db, denyAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+			if err := operation.run(service); !errors.Is(err, audit.ErrForbidden) {
+				t.Fatalf("deny error = %v", err)
+			}
+		})
+		t.Run(operation.name+" fault", func(t *testing.T) {
+			service := mustServiceWithPolicy(t, db, faultyAuthorizer{err: errors.New("private policy database detail")}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+			if err := operation.run(service); !errors.Is(err, audit.ErrInternal) || strings.Contains(err.Error(), "private") {
+				t.Fatalf("fault error = %v", err)
+			}
+		})
+		t.Run(operation.name+" timeout", func(t *testing.T) {
+			service := mustServiceWithPolicy(t, db, faultyAuthorizer{err: context.DeadlineExceeded}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+			if err := operation.run(service); !errors.Is(err, audit.ErrInternal) || !errors.Is(err, context.DeadlineExceeded) {
+				t.Fatalf("timeout error = %v", err)
+			}
+		})
+	}
+
+	authorized, err := audit.NewAuthorizedRequest(principal, strings.Repeat("c", 43), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := requestAuthorizer(func(context.Context, *http.Request) (audit.AuthorizedRequest, audit.RequestFailure) {
+		return authorized, audit.RequestAuthorized
+	})
+	service := mustServiceWithPolicy(t, db, faultyAuthorizer{err: errors.New("private policy database detail")}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+	handler, err := audit.NewHTTPHandler(service, provider, func(*http.Request) string { return "0123456789abcdef" })
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, request := range []*http.Request{
+		httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil),
+		httptest.NewRequest(http.MethodGet, "/audit/records/"+testFactID("oc", "resource:demo:policy-0001:revision-1:system"), nil),
+		httptest.NewRequest(http.MethodPost, "/audit/records/cleanup", strings.NewReader(`{"before":"2026-06-01T00:00:00Z","confirmation":"delete-expired-audit-records"}`)),
+	} {
+		if request.Method == http.MethodPost {
+			request.Header.Set("Content-Type", "application/json")
+		}
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusInternalServerError || strings.Contains(response.Body.String(), "private") {
+			t.Fatalf("policy fault response = %d, %s", response.Code, response.Body.String())
+		}
+	}
+	invalidIDRequest := httptest.NewRequest(http.MethodGet, "/audit/records/a1xocxcmVzb3VyY2U", nil)
+	invalidIDResponse := httptest.NewRecorder()
+	handler.ServeHTTP(invalidIDResponse, invalidIDRequest)
+	if invalidIDResponse.Code != http.StatusBadRequest {
+		t.Fatalf("invalid fact ID response = %d, %s", invalidIDResponse.Code, invalidIDResponse.Body.String())
+	}
+}
+
+func TestAuthorizedRequestRejectsMalformedReplacementCookie(t *testing.T) {
+	principal := audit.Principal{ID: "auditor-00000001"}
+	csrf := strings.Repeat("c", 43)
+	valid := sessionCookie(strings.Repeat("r", 43))
+	if _, err := audit.NewAuthorizedRequest(principal, csrf, &valid); err != nil {
+		t.Fatalf("valid replacement cookie = %v", err)
+	}
+	invalid := []string{
+		"go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; HttpOnly; Secure; SameSite=Strict",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; HttpOnly; Secure; SameSite=Strict",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; Secure; SameSite=Strict",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; HttpOnly; SameSite=Strict",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; HttpOnly; Secure; SameSite=Lax",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; HttpOnly; Secure; SameSite=Strict; Domain=example.test",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; Path=/; HttpOnly; Secure; SameSite=Strict",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; HttpOnly; HttpOnly; Secure; SameSite=Strict",
+		"__Host-go-admin-session=" + strings.Repeat("r", 43) + "; Path=/; HttpOnly; Secure; SameSite=Strict\r\nX-Injected: yes",
+	}
+	for _, cookie := range invalid {
+		if _, err := audit.NewAuthorizedRequest(principal, csrf, &cookie); !errors.Is(err, audit.ErrInvalidArgument) {
+			t.Fatalf("invalid cookie accepted: %q, %v", cookie, err)
+		}
+	}
+}
+
 type requestAuthorizer func(context.Context, *http.Request) (audit.AuthorizedRequest, audit.RequestFailure)
 
 func (provider requestAuthorizer) AuthorizeRequest(ctx context.Context, request *http.Request) (audit.AuthorizedRequest, audit.RequestFailure) {
@@ -336,16 +520,41 @@ func (provider requestAuthorizer) AuthorizeRequest(ctx context.Context, request 
 
 func stringPointer(value string) *string { return &value }
 
+func testFactID(alias, businessKey string) string {
+	return "a1." + alias + "." + base64.RawURLEncoding.EncodeToString([]byte(businessKey))
+}
+
+func findFactID(t *testing.T, page audit.Page, subject string) string {
+	t.Helper()
+	for _, fact := range page.Records {
+		if fact.Subject == subject {
+			return fact.ID
+		}
+	}
+	t.Fatalf("Audit subject %q not found in %#v", subject, page)
+	return ""
+}
+
 type allowAll struct{}
 
-func (allowAll) Authorize(context.Context, database.Tx, audit.Principal, audit.Permission) error {
-	return nil
+func (allowAll) Authorize(context.Context, database.Tx, audit.Principal, audit.Permission) (audit.AuthorizationDecision, error) {
+	return audit.AuthorizationGranted, nil
 }
 
 type denyAll struct{}
 
-func (denyAll) Authorize(context.Context, database.Tx, audit.Principal, audit.Permission) error {
-	return errors.New("private policy material")
+func (denyAll) Authorize(context.Context, database.Tx, audit.Principal, audit.Permission) (audit.AuthorizationDecision, error) {
+	return audit.AuthorizationDenied, nil
+}
+
+type faultyAuthorizer struct{ err error }
+
+func (authorizer faultyAuthorizer) Authorize(context.Context, database.Tx, audit.Principal, audit.Permission) (audit.AuthorizationDecision, error) {
+	return 0, authorizer.err
+}
+
+func sessionCookie(value string) string {
+	return "__Host-go-admin-session=" + value + "; Path=/; HttpOnly; Secure; SameSite=Strict"
 }
 
 type recordingObserver struct {

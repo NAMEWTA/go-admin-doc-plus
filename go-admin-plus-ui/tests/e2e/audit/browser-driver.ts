@@ -37,7 +37,14 @@ const snapshot = async (): Promise<{ count: number }> => {
 
 const driver = {
   async run() {
-    await waitFor(() => document.querySelectorAll('[data-testid="audit-row"]').length === 1, 'initial Audit page load failed')
+		await waitFor(() => document.querySelectorAll('[data-testid="audit-row"]').length === 2, 'initial Audit page load failed')
+		const factsResponse = await fetch('/api/audit/records?page=1&pageSize=20')
+		assert(factsResponse.ok, 'Audit fact verification request failed')
+		const rawFacts = await factsResponse.text()
+		assert(!/(payload|businessKey|password|secret|session|credential)/i.test(rawFacts), 'Audit response exposed a private envelope')
+		const facts = JSON.parse(rawFacts) as { records: Array<{ kind: string; actorRef?: string; subject: string }> }
+		assert(facts.records.some((fact) => fact.kind === 'login' && fact.actorRef === 'account:account-00000011' && /^login:[a-f0-9]{32}$/.test(fact.subject)), 'Audit login actor fact is missing')
+		assert(facts.records.some((fact) => fact.kind === 'operation' && fact.actorRef === 'account:account-00000011' && fact.subject === 'demo:ui-record'), 'Audit operation actor fact is missing')
     select('audit-source', 'web')
     select('audit-action', 'update')
     click('audit-search')
@@ -46,7 +53,7 @@ const driver = {
     click('audit-view')
     await waitFor(() => Boolean(document.querySelector('dialog[open]')), 'Audit browser detail did not open')
     const detail = document.querySelector('dialog')?.textContent ?? ''
-    assert(detail.includes('demo:ui-record') && detail.includes('Succeeded'), 'Audit browser detail content failed')
+		assert(detail.includes('demo:ui-record') && detail.includes('account:account-00000011') && detail.includes('Succeeded'), 'Audit browser detail content failed')
 
     const before = document.querySelector<HTMLInputElement>('[data-testid="audit-cleanup-before"]')
     assert(before, 'Audit cleanup boundary is unavailable')
@@ -57,13 +64,13 @@ const driver = {
     confirmCleanup = false
     click('audit-cleanup')
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 50))
-    assert((await snapshot()).count === 1, 'cancelled Audit cleanup changed state')
+		assert((await snapshot()).count === 2, 'cancelled Audit cleanup changed state')
 
     confirmCleanup = true
     click('audit-cleanup')
     await waitFor(() => (document.querySelector('[data-testid="audit-cleanup-status"]')?.textContent ?? '').includes('Deleted 1 records'), 'Audit cleanup status failed')
-    assert(document.querySelectorAll('[data-testid="audit-row"]').length === 0, 'Audit list did not refresh after cleanup')
-    assert((await snapshot()).count === 0, 'Audit browser cleanup did not persist')
+		assert(document.querySelectorAll('[data-testid="audit-row"]').length === 0, 'filtered Audit list did not refresh after cleanup')
+		assert((await snapshot()).count === 1, 'Audit browser cleanup removed the recent login fact')
     return true
   },
   async shutdown() {

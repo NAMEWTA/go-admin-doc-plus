@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -32,8 +33,15 @@ const CleanupConfirmation = "delete-expired-audit-records"
 
 type Principal struct{ ID string }
 
+type AuthorizationDecision uint8
+
+const (
+	AuthorizationGranted AuthorizationDecision = iota + 1
+	AuthorizationDenied
+)
+
 type Authorizer interface {
-	Authorize(context.Context, database.Tx, Principal, Permission) error
+	Authorize(context.Context, database.Tx, Principal, Permission) (AuthorizationDecision, error)
 }
 
 type Observation struct {
@@ -126,8 +134,8 @@ func (service *Service) List(ctx context.Context, principal Principal, filter Fi
 		return Page{}, err
 	}
 	err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if err := service.authorizer.Authorize(ctx, tx, principal, PermissionRead); err != nil {
-			return ErrForbidden
+		if err := authorize(ctx, service.authorizer, tx, principal, PermissionRead); err != nil {
+			return err
 		}
 		var err error
 		result, err = listFacts(ctx, tx, service.db.Dialect(), filter)
@@ -145,15 +153,16 @@ func (service *Service) List(ctx context.Context, principal Principal, filter Fi
 func (service *Service) Detail(ctx context.Context, principal Principal, id string) (result Fact, resultErr error) {
 	started := service.now()
 	defer func() { service.observe("detail", resultErr, boolCount(resultErr == nil), started) }()
-	if err := validatePrincipal(principal); err != nil || !validFactID(id) {
+	topic, businessKey, validID := decodeFactID(id)
+	if err := validatePrincipal(principal); err != nil || !validID {
 		return Fact{}, ErrInvalidArgument
 	}
 	row := storedFact{}
 	err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if err := service.authorizer.Authorize(ctx, tx, principal, PermissionRead); err != nil {
-			return ErrForbidden
+		if err := authorize(ctx, service.authorizer, tx, principal, PermissionRead); err != nil {
+			return err
 		}
-		return tx.NewSelect().Table("audit_facts").Column("event_id", "topic", "business_key", "actor_ref", "payload", "occurred_at").Where("event_id = ?", id).Limit(1).Scan(ctx, &row)
+		return tx.NewSelect().Table("audit_facts").Column("topic", "business_key", "actor_ref", "payload", "occurred_at").Where("topic = ? AND business_key = ?", topic, businessKey).Limit(1).Scan(ctx, &row)
 	})
 	if errors.Is(err, ErrForbidden) {
 		return Fact{}, ErrForbidden
@@ -178,29 +187,31 @@ func (service *Service) Cleanup(ctx context.Context, principal Principal, comman
 		return CleanupResult{}, ErrRetentionProtected
 	}
 	err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if err := service.authorizer.Authorize(ctx, tx, principal, PermissionCleanup); err != nil {
-			return ErrForbidden
-		}
-		ids := make([]string, 0, service.cleanupLimit+1)
-		if err := tx.NewSelect().Table("audit_facts").Column("event_id").Where("occurred_at < ?", command.Before.UTC()).OrderExpr("occurred_at ASC, event_id ASC").Limit(service.cleanupLimit+1).Scan(ctx, &ids); err != nil {
+		if err := authorize(ctx, service.authorizer, tx, principal, PermissionCleanup); err != nil {
 			return err
 		}
-		result.MoreEligible = len(ids) > service.cleanupLimit
-		if result.MoreEligible {
-			ids = ids[:service.cleanupLimit]
+		keys := make([]storedFactKey, 0, service.cleanupLimit+1)
+		if err := tx.NewSelect().Table("audit_facts").Column("topic", "business_key").Where("occurred_at < ?", command.Before.UTC()).OrderExpr("occurred_at ASC, topic ASC, business_key ASC").Limit(service.cleanupLimit+1).Scan(ctx, &keys); err != nil {
+			return err
 		}
-		if len(ids) == 0 {
+		result.MoreEligible = len(keys) > service.cleanupLimit
+		if result.MoreEligible {
+			keys = keys[:service.cleanupLimit]
+		}
+		if len(keys) == 0 {
 			return nil
 		}
-		sqlResult, err := tx.NewDelete().Table("audit_facts").Where("event_id IN (?)", bun.In(ids)).Exec(ctx)
-		if err != nil {
-			return err
+		for _, key := range keys {
+			sqlResult, err := tx.NewDelete().Table("audit_facts").Where("topic = ? AND business_key = ?", key.Topic, key.BusinessKey).Exec(ctx)
+			if err != nil {
+				return err
+			}
+			deleted, err := sqlResult.RowsAffected()
+			if err != nil || deleted != 1 {
+				return ErrInternal
+			}
 		}
-		deleted, err := sqlResult.RowsAffected()
-		if err != nil || deleted != int64(len(ids)) {
-			return ErrInternal
-		}
-		result.Deleted = int(deleted)
+		result.Deleted = len(keys)
 		return nil
 	})
 	if errors.Is(err, ErrForbidden) {
@@ -213,12 +224,16 @@ func (service *Service) Cleanup(ctx context.Context, principal Principal, comman
 }
 
 type storedFact struct {
-	EventID     string    `bun:"event_id"`
 	Topic       string    `bun:"topic"`
 	BusinessKey string    `bun:"business_key"`
 	ActorRef    *string   `bun:"actor_ref"`
 	Payload     []byte    `bun:"payload"`
 	OccurredAt  time.Time `bun:"occurred_at"`
+}
+
+type storedFactKey struct {
+	Topic       string `bun:"topic"`
+	BusinessKey string `bun:"business_key"`
 }
 
 func listFacts(ctx context.Context, tx database.Tx, dialect database.Dialect, filter Filter) (Page, error) {
@@ -227,7 +242,7 @@ func listFacts(ctx context.Context, tx database.Tx, dialect database.Dialect, fi
 		return Page{}, err
 	}
 	rows := make([]storedFact, 0, filter.PageSize)
-	err = applyFilter(tx.NewSelect().Table("audit_facts"), dialect, filter).Column("event_id", "topic", "business_key", "actor_ref", "payload", "occurred_at").OrderExpr("occurred_at DESC, event_id DESC").Limit(filter.PageSize).Offset((filter.Page-1)*filter.PageSize).Scan(ctx, &rows)
+	err = applyFilter(tx.NewSelect().Table("audit_facts"), dialect, filter).Column("topic", "business_key", "actor_ref", "payload", "occurred_at").OrderExpr("occurred_at DESC, topic ASC, business_key ASC").Limit(filter.PageSize).Offset((filter.Page-1)*filter.PageSize).Scan(ctx, &rows)
 	if err != nil {
 		return Page{}, err
 	}
@@ -297,7 +312,80 @@ func validatePrincipal(principal Principal) error {
 	return nil
 }
 
-func validFactID(id string) bool { return len(id) >= 16 && len(id) <= 64 }
+var factTopicAliases = map[string]string{
+	TopicLoginSucceeded:   "ls",
+	TopicLoginFailed:      "lf",
+	TopicOperationCreated: "oc",
+	TopicOperationUpdated: "ou",
+	TopicOperationDeleted: "od",
+}
+
+var aliasTopics = map[string]string{
+	"ls": TopicLoginSucceeded,
+	"lf": TopicLoginFailed,
+	"oc": TopicOperationCreated,
+	"ou": TopicOperationUpdated,
+	"od": TopicOperationDeleted,
+}
+
+func encodeFactID(topic, businessKey string) (string, bool) {
+	alias, ok := factTopicAliases[topic]
+	if !ok || !validStoredBusinessKey(topic, businessKey) {
+		return "", false
+	}
+	return "a1." + alias + "." + base64.RawURLEncoding.EncodeToString([]byte(businessKey)), true
+}
+
+func validStoredBusinessKey(topic, businessKey string) bool {
+	definition, found := topicDefinitions[topic]
+	parts := strings.Split(businessKey, ":")
+	if !found || len(parts) < 2 || parts[0] != definition.keyPrefix {
+		return false
+	}
+	for _, part := range parts[1:] {
+		if !stableKeyPart.MatchString(part) {
+			return false
+		}
+	}
+	if definition.kind == KindLogin {
+		return len(parts) == 2 && opaqueLoginBusinessID.MatchString(parts[1])
+	}
+	return len(parts) == 5 && parts[4] == "system" ||
+		len(parts) == 6 && parts[4] == "account" && validActorRef("account:"+parts[5])
+}
+
+func decodeFactID(id string) (string, string, bool) {
+	parts := strings.Split(id, ".")
+	if len(parts) != 3 || parts[0] != "a1" {
+		return "", "", false
+	}
+	topic, ok := aliasTopics[parts[1]]
+	if !ok {
+		return "", "", false
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return "", "", false
+	}
+	businessKey := string(raw)
+	encoded, valid := encodeFactID(topic, businessKey)
+	return topic, businessKey, valid && encoded == id
+}
+
+func authorize(ctx context.Context, authorizer Authorizer, tx database.Tx, principal Principal, permission Permission) error {
+	decision, err := authorizer.Authorize(ctx, tx, principal, permission)
+	if err != nil {
+		return err
+	}
+	switch decision {
+	case AuthorizationGranted:
+		return nil
+	case AuthorizationDenied:
+		return ErrForbidden
+	default:
+		return ErrInternal
+	}
+}
 
 func present(row storedFact) (Fact, error) {
 	definition, found := topicDefinitions[row.Topic]
@@ -305,39 +393,50 @@ func present(row storedFact) (Fact, error) {
 		return Fact{}, ErrInternal
 	}
 	var envelope struct {
-		ActorType ActorType `json:"actorType"`
+		ActorType ActorType `json:"actorType,omitempty"`
 		Source    Source    `json:"source"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(row.Payload))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&envelope); err != nil || !validEnvelope(envelope.ActorType, envelope.Source) {
+	if err := decoder.Decode(&envelope); err != nil || envelope.Source != SourceWeb && envelope.Source != SourceDesktop && envelope.Source != SourceServer {
 		return Fact{}, ErrInternal
 	}
-	subject, ok := safeSubject(row.Topic, row.BusinessKey)
-	if !ok || row.ActorRef != nil && !validActorRef(*row.ActorRef) {
+	subject, actorType, actorRef, ok := presentIdentity(definition.kind, row.Topic, row.BusinessKey, envelope.ActorType, row.ActorRef)
+	id, validID := encodeFactID(row.Topic, row.BusinessKey)
+	if !ok || !validID {
 		return Fact{}, ErrInternal
 	}
-	return Fact{ID: row.EventID, Kind: definition.kind, Action: definition.action, Outcome: definition.outcome, ActorType: envelope.ActorType, Source: envelope.Source, Subject: subject, ActorRef: cloneString(row.ActorRef), OccurredAt: row.OccurredAt}, nil
+	return Fact{ID: id, Kind: definition.kind, Action: definition.action, Outcome: definition.outcome, ActorType: actorType, Source: envelope.Source, Subject: subject, ActorRef: actorRef, OccurredAt: row.OccurredAt}, nil
 }
 
-func safeSubject(topic, businessKey string) (string, bool) {
+func presentIdentity(kind Kind, topic, businessKey string, payloadActor ActorType, storedActorRef *string) (string, ActorType, *string, bool) {
 	parts := strings.Split(businessKey, ":")
 	definition, found := topicDefinitions[topic]
-	if !found || len(parts) < 2 || parts[0] != definition.keyPrefix {
-		return "", false
+	if !found || !validStoredBusinessKey(topic, businessKey) {
+		return "", "", nil, false
 	}
-	for _, part := range parts[1:] {
-		if !stableKeyPart.MatchString(part) {
-			return "", false
+	if kind == KindOperation {
+		if payloadActor != "" || storedActorRef != nil || len(parts) != 5 && len(parts) != 6 {
+			return "", "", nil, false
 		}
-	}
-	if definition.kind == KindOperation {
-		if len(parts) < 3 {
-			return "", false
+		subject := strings.Join(parts[1:3], ":")
+		if len(parts) == 5 && parts[4] == "system" {
+			return subject, ActorSystem, nil, true
 		}
-		return strings.Join(parts[1:3], ":"), true
+		if len(parts) == 6 && parts[4] == "account" {
+			actorRef := "account:" + parts[5]
+			if validActorRef(actorRef) {
+				return subject, ActorAccount, &actorRef, true
+			}
+		}
+		return "", "", nil, false
 	}
-	return strings.Join(parts[:2], ":"), true
+	if len(parts) != 2 || payloadActor != ActorAccount ||
+		definition.outcome == OutcomeSucceeded && (storedActorRef == nil || !validActorRef(*storedActorRef)) ||
+		definition.outcome == OutcomeFailed && storedActorRef != nil {
+		return "", "", nil, false
+	}
+	return strings.Join(parts[:2], ":"), payloadActor, cloneString(storedActorRef), true
 }
 
 func cloneString(value *string) *string {
@@ -346,10 +445,6 @@ func cloneString(value *string) *string {
 	}
 	copy := *value
 	return &copy
-}
-
-func validEnvelope(actorType ActorType, source Source) bool {
-	return (actorType == ActorAccount || actorType == ActorSystem) && (source == SourceWeb || source == SourceDesktop || source == SourceServer)
 }
 
 func (service *Service) observe(operation string, err error, count int, started time.Time) {

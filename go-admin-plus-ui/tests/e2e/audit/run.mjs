@@ -1,8 +1,10 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { request as httpsRequest } from 'node:https'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { terminateChild, waitForExit } from './process-lifecycle.mjs'
 
 if (process.env.GO_ADMIN_REQUIRE_AUDIT_E2E !== '1') {
   console.log('AUDIT_E2E_SKIP: set GO_ADMIN_REQUIRE_AUDIT_E2E=1 for the required SQLite/PostgreSQL browser harness')
@@ -137,10 +139,16 @@ const evaluate = async (client, sessionId, expression) => {
   return outcome.result.value
 }
 
-const waitForExit = (child, timeout = 10_000) => new Promise((resolvePromise) => {
-  if (child.exitCode !== null) return resolvePromise(child.exitCode)
-  const timer = setTimeout(() => { child.kill('SIGKILL'); resolvePromise(-1) }, remaining(timeout))
-  child.once('exit', (code) => { clearTimeout(timer); resolvePromise(code) })
+const requestHostShutdown = (baseURL) => new Promise((resolvePromise) => {
+  const request = httpsRequest(new URL('/__test/shutdown', baseURL), {
+    method: 'POST', rejectUnauthorized: false, timeout: 5_000,
+  }, (response) => {
+    response.resume()
+    response.once('end', () => resolvePromise(response.statusCode === 204))
+  })
+  request.once('error', () => resolvePromise(false))
+  request.once('timeout', () => { request.destroy(); resolvePromise(false) })
+  request.end()
 })
 
 const runProfile = async (profile) => {
@@ -161,8 +169,9 @@ const runProfile = async (profile) => {
   let socket
   let client
   let sessionId
+  let baseURL
   try {
-    const baseURL = await waitForReady(readyFile, host)
+    baseURL = await waitForReady(readyFile, host)
     browser = spawnTracked(chromium, [
       '--headless=new', '--disable-gpu', '--ignore-certificate-errors', '--no-first-run',
       '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${browserRoot}`, baseURL,
@@ -181,14 +190,25 @@ const runProfile = async (profile) => {
     }
     assert(await evaluate(client, sessionId, 'globalThis.__auditE2E.run()') === true, `${profile} Audit browser scenario failed`)
     await evaluate(client, sessionId, 'globalThis.__auditE2E.shutdown()')
-    assert(await waitForExit(host) === 0, `${profile} Audit HTTPS host failed`)
+    const hostExit = await waitForExit(host, remaining(10_000))
+    assert(hostExit.exited && hostExit.code === 0, `${profile} Audit HTTPS host failed`)
   } finally {
+    if (host.exitCode === null && host.signalCode === null && baseURL) {
+      await requestHostShutdown(baseURL)
+      await waitForExit(host, 10_000)
+    }
+    if (client && browser?.exitCode === null && browser?.signalCode === null) {
+      try { await client.send('Browser.close') } catch { /* bounded termination below */ }
+      await waitForExit(browser, 5_000)
+    }
     socket?.close()
-    if (browser?.exitCode === null) browser.kill('SIGTERM')
-    if (host.exitCode === null) host.kill('SIGKILL')
+    if (browser && browser.exitCode === null && browser.signalCode === null) await terminateChild(browser, 5_000)
+    if (host.exitCode === null && host.signalCode === null) await terminateChild(host, 5_000)
   }
 }
 
+let scenarioError
+let cleanupError
 try {
   assert(Boolean(chromium), 'set GO_ADMIN_TEST_CHROMIUM_EXECUTABLE to a Chromium executable')
   assert(Boolean(postgresDSN), `set ${postgresKey} to a disposable PostgreSQL database`)
@@ -203,7 +223,14 @@ try {
   await runProfile('sqlite')
   await runProfile('postgres')
   console.log('AUDIT_E2E_PASS')
+} catch (error) {
+  scenarioError = error
 } finally {
-  for (const child of activeChildren) if (child.exitCode === null) child.kill('SIGKILL')
+  for (const child of activeChildren) {
+    if (child.exitCode !== null || child.signalCode !== null) continue
+    try { await terminateChild(child, 5_000) } catch (error) { cleanupError ??= error }
+  }
   rmSync(temporaryRoot, { recursive: true, force: true })
 }
+if (scenarioError) throw scenarioError
+if (cleanupError) throw cleanupError

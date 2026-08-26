@@ -71,7 +71,7 @@ paths:
         - name: id
           in: path
           required: true
-          schema: { type: string, minLength: 16, maxLength: 64, pattern: '^[A-Za-z0-9][A-Za-z0-9_-]+$' }
+          schema: { type: string, minLength: 10, maxLength: 350, pattern: '^a1\.(ls|lf|oc|ou|od)\.[A-Za-z0-9_-]+$' }
       responses:
         '200':
           description: The redacted audit fact.
@@ -175,14 +175,14 @@ components:
       additionalProperties: false
       required: [id, kind, action, outcome, actorType, source, subject, occurredAt]
       properties:
-        id: { type: string, minLength: 16, maxLength: 64 }
+        id: { type: string, minLength: 10, maxLength: 350, pattern: '^a1\.(ls|lf|oc|ou|od)\.[A-Za-z0-9_-]+$' }
         kind: { $ref: '#/components/schemas/AuditKind' }
         action: { $ref: '#/components/schemas/AuditAction' }
         outcome: { $ref: '#/components/schemas/AuditOutcome' }
         actorType: { $ref: '#/components/schemas/ActorType' }
         source: { $ref: '#/components/schemas/AuditSource' }
         subject: { type: string, minLength: 3, maxLength: 132, pattern: '^[a-z0-9][a-z0-9_:-]+$' }
-        actorRef: { type: string, minLength: 9, maxLength: 72, pattern: '^account:[a-z0-9][a-z0-9_-]+$' }
+        actorRef: { type: string, minLength: 16, maxLength: 72, pattern: '^account:[a-z0-9][a-z0-9_-]{7,63}$' }
         occurredAt: { type: string, format: date-time }
     AuditPage:
       type: object

@@ -139,9 +139,9 @@
             "required": true,
             "schema": {
               "type": "string",
-              "minLength": 16,
-              "maxLength": 64,
-              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]+$"
+              "minLength": 10,
+              "maxLength": 350,
+              "pattern": "^a1\\.(ls|lf|oc|ou|od)\\.[A-Za-z0-9_-]+$"
             }
           }
         ],
@@ -522,8 +522,9 @@
         "properties": {
           "id": {
             "type": "string",
-            "minLength": 16,
-            "maxLength": 64
+            "minLength": 10,
+            "maxLength": 350,
+            "pattern": "^a1\\.(ls|lf|oc|ou|od)\\.[A-Za-z0-9_-]+$"
           },
           "kind": {
             "$ref": "#/components/schemas/AuditKind"
@@ -548,9 +549,9 @@
           },
           "actorRef": {
             "type": "string",
-            "minLength": 9,
+            "minLength": 16,
             "maxLength": 72,
-            "pattern": "^account:[a-z0-9][a-z0-9_-]+$"
+            "pattern": "^account:[a-z0-9][a-z0-9_-]{7,63}$"
           },
           "occurredAt": {
             "type": "string",

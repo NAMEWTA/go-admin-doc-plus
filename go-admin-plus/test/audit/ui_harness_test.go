@@ -59,11 +59,21 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	migrate(t, db, reliablemigration.Provider{}, auditmigration.Provider{})
 	store := newAuditStore(t, db)
 	now := time.Date(2026, 8, 27, 9, 0, 0, 0, time.UTC)
-	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record:revision-2", Payload: []byte(`{"source":"web","actorType":"account"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
+	recorder, err := audit.NewLoginRecorder(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		_, recordErr := recorder.Record(ctx, tx, audit.LoginFact{Outcome: audit.OutcomeSucceeded, ActorType: audit.ActorAccount, ActorRef: stringPointer("account:account-00000011"), Source: audit.SourceWeb, OccurredAt: now.Add(-2 * 24 * time.Hour)})
+		return recordErr
+	}); err != nil {
+		t.Fatal("seed Audit login fact failed")
+	}
+	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record:revision-2:account:account-00000011", Payload: []byte(`{"source":"web"}`), OccurredAt: now.Add(-60 * 24 * time.Hour)})
 	dispatch(t, db, store, mustConsumers(t), now)
 
 	service := mustServiceWithPolicy(t, db, allowAll{}, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
-	authorized, err := audit.NewAuthorizedRequest(audit.Principal{ID: "auditor-00000001"}, "ccccccccccccccccccccccccccccccccccccccccccc", stringPointer("__Host-go-admin-session=rotated; Path=/; Secure; HttpOnly; SameSite=Strict"))
+	authorized, err := audit.NewAuthorizedRequest(audit.Principal{ID: "auditor-00000001"}, "ccccccccccccccccccccccccccccccccccccccccccc", stringPointer(sessionCookie("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")))
 	if err != nil {
 		t.Fatal(err)
 	}

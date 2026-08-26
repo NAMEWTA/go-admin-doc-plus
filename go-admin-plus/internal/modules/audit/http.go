@@ -243,7 +243,53 @@ func (request AuthorizedRequest) valid() bool {
 }
 
 func validCookieHeader(value string) bool {
-	return value != "" && len(value) <= 4096 && !strings.ContainsAny(value, "\r\n")
+	if value == "" || len(value) > 4096 || strings.ContainsAny(value, "\r\n") {
+		return false
+	}
+	cookie, err := http.ParseSetCookie(value)
+	if err != nil || cookie.Name != "__Host-go-admin-session" || !validCSRF.MatchString(cookie.Value) ||
+		cookie.Path != "/" || !cookie.Secure || !cookie.HttpOnly || cookie.SameSite != http.SameSiteStrictMode ||
+		cookie.Domain != "" || len(cookie.Unparsed) != 0 {
+		return false
+	}
+	seen := make(map[string]struct{}, 4)
+	parts := strings.Split(value, ";")
+	if len(parts) != 5 || !strings.HasPrefix(parts[0], "__Host-go-admin-session=") {
+		return false
+	}
+	for _, raw := range parts[1:] {
+		attribute := strings.TrimSpace(raw)
+		name := attribute
+		if index := strings.IndexByte(attribute, '='); index >= 0 {
+			name = attribute[:index]
+		}
+		name = strings.ToLower(strings.TrimSpace(name))
+		if _, duplicate := seen[name]; duplicate {
+			return false
+		}
+		seen[name] = struct{}{}
+		switch name {
+		case "path":
+			if attribute != "Path=/" {
+				return false
+			}
+		case "secure":
+			if attribute != "Secure" {
+				return false
+			}
+		case "httponly":
+			if attribute != "HttpOnly" {
+				return false
+			}
+		case "samesite":
+			if attribute != "SameSite=Strict" {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return len(seen) == 4
 }
 
 func validFailure(failure RequestFailure) bool {
