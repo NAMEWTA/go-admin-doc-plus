@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-08
 title: 无 Redis 可靠运行时
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 事务 Outbox、幂等、缓存正确性和多实例执行权涉及并发与可靠副作用
 ready: true
 risk: critical
 blocked_by: [T-03, T-04]
 contract_ids: [AC-018, AC-034]
-owner: unassigned
+owner: codex-t08-reliability
 expected_changes: ["<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus/internal/platform/coordination/**</Path>", "<Path>go-admin-plus/internal/platform/localcache/**</Path>", "<Path>go-admin-plus/internal/platform/migrations/reliable-runtime/**</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus/internal/platform/coordination/**</Path>", "<Path>go-admin-plus/internal/platform/localcache/**</Path>", "<Path>go-admin-plus/internal/platform/migrations/reliable-runtime/**</Path>", "<Path>go-admin-plus/test/reliable-runtime/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus/internal/platform/migrations/**</Path>"]

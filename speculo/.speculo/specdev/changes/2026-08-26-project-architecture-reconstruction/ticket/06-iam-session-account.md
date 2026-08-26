@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-06
 title: 安全登录、Session 与个人账户闭环
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 认证、密码、Session schema、Cookie/CSRF 和审计脱敏属于关键安全边界
 ready: true
 risk: critical
 blocked_by: [T-03, T-04, T-05]
 contract_ids: [AC-008, AC-010, AC-012, AC-025, AC-036]
-owner: unassigned
+owner: codex-t06-iam
 expected_changes: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0010-session-*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/iam/session/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]

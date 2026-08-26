@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T22:15:09+08:00",
+  "updated_at": "2026-08-26T22:18:11+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -310,6 +310,92 @@
       },
       "status": "integrated",
       "updated_at": "2026-08-26T22:15:09+08:00"
+    },
+    {
+      "ticket_id": "T-06",
+      "owner": "codex-t06-iam",
+      "implementation_owner": "codex-t06-iam",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "05d619d1c4c90378a0138c630fa1aa3bcfa0f942",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-06",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-06",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G3 requires IAM unit, API, security, Go/TypeScript, lint, type, and build checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-06 must prove secure Cookie, CSRF, Session rotation/revoke/timeout, account changes, and browser relogin state",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-06.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-26T22:18:11+08:00"
+    },
+    {
+      "ticket_id": "T-08",
+      "owner": "codex-t08-reliability",
+      "implementation_owner": "codex-t08-reliability",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "05d619d1c4c90378a0138c630fa1aa3bcfa0f942",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-08",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-08",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G3 requires outbox, coordination, bounded cache, fault, race, and dual-dialect checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-08 must prove PostgreSQL unique executor takeover and SQLite single-executor behavior with real processes",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-08.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-26T22:18:11+08:00"
     }
   ]
 }
