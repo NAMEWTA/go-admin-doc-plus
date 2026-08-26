@@ -4,6 +4,7 @@ import { request as httpsRequest } from 'node:https'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { browserExceptionDiagnostic, createDiagnosticBuffer, redactDiagnostic } from './diagnostics.mjs'
 import { cleanupTrackedChildren, didSpawnFail, spawnTracked, terminateChild, waitForExit } from './process-lifecycle.mjs'
 
 if (process.env.GO_ADMIN_REQUIRE_AUDIT_E2E !== '1') {
@@ -22,6 +23,7 @@ const temporaryRoot = mkdtempSync(join(tmpdir(), 'go-admin-audit-e2e-'))
 const staticRoot = join(temporaryRoot, 'static')
 const deadline = Date.now() + 5 * 60_000
 const activeChildren = new Set()
+const diagnosticSecrets = [postgresDSN, 'correct horse battery', 'incorrect password']
 
 const fail = (message) => { throw new Error(`Audit E2E: ${message}`) }
 const assert = (condition, message) => { if (!condition) fail(message) }
@@ -61,7 +63,7 @@ class CDPClient {
       if (!pending) return
       this.pending.delete(message.id)
       clearTimeout(pending.timer)
-      if (message.error) pending.reject(new Error('CDP command failed'))
+      if (message.error) pending.reject(new Error(`CDP command failed: ${redactDiagnostic(message.error.message, diagnosticSecrets)}`))
       else pending.resolve(message.result)
     })
     socket.addEventListener('close', () => this.rejectAll())
@@ -130,8 +132,20 @@ const waitForPage = async (client, baseURL) => {
 
 const evaluate = async (client, sessionId, expression) => {
   const outcome = await client.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId)
-  if (outcome.exceptionDetails) fail('Audit browser scenario raised an exception')
+  if (outcome.exceptionDetails) fail(`Audit browser scenario raised an exception: ${browserExceptionDiagnostic(outcome.exceptionDetails, diagnosticSecrets)}`)
   return outcome.result.value
+}
+
+const capture = (stream, buffer) => {
+  stream?.setEncoding('utf8')
+  stream?.on('data', (chunk) => buffer.append(chunk))
+}
+
+const profileDiagnostic = (profile, error, hostOutput, browserOutput) => {
+  const sections = [`${profile}: ${redactDiagnostic(error instanceof Error ? error.message : error, diagnosticSecrets)}`]
+  if (hostOutput.text()) sections.push(`host output:\n${hostOutput.text()}`)
+  if (browserOutput.text()) sections.push(`browser output:\n${browserOutput.text()}`)
+  return sections.join('\n')
 }
 
 const requestHostShutdown = (baseURL) => new Promise((resolvePromise) => {
@@ -158,19 +172,23 @@ const runProfile = async (profile) => {
     }, profile === 'postgres'),
     stdio: ['ignore', 'pipe', 'pipe'],
   }, activeChildren)
-  host.stdout?.resume()
-  host.stderr?.resume()
+  const hostOutput = createDiagnosticBuffer(8_192, diagnosticSecrets)
+  const browserOutput = createDiagnosticBuffer(8_192, diagnosticSecrets)
+  capture(host.stdout, hostOutput)
+  capture(host.stderr, hostOutput)
   let browser
   let socket
   let client
   let sessionId
   let baseURL
+  let profileError
   try {
     baseURL = await waitForReady(readyFile, host)
     browser = spawnTracked(chromium, [
       '--headless=new', '--disable-gpu', '--ignore-certificate-errors', '--no-first-run',
       '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${browserRoot}`, baseURL,
     ], { env: childEnvironment(), stdio: ['ignore', 'ignore', 'pipe'] }, activeChildren)
+    capture(browser.stderr, browserOutput)
     const devToolsURL = await waitForDevTools(browser)
     socket = await connect(devToolsURL)
     client = new CDPClient(socket)
@@ -187,6 +205,8 @@ const runProfile = async (profile) => {
     await evaluate(client, sessionId, 'globalThis.__auditE2E.shutdown()')
     const hostExit = await waitForExit(host, remaining(10_000))
     assert(hostExit.exited && hostExit.code === 0, `${profile} Audit HTTPS host failed`)
+  } catch (error) {
+    profileError = error
   } finally {
     if (host.exitCode === null && host.signalCode === null && baseURL) {
       await requestHostShutdown(baseURL)
@@ -200,6 +220,7 @@ const runProfile = async (profile) => {
     if (browser && browser.exitCode === null && browser.signalCode === null) await terminateChild(browser, 5_000)
     if (host.exitCode === null && host.signalCode === null) await terminateChild(host, 5_000)
   }
+  if (profileError) fail(profileDiagnostic(profile, profileError, hostOutput, browserOutput))
 }
 
 let scenarioError
@@ -214,7 +235,10 @@ try {
     stdio: 'pipe',
     timeout: remaining(120_000),
   })
-  if (build.error || build.signal || build.status !== 0) fail('Audit browser bundle failed')
+  if (build.error || build.signal || build.status !== 0) {
+    const output = redactDiagnostic(`${build.stdout ?? ''}\n${build.stderr ?? ''}`, diagnosticSecrets).slice(-8_192).trim()
+    fail(`Audit browser bundle failed${output ? `:\n${output}` : ''}`)
+  }
   await runProfile('sqlite')
   await runProfile('postgres')
   console.log('AUDIT_E2E_PASS')

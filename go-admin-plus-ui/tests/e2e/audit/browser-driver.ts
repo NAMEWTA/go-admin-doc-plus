@@ -73,7 +73,7 @@ const driver = {
     click('audit-view')
     await waitFor(() => Boolean(document.querySelector('dialog[open]')), 'Audit browser detail did not open')
     const detail = document.querySelector('dialog')?.textContent ?? ''
-		assert(detail.includes('demo:ui-record-revision-2') && detail.includes(auditFixture.accountRef) && detail.includes('Succeeded'), 'Audit browser detail content failed')
+		assert(detail.includes('demo:ui-record-revision-2') && detail.includes(auditFixture.accountRef) && detail.includes(auditFixture.operationOutcome), 'Audit browser detail content failed')
 
     const before = document.querySelector<HTMLInputElement>('[data-testid="audit-cleanup-before"]')
     assert(before, 'Audit cleanup boundary is unavailable')
