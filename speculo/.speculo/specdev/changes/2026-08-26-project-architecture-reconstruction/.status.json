@@ -109,7 +109,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-02",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-02",
-      "source_checkpoint": null,
+      "source_checkpoint": "18c10920d0aea9a7c257aa829772505ba0d506e5",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -140,7 +140,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T17:31:00+08:00"
+      "updated_at": "2026-08-26T18:18:00+08:00"
     }
   ]
 }
