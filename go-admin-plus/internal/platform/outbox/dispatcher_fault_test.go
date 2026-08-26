@@ -17,10 +17,10 @@ import (
 func TestLeaseLossAfterTransactionalConsumerRollsBackAndStops(t *testing.T) {
 	t.Parallel()
 	db := openFaultDatabase(t)
-	if _, err := db.SQL().Exec(`CREATE TABLE effects (business_key TEXT PRIMARY KEY)`); err != nil {
+	if _, err := db.SQL().Exec(`CREATE TABLE orders_effects (business_key TEXT PRIMARY KEY)`); err != nil {
 		t.Fatalf("create effects: %v", err)
 	}
-	store := NewStore(db)
+	store := newFaultStore(t, db)
 	now := time.Date(2026, 8, 26, 17, 30, 0, 0, time.UTC)
 	event := Event{
 		ID: "event-lease-loss-1", Topic: "orders.changed", BusinessKey: "order:lease-loss",
@@ -32,8 +32,9 @@ func TestLeaseLossAfterTransactionalConsumerRollsBackAndStops(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Enqueue() error = %v", err)
 	}
-	consumer, err := NewTransactionalConsumer("projector", Statement{
-		Query: `INSERT INTO effects (business_key) VALUES (?)`, Arguments: []EventField{FieldBusinessKey},
+	consumer, err := NewTransactionalConsumer("orders", "projector", []string{"orders_effects"}, Mutation{
+		Operation: OperationInsert, Table: "orders_effects",
+		Values: []ColumnBinding{{Column: "business_key", Field: FieldBusinessKey}}, ExpectExactly: 1,
 	})
 	if err != nil {
 		t.Fatalf("NewTransactionalConsumer() error = %v", err)
@@ -51,7 +52,7 @@ func TestLeaseLossAfterTransactionalConsumerRollsBackAndStops(t *testing.T) {
 		t.Fatalf("runOnce() = %#v, err %v, calls %d", result, err, executor.calls)
 	}
 	var effects int
-	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM effects`).Scan(&effects); err != nil || effects != 0 {
+	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM orders_effects`).Scan(&effects); err != nil || effects != 0 {
 		t.Fatalf("effects after lease loss = %d, err %v", effects, err)
 	}
 	record, found, err := store.Lookup(context.Background(), event.ID)
@@ -61,6 +62,39 @@ func TestLeaseLossAfterTransactionalConsumerRollsBackAndStops(t *testing.T) {
 	if _, err := dispatcher.RunOnce(context.Background(), nil, now); err == nil {
 		t.Fatal("production RunOnce accepted a missing coordination lease")
 	}
+}
+
+func TestLoopObservesDatabaseFailureAndBacksOff(t *testing.T) {
+	t.Parallel()
+	db := openFaultDatabase(t)
+	store := newFaultStore(t, db)
+	dispatcher, err := NewDispatcher(store, DispatcherConfig{
+		Owner: "worker-a", LeaseDuration: time.Minute, RetryDelay: time.Minute, BatchSize: 1,
+	}, nil)
+	if err != nil {
+		t.Fatalf("NewDispatcher() error = %v", err)
+	}
+	executor := failingExecutor{err: errors.New("database unavailable with password=hidden")}
+	stop := errors.New("stop")
+	var observations []LoopObservation
+	err = dispatcher.run(context.Background(), executor, LoopOptions{
+		PollInterval: time.Second, FailureBackoff: 30 * time.Second,
+		Wait:     func(context.Context, time.Duration) error { return stop },
+		Observer: ObserveFunc(func(value LoopObservation) { observations = append(observations, value) }),
+	})
+	if !errors.Is(err, stop) || len(observations) != 1 {
+		t.Fatalf("run() error = %v, observations = %#v", err, observations)
+	}
+	got := observations[0]
+	if got.Outcome != LoopDependencyFailure || got.Delay != 30*time.Second || !got.ActiveExecutor || got.LostLock {
+		t.Fatalf("observation = %#v", got)
+	}
+}
+
+type failingExecutor struct{ err error }
+
+func (f failingExecutor) WithinTx(context.Context, func(context.Context, database.Tx) error) error {
+	return f.err
 }
 
 type loseAfterCallbackExecutor struct {
@@ -100,4 +134,17 @@ func openFaultDatabase(t *testing.T) *database.Database {
 		t.Fatalf("migrate reliable runtime: %v", err)
 	}
 	return db
+}
+
+func newFaultStore(t *testing.T, db *database.Database) *Store {
+	t.Helper()
+	store, err := NewStore(db, TopicSchema{
+		Topic:       "orders.changed",
+		Payload:     []PayloadFieldSchema{{Name: "revision", Kind: PayloadNumber, Required: true}},
+		BusinessKey: BusinessKeySchema{Prefix: "order", MinParts: 1, MaxParts: 3},
+	})
+	if err != nil {
+		t.Fatalf("NewStore() error = %v", err)
+	}
+	return store
 }

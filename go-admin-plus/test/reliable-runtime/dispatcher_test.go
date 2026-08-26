@@ -20,26 +20,11 @@ func TestDispatcherProductionEntryRequiresConcreteCoordinationLease(t *testing.T
 	}
 }
 
-func TestTransactionalConsumerRejectsNonDMLAndOwnershipBypass(t *testing.T) {
-	t.Parallel()
-	queries := []string{
-		`SELECT 1`,
-		`CREATE TABLE bypass (id INTEGER)`,
-		`INSERT INTO effects (business_key) VALUES (?); DELETE FROM effects`,
-		`INSERT INTO effects (business_key) SELECT pg_advisory_unlock(1)`,
-		`PRAGMA foreign_keys = OFF`,
-	}
-	for _, query := range queries {
-		if _, err := outbox.NewTransactionalConsumer("projector", outbox.Statement{Query: query}); err == nil {
-			t.Fatalf("NewTransactionalConsumer(%q) accepted unsafe mutation", query)
-		}
-	}
-}
-
-func TestDispatcherBacksOffOnDependencyFailure(t *testing.T) {
+func TestDispatcherTreatsConnectionProbeFailureAsImmediateLeaseLoss(t *testing.T) {
 	t.Parallel()
 	db := openReliableSQLite(t)
-	dispatcher, err := outbox.NewDispatcher(outbox.NewStore(db), outbox.DispatcherConfig{
+	store := newReliableStore(t, db)
+	dispatcher, err := outbox.NewDispatcher(store, outbox.DispatcherConfig{
 		Owner: "worker-a", LeaseDuration: time.Minute, RetryDelay: time.Minute, BatchSize: 10,
 	}, nil)
 	if err != nil {
@@ -49,28 +34,24 @@ func TestDispatcherBacksOffOnDependencyFailure(t *testing.T) {
 	if err := db.Close(); err != nil {
 		t.Fatalf("database Close() error = %v", err)
 	}
-	var waits []time.Duration
+	waits := 0
 	var observations []outbox.LoopObservation
-	stop := errors.New("stop loop")
 	err = dispatcher.Run(context.Background(), lease, outbox.LoopOptions{
 		PollInterval: time.Second, FailureBackoff: 30 * time.Second,
 		Now: func() time.Time { return time.Date(2026, 8, 26, 16, 0, 0, 0, time.UTC) },
 		Wait: func(_ context.Context, delay time.Duration) error {
-			waits = append(waits, delay)
-			if len(waits) == 2 {
-				return stop
-			}
+			waits++
 			return nil
 		},
 		Observer: outbox.ObserveFunc(func(observation outbox.LoopObservation) {
 			observations = append(observations, observation)
 		}),
 	})
-	if !errors.Is(err, stop) || len(waits) != 2 || waits[0] != 30*time.Second || waits[1] != 30*time.Second {
+	if !errors.Is(err, coordination.ErrLeaseLost) || waits != 0 {
 		t.Fatalf("Run() = err %v, waits %v", err, waits)
 	}
-	if len(observations) != 2 || observations[0].Outcome != outbox.LoopDependencyFailure || observations[0].Delay != 30*time.Second ||
-		observations[1].Outcome != outbox.LoopDependencyFailure {
+	if len(observations) != 1 || observations[0].Outcome != outbox.LoopLeaseLost ||
+		!observations[0].LostLock || observations[0].ActiveExecutor {
 		t.Fatalf("observations = %#v", observations)
 	}
 }
@@ -78,7 +59,8 @@ func TestDispatcherBacksOffOnDependencyFailure(t *testing.T) {
 func TestDispatcherStopsImmediatelyWhenExecutorLeaseIsLost(t *testing.T) {
 	t.Parallel()
 	db := openReliableSQLite(t)
-	dispatcher, err := outbox.NewDispatcher(outbox.NewStore(db), outbox.DispatcherConfig{
+	store := newReliableStore(t, db)
+	dispatcher, err := outbox.NewDispatcher(store, outbox.DispatcherConfig{
 		Owner: "worker-a", LeaseDuration: time.Minute, RetryDelay: time.Minute, BatchSize: 10,
 	}, nil)
 	if err != nil {
@@ -112,10 +94,8 @@ func TestDispatcherStopsImmediatelyWhenExecutorLeaseIsLost(t *testing.T) {
 func TestDispatcherRetriesConsumerFailureWithoutLeakingDiagnostic(t *testing.T) {
 	t.Parallel()
 	db := openReliableSQLite(t)
-	if _, err := db.SQL().Exec(`CREATE TABLE effects (business_key TEXT PRIMARY KEY, calls INTEGER NOT NULL)`); err != nil {
-		t.Fatalf("create effects: %v", err)
-	}
-	store := outbox.NewStore(db)
+	createEffectsTable(t, db)
+	store := newReliableStore(t, db)
 	now := time.Date(2026, 8, 26, 17, 0, 0, 0, time.UTC)
 	event := reliableEvent("event-dispatch-1", "order:dispatch", now)
 	enqueueEvent(t, db, store, event)
@@ -160,17 +140,20 @@ func TestDispatcherObserverReportsDispatchAndRetryOutcomes(t *testing.T) {
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			db := openReliableSQLite(t)
-			if _, err := db.SQL().Exec(`CREATE TABLE effects (business_key TEXT PRIMARY KEY, calls INTEGER NOT NULL)`); err != nil {
-				t.Fatalf("create effects: %v", err)
-			}
-			store := outbox.NewStore(db)
+			createEffectsTable(t, db)
+			store := newReliableStore(t, db)
 			now := time.Date(2026, 8, 26, 17, 15, 0, 0, time.UTC)
 			event := reliableEvent("event-observer-"+testCase.name, "order:observer:"+testCase.name, now)
 			enqueueEvent(t, db, store, event)
 			consumer := newEffectConsumer(t, testCase.failure)
+			measureCalls := 0
 			dispatcher, err := outbox.NewDispatcher(store, outbox.DispatcherConfig{
 				Owner: "worker-a", LeaseDuration: time.Minute, RetryDelay: time.Minute, BatchSize: 1,
 				Now: func() time.Time { return now.Add(10 * time.Second) },
+				Measure: func() time.Time {
+					measureCalls++
+					return now.Add(time.Duration(measureCalls-1) * 15 * time.Millisecond)
+				},
 			}, map[string]outbox.TransactionalConsumer{event.Topic: consumer})
 			if err != nil {
 				t.Fatalf("NewDispatcher() error = %v", err)
@@ -179,13 +162,16 @@ func TestDispatcherObserverReportsDispatchAndRetryOutcomes(t *testing.T) {
 			stop := errors.New("stop")
 			var observations []outbox.LoopObservation
 			err = dispatcher.Run(context.Background(), lease, outbox.LoopOptions{
-				PollInterval: time.Second, FailureBackoff: time.Minute, Now: func() time.Time { return now },
+				PollInterval: time.Second, FailureBackoff: time.Minute, Now: func() time.Time { return now.Add(20 * time.Second) },
 				Wait: func(context.Context, time.Duration) error { return stop },
 				Observer: outbox.ObserveFunc(func(observation outbox.LoopObservation) {
 					observations = append(observations, observation)
 				}),
 			})
-			if !errors.Is(err, stop) || len(observations) != 1 || observations[0].Outcome != testCase.want {
+			if !errors.Is(err, stop) || len(observations) != 1 || observations[0].Outcome != testCase.want ||
+				!observations[0].ActiveExecutor || observations[0].Attempts != 1 || observations[0].PendingAge != 20*time.Second ||
+				observations[0].ClaimDuration != 15*time.Millisecond ||
+				observations[0].Retries != observations[0].Result.Retried {
 				t.Fatalf("Run() error = %v, observations = %#v", err, observations)
 			}
 		})
@@ -195,10 +181,8 @@ func TestDispatcherObserverReportsDispatchAndRetryOutcomes(t *testing.T) {
 func TestConsumerCompletingAfterClaimExpiryCannotCommit(t *testing.T) {
 	t.Parallel()
 	db := openReliableSQLite(t)
-	if _, err := db.SQL().Exec(`CREATE TABLE effects (business_key TEXT PRIMARY KEY, calls INTEGER NOT NULL)`); err != nil {
-		t.Fatalf("create effects: %v", err)
-	}
-	store := outbox.NewStore(db)
+	createEffectsTable(t, db)
+	store := newReliableStore(t, db)
 	now := time.Date(2026, 8, 26, 17, 25, 0, 0, time.UTC)
 	clockCalls := 0
 	event := reliableEvent("event-slow-consumer-1", "order:slow-consumer", now)

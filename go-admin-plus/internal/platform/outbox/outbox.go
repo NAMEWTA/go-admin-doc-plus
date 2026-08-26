@@ -7,11 +7,9 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"go-admin/internal/platform/database"
@@ -34,7 +32,6 @@ var (
 	ErrConsumerFailed      = errors.New("outbox consumer failed")
 	topicPattern           = regexp.MustCompile(`^[a-z](?:[a-z0-9.-]{0,126}[a-z0-9])?$`)
 	keyPattern             = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,254}$`)
-	mutationPattern        = regexp.MustCompile(`(?i)^(INSERT[[:space:]]+INTO|UPDATE|DELETE[[:space:]]+FROM)[[:space:]]+`)
 )
 
 type Event struct {
@@ -58,80 +55,32 @@ type Record struct {
 }
 
 type Store struct {
-	db *database.Database
+	db      *database.Database
+	schemas map[string]topicValidator
 }
 
-type ClaimOptions struct {
+type claimOptions struct {
 	Owner string
 	Now   time.Time
 	Lease time.Duration
 	Limit int
 }
 
-// EventField selects immutable event material for one declarative database statement.
-type EventField uint8
-
-const (
-	FieldEventID EventField = iota + 1
-	FieldTopic
-	FieldBusinessKey
-	FieldPayload
-	FieldOccurredAt
-)
-
-// Statement is a database-only consumer effect. Its arguments are derived exclusively from the
-// event, so the outbox runtime never invokes application callbacks with external side effects.
-type Statement struct {
-	Query     string
-	Arguments []EventField
-}
-
-// TransactionalConsumer is constructed from database statements and has no callback extension
-// point. All effects therefore run on the same transaction as the durable receipt.
-type TransactionalConsumer struct {
-	name       string
-	statements []Statement
-}
-
-func NewTransactionalConsumer(name string, statements ...Statement) (TransactionalConsumer, error) {
-	if !validOwner(name) || len(statements) == 0 || len(statements) > 32 {
-		return TransactionalConsumer{}, errors.New("outbox transactional consumer is invalid")
+func NewStore(db *database.Database, schemas ...TopicSchema) (*Store, error) {
+	if db == nil {
+		return nil, errors.New("outbox database is required")
 	}
-	owned := make([]Statement, len(statements))
-	for index, statement := range statements {
-		if !validMutationQuery(statement.Query) || len(statement.Arguments) > 32 {
-			return TransactionalConsumer{}, errors.New("outbox transactional consumer is invalid")
-		}
-		arguments := append([]EventField(nil), statement.Arguments...)
-		for _, field := range arguments {
-			if field < FieldEventID || field > FieldOccurredAt {
-				return TransactionalConsumer{}, errors.New("outbox transactional consumer is invalid")
-			}
-		}
-		owned[index] = Statement{Query: statement.Query, Arguments: arguments}
+	compiled, err := compileTopicSchemas(schemas)
+	if err != nil {
+		return nil, err
 	}
-	return TransactionalConsumer{name: name, statements: owned}, nil
+	return &Store{db: db, schemas: compiled}, nil
 }
-
-func validMutationQuery(query string) bool {
-	trimmed := strings.TrimSpace(query)
-	lower := strings.ToLower(trimmed)
-	if !mutationPattern.MatchString(trimmed) || strings.ContainsAny(trimmed, ";\x00") ||
-		strings.Contains(lower, "--") || strings.Contains(lower, "/*") || strings.Contains(lower, "pg_advisory") ||
-		strings.Contains(lower, "pragma") || strings.Contains(lower, "attach ") || strings.Contains(lower, "detach ") {
-		return false
-	}
-	return true
-}
-
-func (c TransactionalConsumer) Name() string { return c.name }
-
-func NewStore(db *database.Database) *Store { return &Store{db: db} }
 
 // Enqueue writes through the caller's transaction so domain state and the event share one commit.
 // A repeated topic/business key is accepted only when the immutable envelope is identical.
 func (s *Store) Enqueue(ctx context.Context, tx database.Tx, event Event) (bool, error) {
-	if s == nil || s.db == nil || tx == nil || validateEvent(event) != nil {
+	if s == nil || s.db == nil || tx == nil || s.validateEvent(event) != nil {
 		return false, ErrInvalidEvent
 	}
 	result, err := tx.ExecContext(ctx, `
@@ -172,7 +121,7 @@ func (s *Store) Enqueue(ctx context.Context, tx database.Tx, event Event) (bool,
 
 // Claim recovers expired leases and exclusively moves a bounded ready batch to claimed.
 // It must run in the executor transaction so a lost PostgreSQL lock connection aborts the claim.
-func (s *Store) Claim(ctx context.Context, tx database.Tx, options ClaimOptions) ([]Record, error) {
+func (s *Store) claim(ctx context.Context, tx database.Tx, options claimOptions) ([]Record, error) {
 	if s == nil || s.db == nil || tx == nil || !validOwner(options.Owner) ||
 		options.Now.IsZero() || options.Now.Location() != time.UTC || options.Lease <= 0 || options.Limit < 1 || options.Limit > 1000 {
 		return nil, ErrInvalidClaim
@@ -253,10 +202,6 @@ func (s *Store) Claim(ctx context.Context, tx database.Tx, options ClaimOptions)
 
 // Deliver applies a consumer's database effect, durable receipt, and delivered state atomically.
 // The returned bool is false when an existing receipt suppressed a replay.
-func (s *Store) Deliver(ctx context.Context, tx database.Tx, record Record, consumer TransactionalConsumer, now time.Time) (bool, error) {
-	return s.deliver(ctx, tx, record, consumer, func() time.Time { return now })
-}
-
 func (s *Store) deliver(
 	ctx context.Context,
 	tx database.Tx,
@@ -265,7 +210,7 @@ func (s *Store) deliver(
 	now func() time.Time,
 ) (bool, error) {
 	settlementAt := now().UTC()
-	if s == nil || s.db == nil || tx == nil || !validOwner(consumer.Name()) || len(consumer.statements) == 0 ||
+	if s == nil || s.db == nil || tx == nil || !validOwner(consumer.Name()) || len(consumer.mutations) == 0 ||
 		record.State != StateClaimed || !validOwner(record.ClaimedBy) || !claimTokenPattern.MatchString(record.claimToken) ||
 		settlementAt.IsZero() {
 		return false, ErrInvalidClaim
@@ -313,33 +258,7 @@ func (s *Store) deliver(
 	return true, nil
 }
 
-func (c TransactionalConsumer) apply(ctx context.Context, tx database.Tx, event Event) error {
-	for _, statement := range c.statements {
-		arguments := make([]any, len(statement.Arguments))
-		for index, field := range statement.Arguments {
-			switch field {
-			case FieldEventID:
-				arguments[index] = event.ID
-			case FieldTopic:
-				arguments[index] = event.Topic
-			case FieldBusinessKey:
-				arguments[index] = event.BusinessKey
-			case FieldPayload:
-				arguments[index] = bytes.Clone(event.Payload)
-			case FieldOccurredAt:
-				arguments[index] = event.OccurredAt
-			default:
-				return ErrConsumerFailed
-			}
-		}
-		if _, err := tx.ExecContext(ctx, statement.Query, arguments...); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *Store) Retry(ctx context.Context, tx database.Tx, record Record, now, availableAt time.Time, errorCode string) error {
+func (s *Store) retry(ctx context.Context, tx database.Tx, record Record, now, availableAt time.Time, errorCode string) error {
 	if s == nil || s.db == nil || tx == nil || record.State != StateClaimed || !validOwner(record.ClaimedBy) ||
 		!claimTokenPattern.MatchString(record.claimToken) || now.IsZero() || now.Location() != time.UTC ||
 		availableAt.Before(now) || availableAt.Location() != time.UTC ||
@@ -478,8 +397,8 @@ func scanRecord(row rowScanner) (Record, error) {
 	return record, nil
 }
 
-func validateEvent(event Event) error {
-	if !keyPattern.MatchString(event.ID) || !topicPattern.MatchString(event.Topic) || !keyPattern.MatchString(event.BusinessKey) {
+func (s *Store) validateEvent(event Event) error {
+	if !keyPattern.MatchString(event.ID) || !topicPattern.MatchString(event.Topic) {
 		return ErrInvalidEvent
 	}
 	if event.OccurredAt.IsZero() || event.OccurredAt.Location() != time.UTC {
@@ -488,50 +407,12 @@ func validateEvent(event Event) error {
 	if event.OccurredAt.Nanosecond()%1000 != 0 {
 		return ErrInvalidEvent
 	}
-	if len(event.Payload) == 0 || len(event.Payload) > 1<<20 || !json.Valid(event.Payload) {
+	if len(event.Payload) == 0 || len(event.Payload) > 1<<20 {
 		return ErrInvalidEvent
 	}
-	var payload any
-	if json.Unmarshal(event.Payload, &payload) != nil || containsSensitiveField(payload) {
+	validator, exists := s.schemas[event.Topic]
+	if !exists || !validator.validate(event.Payload, event.BusinessKey) {
 		return ErrInvalidEvent
 	}
 	return nil
-}
-
-var sensitiveFields = map[string]struct{}{
-	"authorization": {}, "cookie": {}, "credential": {}, "credentials": {},
-	"password": {}, "passwordhash": {}, "rawsession": {}, "secret": {}, "session": {},
-	"sessionid": {}, "setcookie": {}, "token": {}, "accesstoken": {}, "refreshtoken": {},
-	"clientsecret": {},
-}
-
-func containsSensitiveField(value any) bool {
-	switch typed := value.(type) {
-	case map[string]any:
-		for key, child := range typed {
-			normalized := strings.NewReplacer("_", "", "-", "", ".", "").Replace(strings.ToLower(key))
-			if isSensitiveField(normalized) || containsSensitiveField(child) {
-				return true
-			}
-		}
-	case []any:
-		for _, child := range typed {
-			if containsSensitiveField(child) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func isSensitiveField(normalized string) bool {
-	if _, sensitive := sensitiveFields[normalized]; sensitive {
-		return true
-	}
-	for _, fragment := range []string{"password", "secret", "session", "token", "credential"} {
-		if strings.Contains(normalized, fragment) {
-			return true
-		}
-	}
-	return false
 }

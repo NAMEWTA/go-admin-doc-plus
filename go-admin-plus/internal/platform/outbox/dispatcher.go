@@ -19,13 +19,17 @@ type DispatcherConfig struct {
 	RetryDelay    time.Duration
 	BatchSize     int
 	Now           func() time.Time
+	Measure       func() time.Time
 }
 
 type DispatchResult struct {
-	Claimed   int
-	Delivered int
-	Replayed  int
-	Retried   int
+	Claimed       int
+	Delivered     int
+	Replayed      int
+	Retried       int
+	MaxAttempts   int
+	PendingAge    time.Duration
+	ClaimDuration time.Duration
 }
 
 type Dispatcher struct {
@@ -33,6 +37,7 @@ type Dispatcher struct {
 	config    DispatcherConfig
 	consumers map[string]TransactionalConsumer
 	now       func() time.Time
+	measure   func() time.Time
 }
 
 func NewDispatcher(store *Store, config DispatcherConfig, consumers map[string]TransactionalConsumer) (*Dispatcher, error) {
@@ -42,7 +47,7 @@ func NewDispatcher(store *Store, config DispatcherConfig, consumers map[string]T
 	}
 	owned := make(map[string]TransactionalConsumer, len(consumers))
 	for topic, consumer := range consumers {
-		if !topicPattern.MatchString(topic) || !validOwner(consumer.Name()) || len(consumer.statements) == 0 {
+		if !topicPattern.MatchString(topic) || !validOwner(consumer.Name()) || len(consumer.mutations) == 0 {
 			return nil, errors.New("outbox consumer registration is invalid")
 		}
 		owned[topic] = consumer
@@ -51,13 +56,23 @@ func NewDispatcher(store *Store, config DispatcherConfig, consumers map[string]T
 	if now == nil {
 		now = func() time.Time { return time.Now().UTC() }
 	}
-	return &Dispatcher{store: store, config: config, consumers: owned, now: now}, nil
+	measure := config.Measure
+	if measure == nil {
+		measure = time.Now
+	}
+	return &Dispatcher{store: store, config: config, consumers: owned, now: now, measure: measure}, nil
 }
 
 // RunOnce claims and settles one bounded batch while the supplied executor lease is held.
 func (d *Dispatcher) RunOnce(ctx context.Context, lease *coordination.Lease, now time.Time) (DispatchResult, error) {
 	if lease == nil {
 		return DispatchResult{}, errors.New("outbox coordination lease is required")
+	}
+	if d == nil || d.store == nil {
+		return DispatchResult{}, errors.New("outbox dispatcher is invalid")
+	}
+	if err := lease.Authorize(d.store.db, d.config.Owner); err != nil {
+		return DispatchResult{}, err
 	}
 	return d.runOnce(ctx, lease, now)
 }
@@ -67,9 +82,10 @@ func (d *Dispatcher) runOnce(ctx context.Context, executor transactionExecutor, 
 		return DispatchResult{}, errors.New("outbox dispatch input is invalid")
 	}
 	var records []Record
+	claimStarted := d.measure()
 	err := executor.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		var err error
-		records, err = d.store.Claim(ctx, tx, ClaimOptions{
+		records, err = d.store.claim(ctx, tx, claimOptions{
 			Owner: d.config.Owner, Now: now, Lease: d.config.LeaseDuration, Limit: d.config.BatchSize,
 		})
 		return err
@@ -77,8 +93,18 @@ func (d *Dispatcher) runOnce(ctx context.Context, executor transactionExecutor, 
 	if err != nil {
 		return DispatchResult{}, err
 	}
-	result := DispatchResult{Claimed: len(records)}
+	claimDuration := d.measure().Sub(claimStarted)
+	if claimDuration < 0 {
+		claimDuration = 0
+	}
+	result := DispatchResult{Claimed: len(records), ClaimDuration: claimDuration}
 	for _, record := range records {
+		if record.Attempts > result.MaxAttempts {
+			result.MaxAttempts = record.Attempts
+		}
+		if age := now.Sub(record.Event.OccurredAt); age > result.PendingAge {
+			result.PendingAge = age
+		}
 		consumer, ok := d.consumers[record.Event.Topic]
 		if !ok {
 			if err := d.retry(ctx, executor, record, "consumer_missing"); err != nil {
@@ -118,7 +144,7 @@ func (d *Dispatcher) runOnce(ctx context.Context, executor transactionExecutor, 
 func (d *Dispatcher) retry(ctx context.Context, executor transactionExecutor, record Record, code string) error {
 	failedAt := d.now().UTC()
 	return executor.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		return d.store.Retry(ctx, tx, record, failedAt, failedAt.Add(d.config.RetryDelay), code)
+		return d.store.retry(ctx, tx, record, failedAt, failedAt.Add(d.config.RetryDelay), code)
 	})
 }
 
@@ -135,9 +161,15 @@ const (
 // LoopObservation is deliberately payload- and error-free so operational reporting cannot expose
 // database diagnostics or event material.
 type LoopObservation struct {
-	Outcome LoopOutcome
-	Result  DispatchResult
-	Delay   time.Duration
+	Outcome        LoopOutcome
+	Result         DispatchResult
+	Delay          time.Duration
+	PendingAge     time.Duration
+	ClaimDuration  time.Duration
+	Attempts       int
+	Retries        int
+	ActiveExecutor bool
+	LostLock       bool
 }
 
 type Observer interface {
@@ -162,6 +194,15 @@ func (d *Dispatcher) Run(ctx context.Context, lease *coordination.Lease, options
 	if lease == nil {
 		return errors.New("outbox coordination lease is required")
 	}
+	if d == nil || d.store == nil {
+		return errors.New("outbox dispatcher is invalid")
+	}
+	if err := lease.Authorize(d.store.db, d.config.Owner); err != nil {
+		if errors.Is(err, coordination.ErrLeaseLost) || errors.Is(err, coordination.ErrNotLeader) {
+			observe(options.Observer, observation(LoopLeaseLost, DispatchResult{}, 0, false, true))
+		}
+		return err
+	}
 	return d.run(ctx, lease, options)
 }
 
@@ -180,7 +221,7 @@ func (d *Dispatcher) run(ctx context.Context, executor transactionExecutor, opti
 	for {
 		result, err := d.runOnce(ctx, executor, now())
 		if errors.Is(err, coordination.ErrLeaseLost) || errors.Is(err, coordination.ErrNotLeader) {
-			observe(options.Observer, LoopObservation{Outcome: LoopLeaseLost, Result: result})
+			observe(options.Observer, observation(LoopLeaseLost, result, 0, false, true))
 			return err
 		}
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -198,10 +239,19 @@ func (d *Dispatcher) run(ctx context.Context, executor transactionExecutor, opti
 			delay = options.FailureBackoff
 			outcome = LoopDependencyFailure
 		}
-		observe(options.Observer, LoopObservation{Outcome: outcome, Result: result, Delay: delay})
+		observe(options.Observer, observation(outcome, result, delay, true, false))
 		if err := wait(ctx, delay); err != nil {
 			return err
 		}
+	}
+}
+
+func observation(outcome LoopOutcome, result DispatchResult, delay time.Duration, active, lost bool) LoopObservation {
+	return LoopObservation{
+		Outcome: outcome, Result: result, Delay: delay,
+		PendingAge: result.PendingAge, ClaimDuration: result.ClaimDuration,
+		Attempts: result.MaxAttempts, Retries: result.Retried,
+		ActiveExecutor: active, LostLock: lost,
 	}
 }
 

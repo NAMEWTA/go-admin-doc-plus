@@ -21,7 +21,7 @@ func TestDomainStateAndIntegrationEventCommitAtomically(t *testing.T) {
 	if _, err := db.SQL().Exec(`CREATE TABLE command_state (business_key TEXT PRIMARY KEY, value TEXT NOT NULL)`); err != nil {
 		t.Fatalf("create command state: %v", err)
 	}
-	store := outbox.NewStore(db)
+	store := newReliableStore(t, db)
 	event := outbox.Event{
 		ID:          "event-atomic-1",
 		Topic:       "settings.changed",

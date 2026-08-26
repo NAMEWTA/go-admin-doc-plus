@@ -21,6 +21,7 @@ var (
 	ErrInvalidConfig = errors.New("executor coordination config is invalid")
 	ErrNotLeader     = errors.New("executor coordination lease is held elsewhere")
 	ErrLeaseLost     = errors.New("executor coordination lease was lost")
+	ErrLeaseMismatch = errors.New("executor coordination lease does not own this runtime")
 	ownerPattern     = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:/-]{0,254}$`)
 	sqliteOwners     = struct {
 		sync.Mutex
@@ -39,6 +40,7 @@ type Lease struct {
 	postgres    bool
 	closed      bool
 	advisoryKey int64
+	owner       string
 }
 
 func Acquire(ctx context.Context, db *database.Database, config Config) (*Lease, error) {
@@ -53,7 +55,7 @@ func Acquire(ctx context.Context, db *database.Database, config Config) (*Lease,
 			return nil, ErrNotLeader
 		}
 		sqliteOwners.active[db] = struct{}{}
-		return &Lease{db: db}, nil
+		return &Lease{db: db, owner: config.Owner}, nil
 	case database.DialectPostgres:
 		conn, err := db.Bun().Conn(ctx)
 		if err != nil {
@@ -68,10 +70,26 @@ func Acquire(ctx context.Context, db *database.Database, config Config) (*Lease,
 			_ = conn.Close()
 			return nil, ErrNotLeader
 		}
-		return &Lease{db: db, conn: conn, postgres: true, advisoryKey: workerAdvisoryKey}, nil
+		return &Lease{db: db, conn: conn, postgres: true, advisoryKey: workerAdvisoryKey, owner: config.Owner}, nil
 	default:
 		return nil, ErrInvalidConfig
 	}
+}
+
+// Authorize binds an execution entry to the exact database and owner that acquired this lease.
+func (l *Lease) Authorize(db *database.Database, owner string) error {
+	if l == nil || db == nil || !ownerPattern.MatchString(owner) {
+		return ErrLeaseMismatch
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.closed {
+		return ErrLeaseLost
+	}
+	if l.db != db || l.owner != owner {
+		return ErrLeaseMismatch
+	}
+	return nil
 }
 
 // WithinTx ensures PostgreSQL work uses the same physical connection that owns the advisory lock.
@@ -85,11 +103,28 @@ func (l *Lease) WithinTx(ctx context.Context, fn func(context.Context, database.
 		return ErrLeaseLost
 	}
 	if !l.postgres {
-		return l.db.WithinTx(ctx, fn)
+		if err := l.db.SQL().PingContext(ctx); err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			l.loseSQLite()
+			return ErrLeaseLost
+		}
+		err := l.db.WithinTx(ctx, fn)
+		if err != nil {
+			if probeErr := l.db.SQL().PingContext(ctx); probeErr != nil && ctx.Err() == nil {
+				l.loseSQLite()
+				return ErrLeaseLost
+			}
+		}
+		return err
 	}
 	if _, err := l.conn.ExecContext(ctx, `SELECT 1`); err != nil {
 		l.lose()
-		return coordinationError(ctx, "executor lease check failed", err)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		return ErrLeaseLost
 	}
 	err := l.conn.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		return fn(ctx, tx)
@@ -135,6 +170,13 @@ func (l *Lease) Close(ctx context.Context) error {
 func (l *Lease) lose() {
 	l.closed = true
 	_ = l.conn.Close()
+}
+
+func (l *Lease) loseSQLite() {
+	l.closed = true
+	sqliteOwners.Lock()
+	delete(sqliteOwners.active, l.db)
+	sqliteOwners.Unlock()
 }
 
 func coordinationError(ctx context.Context, stage string, err error) error {
