@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T19:21:00+08:00",
+  "updated_at": "2026-08-26T19:25:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -161,6 +161,92 @@
       },
       "status": "integrated",
       "updated_at": "2026-08-26T19:21:00+08:00"
+    },
+    {
+      "ticket_id": "T-03",
+      "owner": "codex-t03-runtime",
+      "implementation_owner": "codex-t03-runtime",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "27a186cbda7e77c403b3c64074260a10e924ee92",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-03",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-03",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G2 requires Go unit/race/static checks plus profile and observability regression on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-03 must prove a real process does not listen on invalid configuration and exposes correct lifecycle status transitions",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-03.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-26T19:25:00+08:00"
+    },
+    {
+      "ticket_id": "T-05",
+      "owner": "codex-t05-frontend",
+      "implementation_owner": "codex-t05-frontend",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "27a186cbda7e77c403b3c64074260a10e924ee92",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-05",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-05",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G2 requires workspace boundaries, unit/type/lint/build checks and shell regressions on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-05 must prove shell navigation states and duplicate interaction protection in a real browser",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-26T19:25:00+08:00"
     }
   ]
 }

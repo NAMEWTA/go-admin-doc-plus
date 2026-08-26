@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-05
 title: pnpm Workspace、App Shell 与交互基座
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 新前端工作区、共享核心路径和双 App 组合边界影响全部前端切片
 ready: true
 risk: high
 blocked_by: [T-02]
 contract_ids: [AC-035, AC-036]
-owner: unassigned
+owner: codex-t05-frontend
 expected_changes: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/.npmrc</Path>", "<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/package.json</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/platform/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/domains/*/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/*/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/**</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>", "<Path>go-admin-ui-plus/**</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>"]

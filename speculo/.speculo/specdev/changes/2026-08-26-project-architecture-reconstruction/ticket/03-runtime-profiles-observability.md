@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-03
 title: 应用内核、类型化 Profile 与可观测启动链
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 启动生命周期、配置 secret 边界和运行状态端点影响全部宿主
 ready: true
 risk: high
 blocked_by: [T-02]
 contract_ids: [AC-005, AC-026, AC-027]
-owner: unassigned
+owner: codex-t03-runtime
 expected_changes: ["<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>", "<Path>go-admin-plus/internal/platform/observability/**</Path>", "<Path>go-admin-plus/config/schema/**</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>", "<Path>go-admin-plus/internal/platform/observability/**</Path>", "<Path>go-admin-plus/config/schema/**</Path>", "<Path>go-admin-plus/cmd/config-check/**</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>"]
