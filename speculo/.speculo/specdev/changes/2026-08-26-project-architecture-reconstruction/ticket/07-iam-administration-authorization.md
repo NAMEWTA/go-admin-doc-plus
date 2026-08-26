@@ -12,11 +12,11 @@ risk: critical
 blocked_by: [T-06]
 contract_ids: [AC-011, AC-013, AC-035, AC-036]
 owner: codex-t07-iam
-expected_changes: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0020-administration-*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/iam/authorization/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/iam/administration/**</Path>"]
-read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-07 under T07-D01; before T-11"]
+expected_changes: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/test/iam/session/session_test.go</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0020-administration-*</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/test/iam/session/session_test.go</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/iam/authorization/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/iam/administration/**</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/session/http.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/transport/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
+shared_paths: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/test/iam/session/session_test.go</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-07 under T07-D01; before T-11", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path> => T-07 under T07-D02", "<Path>go-admin-plus/test/iam/session/session_test.go</Path> => T-07 under T07-D02"]
 ---
 
 # Ticket T-07: IAM 管理与 Permission Code 授权闭环
@@ -83,8 +83,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-07 under
 - **预计修改点：** IAM administration/authorization、对应前端子域，以及经 `T07-D01` 批准的两个 IAM package manifest。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** T-06 Session、T-05 Shell/UI。
-- **共享路径：** `T07-D01` 令 T-07 在 T-11 之前串行拥有 workspace lock；其他模块通过消费者 Port 和稳定 Permission Code 消费。
+- **共享路径：** `T07-D01` 令 T-07 在 T-11 之前串行拥有 workspace lock；`T07-D02` 令 T-07 精确拥有 T-06 Session request seam 及其既有测试文件；其他模块通过消费者 Port 和稳定 Permission Code 消费。
 - **批准偏差：** `T07-D01` 仅允许两个 IAM package manifest 增加 `./administration` 公共 export、聚合 test/typecheck，并为 Web IAM 声明 `@go-admin/ui` 直接依赖；lockfile 只记录对应 importer，禁止新增外部版本、修改产品 kernel 或扩大其他依赖。
+- **批准偏差：** `T07-D02` 仅允许在 Session service 增加公共 `AuthorizeRequest` 接缝并在既有 Session 测试中证明 token、CSRF、touch、rotation 与失败不变性；不改 Session schema、Cookie/policy、HTTP transport 或 secret 表达。
 - **保留或不动：** Organization 由 T-09 实现。
 
 ## 8. 验证矩阵
