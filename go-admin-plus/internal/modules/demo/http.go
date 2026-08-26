@@ -31,6 +31,7 @@ type RequestIdentity struct {
 }
 
 type RequestAuthenticator interface {
+	CookieName() string
 	AuthorizeRequest(context.Context, string, string, bool) (RequestIdentity, error)
 }
 
@@ -41,8 +42,8 @@ type requestContext struct {
 }
 type HTTPServer struct{ service *Service }
 
-func NewHTTPHandler(service *Service, authenticator RequestAuthenticator, cookieName string, traceID contracts.TraceIDProvider) (http.Handler, error) {
-	if service == nil || authenticator == nil || cookieName == "" || traceID == nil {
+func NewHTTPHandler(service *Service, authenticator RequestAuthenticator, traceID contracts.TraceIDProvider) (http.Handler, error) {
+	if service == nil || authenticator == nil || authenticator.CookieName() == "" || traceID == nil {
 		return nil, errors.New("demo HTTP dependencies are required")
 	}
 	server := &HTTPServer{service: service}
@@ -63,7 +64,7 @@ func NewHTTPHandler(service *Service, authenticator RequestAuthenticator, cookie
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		cookie, _ := r.Cookie(cookieName)
+		cookie, _ := r.Cookie(authenticator.CookieName())
 		token := ""
 		if cookie != nil {
 			token = cookie.Value

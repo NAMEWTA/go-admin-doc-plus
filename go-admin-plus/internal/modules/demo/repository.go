@@ -28,6 +28,9 @@ func (r repository) create(ctx context.Context, tx database.Tx, record productRe
 }
 
 func (r repository) get(ctx context.Context, tx database.Tx, id, actorID string, scope Scope) (productRecord, error) {
+	if !validScope(scope) {
+		return productRecord{}, ErrDenied
+	}
 	query := `SELECT id, owner_account_id, sku, name, description, price_cents, status, revision, created_at, updated_at FROM demo_products WHERE id = ?`
 	args := []any{id}
 	if scope == ScopeSelf {
@@ -41,6 +44,9 @@ func (r repository) get(ctx context.Context, tx database.Tx, id, actorID string,
 }
 
 func (r repository) list(ctx context.Context, tx database.Tx, actorID string, scope Scope, query ListQuery) (Page, error) {
+	if !validScope(scope) {
+		return Page{}, ErrDenied
+	}
 	clauses, args := []string{"1 = 1"}, []any{}
 	if scope == ScopeSelf {
 		clauses, args = append(clauses, "owner_account_id = ?"), append(args, actorID)
@@ -77,6 +83,9 @@ func (r repository) list(ctx context.Context, tx database.Tx, actorID string, sc
 }
 
 func (r repository) update(ctx context.Context, tx database.Tx, record productRecord, expectedRevision int64, actorID string, scope Scope) error {
+	if !validScope(scope) {
+		return ErrDenied
+	}
 	query := `UPDATE demo_products SET sku = ?, name = ?, description = ?, price_cents = ?, status = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?`
 	args := []any{record.SKU, record.Name, record.Description, record.PriceCents, record.Status, record.UpdatedAt, record.ID, expectedRevision}
 	if scope == ScopeSelf {
@@ -109,6 +118,9 @@ func (r repository) update(ctx context.Context, tx database.Tx, record productRe
 }
 
 func (r repository) remove(ctx context.Context, tx database.Tx, target DeleteTarget, actorID string, scope Scope) error {
+	if !validScope(scope) {
+		return ErrDenied
+	}
 	query := `DELETE FROM demo_products WHERE id = ? AND revision = ?`
 	args := []any{target.ID, target.Revision}
 	if scope == ScopeSelf {
@@ -126,18 +138,21 @@ func (r repository) remove(ctx context.Context, tx database.Tx, target DeleteTar
 		return nil
 	}
 	var revision int64
-	err = tx.QueryRowContext(ctx, `SELECT revision FROM demo_products WHERE id = ?`, target.ID).Scan(&revision)
+	var owner string
+	err = tx.QueryRowContext(ctx, `SELECT revision, owner_account_id FROM demo_products WHERE id = ?`, target.ID).Scan(&revision, &owner)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
 		return err
 	}
-	if scope == ScopeSelf {
+	if scope == ScopeSelf && owner != actorID {
 		return ErrDenied
 	}
 	return ErrConflict
 }
+
+func validScope(scope Scope) bool { return scope == ScopeSelf || scope == ScopeAll }
 
 func mapProduct(value productRecord) Product {
 	return Product{ID: value.ID, SKU: value.SKU, Name: value.Name, Description: value.Description, PriceCents: value.PriceCents,

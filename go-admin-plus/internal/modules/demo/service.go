@@ -46,6 +46,9 @@ func (s *Service) List(ctx context.Context, actorID string, query ListQuery) (Pa
 		if err != nil {
 			return err
 		}
+		if !validScope(scope) {
+			return ErrDenied
+		}
 		result, err = s.repo.list(ctx, tx, actorID, scope, query)
 		return err
 	})
@@ -62,6 +65,9 @@ func (s *Service) Get(ctx context.Context, actorID, id string) (Product, error) 
 		if err != nil {
 			return err
 		}
+		if !validScope(scope) {
+			return ErrDenied
+		}
 		record, err = s.repo.get(ctx, tx, id, actorID, scope)
 		return err
 	})
@@ -77,8 +83,10 @@ func (s *Service) Create(ctx context.Context, actorID string, input ProductInput
 	record := productRecord{ID: uuid.NewString(), OwnerAccountID: actorID, SKU: input.SKU, Name: input.Name,
 		Description: input.Description, PriceCents: input.PriceCents, Status: input.Status, Revision: 1, CreatedAt: now, UpdatedAt: now}
 	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		if _, err := s.auth.RequireInTx(ctx, tx, actorID, PermissionProductsWrite); err != nil {
+		if scope, err := s.auth.RequireInTx(ctx, tx, actorID, PermissionProductsWrite); err != nil {
 			return err
+		} else if !validScope(scope) {
+			return ErrDenied
 		}
 		return s.repo.create(ctx, tx, record)
 	})
@@ -95,6 +103,9 @@ func (s *Service) Update(ctx context.Context, actorID, id string, revision int64
 		scope, err := s.auth.RequireInTx(ctx, tx, actorID, PermissionProductsWrite)
 		if err != nil {
 			return err
+		}
+		if !validScope(scope) {
+			return ErrDenied
 		}
 		result = productRecord{ID: id, SKU: input.SKU, Name: input.Name, Description: input.Description, PriceCents: input.PriceCents, Status: input.Status, UpdatedAt: s.now().UTC()}
 		if err := s.repo.update(ctx, tx, result, revision, actorID, scope); err != nil {
@@ -124,6 +135,9 @@ func (s *Service) Delete(ctx context.Context, actorID string, targets []DeleteTa
 		scope, err := s.auth.RequireInTx(ctx, tx, actorID, PermissionProductsDelete)
 		if err != nil {
 			return err
+		}
+		if !validScope(scope) {
+			return ErrDenied
 		}
 		for _, target := range targets {
 			if err := s.repo.remove(ctx, tx, target, actorID, scope); err != nil {

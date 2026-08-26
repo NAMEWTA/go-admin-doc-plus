@@ -73,16 +73,23 @@ export interface components {
             revision: number;
         };
         Problem: {
-            category: components["schemas"]["ProblemCategory"];
+            /** @enum {string} */
+            category: "validation" | "authentication" | "authorization" | "not_found" | "conflict" | "internal";
             code: string;
+            /** @description Safe client-facing context without infrastructure details. */
+            detail?: string;
+            /** Format: uri-reference */
+            instance?: string;
             status: number;
             title: string;
             traceId: string;
-            /** Format: uri */
+            /**
+             * Format: uri-reference
+             * @description Stable problem type identifier.
+             */
             type: string;
+            violations?: components["schemas"]["ValidationViolation"][];
         };
-        /** @enum {string} */
-        ProblemCategory: "authentication" | "authorization" | "validation" | "not-found" | "conflict" | "internal";
         Product: {
             /** Format: date-time */
             createdAt: string;
@@ -127,6 +134,11 @@ export interface components {
             revision: number;
             sku: string;
             status: components["schemas"]["ProductStatus"];
+        };
+        ValidationViolation: {
+            field: string;
+            message?: string;
+            rule: string;
         };
     };
     responses: {

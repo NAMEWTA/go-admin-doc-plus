@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DemoRequestError, type DemoClient, type Product, type ProductInput, type ProductQuery } from '@go-admin/domain-demo'
+import { DemoRequestError, demoPermissions, type DemoClient, type Product, type ProductInput, type ProductQuery } from '@go-admin/domain-demo'
 import { createDemoController } from './demo-controller'
 
 const product = (id = '00000000-0000-4000-8000-000000000001', revision = 1): Product => ({ id, sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 10, status: 'active', revision, createdAt: '2026-08-27T00:00:00Z', updatedAt: '2026-08-27T00:00:00Z' })
 const input: ProductInput = { sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 10, status: 'active' }
+const allowAll = { can: () => true }
 
 const fixture = () => {
   let rows = [product()]
@@ -14,7 +15,7 @@ const fixture = () => {
     update: vi.fn(async (_id, value) => { const updated = { ...product(undefined, value.revision + 1), ...value }; rows = [updated]; return updated }),
     delete: vi.fn(async () => { rows = [] }),
   }
-  return { client, controller: createDemoController(client, vi.fn(async () => true)) }
+  return { client, controller: createDemoController(client, vi.fn(async () => true), allowAll) }
 }
 
 describe('demo controller', () => {
@@ -40,18 +41,48 @@ describe('demo controller', () => {
     expect(await controller.repairProjection()).toBe('completed')
     expect(client.create).toHaveBeenCalledTimes(1)
     expect(controller.pendingRepair).toBe(false)
+    expect(controller.takeCompletion()).toBe('save')
+    expect(controller.takeCompletion()).toBeNull()
   })
 
   it('confirms removal once and never repeats a successful delete while repairing', async () => {
     const { client } = fixture()
     const confirm = vi.fn(async () => true)
-    const managed = createDemoController(client, confirm)
+    const managed = createDemoController(client, confirm, allowAll)
     vi.mocked(client.list).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockResolvedValue({ rows: [], total: 0 })
     expect(await managed.remove([product()])).toBe('refresh-failed')
     expect(await managed.remove([product('00000000-0000-4000-8000-000000000002')])).toBe('refresh-failed')
     expect(await managed.repairProjection()).toBe('completed')
     expect(client.delete).toHaveBeenCalledTimes(1)
     expect(confirm).toHaveBeenCalledTimes(1)
+  })
+
+  it('repairs an edited projection without repeating update and exposes one completion', async () => {
+    const { client, controller } = fixture()
+    vi.mocked(client.list).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockResolvedValue({ rows: [product(undefined, 2)], total: 1 })
+    expect(await controller.save({ ...input, id: product().id, revision: 1 })).toBe('refresh-failed')
+    expect(await controller.repairProjection()).toBe('refresh-failed')
+    expect(controller.takeCompletion()).toBeNull()
+    expect(await controller.repairProjection()).toBe('completed')
+    expect(client.update).toHaveBeenCalledTimes(1)
+    expect(controller.takeCompletion()).toBe('save')
+    expect(controller.takeCompletion()).toBeNull()
+  })
+
+  it('fails closed when the host capability port withdraws permissions', async () => {
+    const { client } = fixture()
+    const granted = new Set<string>([demoPermissions.read, demoPermissions.write, demoPermissions.delete])
+    const controller = createDemoController(client, vi.fn(async () => true), { can: code => granted.has(code) })
+    await controller.list.refresh()
+    granted.delete(demoPermissions.write)
+    expect(await controller.save(input)).toBe('failed')
+    granted.delete(demoPermissions.delete)
+    expect(await controller.remove([product()])).toBe('failed')
+    granted.delete(demoPermissions.read)
+    await expect(controller.list.refresh()).rejects.toMatchObject({ category: 'forbidden' })
+    expect(client.create).not.toHaveBeenCalled()
+    expect(client.delete).not.toHaveBeenCalled()
+    expect(controller.failure()).toBe('forbidden')
   })
 
   it('classifies list failures and returns stable state', async () => {

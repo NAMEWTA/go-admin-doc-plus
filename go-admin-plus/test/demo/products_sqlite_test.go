@@ -109,6 +109,55 @@ func TestDeniedMutationHasNoStateChange(t *testing.T) {
 	}
 }
 
+func TestSQLiteDialectCRUDContract(t *testing.T) {
+	db := openDatabase(t, filepath.Join(t.TempDir(), "contract.sqlite3"))
+	runDialectCRUDContract(t, db)
+}
+
+func runDialectCRUDContract(t *testing.T, db *database.Database) {
+	t.Helper()
+	all := newService(t, db, demo.ScopeAll, nil)
+	first, err := all.Create(context.Background(), "contract-owner-a", demo.ProductInput{SKU: "CONTRACT-01", Name: "Contract product one", PriceCents: 10, Status: "active"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := all.Create(context.Background(), "contract-owner-b", demo.ProductInput{SKU: "CONTRACT-02", Name: "Contract product two", PriceCents: 20, Status: "active"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := all.Create(context.Background(), "contract-owner-a", demo.ProductInput{SKU: "contract-01", Name: "Duplicate product", PriceCents: 1, Status: "active"}); !errors.Is(err, demo.ErrConflict) {
+		t.Fatalf("unique conflict = %v", err)
+	}
+	if _, err := all.Update(context.Background(), "contract-owner-a", first.ID, first.Revision+1, demo.ProductInput{SKU: first.SKU, Name: "Stale product", PriceCents: 11, Status: "active"}); !errors.Is(err, demo.ErrConflict) {
+		t.Fatalf("stale update = %v", err)
+	}
+	self := newService(t, db, demo.ScopeSelf, nil)
+	if err := self.Delete(context.Background(), "contract-owner-a", []demo.DeleteTarget{{ID: second.ID, Revision: second.Revision}}); !errors.Is(err, demo.ErrDenied) {
+		t.Fatalf("foreign self delete = %v", err)
+	}
+	if err := self.Delete(context.Background(), "contract-owner-a", []demo.DeleteTarget{{ID: first.ID, Revision: first.Revision + 1}}); !errors.Is(err, demo.ErrConflict) {
+		t.Fatalf("owned stale self delete = %v", err)
+	}
+	if err := all.Delete(context.Background(), "contract-owner-a", []demo.DeleteTarget{{ID: first.ID, Revision: first.Revision}, {ID: second.ID, Revision: second.Revision + 1}}); !errors.Is(err, demo.ErrConflict) {
+		t.Fatalf("batch conflict = %v", err)
+	}
+	if _, err := all.Get(context.Background(), "contract-owner-a", first.ID); err != nil {
+		t.Fatalf("batch delete was not atomic: %v", err)
+	}
+}
+
+func TestUnknownScopeFailsClosedBeforeMutation(t *testing.T) {
+	db := openDatabase(t, filepath.Join(t.TempDir(), "unknown-scope.sqlite3"))
+	service := newService(t, db, demo.Scope("unexpected"), nil)
+	if _, err := service.Create(context.Background(), "contract-owner", demo.ProductInput{SKU: "UNKNOWN-01", Name: "Unknown scope", Status: "active"}); !errors.Is(err, demo.ErrDenied) {
+		t.Fatalf("unknown scope create = %v", err)
+	}
+	var count int
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT COUNT(*) FROM demo_products`).Scan(&count); err != nil || count != 0 {
+		t.Fatalf("unknown scope mutated state count=%d err=%v", count, err)
+	}
+}
+
 func openDatabase(t *testing.T, path string) *database.Database {
 	t.Helper()
 	db, err := database.NewProcess().Open(context.Background(), database.Config{Profile: config.ProfileServerSQLite, SQLitePath: path})

@@ -318,12 +318,14 @@
       "SessionCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "__Host-go_admin_session"
+        "name": "__Host-go-admin-session",
+        "description": "Opaque server-side session identifier. JavaScript cannot read the production cookie."
       },
       "CsrfToken": {
         "type": "apiKey",
         "in": "header",
-        "name": "X-CSRF-Token"
+        "name": "X-CSRF-Token",
+        "description": "Per-session anti-forgery token required for state-changing Web requests."
       }
     },
     "parameters": {
@@ -342,8 +344,8 @@
         "required": true,
         "schema": {
           "type": "string",
-          "minLength": 32,
-          "maxLength": 128
+          "minLength": 43,
+          "maxLength": 43
         }
       },
       "SetCookie": {
@@ -566,17 +568,6 @@
           }
         }
       },
-      "ProblemCategory": {
-        "type": "string",
-        "enum": [
-          "authentication",
-          "authorization",
-          "validation",
-          "not-found",
-          "conflict",
-          "internal"
-        ]
-      },
       "Problem": {
         "type": "object",
         "additionalProperties": false,
@@ -591,11 +582,12 @@
         "properties": {
           "type": {
             "type": "string",
-            "format": "uri",
-            "maxLength": 200
+            "format": "uri-reference",
+            "description": "Stable problem type identifier."
           },
           "title": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 120
           },
           "status": {
@@ -604,15 +596,65 @@
             "maximum": 599
           },
           "category": {
-            "$ref": "#/components/schemas/ProblemCategory"
+            "type": "string",
+            "enum": [
+              "validation",
+              "authentication",
+              "authorization",
+              "not_found",
+              "conflict",
+              "internal"
+            ]
           },
           "code": {
             "type": "string",
             "pattern": "^[A-Z][A-Z0-9_]{2,63}$"
           },
+          "detail": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Safe client-facing context without infrastructure details."
+          },
+          "instance": {
+            "type": "string",
+            "format": "uri-reference"
+          },
           "traceId": {
             "type": "string",
-            "pattern": "^[a-f0-9]{16,64}$"
+            "minLength": 16,
+            "maxLength": 64,
+            "pattern": "^[a-f0-9]+$"
+          },
+          "violations": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ValidationViolation"
+            }
+          }
+        }
+      },
+      "ValidationViolation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "rule"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "rule": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 256
           }
         }
       }

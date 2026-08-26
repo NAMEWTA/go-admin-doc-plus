@@ -12,6 +12,10 @@ export default defineConfig({
   resolve: { alias: {
     '@go-admin/web-domain-demo': resolve(workspaceRoot, 'packages/web-domains/demo/src/index.ts'),
     '@go-admin/domain-demo': resolve(workspaceRoot, 'packages/domains/demo/src/index.ts'),
+    '@go-admin/domain-iam/administration': resolve(workspaceRoot, 'packages/domains/iam/src/administration/index.ts'),
+    '@go-admin/domain-iam/session': resolve(workspaceRoot, 'packages/domains/iam/src/session/index.ts'),
+    '@go-admin/web-domain-iam/administration': resolve(workspaceRoot, 'packages/web-domains/iam/src/administration/index.ts'),
+    '@go-admin/web-domain-iam/session': resolve(workspaceRoot, 'packages/web-domains/iam/src/session/index.ts'),
     '@go-admin/ui': resolve(workspaceRoot, 'packages/ui/src/index.ts'),
     vue: resolve(workspaceRoot, 'packages/web-domains/demo/node_modules/vue'),
   } },

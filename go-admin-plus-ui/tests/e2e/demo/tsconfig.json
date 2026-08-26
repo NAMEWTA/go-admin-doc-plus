@@ -5,6 +5,10 @@
     "paths": {
       "@go-admin/domain-demo": ["../../../packages/domains/demo/src/index.ts"],
       "@go-admin/web-domain-demo": ["../../../packages/web-domains/demo/src/index.ts"],
+      "@go-admin/domain-iam/administration": ["../../../packages/domains/iam/src/administration/index.ts"],
+      "@go-admin/domain-iam/session": ["../../../packages/domains/iam/src/session/index.ts"],
+      "@go-admin/web-domain-iam/administration": ["../../../packages/web-domains/iam/src/administration/index.ts"],
+      "@go-admin/web-domain-iam/session": ["../../../packages/web-domains/iam/src/session/index.ts"],
       "@go-admin/ui": ["../../../packages/ui/src/index.ts"],
       "vue": ["../../../packages/web-domains/demo/node_modules/vue"]
     },

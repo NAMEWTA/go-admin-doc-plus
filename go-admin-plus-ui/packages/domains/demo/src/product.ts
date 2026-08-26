@@ -5,6 +5,13 @@ export type ProductInput = components['schemas']['ProductInput']
 export type ProductPage = components['schemas']['ProductPage']
 export type DeleteTarget = components['schemas']['DeleteProductTarget']
 export type DemoFailure = 'relogin' | 'forbidden' | 'validation' | 'conflict' | 'not-found' | 'unavailable'
+export type DemoPermissionCode = 'demo.products.read' | 'demo.products.write' | 'demo.products.delete'
+
+export const demoPermissions = {
+  read: 'demo.products.read',
+  write: 'demo.products.write',
+  delete: 'demo.products.delete',
+} as const satisfies Readonly<Record<string, DemoPermissionCode>>
 
 export interface ProductQuery {
   readonly search: string

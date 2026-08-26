@@ -23,7 +23,7 @@ const (
 	Authorization  ProblemCategory = "authorization"
 	Conflict       ProblemCategory = "conflict"
 	Internal       ProblemCategory = "internal"
-	NotFound       ProblemCategory = "not-found"
+	NotFound       ProblemCategory = "not_found"
 	Validation     ProblemCategory = "validation"
 )
 
@@ -125,13 +125,20 @@ type DeleteProductsRequest struct {
 type Problem struct {
 	Category ProblemCategory `json:"category"`
 	Code     string          `json:"code"`
-	Status   int             `json:"status"`
-	Title    string          `json:"title"`
-	TraceId  string          `json:"traceId"`
-	Type     string          `json:"type"`
+
+	// Detail Safe client-facing context without infrastructure details.
+	Detail   *string `json:"detail,omitempty"`
+	Instance *string `json:"instance,omitempty"`
+	Status   int     `json:"status"`
+	Title    string  `json:"title"`
+	TraceId  string  `json:"traceId"`
+
+	// Type Stable problem type identifier.
+	Type       string                 `json:"type"`
+	Violations *[]ValidationViolation `json:"violations,omitempty"`
 }
 
-// ProblemCategory defines model for ProblemCategory.
+// ProblemCategory defines model for Problem.Category.
 type ProblemCategory string
 
 // Product defines model for Product.
@@ -179,6 +186,13 @@ type UpdateProductRequest struct {
 	Revision    int           `json:"revision"`
 	Sku         string        `json:"sku"`
 	Status      ProductStatus `json:"status"`
+}
+
+// ValidationViolation defines model for ValidationViolation.
+type ValidationViolation struct {
+	Field   string  `json:"field"`
+	Message *string `json:"message,omitempty"`
+	Rule    string  `json:"rule"`
 }
 
 // ProductId defines model for ProductId.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { validateProduct, type Product, type ProductInput } from '@go-admin/domain-demo'
+import { demoPermissions, validateProduct, type Product, type ProductInput } from '@go-admin/domain-demo'
 import type { DemoController } from './demo-controller'
 
 const props = defineProps<{ controller: DemoController }>()
@@ -13,10 +13,14 @@ const form = reactive<ProductInput & { id?: string; revision?: number }>(props.c
 const snapshot = computed(() => { void revision.value; return props.controller.list.snapshot() })
 const failure = computed(() => { void revision.value; return props.controller.failure() })
 const blocked = computed(() => { void revision.value; return props.controller.busy || props.controller.pendingRepair })
+const canRead = computed(() => { void revision.value; return props.controller.can(demoPermissions.read) })
+const canWrite = computed(() => { void revision.value; return props.controller.can(demoPermissions.write) })
+const canDelete = computed(() => { void revision.value; return props.controller.can(demoPermissions.delete) })
 
 const settle = async (operation: () => Promise<unknown>) => {
   try { await operation() } catch { /* controller keeps the stable failure */ }
   finally {
+    if (props.controller.takeCompletion() === 'save') resetForm()
     revision.value += 1
     if (props.controller.failure() === 'relogin') emit('sessionRequired')
     if (props.controller.failure() === 'forbidden') emit('forbidden')
@@ -27,7 +31,7 @@ const edit = (product: Product) => { editing.value = product; formError.value = 
 const save = () => settle(async () => {
   if (Object.keys(validateProduct(form)).length > 0) { formError.value = 'Check the highlighted product fields.'; return }
   formError.value = ''
-  const result = await props.controller.save({ ...form }); if (result === 'completed') resetForm()
+  await props.controller.save({ ...form })
 })
 const remove = (products: ReadonlyArray<Product>) => settle(() => props.controller.remove(products))
 const selected = computed(() => snapshot.value.rows.filter(row => snapshot.value.selectedKeys.includes(row.id)))
@@ -37,34 +41,34 @@ const toggle = (product: Product, checked: boolean) => {
   else ids.delete(product.id)
   props.controller.list.select(snapshot.value.rows.filter(row => ids.has(row.id))); revision.value += 1
 }
-onMounted(() => settle(() => props.controller.list.refresh()))
+onMounted(() => { if (props.controller.can(demoPermissions.read)) void settle(() => props.controller.list.refresh()) })
 </script>
 
 <template>
   <section class="demo-products" aria-labelledby="demo-products-title">
     <header class="demo-products__header">
-      <div><h1 id="demo-products-title">Products</h1><p>{{ snapshot.total }} records</p></div>
+      <div><h1 id="demo-products-title">Products</h1><p>{{ canRead ? snapshot.total : 0 }} records</p></div>
       <button v-if="controller.pendingRepair" type="button" :disabled="controller.busy" data-testid="repair" @click="settle(() => controller.repairProjection())">Refresh results</button>
     </header>
     <p v-if="failure" role="alert" :data-failure="failure">{{ failure }}</p>
-    <form class="demo-products__search" @submit.prevent="settle(() => controller.list.search({ search }))">
+    <form v-if="canRead" class="demo-products__search" @submit.prevent="settle(() => controller.list.search({ search }))">
       <label>Search <input v-model="search" name="search" maxlength="100"></label>
       <button type="submit" :disabled="blocked">Search</button>
       <button type="button" :disabled="blocked" @click="search = ''; settle(() => controller.list.reset())">Reset</button>
     </form>
-    <div class="demo-products__grid">
+    <div v-if="canRead" class="demo-products__grid">
       <div class="demo-products__table">
-        <div class="demo-products__actions"><button type="button" :disabled="blocked || selected.length === 0" @click="remove(selected)">Delete selected</button></div>
+        <div v-if="canDelete" class="demo-products__actions"><button type="button" :disabled="blocked || selected.length === 0" @click="remove(selected)">Delete selected</button></div>
         <table><thead><tr><th aria-label="Select"></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'sku', direction: 'ascending' }))">SKU</button></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'name', direction: 'ascending' }))">Name</button></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'priceCents', direction: 'ascending' }))">Price</button></th><th>Status</th><th>Actions</th></tr></thead>
           <tbody><tr v-for="product in snapshot.rows" :key="product.id">
-            <td><input type="checkbox" :checked="snapshot.selectedKeys.includes(product.id)" :aria-label="`Select ${product.sku}`" @change="toggle(product, ($event.target as HTMLInputElement).checked)"></td>
+            <td><input v-if="canDelete" type="checkbox" :checked="snapshot.selectedKeys.includes(product.id)" :aria-label="`Select ${product.sku}`" @change="toggle(product, ($event.target as HTMLInputElement).checked)"></td>
             <td>{{ product.sku }}</td><td>{{ product.name }}</td><td>{{ product.priceCents }}</td><td>{{ product.status }}</td>
-            <td><button type="button" :disabled="blocked" @click="edit(product)">Edit</button><button type="button" :disabled="blocked" @click="remove([product])">Delete</button></td>
+            <td><button v-if="canWrite" type="button" :disabled="blocked" @click="edit(product)">Edit</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove([product])">Delete</button></td>
           </tr></tbody>
         </table>
         <nav aria-label="Pagination"><button type="button" :disabled="blocked || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">Previous</button><span>Page {{ snapshot.page }}</span><label>Rows <select :value="snapshot.pageSize" :disabled="blocked" @change="settle(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label><button type="button" :disabled="blocked || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.list.setPage(snapshot.page + 1))">Next</button></nav>
       </div>
-      <form class="demo-products__form" @submit.prevent="save">
+      <form v-if="canWrite" class="demo-products__form" @submit.prevent="save">
         <h2>{{ editing ? 'Edit product' : 'Create product' }}</h2>
         <p v-if="formError" role="alert">{{ formError }}</p>
         <label>SKU <input v-model="form.sku" name="sku" maxlength="32" required></label>
