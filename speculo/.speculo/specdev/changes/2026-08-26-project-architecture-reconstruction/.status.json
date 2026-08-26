@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T20:16:51+08:00",
+  "updated_at": "2026-08-26T20:19:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -267,6 +267,49 @@
       },
       "status": "active",
       "updated_at": "2026-08-26T20:16:51+08:00"
+    },
+    {
+      "ticket_id": "T-04",
+      "owner": "codex-t04-database",
+      "implementation_owner": "codex-t04-database",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "fe56a1932d8b9cec8db5f5dd7e24df33ab10853f",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-04",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-04",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G2 requires dual-dialect migration, repository, lock, race, static, and build checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-04 must prove migrations and single-instance locking against real PostgreSQL and SQLite files",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-04.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-26T20:19:00+08:00"
     }
   ]
 }

@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-04
 title: 双方言持久化与模块迁移基座
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 数据库双方言、schema 迁移、单实例约束和恢复直接影响数据完整性
 ready: true
 risk: high
 blocked_by: [T-03]
 contract_ids: [AC-003, AC-004, AC-024, AC-034]
-owner: unassigned
+owner: codex-t04-database
 expected_changes: ["<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus/internal/platform/migrations/**</Path>", "<Path>database/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus/internal/platform/migrations/**</Path>", "<Path>go-admin-plus/internal/platform/cache/**</Path>", "<Path>database/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>"]
