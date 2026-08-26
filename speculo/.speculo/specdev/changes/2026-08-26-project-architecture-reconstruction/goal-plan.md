@@ -293,6 +293,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-02 首轮 source checkpoint 为 `18c10920d0aea9a7c257aa829772505ba0d506e5`；完成首轮审查修正后形成 checkpoint `f9c28705b3d8e485059c43806f6036c459c7ec18`。规范轴复审已 pass；标准轴复审发现 manifest 删除许可与 module path 语法不一致、敏感信息测试在解码后读取空缓冲区两项 medium finding。修正后 checkpoint `c8c35511673ebcdc51f8f79be5f172b16b73c77a` 的标准轴 pass，规范轴发现 Go 最短路径可复用 owner/transport segment 的一项 high finding；增加独立 owner/transport 段约束及 metadata/manifest 拒绝回归后形成干净 checkpoint `201b4647e15da1e62a3c92012c9847ec9765b706`。当前合同 lint、23 个正负向/原子生成工具测试、合法嵌套路径幂等与伪装路径拒删、确定性双方生成、Go race/runtime request conformance、TS client 19 项测试、普通与 SQLite Go suite、前端 225 项测试/lint/build、依赖锁与 peer 完整性检查均通过，等待双轴复审与 parent-candidate Gate。
 - T-02 首轮双轴审查在固定点 `9fb27f69e79b7acb84bf65a7328b2254d2d20359...18c10920d0aea9a7c257aa829772505ba0d506e5` 返回 request-changes；Lead 登记并批准 `T02-D02`（最终 UI owner 路径与多 fragment owner 元数据）和 `T02-D03`（canonical generator 接入根 `generate`），其余 finding 在 T-02 source 内修复后形成新 checkpoint 并重审。
 - T-02 修复中实测公开 `generate` 的旧 `swag` 链因未受管工具缺失而失败；`T02-D03` 随事实收紧为公开命令只委派 canonical generator，旧脚本不删除但退出公共命令面。
+- T-02 最终双轴审查已对固定范围 `9fb27f69e79b7acb84bf65a7328b2254d2d20359...201b4647e15da1e62a3c92012c9847ec9765b706` 返回 pass、0 findings；Ticket/source 状态推进为 `review`，等待 Lead parent-candidate G1 验证。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
