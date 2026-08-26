@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T22:41:31+08:00",
+  "updated_at": "2026-08-26T22:52:57+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -267,38 +267,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-05",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-05",
-      "source_checkpoint": null,
+      "source_checkpoint": "832aede2541ac8dc0ee02c587c59d709889b5aad",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "12171f0a715b725ca5ddc5c48fd3393a5341afdb",
+        "source_sha": "832aede2541ac8dc0ee02c587c59d709889b5aad",
+        "candidate_sha": "832aede2541ac8dc0ee02c587c59d709889b5aad",
+        "candidate_tree_sha": "6cf2e4f63211a2b934881a495e176878c4b2a1eb",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-05",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-05",
+        "result_sha": "832aede2541ac8dc0ee02c587c59d709889b5aad",
+        "method": "fast-forward",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G2 requires workspace boundaries, unit/type/lint/build checks and shell regressions on the parent candidate",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-05 must prove shell navigation states and duplicate interaction protection in a real browser",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-26T22:41:31+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-26T22:52:57+08:00"
     },
     {
       "ticket_id": "T-04",

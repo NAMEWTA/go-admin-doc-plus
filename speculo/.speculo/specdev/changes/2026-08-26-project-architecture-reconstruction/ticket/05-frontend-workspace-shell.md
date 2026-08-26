@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-05
 title: pnpm Workspace、App Shell 与交互基座
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 新前端工作区、共享核心路径和双 App 组合边界影响全部前端切片
 ready: true
@@ -116,9 +116,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-05", "<Pat
 
 ## 10. 验收标准
 
-- [ ] `AC-035`：共享 list/form 的正常、校验失败、确认和刷新合同可判定。
-- [ ] `AC-036`：App Shell 对登录、授权和未知路由呈现稳定状态。
-- [ ] T05-D03 修正与验证记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，共享路径仅由 T-05 修改。
-- [ ] 形成新的非空 source checkpoint，并记录新的 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
+- [x] `AC-035`：共享 list/form 的正常、校验失败、确认和刷新合同可判定。
+- [x] `AC-036`：App Shell 对登录、授权和未知路由呈现稳定状态。
+- [x] T05-D03 修正与验证记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-05.md</Path>`。
+- [x] 修改未超出 `writable_paths`，共享路径仅由 T-05 修改。
+- [x] 形成新的非空 source checkpoint，并记录新的 integration result SHA。
+- [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
