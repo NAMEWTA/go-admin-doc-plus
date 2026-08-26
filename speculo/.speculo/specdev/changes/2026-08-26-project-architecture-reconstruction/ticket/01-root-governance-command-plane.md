@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-01
 title: 根级产品治理与统一命令面
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 根级共享路径、治理资产迁移和后续全部 Ticket 的命令合同具有高事故半径
 ready: true
 risk: high
 blocked_by: []
 contract_ids: [AC-001, AC-002]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>Taskfile.yml</Path>", "<Path>.gitignore</Path>", "<Path>.github/ISSUE_TEMPLATE/**</Path>", "<Path>.github/PULL_REQUEST_TEMPLATE.md</Path>", "<Path>.husky/**</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>scripts/go-admin-plus-ui/**</Path>"]
 writable_paths: ["<Path>Taskfile.yml</Path>", "<Path>.gitignore</Path>", "<Path>.gitattributes</Path>", "<Path>.editorconfig</Path>", "<Path>.github/ISSUE_TEMPLATE/**</Path>", "<Path>.github/PULL_REQUEST_TEMPLATE.md</Path>", "<Path>.husky/**</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>scripts/go-admin-plus-ui/**</Path>", "<Path>deploy/README.md</Path>", "<Path>release/README.md</Path>", "<Path>database/README.md</Path>"]
 read_only_paths: ["<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ADR.md</Path>"]

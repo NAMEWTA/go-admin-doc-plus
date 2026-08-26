@@ -38,11 +38,55 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T16:17:08+08:00",
+  "updated_at": "2026-08-26T16:21:03+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [],
   "deviations": [],
-  "worktrees": []
+  "worktrees": [
+    {
+      "ticket_id": "T-01",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "888900751ab2b04d2db5fa8d5e6a6b811599ce93",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-01",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-01",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G0 requires governance, task contract, and affected regression checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": false,
+          "status": "not-required",
+          "reason": "T-01 changes static repository governance and command contracts only",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-01.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-26T16:21:03+08:00"
+    }
+  ]
 }

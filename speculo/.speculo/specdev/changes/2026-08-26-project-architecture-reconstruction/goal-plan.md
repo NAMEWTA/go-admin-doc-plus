@@ -59,7 +59,7 @@ ready_for_execution: true
 | 4 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>` | 外部行为、范围和验收合同 | 下游不得改写 |
 | 5 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/</Path>` | 单 Ticket 目标、路径、验证和恢复 | Goal Plan 只编排，不扩大 writable paths |
 | 6 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/tickets-map.md</Path>` | DAG、合同覆盖和共享 owner 投影 | 与 Ticket 冲突时以 Ticket frontmatter 为准并修复 Map |
-| 7 | `main@0391c8816cb97e8c68e61ec7ef56715046f8115f` 及当前工作区实测 | 代码、测试、dirty baseline 和工具可行性 | 新事实冲突时触发 deviation，不静默修改合同 |
+| 7 | `main@888900751ab2b04d2db5fa8d5e6a6b811599ce93` 及当前工作区实测 | 代码、测试、已审计 baseline 和工具可行性 | 新事实冲突时触发 deviation，不静默修改合同 |
 
 ## 2. Execution Graph
 
@@ -285,9 +285,9 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 ### Current Status
 
 - Goal Plan 已选择 `required/candidate-merge`，Lead 为 `codex-root`，implementation agent 上限 3，integration attempt 上限 3。
-- 当前父分支为 `main@0391c8816cb97e8c68e61ec7ef56715046f8115f`；发现 170 项 tracked 改动和 6 个 untracked 条目。
-- 基线 Go test、前端 unit/type/lint/build 与 Tickets validator 已实测通过；尚未形成 G-BASELINE commit。
-- 当前 Gate 为 `G-BASELINE in-progress`；尚未创建任何 Ticket source worktree、source commit、candidate 或 result SHA。
+- G-BASELINE 已完成：原始 170 项 tracked 改动和 6 个 untracked 条目经 secret/大文件/生成物审计后，形成 `main@888900751ab2b04d2db5fa8d5e6a6b811599ce93` 不可变基线。
+- 基线 Go test、前端 unit/type/lint/build 与 Goal Plan validator 已实测通过，validator 结果为 0 error / 0 warning。
+- 当前 Gate 为 `G0 in-progress`；T-01 source worktree 已创建于 `specdev-worktree/2026-08-26-project-architecture-reconstruction/T-01`，尚未形成 source commit、candidate 或 result SHA。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
