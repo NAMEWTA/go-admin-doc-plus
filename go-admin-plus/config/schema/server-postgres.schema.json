@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://go-admin.plus/config/server-postgres.schema.json",
+  "title": "Go Admin Plus Server PostgreSQL runtime file",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile"],
+  "properties": {
+    "profile": { "const": "server-postgres" },
+    "http": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "listen": { "type": "string", "default": "127.0.0.1:8080" }
+      }
+    },
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "level": { "enum": ["debug", "info", "warn", "error"], "default": "info" }
+      }
+    }
+  },
+  "description": "Database DSN is intentionally absent and must be supplied through GO_ADMIN_DATABASE_DSN or GO_ADMIN_DATABASE_DSN_FILE."
+}
