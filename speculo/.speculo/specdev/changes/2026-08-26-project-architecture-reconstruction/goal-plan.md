@@ -292,6 +292,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-02 预检登记并批准 Ticket 级偏差 `T02-D01`：为实现既定根验证命令和固定官方生成器，串行补充两个 Task、Go module 生成依赖与 pnpm contract lock；T-03/T-05 尚未开始，无并行 writer 冲突。
 - T-02 已形成干净的 source checkpoint `18c10920d0aea9a7c257aa829772505ba0d506e5`；source 内合同 lint、15 个正负向工具测试、确定性双方生成、Go race conformance、TS client type/test、普通与 SQLite Go suite、前端 lint/test/build 及依赖完整性检查均通过，等待双轴审查与 parent-candidate Gate。
 - T-02 首轮双轴审查在固定点 `9fb27f69e79b7acb84bf65a7328b2254d2d20359...18c10920d0aea9a7c257aa829772505ba0d506e5` 返回 request-changes；Lead 登记并批准 `T02-D02`（最终 UI owner 路径与多 fragment owner 元数据）和 `T02-D03`（canonical generator 接入根 `generate`），其余 finding 在 T-02 source 内修复后形成新 checkpoint 并重审。
+- T-02 修复中实测公开 `generate` 的旧 `swag` 链因未受管工具缺失而失败；`T02-D03` 随事实收紧为公开命令只委派 canonical generator，旧脚本不删除但退出公共命令面。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
