@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
 import test from 'node:test'
-import { resolveModuleMetadata } from './modules.mjs'
+import { isManagedGeneratedOutput, parseManagedModuleOutput, resolveModuleMetadata } from './modules.mjs'
 
 const repositoryRoot = '/workspace/product'
 
@@ -63,4 +63,22 @@ test('allows multiple fragments to write inside one explicit module owner', () =
 
   assert.equal(metadata.id, 'iam-session')
   assert.equal(metadata.owner, 'iam')
+})
+
+test('uses one path grammar for nested generation targets and manifest entries', () => {
+  const metadata = resolveModuleMetadata(repositoryRoot, {
+    'x-go-admin-module': 'iam-session',
+    'x-go-admin-codegen': {
+      owner: 'iam',
+      goPackage: 'sessionv2transport',
+      goOutput: 'go-admin-plus/internal/modules/iam/session_v2/transport/openapi.gen.go',
+      typescriptOutput: 'go-admin-plus-ui/packages/domains/iam/src/session_v2/generated'
+    }
+  }, 'iam-session.yaml')
+
+  assert.equal(parseManagedModuleOutput('go-admin-plus/internal/modules/iam/session_v2/transport/openapi.gen.go')?.owner, 'iam')
+  assert.equal(parseManagedModuleOutput('go-admin-plus-ui/packages/domains/iam/src/session_v2/generated')?.kind, 'typescript-directory')
+  assert.equal(isManagedGeneratedOutput('go-admin-plus-ui/packages/domains/iam/src/session_v2/generated/client.ts'), true)
+  assert.equal(isManagedGeneratedOutput('go-admin-plus-ui/packages/domains/iam/manual/generated/client.ts'), false)
+  assert.match(metadata.goOutput, /session_v2/)
 })

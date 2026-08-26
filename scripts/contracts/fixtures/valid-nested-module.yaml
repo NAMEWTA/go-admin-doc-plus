@@ -1,0 +1,18 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Nested contract fixture API
+  version: 1.0.0
+x-go-admin-module: iam-session
+x-go-admin-codegen:
+  owner: iam
+  goPackage: sessionv2transport
+  goOutput: go-admin-plus/internal/modules/iam/session_v2/transport/openapi.gen.go
+  typescriptOutput: go-admin-plus-ui/packages/domains/iam/src/session_v2/generated
+paths:
+  /iam/session:
+    get:
+      operationId: getIamSessionFixture
+      responses:
+        '204':
+          description: IAM session fixture accepted

@@ -64,6 +64,29 @@ func probeProblemResponse(category ProblemCategory) ProbeContractResponseObject 
 
 func fixedTraceID(*http.Request) string { return "0123456789abcdef" }
 
+func decodeProblemResponse(t *testing.T, response *httptest.ResponseRecorder) (Problem, []byte) {
+	t.Helper()
+	raw := append([]byte(nil), response.Body.Bytes()...)
+	var problem Problem
+	if err := json.Unmarshal(raw, &problem); err != nil {
+		t.Fatalf("decode problem: %v", err)
+	}
+	return problem, raw
+}
+
+func assertNoSensitiveResponseData(t *testing.T, raw []byte) {
+	t.Helper()
+	lower := strings.ToLower(string(raw))
+	for _, forbidden := range []string{
+		"pq:", "select password from", "stack trace", "/var/", `c:\\`,
+		"database.go", "secret", "password", "session=raw",
+	} {
+		if strings.Contains(lower, forbidden) {
+			t.Fatalf("problem response leaked %q: %s", forbidden, raw)
+		}
+	}
+}
+
 func TestStableProblemCategories(t *testing.T) {
 	tests := []struct {
 		category ProblemCategory
@@ -155,19 +178,11 @@ func TestStrictTransportNormalizesRequestAndInternalFailures(t *testing.T) {
 			if contentType := response.Header().Get("Content-Type"); contentType != "application/problem+json" {
 				t.Fatalf("content type = %q, want application/problem+json", contentType)
 			}
-			var problem Problem
-			if err := json.NewDecoder(response.Body).Decode(&problem); err != nil {
-				t.Fatalf("decode problem: %v", err)
-			}
+			problem, raw := decodeProblemResponse(t, response)
 			if problem.Category != test.category {
 				t.Fatalf("category = %q, want %q", problem.Category, test.category)
 			}
-			lower := strings.ToLower(response.Body.String())
-			for _, forbidden := range []string{"pq:", "secret", "password", "/var/", "database.go"} {
-				if strings.Contains(lower, forbidden) {
-					t.Fatalf("problem response leaked %q: %s", forbidden, response.Body.String())
-				}
-			}
+			assertNoSensitiveResponseData(t, raw)
 		})
 	}
 }
@@ -251,21 +266,11 @@ func TestStrictTransportReturnsEveryDeclaredProblemCategory(t *testing.T) {
 			if contentType := response.Header().Get("Content-Type"); contentType != "application/problem+json" {
 				t.Fatalf("content type = %q, want application/problem+json", contentType)
 			}
-			var problem Problem
-			if err := json.NewDecoder(response.Body).Decode(&problem); err != nil {
-				t.Fatalf("decode problem: %v", err)
-			}
+			problem, raw := decodeProblemResponse(t, response)
 			if problem.Category != test.category || problem.Code != test.code || problem.Status != test.status {
 				t.Fatalf("problem = %#v, want category=%s code=%s status=%d", problem, test.category, test.code, test.status)
 			}
-			lower := strings.ToLower(response.Body.String())
-			for _, forbidden := range []string{
-				"select password from", "stack trace", "/var/", `c:\\`, "secret=", "session=raw",
-			} {
-				if strings.Contains(lower, forbidden) {
-					t.Fatalf("problem response leaked %q: %s", forbidden, response.Body.String())
-				}
-			}
+			assertNoSensitiveResponseData(t, raw)
 		})
 	}
 }

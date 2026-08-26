@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { discoverModuleContracts, resolveModuleMetadata } from './modules.mjs'
+import { discoverModuleContracts, isManagedGeneratedOutput, resolveModuleMetadata } from './modules.mjs'
 import { validatePolicy } from './policy.mjs'
 
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
@@ -220,8 +220,7 @@ const isManagedOutput = path => {
   if (typeof path !== 'string' || path.length === 0 || isAbsolute(path) || path.includes('\\')) return false
   if (path.split('/').includes('..')) return false
   if (canonicalGeneratedFiles.map(item => item.split(sep).join('/')).includes(path)) return true
-  return /^go-admin-plus\/internal\/modules\/[a-z0-9/-]+\/transport\/(?:openapi\.gen\.go|openapi\.json)$/.test(path) ||
-    /^go-admin-plus-ui\/packages\/domains\/[a-z0-9/-]+\/generated\/(?:schema\.ts|client\.ts)$/.test(path)
+  return isManagedGeneratedOutput(path)
 }
 
 const readManifest = outputRoot => {

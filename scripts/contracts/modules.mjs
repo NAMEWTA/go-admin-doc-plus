@@ -3,20 +3,45 @@ import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 const moduleIdPattern = /^[a-z][a-z0-9-]{1,63}$/
 const goPackagePattern = /^[a-z][a-z0-9_]*$/
+const modulePathSegmentPattern = /^[a-z][a-z0-9_-]{0,63}$/
 
-const assertRelativeOutput = (repositoryRoot, value, ownerRoot, label, source) => {
-  if (typeof value !== 'string' || value.length === 0 || isAbsolute(value) || value.includes('\\')) {
-    throw new Error(`${source}: ${label} output must be a repository-relative POSIX path`)
+const validNestedSegments = segments => segments.every(segment => modulePathSegmentPattern.test(segment))
+
+// This parser is the single authority for module generation targets and manifest deletion entries.
+export const parseManagedModuleOutput = value => {
+  if (typeof value !== 'string' || value.length === 0 || isAbsolute(value) || value.includes('\\')) return undefined
+  const segments = value.split('/')
+  if (segments.some(segment => segment.length === 0 || segment === '.' || segment === '..')) return undefined
+
+  if (segments.slice(0, 3).join('/') === 'go-admin-plus/internal/modules') {
+    const owner = segments[3]
+    const nested = segments.slice(4, -2)
+    const directory = segments.at(-2)
+    const filename = segments.at(-1)
+    if (!moduleIdPattern.test(owner) || !validNestedSegments(nested) || directory !== 'transport') return undefined
+    if (filename === 'openapi.gen.go') return { kind: 'go-code', owner, value }
+    if (filename === 'openapi.json') return { kind: 'go-spec', owner, value }
+    return undefined
   }
 
-  const repository = resolve(repositoryRoot)
-  const output = resolve(repository, value)
-  const owner = resolve(repository, ownerRoot)
-  const ownerRelative = relative(owner, output)
-  if (ownerRelative === '..' || ownerRelative.startsWith(`..${sep}`) || isAbsolute(ownerRelative)) {
-    throw new Error(`${source}: ${label} output must stay inside ${ownerRoot}`)
+  if (segments.slice(0, 3).join('/') === 'go-admin-plus-ui/packages/domains') {
+    const owner = segments[3]
+    if (!moduleIdPattern.test(owner) || segments[4] !== 'src') return undefined
+    const filename = segments.at(-1)
+    const hasFile = filename === 'schema.ts' || filename === 'client.ts'
+    const generatedIndex = hasFile ? segments.length - 2 : segments.length - 1
+    if (segments[generatedIndex] !== 'generated') return undefined
+    const nested = segments.slice(5, generatedIndex)
+    if (!validNestedSegments(nested)) return undefined
+    return { kind: hasFile ? 'typescript-file' : 'typescript-directory', owner, value }
   }
-  return output
+
+  return undefined
+}
+
+export const isManagedGeneratedOutput = value => {
+  const parsed = parseManagedModuleOutput(value)
+  return parsed?.kind === 'go-code' || parsed?.kind === 'go-spec' || parsed?.kind === 'typescript-file'
 }
 
 export const resolveModuleMetadata = (repositoryRoot, document, source = 'module contract') => {
@@ -41,33 +66,24 @@ export const resolveModuleMetadata = (repositoryRoot, document, source = 'module
     throw new Error(`${source}: module owner must match ${moduleIdPattern}`)
   }
 
-  const goOutput = assertRelativeOutput(
-    repositoryRoot,
-    codegen.goOutput,
-    join('go-admin-plus', 'internal', 'modules', codegen.owner),
-    'Go',
-    source
-  )
-  if (!goOutput.endsWith(`${sep}transport${sep}openapi.gen.go`)) {
-    throw new Error(`${source}: Go output must end with transport/openapi.gen.go`)
+  const parsedGoOutput = parseManagedModuleOutput(codegen.goOutput)
+  if (parsedGoOutput?.kind !== 'go-code' || parsedGoOutput.owner !== codegen.owner) {
+    throw new Error(`${source}: Go output must be a managed transport/openapi.gen.go path for owner ${codegen.owner}`)
   }
 
-  const typescriptOutput = assertRelativeOutput(
-    repositoryRoot,
-    codegen.typescriptOutput,
-    join('go-admin-plus-ui', 'packages', 'domains', codegen.owner),
-    'TypeScript',
-    source
-  )
-  const typescriptRelative = relative(
-    resolve(repositoryRoot, 'go-admin-plus-ui', 'packages', 'domains', codegen.owner),
-    typescriptOutput
-  )
-  if (!typescriptRelative.split(sep).includes('src') || !typescriptOutput.endsWith(`${sep}generated`)) {
-    throw new Error(`${source}: TypeScript output must be under the owner src tree and end with generated`)
+  const parsedTypescriptOutput = parseManagedModuleOutput(codegen.typescriptOutput)
+  if (parsedTypescriptOutput?.kind !== 'typescript-directory' || parsedTypescriptOutput.owner !== codegen.owner) {
+    throw new Error(`${source}: TypeScript output must be a managed owner src path ending with generated`)
   }
 
-  return { id, owner: codegen.owner, goPackage: codegen.goPackage, goOutput, typescriptOutput, source }
+  return {
+    id,
+    owner: codegen.owner,
+    goPackage: codegen.goPackage,
+    goOutput: resolve(repositoryRoot, parsedGoOutput.value),
+    typescriptOutput: resolve(repositoryRoot, parsedTypescriptOutput.value),
+    source
+  }
 }
 
 export const discoverModuleContracts = repositoryRoot => {
