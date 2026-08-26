@@ -305,6 +305,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-05 规范轴在 T05-D02 后 pass；标准轴对 `27a186c..89683cc` 返回 fail：1 high（写入成功后 refresh 失败误报为写失败，可能诱发重复写）、2 medium（乱序导航覆盖新状态；identity 响应未知 credential 字段未 fail closed）、1 low（列表 stale request/error 语义未固定）。旧 checkpoint 失效并退回原 owner 全部修正。
 - T-03 原 owner 已闭合全部标准轴 findings 并返回 clean source checkpoint `3801d776001b00d9d2a63e7343ca2f319986848a`；结构化日志脱敏、method-before-probe 和并发生命周期回归均转绿，双轴复审重新固定为 `27a186c..3801d77`。
 - T-03 双轴复审对固定范围 `27a186c..3801d77` 返回 pass、0 findings；Lead parent-candidate `cfae1e71cec1d123bc6ce0fca1d8f92938db78f2` 无冲突通过 Go/合同/生成/治理全门禁以及 required process E2E，父分支已快进提升至该 result，Ticket 状态为 `done`。
+- T-05 原 owner 已闭合全部标准轴 findings 并返回 clean source checkpoint `5b7b4f43298a6b28ab55190baca07e05ffa50911`；mutation 两阶段结果、导航 sequence/abort/invalidate、identity 精确白名单和 stale list request 语义均转绿，双轴复审重新固定为 `27a186c..5b7b4f4`。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
