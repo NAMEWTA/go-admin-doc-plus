@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.vscode
+.claude
+node_modules
+dist
+test-results
+playwright-report
+blob-report
+tests
+*.log
+Dockerfile*
+scripts/k8s

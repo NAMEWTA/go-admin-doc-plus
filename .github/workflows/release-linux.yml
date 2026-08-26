@@ -1,0 +1,240 @@
+name: Linux AMD64 Compose Release Gate
+run-name: linux product=${{ inputs.release_version }} root=${{ inputs.orchestration_ref }} frontend=${{ inputs.frontend_ref }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      orchestration_ref:
+        description: Exact go-admin-plus monorepo commit containing the Compose bundle
+        required: true
+        type: string
+      frontend_ref:
+        description: Exact monorepo commit containing the frontend to build
+        required: true
+        type: string
+      release_version:
+        description: Exact three-part product version
+        required: true
+        default: 0.1.0
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-compose-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-gate:
+    name: Linux AMD64 Compose build and E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      EXPECTED_ROOT_SHA: ${{ inputs.orchestration_ref }}
+      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_ref }}
+      RELEASE_VERSION: ${{ inputs.release_version }}
+      COMPOSE_PROJECT_NAME: go-admin-release-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Check out exact monorepo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workspace
+          persist-credentials: false
+
+      - name: Verify release provenance
+        working-directory: workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          for value in "$EXPECTED_ROOT_SHA" "$EXPECTED_FRONTEND_SHA"; do
+            [[ "$value" =~ ^[0-9a-fA-F]{40}$ ]] || { echo "release refs must be exact 40-character SHAs" >&2; exit 1; }
+          done
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "release version must be major.minor.patch" >&2; exit 1; }
+          root_sha=$(git rev-parse HEAD)
+          backend_sha=$(git -C go-admin-plus rev-parse HEAD)
+          frontend_sha=$(git -C go-admin-ui-plus rev-parse HEAD)
+          test "$root_sha" = "${EXPECTED_ROOT_SHA,,}"
+          test "$backend_sha" = "${{ github.sha }}"
+          test "$frontend_sha" = "${EXPECTED_FRONTEND_SHA,,}"
+          test "$root_sha" = "$backend_sha"
+          test "$root_sha" = "$frontend_sha"
+          jq -n \
+            --arg root "$root_sha" \
+            --arg backend "$backend_sha" \
+            --arg frontend "$frontend_sha" \
+            '{root_sha:$root,backend_sha:$backend,frontend_sha:$frontend,platform:"linux/amd64"}' \
+            > provenance.json
+
+      - name: Set up Go 1.26.5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: workspace/go-admin-plus/go.sum
+
+      - name: Run backend source gate
+        working-directory: workspace/go-admin-plus
+        run: go test ./...
+
+      - name: Prepare ephemeral release secrets
+        working-directory: workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x release/linux/prepare-config.sh release/linux/verify-compose.sh
+          ./release/linux/prepare-config.sh
+          cat > deploy/compose/.env <<EOF
+          GO_ADMIN_VERSION=${{ github.sha }}
+          GO_ADMIN_API_IMAGE=go-admin-api
+          GO_ADMIN_WEB_IMAGE=go-admin-web
+          GO_ADMIN_WEB_BIND=127.0.0.1
+          GO_ADMIN_WEB_PORT=8080
+          GO_ADMIN_BACKEND_SHA=${{ github.sha }}
+          GO_ADMIN_FRONTEND_SHA=${EXPECTED_FRONTEND_SHA,,}
+          EOF
+
+      - name: Validate and build production Compose
+        working-directory: workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose=(docker compose --env-file deploy/compose/.env -f deploy/compose/compose.yml -f deploy/compose/compose.build.yml)
+          "${compose[@]}" config --quiet
+          "${compose[@]}" config --format json > compose.resolved.json
+          jq -e '.services.api.ports == null and (.services | to_entries | all(.value.privileged != true))' compose.resolved.json >/dev/null
+          "${compose[@]}" build --pull
+
+      - name: Run empty-volume Compose E2E
+        working-directory: workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose=(docker compose --env-file deploy/compose/.env -f deploy/compose/compose.yml -f deploy/compose/compose.build.yml)
+          if ! "${compose[@]}" up -d --wait --wait-timeout 180; then
+            "${compose[@]}" ps -a
+            "${compose[@]}" logs --no-color > compose-startup.log 2>&1 || true
+            cat compose-startup.log
+            migrate_id=$("${compose[@]}" ps -aq migrate)
+            if [ -n "$migrate_id" ]; then
+              docker inspect -f 'migrate user={{.Config.User}} exit={{.State.ExitCode}} mounts={{range .Mounts}}{{.Destination}}:{{.Mode}} {{end}}' "$migrate_id"
+            fi
+            exit 1
+          fi
+          GO_ADMIN_COMPOSE_ENV=deploy/compose/.env ./release/linux/verify-compose.sh | tee linux-compose-e2e.log
+
+          "${compose[@]}" stop postgres
+          for attempt in $(seq 1 30); do
+            status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health/ready || true)
+            test "$status" = 503 && break
+            sleep 2
+          done
+          test "$status" = 503
+          "${compose[@]}" start postgres
+          for attempt in $(seq 1 40); do
+            status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/health/ready || true)
+            test "$status" = 200 && break
+            sleep 2
+          done
+          test "$status" = 200
+
+      - name: Prove failed migration blocks API
+        working-directory: workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          failure_project="go-admin-migration-failure-${{ github.run_id }}-${{ github.run_attempt }}"
+          failure=(docker compose -p "$failure_project" --env-file deploy/compose/.env -f deploy/compose/compose.yml -f deploy/compose/compose.build.yml -f deploy/compose/compose.migration-failure.yml)
+          set +e
+          "${failure[@]}" up -d api > migration-failure.log 2>&1
+          result=$?
+          set -e
+          test "$result" -ne 0
+          api_id=$("${failure[@]}" ps -aq api)
+          if [ -n "$api_id" ]; then
+            test "$(docker inspect -f '{{.State.Running}}' "$api_id")" = false
+          fi
+          "${failure[@]}" logs migrate >> migration-failure.log 2>&1 || true
+          "${failure[@]}" down -v --remove-orphans
+
+      - name: Generate immutable artifacts and SBOMs
+        working-directory: workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_version=${{ github.sha }}
+          api_image="go-admin-api:$build_version"
+          web_image="go-admin-web:$build_version"
+          mkdir -p release-output/compose release-output/images release-output/sbom
+          cp deploy/compose/compose.yml deploy/compose/.env.example deploy/compose/settings.template.yml release-output/compose/
+          cp release/linux/README.md release/linux/prepare-config.sh release/linux/verify-compose.sh release-output/
+          docker save "$api_image" | gzip -9 > release-output/images/go-admin-api-linux-amd64.tar.gz
+          docker save "$web_image" | gzip -9 > release-output/images/go-admin-web-linux-amd64.tar.gz
+
+          registry_name="release-registry-${{ github.run_id }}-${{ github.run_attempt }}"
+          docker run -d --name "$registry_name" -p 127.0.0.1:5000:5000 registry:2.8.3
+          docker tag "$api_image" "localhost:5000/$api_image"
+          docker tag "$web_image" "localhost:5000/$web_image"
+          api_push=$(docker push "localhost:5000/$api_image" | tee /dev/stderr)
+          web_push=$(docker push "localhost:5000/$web_image" | tee /dev/stderr)
+          api_digest=$(printf '%s\n' "$api_push" | awk '/digest: sha256:/{print $3}' | tail -1)
+          web_digest=$(printf '%s\n' "$web_push" | awk '/digest: sha256:/{print $3}' | tail -1)
+          [[ "$api_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$web_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker rm -f "$registry_name"
+
+          syft_version=1.51.0
+          syft_archive="syft_${syft_version}_linux_amd64.tar.gz"
+          curl -fsSLO "https://github.com/anchore/syft/releases/download/v${syft_version}/${syft_archive}"
+          echo "2a2e837a2c8d59ec9af5472ee22d3b04ee463c4e44476ecf993fd1e5ab6ebc7f  $syft_archive" | sha256sum -c -
+          tar -xzf "$syft_archive" syft
+          ./syft "$api_image" -o spdx-json=release-output/sbom/go-admin-api.spdx.json
+          ./syft "$web_image" -o spdx-json=release-output/sbom/go-admin-web.spdx.json
+
+          api_image_id=$(docker image inspect -f '{{.Id}}' "$api_image")
+          web_image_id=$(docker image inspect -f '{{.Id}}' "$web_image")
+          jq -n \
+            --slurpfile provenance provenance.json \
+            --arg version "$RELEASE_VERSION" \
+            --arg build_version "$build_version" \
+            --arg api_image "$api_image" --arg api_digest "$api_digest" --arg api_image_id "$api_image_id" \
+            --arg web_image "$web_image" --arg web_digest "$web_digest" --arg web_image_id "$web_image_id" \
+            '{schema_version:1,version:$version,build_version:$build_version,platform:"linux/amd64",provenance:$provenance[0],images:{api:{reference:$api_image,digest:$api_digest,image_id:$api_image_id},web:{reference:$web_image,digest:$web_digest,image_id:$web_image_id}},signing:{signature:"none",platform_trust:"checksum-and-source-provenance"},sbom_format:"SPDX JSON"}' \
+            > release-output/manifest.json
+          find release-output -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > release-output/SHA256SUMS
+
+          {
+            echo '## Linux AMD64 Compose Release Gate'
+            echo
+            echo "- Root: ${EXPECTED_ROOT_SHA,,}"
+            echo "- Backend: ${{ github.sha }}"
+            echo "- Frontend: ${EXPECTED_FRONTEND_SHA,,}"
+            echo "- Product version: $RELEASE_VERSION"
+            echo "- API digest: $api_digest"
+            echo "- Web digest: $web_digest"
+            echo '- Result: GO_ADMIN_LINUX_COMPOSE_E2E_PASS'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: linux-amd64-compose-${{ inputs.release_version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            workspace/release-output
+            workspace/linux-compose-e2e.log
+            workspace/compose-startup.log
+            workspace/migration-failure.log
+            workspace/compose.resolved.json
+            workspace/provenance.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Clean up Compose projects
+        if: always()
+        working-directory: workspace
+        shell: bash
+        run: |
+          docker compose --env-file deploy/compose/.env -f deploy/compose/compose.yml -f deploy/compose/compose.build.yml down -v --remove-orphans || true
+          docker compose -p "go-admin-migration-failure-${{ github.run_id }}-${{ github.run_attempt }}" --env-file deploy/compose/.env -f deploy/compose/compose.yml -f deploy/compose/compose.build.yml -f deploy/compose/compose.migration-failure.yml down -v --remove-orphans || true

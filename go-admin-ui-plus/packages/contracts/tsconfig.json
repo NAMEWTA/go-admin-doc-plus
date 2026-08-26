@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "checkJs": false,
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"]
+}

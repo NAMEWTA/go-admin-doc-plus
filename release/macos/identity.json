@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "identity_status": "candidate",
+  "self_use_release_status": "approved",
+  "product_name": "Go Admin Plus",
+  "bundle_identifier": "com.namewta.go-admin-plus",
+  "minimum_system_version": "11.0",
+  "application_data_directory": "go-admin-plus",
+  "artifact_basename": "go-admin-plus-macos-arm64"
+}

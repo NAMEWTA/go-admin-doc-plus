@@ -1,0 +1,42 @@
+version: '3'
+
+vars:
+  PRODUCT_REPOSITORY: NAMEWTA/go-admin-plus
+  ROOT_SHA:
+    sh: git rev-parse HEAD
+
+tasks:
+  release:preflight:
+    requires:
+      vars: [VERSION]
+    cmds:
+      - node release/manifest/product-release.mjs preflight --version "{{.VERSION}}" --root-ref "{{.ROOT_SHA}}"
+      - node release/manifest/scan-compatibility.mjs
+      - node --test release/manifest/product-release.test.mjs
+
+  release:dispatch:
+    desc: Dispatch the three native monorepo release gates without publishing artifacts externally
+    requires:
+      vars: [VERSION]
+    preconditions:
+      - sh: command -v gh >/dev/null
+        msg: GitHub CLI is required to dispatch platform workflows
+      - sh: test "$(git ls-remote origin refs/heads/main | awk '{print $1}')" = "{{.ROOT_SHA}}"
+        msg: Product origin/main must equal the local monorepo commit before dispatch
+    cmds:
+      - gh workflow run release-linux.yml --repo "{{.PRODUCT_REPOSITORY}}" --ref main -f orchestration_ref="{{.ROOT_SHA}}" -f frontend_ref="{{.ROOT_SHA}}" -f release_version="{{.VERSION}}"
+      - gh workflow run release-macos.yml --repo "{{.PRODUCT_REPOSITORY}}" --ref main -f orchestration_ref="{{.ROOT_SHA}}" -f frontend_ref="{{.ROOT_SHA}}" -f release_version="{{.VERSION}}" -f release_mode=unsigned-self-use
+      - gh workflow run release-windows.yml --repo "{{.PRODUCT_REPOSITORY}}" --ref main -f orchestration_ref="{{.ROOT_SHA}}" -f frontend_ref="{{.ROOT_SHA}}" -f release_version="{{.VERSION}}" -f release_mode=unsigned-self-use
+
+  release:collect:
+    requires:
+      vars: [VERSION, LINUX_RUN_ID, LINUX_ARTIFACT_ID, MACOS_RUN_ID, MACOS_ARTIFACT_ID, WINDOWS_RUN_ID, WINDOWS_ARTIFACT_ID]
+    cmds:
+      - >-
+        node release/manifest/product-release.mjs collect
+        --version "{{.VERSION}}"
+        --linux-run-id "{{.LINUX_RUN_ID}}" --linux-artifact-id "{{.LINUX_ARTIFACT_ID}}"
+        --macos-run-id "{{.MACOS_RUN_ID}}" --macos-artifact-id "{{.MACOS_ARTIFACT_ID}}"
+        --windows-run-id "{{.WINDOWS_RUN_ID}}" --windows-artifact-id "{{.WINDOWS_ARTIFACT_ID}}"
+        --output product-manifest.json
+      - node release/manifest/product-release.mjs verify --manifest product-manifest.json

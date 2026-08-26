@@ -1,0 +1,24 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Local tooling and temporary files
+.env
+.env.*
+*.local
+*.log
+.cache/
+.temp/
+.tmp/
+tmp/
+dev_store/
+specdev-worktree/
+speculo/.speculo/back/

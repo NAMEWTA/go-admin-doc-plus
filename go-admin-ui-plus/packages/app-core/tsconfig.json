@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "checkJs": false,
+    "types": ["vite/client", "vitest/globals"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue", "../contracts/src/**/*.ts", "../api-client/src/**/*.ts"]
+}

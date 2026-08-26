@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>go-admin-plus 是怎样一起工作的</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f4f7f8; color: #17242a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    main { max-width: 1240px; margin: 0 auto; padding: 32px 20px 44px; }
+    h1 { margin: 0; font-size: 32px; letter-spacing: 0; }
+    .lead { margin: 8px 0 24px; color: #52646b; font-size: 17px; }
+    .picture { overflow: hidden; border: 1px solid #d6e0e2; background: #fff; box-shadow: 0 8px 24px rgba(23, 36, 42, .08); }
+    svg { display: block; width: 100%; height: auto; }
+    .note { margin: 20px 0 0; padding: 16px 18px; border-left: 4px solid #2b7a78; background: #eaf4f2; font-size: 17px; line-height: 1.65; }
+    .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .fact { padding: 14px 16px; border: 1px solid #d6e0e2; background: #fff; font-size: 15px; line-height: 1.5; }
+    .fact b { display: block; margin-bottom: 4px; color: #185c5a; }
+    @media (max-width: 700px) { main { padding: 20px 12px 28px; } h1 { font-size: 26px; } .lead { font-size: 16px; } .facts { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>go-admin-plus：一家有两间工作房的管理小店</h1>
+    <p class="lead">小朋友点一下网页，消息会穿过门禁，跑去后厨和仓库，再带着答案回来。</p>
+
+    <div class="picture" role="img" aria-label="go-admin-plus 的前后端、权限和数据调用图">
+      <svg viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#49656b"/></marker>
+          <style>
+            .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;fill:#17242a}.small{font-size:17px}.mid{font-size:22px;font-weight:700}.big{font-size:26px;font-weight:800}.tiny{font-size:14px;fill:#52646b}.line{stroke:#49656b;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#799296;stroke-width:2;stroke-dasharray:7 7;fill:none}.box{stroke:#36575d;stroke-width:2}.label{font-size:16px;font-weight:700;fill:#36575d}
+          </style>
+        </defs>
+        <rect width="1200" height="760" fill="#ffffff"/>
+        <rect x="32" y="24" width="1136" height="86" rx="6" fill="#eaf4f2" stroke="#b9d8d3"/>
+        <text x="68" y="62" class="t big">最外面：父仓库 = 小店的总盒子</text>
+        <text x="68" y="90" class="t small">它不把两间工作房的代码揉在一起，而是用 Git Submodule 记住它们各自的版本。</text>
+        <rect x="810" y="43" width="150" height="45" rx="5" fill="#fff5d6" stroke="#d6a94a"/>
+        <text x="885" y="72" class="t label" text-anchor="middle">dev_store</text>
+        <rect x="976" y="43" width="150" height="45" rx="5" fill="#fff5d6" stroke="#d6a94a"/>
+        <text x="1051" y="72" class="t label" text-anchor="middle">speculo</text>
+
+        <text x="40" y="148" class="t mid">小朋友的浏览器</text>
+        <rect x="40" y="165" width="214" height="185" rx="8" fill="#e7f0fb" stroke="#3e78a8" stroke-width="2"/>
+        <rect x="61" y="188" width="172" height="112" rx="4" fill="#fff" stroke="#7ea7c9"/>
+        <rect x="61" y="188" width="172" height="23" fill="#3e78a8"/>
+        <circle cx="74" cy="200" r="4" fill="#fff"/><circle cx="87" cy="200" r="4" fill="#fff"/>
+        <rect x="80" y="229" width="85" height="12" rx="3" fill="#8cb9d5"/><rect x="80" y="252" width="125" height="9" rx="3" fill="#c1d7e7"/><rect x="80" y="269" width="105" height="9" rx="3" fill="#c1d7e7"/>
+        <text x="147" y="327" class="t small" text-anchor="middle">点菜单、填表单</text>
+
+        <rect x="325" y="130" width="350" height="254" rx="8" fill="#e8f4fb" stroke="#3175a1" stroke-width="2"/>
+        <text x="350" y="164" class="t big">前台：go-admin-ui-plus</text>
+        <text x="350" y="193" class="t small">Vue 3 + Vite + Element Plus</text>
+        <rect x="350" y="216" width="132" height="124" rx="5" fill="#fff" stroke="#7eafca"/>
+        <text x="416" y="246" class="t label" text-anchor="middle">main.js</text>
+        <text x="416" y="274" class="t tiny" text-anchor="middle">装好 Vue</text>
+        <text x="416" y="296" class="t tiny" text-anchor="middle">Pinia、路由</text>
+        <text x="416" y="318" class="t tiny" text-anchor="middle">组件和样式</text>
+        <rect x="505" y="216" width="145" height="124" rx="5" fill="#fff" stroke="#7eafca"/>
+        <text x="578" y="246" class="t label" text-anchor="middle">permission.js</text>
+        <text x="578" y="274" class="t tiny" text-anchor="middle">有票吗？</text>
+        <text x="578" y="296" class="t tiny" text-anchor="middle">拿用户资料</text>
+        <text x="578" y="318" class="t tiny" text-anchor="middle">拼出可见菜单</text>
+
+        <rect x="760" y="130" width="398" height="254" rx="8" fill="#eef4e5" stroke="#638743" stroke-width="2"/>
+        <text x="785" y="164" class="t big">后厨：go-admin-plus</text>
+        <text x="785" y="193" class="t small">Go + Cobra + Gin + go-admin-core</text>
+        <rect x="785" y="216" width="104" height="124" rx="5" fill="#fff" stroke="#94b471"/>
+        <text x="837" y="246" class="t label" text-anchor="middle">cmd/</text>
+        <text x="837" y="274" class="t tiny" text-anchor="middle">server 命令</text>
+        <text x="837" y="296" class="t tiny" text-anchor="middle">读配置</text>
+        <text x="837" y="318" class="t tiny" text-anchor="middle">开 HTTP 门</text>
+        <rect x="907" y="216" width="104" height="124" rx="5" fill="#fff" stroke="#94b471"/>
+        <text x="959" y="246" class="t label" text-anchor="middle">router/</text>
+        <text x="959" y="274" class="t tiny" text-anchor="middle">认路</text>
+        <text x="959" y="296" class="t tiny" text-anchor="middle">/api/v1</text>
+        <text x="959" y="318" class="t tiny" text-anchor="middle">分给处理员</text>
+        <rect x="1029" y="216" width="104" height="124" rx="5" fill="#fff" stroke="#94b471"/>
+        <text x="1081" y="246" class="t label" text-anchor="middle">apis/</text>
+        <text x="1081" y="274" class="t tiny" text-anchor="middle">收请求</text>
+        <text x="1081" y="296" class="t tiny" text-anchor="middle">检查资料</text>
+        <text x="1081" y="318" class="t tiny" text-anchor="middle">回答 JSON</text>
+
+        <path d="M 255 257 L 323 257" class="line"/>
+        <text x="289" y="244" class="t tiny" text-anchor="middle">打开网页</text>
+        <path d="M 676 257 L 758 257" class="line"/>
+        <text x="717" y="244" class="t tiny" text-anchor="middle">HTTP 请求</text>
+
+        <rect x="90" y="445" width="1020" height="238" rx="8" fill="#fffaf0" stroke="#d6a94a" stroke-width="2"/>
+        <text x="118" y="482" class="t big">一次“查看用户列表”的小旅行</text>
+        <line x1="184" y1="554" x2="338" y2="554" class="line"/>
+        <line x1="452" y1="554" x2="606" y2="554" class="line"/>
+        <line x1="720" y1="554" x2="874" y2="554" class="line"/>
+        <line x1="874" y1="620" x2="720" y2="620" class="line"/>
+        <line x1="606" y1="620" x2="452" y2="620" class="line"/>
+        <line x1="338" y1="620" x2="184" y2="620" class="line"/>
+        <circle cx="150" cy="554" r="34" fill="#e7f0fb" stroke="#3e78a8" stroke-width="2"/><text x="150" y="560" class="t mid" text-anchor="middle">1</text>
+        <circle cx="418" cy="554" r="34" fill="#e8f4fb" stroke="#3175a1" stroke-width="2"/><text x="418" y="560" class="t mid" text-anchor="middle">2</text>
+        <circle cx="686" cy="554" r="34" fill="#eef4e5" stroke="#638743" stroke-width="2"/><text x="686" y="560" class="t mid" text-anchor="middle">3</text>
+        <circle cx="908" cy="554" r="34" fill="#fff5d6" stroke="#d6a94a" stroke-width="2"/><text x="908" y="560" class="t mid" text-anchor="middle">4</text>
+        <text x="150" y="605" class="t small" text-anchor="middle">页面要数据</text>
+        <text x="418" y="605" class="t small" text-anchor="middle">request.ts 带上票</text>
+        <text x="686" y="605" class="t small" text-anchor="middle">JWT + Casbin 门禁</text>
+        <text x="908" y="605" class="t small" text-anchor="middle">service + GORM</text>
+        <text x="908" y="658" class="t small" text-anchor="middle">从数据库拿答案</text>
+        <text x="686" y="658" class="t small" text-anchor="middle">apis 包成 JSON</text>
+        <text x="418" y="658" class="t small" text-anchor="middle">前端收下答案</text>
+        <text x="150" y="658" class="t small" text-anchor="middle">表格画出来</text>
+
+        <path d="M 1028 384 L 1028 442" class="dash"/>
+        <text x="1050" y="417" class="t tiny">数据库：SQLite（本地）</text>
+        <path d="M 886 89 L 886 128" class="dash"/>
+        <text x="900" y="121" class="t tiny">本地数据库、日志、上传文件</text>
+      </svg>
+    </div>
+
+    <p class="note"><b>最重要的一句话：</b>前端负责“让人看见和点击”，后端负责“认真办事和保管规则”。菜单和权限不是只藏在前端：登录后，后端把这个人能看到的菜单和能做的动作告诉前端；真正办事时，后端还会再检查一次。</p>
+    <div class="facts">
+      <div class="fact"><b>加一个页面</b>通常同时改前端 `views/`、`api/`，以及后端的 `router/`、`apis/`、`service/`、`models/`。</div>
+      <div class="fact"><b>后端的四张小纸条</b>`router` 指路，`apis` 接待，`service` 办事，`models` 描述数据库里的东西。</div>
+      <div class="fact"><b>本地运行的数据</b>在父仓库 `dev_store/`：SQLite、日志、上传文件。代码仍在两个独立子模块里。</div>
+    </div>
+  </main>
+</body>
+</html>

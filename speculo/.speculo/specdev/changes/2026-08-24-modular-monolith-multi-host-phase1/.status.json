@@ -1,0 +1,610 @@
+{
+  "schema_version": 6,
+  "artifact": "change-status",
+  "change": "2026-08-24-modular-monolith-multi-host-phase1",
+  "change_status": "completed",
+  "current_work": null,
+  "works_run": [
+    "specdev/spec",
+    "specdev/tickets",
+    "specdev/goal-plan",
+    "specdev/implement"
+  ],
+  "claimed_investigations": [],
+  "execution_authorization": {
+    "implementation_commit": {
+      "status": "authorized",
+      "source": "User allowed per-Ticket implementation commits and on 2026-08-25 explicitly authorized all repository pushes and related workflow dispatches for the active Goal Plan",
+      "granted_at": "2026-08-25T21:23:05+08:00",
+      "scope": "Per-Ticket implementation commits in current workspace plus repository pushes and related verification workflow dispatches for this Goal Plan; PR merge, deploy, publish, signing, production migration, and cleanup remain separately governed"
+    },
+    "local_candidate_integration": {
+      "status": "authorized",
+      "source": "User selected current workspace with per-Ticket local commits",
+      "granted_at": "2026-08-24T20:22:58+08:00",
+        "scope": "Lead-owned direct-parent verification and parent branch advancement; remote pushes are governed by implementation_commit authorization, while PR or remote merge remains separately governed"
+    },
+    "source_cleanup": {
+      "status": "not-authorized",
+      "source": null,
+      "granted_at": null,
+      "scope": "Source worktree and branch cleanup"
+    }
+  },
+  "leadership": {
+    "current": "root",
+    "epoch": 1,
+    "assigned_at": "2026-08-24T19:39:26+08:00",
+    "history": []
+  },
+  "created_at": "2026-08-24T19:39:26+08:00",
+  "updated_at": "2026-08-26T02:11:06+08:00",
+  "completed_at": "2026-08-26T02:11:06+08:00",
+  "archived": false,
+  "archive_path": null,
+  "blockers": [],
+  "deviations": [
+    "DEV-001: user approved Phase 1 macOS and Windows unsigned-self-use distribution on 2026-08-25; platform-trusted signing/notarization is deferred and self-use artifacts require checksum, explicit trust state, scoped user authorization guidance, and native offline verification"
+  ],
+  "worktrees": [
+    {
+      "ticket_id": "T-01",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "34524fd5d6ca17f39ae435eea997feaac340762c",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "e912bcdca930c87e69c3073b58d045e2617c1d1e",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "34524fd5d6ca17f39ae435eea997feaac340762c",
+        "source_sha": "e912bcdca930c87e69c3073b58d045e2617c1d1e",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "e912bcdca930c87e69c3073b58d045e2617c1d1e",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "G0 establishes the full regression baseline",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-01.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "T-01 defines the Admin behavior baseline",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-01.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-01.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T10:27:37+08:00"
+    },
+    {
+      "ticket_id": "T-02",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "9faf7e9154567780f8f8f876feacde84eaf6e753",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "1ba844ad6efd708867274d933429ba19961196b0",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "9faf7e9154567780f8f8f876feacde84eaf6e753",
+        "source_sha": "1ba844ad6efd708867274d933429ba19961196b0",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "1ba844ad6efd708867274d933429ba19961196b0",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Application lifecycle, full Go suite, build, race checks, and characterization passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-02.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Real temporary SQLite CLI/API smoke and bounded SIGINT cleanup passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-02.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-02.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T10:47:54+08:00"
+    },
+    {
+      "ticket_id": "T-03",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "149b04a1b6261fce5160988db6670430877d5b5e",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "fa5dc13efdf2af797b447961ce1997636b1f0cfe",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "bb367669d621ead495ac63061c387b3ae45aeca5",
+        "source_sha": "fa5dc13efdf2af797b447961ce1997636b1f0cfe",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "fa5dc13efdf2af797b447961ce1997636b1f0cfe",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go tests, affected race tests, vet, native build, and Linux/Windows AMD64 cross-builds passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-03.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Disposable PostgreSQL 17 and Redis plus SQLite upgrade/recovery, FileStore, queue, tenant, and jobs lifecycle contracts passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-03.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-03.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T13:10:38+08:00"
+    },
+    {
+      "ticket_id": "T-04",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "09b9bf54d57230d50fe1ef02f99e1363d9005d2b",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "9a5f4b1221a1f778bd02b3bd9040d7cbdb155f1e",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "9205b8b136c382aa82a3e5bf3c5bba0ae76ba487",
+        "source_sha": "9a5f4b1221a1f778bd02b3bd9040d7cbdb155f1e",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "9a5f4b1221a1f778bd02b3bd9040d7cbdb155f1e",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go tests, affected race tests, vet, Makefile builds, and Linux/Windows AMD64 cross-builds passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-04.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Real PostgreSQL 17.11/Redis 8.10 Server profile and SQLite legacy process, HTTP, dependency degradation, migration, and signal contracts passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-04.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-04.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T14:05:33+08:00"
+    },
+    {
+      "ticket_id": "T-05",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "cff2f0259f829ca3ad861dfd63d3c901082c5f5e",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "c5147971092ec27c5d65ff70e07051a2d0cfcafb",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "cff2f0259f829ca3ad861dfd63d3c901082c5f5e",
+        "source_sha": "c5147971092ec27c5d65ff70e07051a2d0cfcafb",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "c5147971092ec27c5d65ff70e07051a2d0cfcafb",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Frozen install, unit, type, lint, API contract, production build, directory contract, and 136 mocked E2E passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-05.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "136 mocked Playwright scenarios passed after the final pnpm 11 dependency resolution",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-05.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-05.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T11:18:16+08:00"
+    },
+    {
+      "ticket_id": "T-06",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "62ddf07afc9ee1943e2d647b0d142ecab7070b47",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "66aee46b7c083a986481b10d92d9cf6746471644",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "65fdc009ab3349a765f7296584bc44684c3984d7",
+        "source_sha": "66aee46b7c083a986481b10d92d9cf6746471644",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "66aee46b7c083a986481b10d92d9cf6746471644",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go/race/vet plus frontend unit, type, lint, frozen install, generation, purity, and production build passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-06.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Real SQLite ServerHost and Chromium same-origin Web contract plus simulated Desktop Runtime/Client contracts passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-06.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-06.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T14:59:04+08:00"
+    },
+    {
+      "ticket_id": "T-07",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "bf18c5e16743ca455dbc98fc78248dfd038bc7fa",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "ea79b44adb2886699ed3ed63d2c5f44554e91165",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "7239a2b360cffb458467645759a73f13656c46a9",
+        "source_sha": "ea79b44adb2886699ed3ed63d2c5f44554e91165",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "ea79b44adb2886699ed3ed63d2c5f44554e91165",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go/vet plus frontend unit, type, lint, frozen install, boundary, production build, and browser regression passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-07.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "All 136 mocked Admin tests and the strict 20-route routeKey/legacy/unknown Chromium matrix passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-07.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-07.md</Path>",
+        "attempts": 1,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T15:53:12+08:00"
+    },
+    {
+      "ticket_id": "T-08",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "daf714718d78a96baf891553a0115b969da60621",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "2cd0139304854ec2938e7d7447bc3e2153bd1aeb",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "a14407693fe18bccb0e5ae0934a84b7d1c6e70aa",
+        "source_sha": "2cd0139304854ec2938e7d7447bc3e2153bd1aeb",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "2cd0139304854ec2938e7d7447bc3e2153bd1aeb",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go/race/vet after the Windows DSN fix, macOS and Windows AMD64 Wails builds, frontend lint/type/unit/API/build, and 136 mocked E2E passed",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-08.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "macOS ARM64 native Wails login/CRUD passed and Windows AMD64 native run 32842185071 passed build, WebView2 startup, login, getinfo, CRUD, and exact marker verification",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-08.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-08.md</Path>",
+        "attempts": 3,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T19:35:56+08:00"
+    },
+    {
+      "ticket_id": "T-09",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "7894b92fd923f48297efd1c103854416d634fa6b",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "321616ce359488e8404c0099557432cb6bb80da7",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "7894b92fd923f48297efd1c103854416d634fa6b",
+        "source_sha": "321616ce359488e8404c0099557432cb6bb80da7",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "321616ce359488e8404c0099557432cb6bb80da7",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go/race/vet, native platform/LAN/shutdown probes, frontend lint/type/unit/API, Windows/Linux cross-builds, and macOS ARM64 native build/run passed on the current workspace",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-09.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "macOS ARM64 tagged GUI and production double-instance/restart/backup passed; Windows Server 2025 AMD64 run 32852402806 passed profile/native hardening, Wails build, WebView2 login/getinfo/CRUD, and exact marker",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-09.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-09.md</Path>",
+        "attempts": 3,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T21:23:05+08:00"
+    },
+    {
+      "ticket_id": "T-10",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "7e5912c36b31c08a2ced1b7b9a97b07db7a8210c",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "085eb94754f4bfda52583ec092f27fde5ffe8040",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "7e5912c36b31c08a2ced1b7b9a97b07db7a8210c",
+        "source_sha": "085eb94754f4bfda52583ec092f27fde5ffe8040",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "085eb94754f4bfda52583ec092f27fde5ffe8040",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Full Go source gate, frontend type/unit/build, Compose schema and linux/amd64 image build passed on the current workspace and Ubuntu runner",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-10.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Linux AMD64 run 32860819614 passed empty-volume migration/startup, production captcha login, CRUD persistence, proxy/security, dependency degradation, failed-migration blocking, digest, checksum and SBOM gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-10.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-10.md</Path>",
+        "attempts": 3,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T22:55:00+08:00"
+    },
+    {
+      "ticket_id": "T-11",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "3914d7a735b74707aaaf7d21805643a95b035949",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "bf45f45fb2cbbb5d2313009526091cb1eb746a97",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "59eae0732824dc716f886d91e4b6c1f055ccb4b8",
+        "source_sha": "bf45f45fb2cbbb5d2313009526091cb1eb746a97",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "bf45f45fb2cbbb5d2313009526091cb1eb746a97",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Local release gates and native GitHub run 32868421377 passed full Go, two native tracer runs, production ARM64 app, ad-hoc identity, DMG, manifest, SPDX SBOM, checksums, scoped install verification, and artifact upload",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-11.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Native run 32868421377 passed WebView login/getinfo/CRUD on first and persisted restart, then verified the fixed-source unsigned-self-use app, mounted DMG, Gatekeeper rejection, and scoped quarantine installation path",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-11.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-11.md</Path>",
+        "attempts": 3,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-25T23:58:21+08:00"
+    },
+    {
+      "ticket_id": "T-12",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "f5909576a4ce70e616eaaf12dd620774c03e8aa4",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "6f38a4c8ac97e03b2342297c567c2228ead95ea3",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "60bb1768e163534d2d90475df332af94ad45cbe3",
+        "source_sha": "6f38a4c8ac97e03b2342297c567c2228ead95ea3",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "6f38a4c8ac97e03b2342297c567c2228ead95ea3",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Local contract and source gates plus native Windows run 32876957102 passed full Go, two tracer runs, AMD64 Wails/NSIS, version identity, unsigned state, payload, SBOM, checksums and artifact upload",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-12.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Native Windows run 32876957102 passed login/getinfo/CRUD first and persisted restart, outbound-blocked WebView2 payload install, user-scope install/start/SQLite, upgrade sentinel retention, uninstall and AppData retention",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-12.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-12.md</Path>",
+        "attempts": 3,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-26T01:33:17+08:00"
+    },
+    {
+      "ticket_id": "T-13",
+      "owner": "root",
+      "implementation_owner": "root",
+      "integration_owner": "root",
+      "provider": "git",
+      "base_sha": "3ef3a6cc713493e1a000dc021c861a4935a65ffb",
+      "parent_branch": "main",
+      "branch": "main",
+      "workspace_ref": "current",
+      "source_checkpoint": "2f01bae8ce3c0dd50271ce6d978b7084efa737e8",
+      "integration": {
+        "status": "passed",
+        "parent_ref": "main",
+        "parent_before_sha": "3ef3a6cc713493e1a000dc021c861a4935a65ffb",
+        "source_sha": "2f01bae8ce3c0dd50271ce6d978b7084efa737e8",
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": "2f01bae8ce3c0dd50271ce6d978b7084efa737e8",
+        "method": "direct-parent",
+        "conflict_paths": [],
+        "verification": "passed",
+        "full_suite": {
+          "required": true,
+          "status": "passed",
+          "reason": "Local full Go/vet and frontend CI/build plus Product run 32881713952 passed source, OpenAPI, compatibility and manifest gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-13.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "passed",
+          "reason": "Linux run 32880870190, macOS run 32880876001 and Windows run 32880882112 passed required Compose, native WebView, install, upgrade and persistence gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-13.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-24-modular-monolith-multi-host-phase1/evidence/T-13.md</Path>",
+        "attempts": 2,
+        "promotion_status": "applied"
+      },
+      "status": "integrated",
+      "updated_at": "2026-08-26T02:11:06+08:00"
+    }
+  ]
+}

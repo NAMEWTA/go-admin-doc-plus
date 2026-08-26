@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+# One deploy at a time. Two merges seconds apart raced here: both runs did
+# docker rm -f then docker run, the second removed the container the first had
+# just created, and the first's docker run then failed on a name conflict -
+# leaving the demo on the older image with a red deploy.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: registry.ap-northeast-1.aliyuncs.com/go-admin/go-admin-api # 镜像名称
+  TAG: ${{ github.sha }}
+  IMAGE_NAME_TAG: registry.ap-northeast-1.aliyuncs.com/go-admin/go-admin-api:${{ github.sha }}
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.26.5
+
+      - name: Tidy
+        run: go mod tidy
+
+      - name: Build
+        run: env CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -tags "sqlite3,json1" --ldflags "-extldflags -static" -o main .
+
+      # 以下推镜像与重启步骤仅在 master 收到 push 时执行。
+      # pull_request 事件同样会触发本工作流，若不加限制，任何指向 master 的
+      # PR 一经创建就会把 PR 分支的镜像推上仓库，并直接重启线上 API 服务，
+      # 且发生在合并之前。构建与编译校验不受影响，PR 仍会执行。
+      - name: Build the Docker image and push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker login --username=${{ secrets.DOCKER_USERNAME }} registry.ap-northeast-1.aliyuncs.com --password=${{ secrets.DOCKER_PASSWORD }}
+          echo "************ docker login end"
+          docker build -t go-admin-api:latest .
+          echo "************ docker build end"
+          docker tag go-admin-api ${{ env.IMAGE_NAME_TAG }}
+          echo "************ docker tag end"
+          docker images
+          echo "************ docker images end"
+          docker push ${{ env.IMAGE_NAME_TAG }}  # 推送
+          echo "************ docker push end"
+
+      - name: Restart server   # 第五步，重启服务
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          GITHUB_SHA_X: ${GITHUB_SHA}
+        with:
+          host: ${{ secrets.SSH_HOST }}  # 下面三个配置与上一步类似
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.DEPLOY_KEY }}
+          # 重启的脚本，根据自身情况做相应改动，一般要做的是migrate数据库以及重启服务器
+          script: |
+            sudo docker rm -f go-admin-api
+            sudo docker login --username=${{ secrets.DOCKER_USERNAME }} registry.ap-northeast-1.aliyuncs.com --password=${{ secrets.DOCKER_PASSWORD }}
+            sudo docker run -d -p 8000:8000 --name go-admin-api ${{ env.IMAGE_NAME_TAG }}

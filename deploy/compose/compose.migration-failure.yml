@@ -1,0 +1,3 @@
+services:
+  migrate:
+    command: ["migrate", "--definitely-invalid-flag"]

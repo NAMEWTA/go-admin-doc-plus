@@ -1,0 +1,16 @@
+packages:
+  - apps/*
+  - domains/*
+  - packages/*
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@tsparticles/engine': true
+  core-js: true
+  vue-demi: true
+
+overrides:
+  '@vue/devtools-api': '6.6.4'
+  'postcss@<8.4.31': '>=8.4.31'
+  'braces@<3.0.3': '>=3.0.3'
+  'glob@<10.5.0': '>=10.5.0'

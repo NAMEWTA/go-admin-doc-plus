@@ -1,0 +1,10 @@
+{
+  "schema_version": 5,
+  "workflow": "specdev",
+  "active": [
+    {
+      "change": "2026-08-24-go-admin-plus-architecture"
+    }
+  ],
+  "archived": []
+}

@@ -1,0 +1,131 @@
+name: Windows Desktop Tracer
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_ref:
+        description: Exact monorepo commit containing the frontend to embed
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-desktop-tracer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-tracer:
+    name: Windows AMD64 native Wails tracer
+    runs-on: windows-2025
+    timeout-minutes: 30
+    env:
+      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_ref }}
+
+    steps:
+      - name: Check out monorepo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Go 1.26.5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: go-admin-plus/go.sum
+
+      - name: Set up Node 22.22.3
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+
+      - name: Install pinned build tools
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack install --global pnpm@11.1.3
+          go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
+          (Join-Path (go env GOPATH) 'bin') | Out-File -FilePath $env:GITHUB_PATH -Append
+          node --version
+          pnpm --version
+          go version
+
+      - name: Capture native environment
+        shell: pwsh
+        run: |
+          $logDirectory = Join-Path $env:RUNNER_TEMP 'desktop-tracer-logs'
+          New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
+          if ($env:EXPECTED_FRONTEND_SHA -notmatch '^[0-9a-fA-F]{40}$') {
+            throw 'frontend_ref must be an exact 40-character Git commit SHA.'
+          }
+          $backendSHA = git -C go-admin-plus rev-parse HEAD
+          $frontendSHA = git -C go-admin-ui-plus rev-parse HEAD
+          if ($backendSHA -ne '${{ github.sha }}') {
+            throw "Backend checkout $backendSHA does not match dispatch SHA."
+          }
+          if ($frontendSHA -ne $env:EXPECTED_FRONTEND_SHA.ToLowerInvariant()) {
+            throw "Frontend checkout $frontendSHA does not match requested SHA."
+          }
+          @{
+            backend_sha = $backendSHA
+            frontend_sha = $frontendSHA
+            requested_frontend_ref = $env:EXPECTED_FRONTEND_SHA
+            runner_os = $env:RUNNER_OS
+            runner_arch = $env:RUNNER_ARCH
+            windows = [System.Environment]::OSVersion.VersionString
+            powershell = $PSVersionTable.PSVersion.ToString()
+          } | ConvertTo-Json | Set-Content (Join-Path $logDirectory 'provenance.json')
+          wails doctor 2>&1 | Tee-Object -FilePath (Join-Path $logDirectory 'wails-doctor.log')
+
+      - name: Run native desktop hardening tests
+        shell: pwsh
+        working-directory: go-admin-plus
+        run: |
+          go test -v ./internal/profile ./internal/platform/desktop ./internal/host/desktop ./test/desktop -count=1
+
+      - name: Build tagged Windows AMD64 tracer
+        shell: pwsh
+        working-directory: go-admin-plus/cmd/go-admin-desktop
+        run: |
+          $buildArguments = @(
+            'build'
+            '-clean'
+            '-skipbindings'
+            '-platform', 'windows/amd64'
+            '-tags', 'sqlite3,desktop_e2e'
+            '-webview2', 'error'
+            '-windowsconsole'
+            '-v', '2'
+          )
+          & wails @buildArguments
+          $executable = Resolve-Path 'build/bin/go-admin-desktop.exe'
+          go version -m $executable
+
+      - name: Run native login and CRUD tracer
+        shell: pwsh
+        run: |
+          $tracerArguments = @{
+            Executable = './go-admin-plus/cmd/go-admin-desktop/build/bin/go-admin-desktop.exe'
+            DataRoot = (Join-Path $env:RUNNER_TEMP 'desktop-tracer-data')
+            LogDirectory = (Join-Path $env:RUNNER_TEMP 'desktop-tracer-logs')
+            TimeoutSeconds = 180
+          }
+          ./go-admin-plus/cmd/go-admin-desktop/scripts/run-native-tracer.ps1 @tracerArguments
+          @(
+            '## Windows Desktop Tracer'
+            ''
+            "- Backend: $(git -C go-admin-plus rev-parse HEAD)"
+            "- Frontend: $(git -C go-admin-ui-plus rev-parse HEAD)"
+            '- Result: GO_ADMIN_DESKTOP_E2E_PASS'
+          ) | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload tracer diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-desktop-tracer-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/desktop-tracer-logs
+          if-no-files-found: error
+          retention-days: 7
