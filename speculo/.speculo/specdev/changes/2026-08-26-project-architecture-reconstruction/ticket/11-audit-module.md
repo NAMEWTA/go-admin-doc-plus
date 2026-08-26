@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-11
 title: Audit 登录与操作审计垂直切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 审计跨认证和业务事件且包含隐私、保留与清理安全要求
 ready: true
@@ -113,9 +113,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-11 under
 
 ## 10. 验收标准
 
-- [ ] `AC-016`：审计事实完整、幂等可恢复，查询/清理受权且敏感值零泄露。
-- [ ] `AC-035`：审计列表/筛选/清理交互符合共享合同。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] E2E disposition 已执行且 shared path 无越权写入。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-016`：审计事实完整、幂等可恢复，查询/清理受权且敏感值零泄露。
+- [x] `AC-035`：审计列表/筛选/清理交互符合共享合同。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] E2E disposition 已执行且 shared path 无越权写入。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。

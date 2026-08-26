@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T06:02:10+08:00",
+  "updated_at": "2026-08-27T06:56:25+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -560,38 +560,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-11",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-11",
-      "source_checkpoint": "cb86e2ffa58ccf8ce40df7d03a0f06f7c2dc81ec",
+      "source_checkpoint": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "70d277364915f12d757b83b1085c328bc12a1442",
+        "source_sha": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
+        "candidate_sha": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
+        "candidate_tree_sha": "c054434e79ec4b52d33759ffb79d7abbb0d3309c",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-11",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-11",
+        "result_sha": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
+        "method": "fast-forward",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G4 requires Audit event, redaction, idempotency, retention, Go/TypeScript, contract, and build checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-11 must prove login and operation events reach authorized Audit UI without sensitive data in PostgreSQL and SQLite",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 2,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T05:25:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-27T06:56:25+08:00"
     },
     {
       "ticket_id": "T-14",
