@@ -5,7 +5,7 @@ import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
 const safeDiagnostic = (error: unknown) => {
-  const message = error instanceof Error ? error.message : 'unknown browser assertion'
+  const message = typeof error === 'string' ? error : error instanceof Error ? error.message : 'unknown browser assertion'
   return message
     .replace(/\b(?:https?|postgres(?:ql)?):\/\/\S+/gi, '[redacted-url]')
     .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
