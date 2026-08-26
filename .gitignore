@@ -41,6 +41,7 @@ speculo/.speculo/back/
 
 # Frontend dependencies, builds and test reports
 /go-admin-plus-ui/node_modules/
+/go-admin-plus-ui/**/node_modules/
 /go-admin-plus-ui/**/dist/
 /go-admin-plus-ui/tests/**/coverage/
 /go-admin-plus-ui/tests/e2e/reports/
