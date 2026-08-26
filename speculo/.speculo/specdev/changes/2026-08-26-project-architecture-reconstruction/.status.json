@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T20:48:00+08:00",
+  "updated_at": "2026-08-26T20:13:53+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -194,36 +194,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-03",
       "source_checkpoint": "3801d776001b00d9d2a63e7343ca2f319986848a",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "b9faa150433eb533d9c4db35b98fc54cc2272001",
         "source_sha": "3801d776001b00d9d2a63e7343ca2f319986848a",
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "candidate_sha": "cfae1e71cec1d123bc6ce0fca1d8f92938db78f2",
+        "candidate_tree_sha": "55a3d581d5498838bd49184b6dd910d11bb49df2",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-03",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-03",
+        "result_sha": "cfae1e71cec1d123bc6ce0fca1d8f92938db78f2",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G2 requires Go unit/race/static checks plus profile and observability regression on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-03.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-03 must prove a real process does not listen on invalid configuration and exposes correct lifecycle status transitions",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-03.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-03.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-26T20:48:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-26T20:13:53+08:00"
     },
     {
       "ticket_id": "T-05",
@@ -266,7 +266,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T20:40:00+08:00"
+      "updated_at": "2026-08-26T20:13:53+08:00"
     }
   ]
 }

@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-03
 title: 应用内核、类型化 Profile 与可观测启动链
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 启动生命周期、配置 secret 边界和运行状态端点影响全部宿主
 ready: true
