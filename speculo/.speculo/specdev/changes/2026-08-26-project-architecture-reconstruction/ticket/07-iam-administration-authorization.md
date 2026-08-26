@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-07
 title: IAM 管理与 Permission Code 授权闭环
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 权限、数据范围、管理 schema 和即时授权决定全部受保护业务行为
 ready: true
 risk: critical
 blocked_by: [T-06]
 contract_ids: [AC-011, AC-013, AC-035, AC-036]
-owner: unassigned
+owner: codex-t07-iam
 expected_changes: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0020-administration-*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus/test/iam/authorization/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/iam/administration/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]

@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-11
 title: Audit 登录与操作审计垂直切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 审计跨认证和业务事件且包含隐私、保留与清理安全要求
 ready: true
 risk: high
 blocked_by: [T-06, T-08]
 contract_ids: [AC-016, AC-035]
-owner: unassigned
+owner: codex-t11-audit
 expected_changes: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus/test/audit/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/audit/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]

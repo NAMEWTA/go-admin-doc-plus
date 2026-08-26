@@ -395,6 +395,49 @@
       "updated_at": "2026-08-27T02:08:40+08:00"
     },
     {
+      "ticket_id": "T-07",
+      "owner": "codex-t07-iam",
+      "implementation_owner": "codex-t07-iam",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "c108f8bff07b386cd83356236dc79cd11c301813",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-07",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-07",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G3 requires IAM administration, authorization, data-scope, Go/TypeScript, contract, and build checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-07 must prove administration CRUD, immediate permission changes, menu visibility, and direct API denial across PostgreSQL and SQLite",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-07.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T02:12:20+08:00"
+    },
+    {
       "ticket_id": "T-08",
       "owner": "codex-t08-reliability",
       "implementation_owner": "codex-t08-reliability",
@@ -436,6 +479,49 @@
       },
       "status": "integrated",
       "updated_at": "2026-08-27T00:40:00+08:00"
+    },
+    {
+      "ticket_id": "T-11",
+      "owner": "codex-t11-audit",
+      "implementation_owner": "codex-t11-audit",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "c108f8bff07b386cd83356236dc79cd11c301813",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-11",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-11",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G4 requires Audit event, redaction, idempotency, retention, Go/TypeScript, contract, and build checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-11 must prove login and operation events reach authorized Audit UI without sensitive data in PostgreSQL and SQLite",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T02:12:20+08:00"
     }
   ]
 }
