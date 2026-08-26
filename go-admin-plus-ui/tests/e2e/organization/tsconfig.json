@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@go-admin/domain-organization": ["../../../packages/domains/organization/src/index.ts"],
+      "@go-admin/domain-iam/administration": ["../../../packages/domains/iam/src/administration/index.ts"],
+      "@go-admin/domain-iam/session": ["../../../packages/domains/iam/src/session/index.ts"],
+      "@go-admin/web-domain-organization": ["../../../packages/web-domains/organization/src/index.ts"],
+      "@go-admin/web-domain-iam/administration": ["../../../packages/web-domains/iam/src/administration/index.ts"],
+      "@go-admin/web-domain-iam/session": ["../../../packages/web-domains/iam/src/session/index.ts"],
+      "@go-admin/ui": ["../../../packages/ui/src/index.ts"],
+      "vue": ["../../../packages/web-domains/organization/node_modules/vue"]
+    },
+    "strict": true,
+    "target": "ES2024",
+    "types": ["vite/client"]
+  },
+  "include": ["./browser-driver.ts", "../../../packages/web-domains/organization/src/**/*.vue", "../../../packages/web-domains/organization/src/vue.d.ts"]
+}
