@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T20:09:00+08:00",
+  "updated_at": "2026-08-26T20:17:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -192,12 +192,12 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-03",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-03",
-      "source_checkpoint": null,
+      "source_checkpoint": "48a97ff77f0f07501fe7492a6fa4aaee59255f0c",
       "integration": {
         "status": "pending",
         "parent_ref": null,
         "parent_before_sha": null,
-        "source_sha": null,
+        "source_sha": "48a97ff77f0f07501fe7492a6fa4aaee59255f0c",
         "candidate_sha": null,
         "candidate_tree_sha": null,
         "candidate_branch": null,
@@ -223,7 +223,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T19:25:00+08:00"
+      "updated_at": "2026-08-26T20:17:00+08:00"
     },
     {
       "ticket_id": "T-05",
