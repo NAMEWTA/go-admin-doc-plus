@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-02
 title: OpenAPI 合同与双方生成基座
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 公共 API、错误语义和双方生成物是所有垂直切片共享的外部合同
 ready: true
 risk: high
 blocked_by: [T-01]
 contract_ids: [AC-023, AC-025]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/openapi.yaml</Path>", "<Path>contracts/openapi/components/**</Path>", "<Path>contracts/openapi/modules/_template.yaml</Path>", "<Path>scripts/contracts/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/spec.md</Path>", "<Path>go-admin-plus/api/openapi/**</Path>", "<Path>go-admin-ui-plus/packages/contracts/**</Path>"]

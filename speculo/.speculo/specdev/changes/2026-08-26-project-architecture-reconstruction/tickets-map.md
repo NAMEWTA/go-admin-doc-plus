@@ -24,7 +24,7 @@ status: in_progress
 | ID | Ticket | 可观察产出 | Blocked By | Depth | Risk | Ready | Owner | Contract IDs | Wave/Gate | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
 | T-01 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/01-root-governance-command-plane.md</Path>` | 根治理与统一任务入口 | — | deep | high | yes | codex-root | AC-001, AC-002 | W0 / G0 | done |
-| T-02 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/02-openapi-contract-foundation.md</Path>` | OpenAPI 与双方生成基座 | T-01 | deep | high | yes | unassigned | AC-023, AC-025 | W1 / G1 | ready |
+| T-02 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/02-openapi-contract-foundation.md</Path>` | OpenAPI 与双方生成基座 | T-01 | deep | high | yes | codex-root | AC-023, AC-025 | W1 / G1 | in_progress |
 | T-03 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/03-runtime-profiles-observability.md</Path>` | 三 Profile 配置和生命周期 | T-02 | deep | high | yes | unassigned | AC-005, AC-026, AC-027 | W2 / G2 | ready |
 | T-04 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/04-dual-dialect-persistence-migrations.md</Path>` | 双方言迁移与 Database 基座 | T-03 | deep | high | yes | unassigned | AC-003, AC-004, AC-024, AC-034 | W3 / G2 | ready |
 | T-05 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/05-frontend-workspace-shell.md</Path>` | Workspace、Shell 和交互基座 | T-02 | deep | high | yes | unassigned | AC-035, AC-036 | W2 / G2 | ready |

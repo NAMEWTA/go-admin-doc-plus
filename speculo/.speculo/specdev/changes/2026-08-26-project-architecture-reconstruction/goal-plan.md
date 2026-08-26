@@ -288,7 +288,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - G-BASELINE 已完成：原始 170 项 tracked 改动和 6 个 untracked 条目经 secret/大文件/生成物审计后，形成 `main@888900751ab2b04d2db5fa8d5e6a6b811599ce93` 不可变基线。
 - 基线 Go test、前端 unit/type/lint/build 与 Goal Plan validator 已实测通过，validator 结果为 0 error / 0 warning。
 - `G0 Root Command` 已关闭：T-01 source 为 `a19199c251a140db399a31fcb3a8ddb7aac4e61e`，parent before 为 `464a4d2c7ef5542b85ec6512837dbb47a6079b20`，通过验证并提升的 candidate/result 为 `249571939f7497fd7c216e6b5985847c0b941e2f`（tree `dad0853a660bc1d63fbe34cb8da758fc302d62a8`）。
-- 当前 Gate 为 `G1 Contract Stable`，下一工作为 T-02；T-02 必须基于包含 T-01 result 的最新 `main` checkpoint 创建 source worktree。
+- 当前 Gate 为 `G1 Contract Stable`；T-02 已从包含 T-01 result 的 `main@9fb27f69e79b7acb84bf65a7328b2254d2d20359` 创建 source worktree，状态为 `in_progress`。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
