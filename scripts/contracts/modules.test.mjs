@@ -40,6 +40,10 @@ for (const [name, document] of [
     'x-go-admin-module': 'demo',
     'x-go-admin-codegen': { owner: 'demo', goPackage: 'demo', goOutput: 'go-admin-plus/internal/modules/settings/transport/openapi.gen.go', typescriptOutput: 'go-admin-plus-ui/packages/domains/demo/src/generated' }
   }],
+  ['Go output missing the owner transport directory', {
+    'x-go-admin-module': 'transport-fragment',
+    'x-go-admin-codegen': { owner: 'transport', goPackage: 'transport', goOutput: 'go-admin-plus/internal/modules/transport/openapi.gen.go', typescriptOutput: 'go-admin-plus-ui/packages/domains/transport/src/generated' }
+  }],
   ['unknown codegen metadata', {
     'x-go-admin-module': 'demo',
     'x-go-admin-codegen': { owner: 'demo', goPackage: 'demo', goOutput: 'go-admin-plus/internal/modules/demo/transport/openapi.gen.go', typescriptOutput: 'go-admin-plus-ui/packages/domains/demo/src/generated', unsupported: true }
@@ -80,5 +84,6 @@ test('uses one path grammar for nested generation targets and manifest entries',
   assert.equal(parseManagedModuleOutput('go-admin-plus-ui/packages/domains/iam/src/session_v2/generated')?.kind, 'typescript-directory')
   assert.equal(isManagedGeneratedOutput('go-admin-plus-ui/packages/domains/iam/src/session_v2/generated/client.ts'), true)
   assert.equal(isManagedGeneratedOutput('go-admin-plus-ui/packages/domains/iam/manual/generated/client.ts'), false)
+  assert.equal(isManagedGeneratedOutput('go-admin-plus/internal/modules/transport/openapi.gen.go'), false)
   assert.match(metadata.goOutput, /session_v2/)
 })

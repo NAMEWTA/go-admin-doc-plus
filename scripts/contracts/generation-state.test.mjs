@@ -65,18 +65,25 @@ test('rejects a manifest path outside the generated owner grammar without deleti
   const outputRoot = mkdtempSync(join(tmpdir(), 'contract-state-output-'))
   try {
     synchronizeGeneration(outputRoot, [])
-    const unmanagedRelative = 'go-admin-plus-ui/packages/domains/iam/manual/generated/client.ts'
-    const unmanaged = join(outputRoot, unmanagedRelative)
-    mkdirSync(dirname(unmanaged), { recursive: true })
-    writeFileSync(unmanaged, 'keep me')
+    const unmanagedPaths = [
+      'go-admin-plus-ui/packages/domains/iam/manual/generated/client.ts',
+      'go-admin-plus/internal/modules/transport/openapi.gen.go'
+    ]
+    for (const path of unmanagedPaths) {
+      const unmanaged = join(outputRoot, path)
+      mkdirSync(dirname(unmanaged), { recursive: true })
+      writeFileSync(unmanaged, `keep ${path}`)
+    }
 
     const manifestPath = join(outputRoot, 'scripts/contracts/generated/manifest.json')
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-    manifest.outputs.push(unmanagedRelative)
+    manifest.outputs.push(...unmanagedPaths)
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
     assert.throws(() => synchronizeGeneration(outputRoot, []), /unmanaged output paths/)
-    assert.equal(readFileSync(unmanaged, 'utf8'), 'keep me')
+    for (const path of unmanagedPaths) {
+      assert.equal(readFileSync(join(outputRoot, path), 'utf8'), `keep ${path}`)
+    }
   } finally {
     rmSync(outputRoot, { recursive: true, force: true })
   }
