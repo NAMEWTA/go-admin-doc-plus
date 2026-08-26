@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-07
 title: IAM 管理与 Permission Code 授权闭环
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 权限、数据范围、管理 schema 和即时授权决定全部受保护业务行为
 ready: true
@@ -112,9 +112,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-07 under
 
 ## 10. 验收标准
 
-- [ ] `AC-011`：Permission Code/数据范围矩阵在 UI 和后端最终判定均成立。
-- [ ] `AC-013`：IAM 管理闭环、引用冲突和即时权限变更可判定。
-- [ ] `AC-035/AC-036`：管理交互、菜单和路由状态符合共享合同。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-07.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
+- [x] `AC-011`：Permission Code/数据范围矩阵在 UI 和后端最终判定均成立。
+- [x] `AC-013`：IAM 管理闭环、引用冲突和即时权限变更可判定。
+- [x] `AC-035/AC-036`：管理交互、菜单和路由状态符合共享合同。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-07.md</Path>`。
+- [x] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。

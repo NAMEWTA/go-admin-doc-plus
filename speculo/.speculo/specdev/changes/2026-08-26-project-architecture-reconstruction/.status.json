@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T02:31:15+08:00",
+  "updated_at": "2026-08-27T05:21:05+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -444,38 +444,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-07",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-07",
-      "source_checkpoint": null,
+      "source_checkpoint": "379d0e2117844fa2ff1ec4197b8707a1e3f2da59",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "75924fc197a7abfe840ca3b7383ca7eeb2ffd45e",
+        "source_sha": "379d0e2117844fa2ff1ec4197b8707a1e3f2da59",
+        "candidate_sha": "43624643302ac8d34806005761aaae112da2384b",
+        "candidate_tree_sha": "2e51848dbfa533a4f5c707ea8b84deefe87fda9e",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-07",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-07",
+        "result_sha": "43624643302ac8d34806005761aaae112da2384b",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G3 requires IAM administration, authorization, data-scope, Go/TypeScript, contract, and build checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-07.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-07 must prove administration CRUD, immediate permission changes, menu visibility, and direct API denial across PostgreSQL and SQLite",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-07.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-07.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 3,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T02:12:20+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-27T05:21:05+08:00"
     },
     {
       "ticket_id": "T-08",
