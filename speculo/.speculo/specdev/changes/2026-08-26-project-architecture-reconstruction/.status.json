@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T20:49:00+08:00",
+  "updated_at": "2026-08-26T21:01:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -278,12 +278,12 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-04",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-04",
-      "source_checkpoint": "a841a5b97b37236883a9e5f1311784b77ab4eab1",
+      "source_checkpoint": "69b5ba1b1c091cf6ce887cb96f9abc9ffc10a15a",
       "integration": {
         "status": "pending",
         "parent_ref": null,
         "parent_before_sha": null,
-        "source_sha": "a841a5b97b37236883a9e5f1311784b77ab4eab1",
+        "source_sha": "69b5ba1b1c091cf6ce887cb96f9abc9ffc10a15a",
         "candidate_sha": null,
         "candidate_tree_sha": null,
         "candidate_branch": null,
@@ -309,7 +309,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-26T20:49:00+08:00"
+      "updated_at": "2026-08-26T21:01:00+08:00"
     }
   ]
 }
