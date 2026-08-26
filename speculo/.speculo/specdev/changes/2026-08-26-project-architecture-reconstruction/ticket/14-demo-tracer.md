@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-14
 title: Demo 双方言业务曳光弹
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 参考模块同时验证公共 API、双方言 schema、权限、Web 交互与重启持久化
 ready: true
 risk: medium
 blocked_by: [T-04, T-05, T-07]
 contract_ids: [AC-021, AC-024, AC-035]
-owner: unassigned
+owner: codex-t14-demo
 expected_changes: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus/test/demo/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/demo/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
