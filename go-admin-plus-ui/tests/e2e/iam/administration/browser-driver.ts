@@ -4,6 +4,27 @@ import { createAdministrationController, createWebAdministrationClient, Administ
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
+const safeDiagnostic = (error: unknown) => {
+  const message = error instanceof Error ? error.message : 'unknown browser assertion'
+  return message
+    .replace(/\b(?:https?|postgres(?:ql)?):\/\/\S+/gi, '[redacted-url]')
+    .replace(/\bBearer\s+\S+/gi, 'Bearer [redacted]')
+    .replace(/\b(password|token|secret|cookie|authorization|dsn)\b\s*[:=]\s*\S+/gi, '$1=[redacted]')
+    .replace(/[^a-z0-9 .,:;_()[\]#@=?-]+/gi, '?')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 160) || 'unknown browser assertion'
+}
+const renderFailure = (error: unknown) => {
+  const diagnostic = safeDiagnostic(error)
+  const marker = `IAM_ADMIN_E2E_FAIL|ASSERTION|${diagnostic}`
+  document.body.replaceChildren()
+  const result = document.createElement('pre')
+  result.id = 'result'
+  result.textContent = marker
+  document.body.append(result)
+  console.error(`IAM_ADMIN_E2E_DIAGNOSTIC|ASSERTION|${diagnostic}`)
+}
 const session = createSessionController(createWebSessionClient(fetch, '/api'))
 const control = async (path: string, method = 'GET') => { const response = await fetch(`/__test/${path}`, { method }); assert(response.ok, 'test control failed'); return response }
 const waitUntil = async (condition: () => boolean, message: string, timeout = 10_000) => {
@@ -186,7 +207,7 @@ const scenario = async () => {
   await control('shutdown', 'POST')
 }
 
-await scenario().catch(async () => {
-  document.body.innerHTML = '<pre id="result">IAM_ADMIN_E2E_FAIL</pre>'
+await scenario().catch(async (error: unknown) => {
+  renderFailure(error)
   await control('shutdown', 'POST').catch(() => undefined)
 })
