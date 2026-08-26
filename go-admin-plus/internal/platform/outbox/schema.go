@@ -51,6 +51,7 @@ type payloadFieldValidator struct {
 var (
 	payloadFieldPattern = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9]{0,63}$`)
 	keyPartPattern      = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
+	domainLabelPattern  = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
 )
 
 func compileTopicSchemas(schemas []TopicSchema) (map[string]topicValidator, error) {
@@ -102,7 +103,7 @@ func compileAllowedStrings(field PayloadFieldSchema) (map[string]struct{}, error
 	}
 	allowed := make(map[string]struct{}, len(field.AllowedStrings))
 	for _, value := range field.AllowedStrings {
-		if value == "" || len(value) > 128 {
+		if len(value) > 64 || !domainLabelPattern.MatchString(value) || hasSensitiveDomainToken(value) {
 			return nil, errors.New("outbox string payload schema value is invalid")
 		}
 		if _, duplicate := allowed[value]; duplicate {
@@ -111,6 +112,15 @@ func compileAllowedStrings(field PayloadFieldSchema) (map[string]struct{}, error
 		allowed[value] = struct{}{}
 	}
 	return allowed, nil
+}
+
+func hasSensitiveDomainToken(value string) bool {
+	for _, token := range strings.Split(value, "-") {
+		if sensitiveToken(token) {
+			return true
+		}
+	}
+	return false
 }
 
 func (validator topicValidator) normalize(payload []byte, businessKey string) ([]byte, bool) {

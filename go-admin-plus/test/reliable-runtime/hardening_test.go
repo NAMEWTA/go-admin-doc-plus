@@ -87,11 +87,24 @@ func TestTopicSchemaRegistrationRejectsSensitiveFieldsButAllowsAggregateMetadata
 	if _, err := outbox.NewStore(db, outbox.TopicSchema{
 		Topic: "display.changed",
 		Payload: []outbox.PayloadFieldSchema{{
-			Name: "displayMode", Kind: outbox.PayloadString, AllowedStrings: []string{"compact", "comfortable"},
+			Name: "displayMode", Kind: outbox.PayloadString,
+			AllowedStrings: []string{"compact", "read-only", "sessionless", "tokenized-mode"},
 		}},
 		BusinessKey: outbox.BusinessKeySchema{Prefix: "display", MinParts: 1, MaxParts: 1},
 	}); err != nil {
 		t.Fatalf("explicit string enum schema rejected: %v", err)
+	}
+	for _, value := range []string{"raw-session-secret", "access-token", "credential", "password-reset"} {
+		_, err := outbox.NewStore(db, outbox.TopicSchema{
+			Topic: "display.changed",
+			Payload: []outbox.PayloadFieldSchema{{
+				Name: "displayMode", Kind: outbox.PayloadString, AllowedStrings: []string{value},
+			}},
+			BusinessKey: outbox.BusinessKeySchema{Prefix: "display", MinParts: 1, MaxParts: 1},
+		})
+		if err == nil {
+			t.Fatalf("sensitive enum label %q was accepted", value)
+		}
 	}
 	if _, err := outbox.NewStore(db, outbox.TopicSchema{
 		Topic: "orders.changed",
