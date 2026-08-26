@@ -7,6 +7,19 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@go-admin/domain-audit": "workspace:*"
+    "@go-admin/domain-audit": "workspace:*",
+    "@go-admin/ui": "workspace:*",
+    "vue": "catalog:"
+  },
+  "scripts": {
+    "test": "vitest run src",
+    "typecheck": "vue-tsc -p src/tsconfig.json"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }

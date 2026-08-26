@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@go-admin/domain-audit": ["../../../packages/domains/audit/src/index.ts"],
+      "@go-admin/web-domain-audit": ["../../../packages/web-domains/audit/src/index.ts"]
+    },
+    "strict": true,
+    "target": "ES2024",
+    "types": ["node", "vite/client"]
+  },
+  "include": ["./*.ts", "../../../packages/web-domains/audit/src/vue.d.ts"]
+}
