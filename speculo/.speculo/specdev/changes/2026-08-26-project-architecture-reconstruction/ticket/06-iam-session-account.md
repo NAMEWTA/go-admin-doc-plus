@@ -4,16 +4,16 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-06
 title: 安全登录、Session 与个人账户闭环
-status: in_progress
+status: blocked
 planning_depth: deep
 planning_depth_reason: 认证、密码、Session schema、Cookie/CSRF 和审计脱敏属于关键安全边界
-ready: true
+ready: false
 risk: critical
-blocked_by: [T-03, T-04, T-05]
+blocked_by: [T-02, T-03, T-04, T-05]
 contract_ids: [AC-008, AC-010, AC-012, AC-025, AC-036]
 owner: codex-t06-iam
-expected_changes: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0010-session-*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/iam/session/**</Path>"]
+expected_changes: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0010-session-*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/**</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/iam/session/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/**</Path>"]
 shared_paths: []
 shared_path_owners: []
@@ -44,6 +44,10 @@ shared_path_owners: []
 ### 已采用的低影响假设
 
 - 超时与轮换参数来自 T-03 类型化配置，不作为业务设置。
+
+### 已批准 Ticket 偏差
+
+- `T06-D01`：预建 IAM workspace package 缺少 Session 公开 export 和实际 transport/Vue 依赖，原路径合同也漏列对应 lockfile。Lead/Ticket owner 于 2026-08-26 批准只修改两个 IAM `package.json` 与新 Workspace `pnpm-lock.yaml`，用于声明 `./session` export 和实际直接依赖；不允许修改 workspace 根 manifest、其他 package 或共享生成 manifest。T-06 在 T02-D04 result 前保持 blocked。
 
 ### 未决问题
 

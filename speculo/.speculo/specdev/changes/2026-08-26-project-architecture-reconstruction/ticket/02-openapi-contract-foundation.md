@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-02
 title: OpenAPI 合同与双方生成基座
-status: done
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 公共 API、错误语义和双方生成物是所有垂直切片共享的外部合同
 ready: true
@@ -50,6 +50,7 @@ shared_path_owners: ["<Path>Taskfile.yml</Path> => T-02 (contract:lint and gener
 - `T02-D01`：原路径合同无法实现已批准的 `task contract:lint generate:check` 和固定官方生成器。Lead/Ticket owner 于 2026-08-26 批准最小扩展：T-02 只新增这两个根任务及其精确 task-set 断言，只写入 oapi-codegen/生成 transport 所需的 Go module 记录、合同工具/客户端所需的 pnpm lock，并仅为实际 registry 当前版 `@redocly/cli@2.48.0` 增加精确 release-age allowlist；不改变 Spec、ADR、产品 API、安全策略或后续 owner 的其他职责。
 - `T02-D02`：首轮双轴审查证明 fragment 模板仍指向重构前 UI 目录，且不能表达 IAM 同一 owner 下的多个 fragment。Lead/Ticket owner 于 2026-08-26 批准只在既有模板、fixture 和合同工具路径内引入独立 fragment id 与显式 owner，并把模块 TypeScript 生成目标声明为 Spec 权威的 `<Path>go-admin-plus-ui/packages/domains/{owner}/src/**</Path>`；T-02 不写未来模块源码。
 - `T02-D03`：首轮双轴审查证明公开 `generate` 仍只运行施工期旧生成链，实测旧后端链还依赖未受管且缺失的 `swag` 可执行文件。Lead/Ticket owner 于 2026-08-26 批准公开 `generate` 只委派 canonical OpenAPI generator；旧脚本只作为 expand 施工 inventory 保持只读并由 T-21 物理删除，不再属于公共命令面或产品兼容合同。
+- `T02-D04`：T-06 预检证明已集成生成器的 canonical TypeScript client 仍实际写入旧 `<Path>go-admin-ui-plus/</Path>`，与本 Ticket frontmatter、ADR-002、T-05 result 和模块生成目标不一致；共享 manifest 还会因每个模块 fragment 改写而破坏并行路径所有权。Lead/Ticket owner 于 2026-08-26 重新打开 T-02，批准把 canonical API client、工具运行根和生成清单迁到 `<Path>go-admin-plus-ui/</Path>`，并令共享 manifest 只管理 T-02 canonical outputs，模块 output 由当前 fragment 确定性校验且不改写共享 manifest。旧 UI 仅作为 T-21 contraction inventory，不再被 canonical generator 消费。
 
 ### 未决问题
 
@@ -116,9 +117,9 @@ shared_path_owners: ["<Path>Taskfile.yml</Path> => T-02 (contract:lint and gener
 
 ## 10. 验收标准
 
-- [x] `AC-023`：OpenAPI 3.1 可确定性生成 Go strict transport 和 TS client，clean tree 无漂移。
-- [x] `AC-025`：公共负向响应只使用已声明错误类别且不泄露内部信息。
-- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>`。
-- [x] 修改未超出 `writable_paths`，共享路径仅由 T-02 修改。
-- [x] 形成非空 implementation/source commit，并记录 direct-parent 或 candidate/result SHA。
-- [x] 未发生未批准偏差，Ticket、Map 和 Evidence 状态一致。
+- [ ] `AC-023`：OpenAPI 3.1 可确定性生成 Go strict transport 和新 Workspace TS client，clean tree 无漂移。
+- [ ] `AC-025`：公共负向响应只使用已声明错误类别且不泄露内部信息。
+- [ ] T02-D04 修正与验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>`。
+- [ ] 修改未超出 `writable_paths`，共享路径仅由 T-02 修改。
+- [ ] 形成新的非空 source checkpoint，并记录新的 candidate/result SHA。
+- [ ] 未发生未批准偏差，Ticket、Map 和 Evidence 状态一致。

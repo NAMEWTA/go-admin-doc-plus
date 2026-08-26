@@ -2,7 +2,7 @@
 schema_version: 6
 artifact: goal-plan
 change: 2026-08-26-project-architecture-reconstruction
-status: in_progress
+status: blocked
 modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root
@@ -10,7 +10,7 @@ implementation_agent_limit: 3
 integration_attempt_limit: 3
 ticket_workspace_policy: required
 integration_gate: candidate-merge
-ready_for_execution: true
+ready_for_execution: false
 ---
 
 # Goal Plan: Go Admin Plus 自主产品架构重构
@@ -314,6 +314,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-04 原 owner 以 `5f359381b7a3db09a5bd64e147ce4b22b80b0cda` 完成第二轮修正：Windows drive、空 authority UNC、POSIX 特殊字符/反斜杠 URI，modernc 实际解析、Up 前 SQL 与 ENVSUB fail-closed均转绿。最终标准轴与规范轴对 `fe56a193..5f359381` 均 pass、0 findings，Lead 聚焦 unit/race复核通过，允许进入首次 parent-candidate。
 - T-04 merge/result 固定为 `8757554047a828e12712a1faf2d547412bcdf05b`（tree `ada5ca6d19d02441b33dfcbc8e4c0535ee236ae9`）。Lead 创建 candidate 后误在根 workspace merge，立即终止并作废旧 parent 门禁、冻结 `main`，将独立 candidate 快进到同一 SHA/tree 后从零重跑；全 Go/前端/合同/治理/跨编译以及隔离 PostgreSQL 18.3 三 profile/previous/idempotent/双 pool advisory lock、SQLite 跨进程锁 E2E 全部 pass。该 execution incident 不改变代码或验收合同并已写入 Evidence；T-04 状态为 `done`，G2 关闭。
 - G2 关闭后，Lead 从最新 `main@05d619d1c4c90378a0138c630fa1aa3bcfa0f942` 并行创建互不重叠的 T-06/T-08 source worktree，implementation owner 分别为 `codex-t06-iam` 与 `codex-t08-reliability`。两者只运行 source 非 E2E checks 并返回非空 clean commit；Cookie/CSRF/browser 与 PostgreSQL/SQLite 多进程 required E2E、candidate integration 仍由 Lead 保留。
+- T-06 preflight 在零写入状态发现共享合同实际仍以旧 `<Path>go-admin-ui-plus/</Path>` 为 canonical client 根，且共享生成 manifest 会被每个模块 fragment 改写；这与 T-02 权威路径、ADR-002、T-05 result 和并行所有权冲突。Lead 批准 `T02-D04` 并重新打开 T-02：先在原 T-02 source worktree 合并最新 parent，迁移 canonical client/tool root，令共享 manifest 只管理 canonical outputs，再经新 candidate/result 关闭 G1。同期批准 `T06-D01` 精确补两个 IAM package manifest 与新 Workspace lock；T-06 保持 clean/blocked，待 T02-D04 result 后刷新 base，T-08 独立继续。
 - T-05 双轴复审对 `27a186c..5b7b4f4` pass、0 findings；首次 parent-candidate `f2bbd5211eada20b8ddc3762cba680bc7944ceae` 的 pnpm 全门禁和功能浏览器断言通过，但 Lead 截图检查发现 390px 视口导航隐式 grid row 被拉伸至近半屏。required visual E2E 判定失败，candidate 未提升并已清理，checkpoint 退回原 owner 修正并补导航高度断言。
 - T-05 原 owner 以 `a648baf851d25861ac04eef688b8856fcf439b71` 修正移动 grid rows 并增加静态样式合同；source `pnpm verify` 全绿且 clean，最终双轴复审固定为 `27a186c..a648baf`，第二次 candidate 将把 390px nav 高度上限纳入 required browser E2E。
 - T-05 第二次 candidate frozen install 暴露根 `.gitignore` 仍漏掉 pnpm 子 package `node_modules` symlink。Lead 在 T-01 已有所有权内以 `3bc0dd5fe13a6e215caf6f95781482152ccfc279` 补齐 `<Path>go-admin-plus-ui/**/node_modules/</Path>`；该父分支纠正将合入当前 candidate 后继续 clean-tree/browser 门禁。

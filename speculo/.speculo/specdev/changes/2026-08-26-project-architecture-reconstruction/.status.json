@@ -38,11 +38,13 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-26T22:18:11+08:00",
+  "updated_at": "2026-08-26T22:26:11+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
-  "blockers": [],
+  "blockers": [
+    "T-06 is paused clean until the approved T02-D04 canonical client/generator correction is integrated and its source base is refreshed"
+  ],
   "deviations": [
     {
       "id": "T02-D01",
@@ -93,6 +95,26 @@
       "approved_at": "2026-08-26T20:09:00+08:00",
       "reason": "ADR-011 requires runtime adapters under packages/adapters/{browser,desktop} and Apps to select rather than own adapters, but T-05 omitted adapter package paths",
       "resolution": "Authorize go-admin-plus-ui/packages/adapters/browser/** and only the desktop adapter package manifest; move the browser runtime implementation out of admin-web while reserving desktop adapter source for T-16"
+    },
+    {
+      "id": "T02-D04",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-02",
+      "owner": "codex-root",
+      "approved_at": "2026-08-26T22:26:11+08:00",
+      "reason": "T-06 clean preflight proved the canonical TypeScript client and contract tool root still target the legacy go-admin-ui-plus workspace and each module fragment would rewrite the T-02 shared generated manifest",
+      "resolution": "Reopen T-02, migrate the canonical API client/tool root to go-admin-plus-ui, and keep the shared manifest canonical-only while module outputs remain deterministically generated and checked from their fragments"
+    },
+    {
+      "id": "T06-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-06",
+      "owner": "codex-root",
+      "approved_at": "2026-08-26T22:26:11+08:00",
+      "reason": "The precreated IAM workspace package manifests cannot expose or compile the Session slice without declaring public exports and direct API client, domain, and Vue dependencies",
+      "resolution": "Authorize only the two IAM package manifests and the new workspace lockfile for exact Session exports and direct dependencies after T02-D04 is integrated"
     }
   ],
   "worktrees": [
@@ -149,23 +171,23 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-02",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-02",
-      "source_checkpoint": "201b4647e15da1e62a3c92012c9847ec9765b706",
+      "source_checkpoint": null,
       "integration": {
-        "status": "passed",
-        "parent_ref": "refs/heads/main",
-        "parent_before_sha": "ef89428972fee8836a9e90d5318c3b7349981c7b",
-        "source_sha": "201b4647e15da1e62a3c92012c9847ec9765b706",
-        "candidate_sha": "9189b89ccc046704166a6e9aa98d0afba1399a36",
-        "candidate_tree_sha": "e4f8f7307844c7a69e3be28979cc3b8c31edb7fc",
-        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-02",
-        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-02",
-        "result_sha": "9189b89ccc046704166a6e9aa98d0afba1399a36",
-        "method": "merge-commit",
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
         "conflict_paths": [],
-        "verification": "passed",
+        "verification": "pending",
         "full_suite": {
           "required": true,
-          "status": "passed",
+          "status": "pending",
           "reason": "G1 requires lint, bundle, deterministic generation, conformance, negative fixtures, and clean-tree verification on the parent candidate",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>"
         },
@@ -176,11 +198,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-02.md</Path>",
-        "attempts": 1,
-        "promotion_status": "applied"
+        "attempts": 0,
+        "promotion_status": "pending"
       },
-      "status": "integrated",
-      "updated_at": "2026-08-26T19:21:00+08:00"
+      "status": "active",
+      "updated_at": "2026-08-26T22:26:11+08:00"
     },
     {
       "ticket_id": "T-03",
@@ -351,8 +373,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-26T22:18:11+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-26T22:26:11+08:00"
     },
     {
       "ticket_id": "T-08",
