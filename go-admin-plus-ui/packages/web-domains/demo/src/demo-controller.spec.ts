@@ -29,6 +29,7 @@ describe('demo controller', () => {
   it('binds the page data and action regions to the fail-closed projection', () => {
     expect(pageSource).toContain('v-if="projectionVisible && canRead" class="demo-products__search"')
     expect(pageSource).toContain('v-if="projectionVisible && canRead" class="demo-products__grid"')
+    expect(pageSource).toContain('v-else-if="failure === \'unavailable\'"')
   })
 
   it('searches, resets, pages, sorts and selects through the shared list state', async () => {
@@ -196,6 +197,45 @@ describe('demo controller', () => {
       expect(controller.list.snapshot().selectedKeys).toEqual([])
     })
   }
+
+  for (const test of [
+    { category: 'validation' as const, run: async (client: DemoClient, controller: ReturnType<typeof createDemoController>) => {
+      vi.mocked(client.create).mockRejectedValueOnce(new DemoRequestError('validation'))
+      return controller.save(input)
+    } },
+    { category: 'conflict' as const, run: async (client: DemoClient, controller: ReturnType<typeof createDemoController>) => {
+      vi.mocked(client.update).mockRejectedValueOnce(new DemoRequestError('conflict'))
+      return controller.save({ ...input, id: product().id, revision: 1 })
+    } },
+    { category: 'not-found' as const, run: async (client: DemoClient, controller: ReturnType<typeof createDemoController>) => {
+      vi.mocked(client.delete).mockRejectedValueOnce(new DemoRequestError('not-found'))
+      return controller.remove([product()])
+    } },
+  ]) {
+    it(`keeps the stable page and editable state after a mutation ${test.category} failure`, async () => {
+      const { client, controller } = fixture()
+      await controller.list.refresh()
+      controller.list.select(controller.list.snapshot().rows)
+      expect(await test.run(client, controller)).toBe('failed')
+      expect(controller.failure()).toBe(test.category)
+      expect(controller.projectionVisible).toBe(true)
+      expect(controller.can(demoPermissions.write)).toBe(true)
+      expect(controller.list.snapshot()).toMatchObject({ total: 1, selectedKeys: [product().id] })
+    })
+  }
+
+  it('hides an uncertain mutation result and exposes the page refresh recovery action', async () => {
+    const { client, controller } = fixture()
+    await controller.list.refresh()
+    vi.mocked(client.create).mockRejectedValueOnce(new DemoRequestError('unavailable'))
+    expect(await controller.save(input)).toBe('failed')
+    expect(controller.failure()).toBe('unavailable')
+    expect(controller.projectionVisible).toBe(false)
+    expect(controller.list.snapshot()).toMatchObject({ rows: [], total: 0, selectedKeys: [] })
+    expect(pageSource).toContain('data-testid="retry"')
+    await controller.list.refresh()
+    expect(controller.projectionVisible).toBe(true)
+  })
 
   it('normalizes search and keeps the stable projection when a local invalid request stales remote work', async () => {
     const { client, controller } = fixture()

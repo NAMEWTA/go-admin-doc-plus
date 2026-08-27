@@ -127,6 +127,12 @@ func TestSQLiteDialectCRUDContract(t *testing.T) {
 func runDialectCRUDContract(t *testing.T, db *database.Database) {
 	t.Helper()
 	all := newService(t, db, demo.ScopeAll, nil)
+	now := time.Now().UTC()
+	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO demo_products
+		(id, owner_account_id, sku, name, name_key, description, price_cents, status, revision, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, "00000000-0000-4000-8000-000000000098", "contract-owner-a", "BADKEY-01", "Valid name", "xy", "", 0, "active", 1, now, now); err == nil {
+		t.Fatal("dialect accepted an invalid normalized name key")
+	}
 	first, err := all.Create(context.Background(), "contract-owner-a", demo.ProductInput{SKU: "CONTRACT-01", Name: "Contract product one", PriceCents: 10, Status: "active"})
 	if err != nil {
 		t.Fatal(err)

@@ -37,6 +37,8 @@ export interface ListController<TFilters, TRow, TKey> {
 export interface ListControllerOptions<TFilters, TRow, TKey> {
   readonly initialFilters: () => TFilters
   readonly load: (request: ListRequest<TFilters>) => Promise<ListResult<TRow>>
+  readonly normalizeFilters?: (filters: Readonly<TFilters>) => TFilters
+  readonly validate?: (request: Readonly<ListRequest<TFilters>>) => void
   readonly rowKey: (row: TRow) => TKey
   readonly pageSize?: number
 }
@@ -71,19 +73,32 @@ export const createListController = <TFilters extends object, TRow, TKey>(
     loading
   })
 
-  const refresh = async (): Promise<void> => {
+  const execute = async (candidate: ListRequest<TFilters>, clearSelection = false): Promise<void> => {
     const sequence = ++requestSequence
+    const normalizedFilters = options.normalizeFilters?.({ ...candidate.filters }) ?? { ...candidate.filters }
+    const request: ListRequest<TFilters> = {
+      filters: { ...normalizedFilters },
+      page: candidate.page,
+      pageSize: candidate.pageSize,
+      ...(candidate.sort ? { sort: { ...candidate.sort } } : {})
+    }
+    try {
+      options.validate?.(request)
+    } catch (error) {
+      if (sequence === requestSequence) loading = false
+      throw error
+    }
     loading = true
     try {
-      const result = await options.load({
-        filters: { ...filters },
-        page,
-        pageSize,
-        ...(sort ? { sort: { ...sort } } : {})
-      })
+      const result = await options.load(request)
       if (sequence !== requestSequence) return
+      filters = { ...request.filters }
+      page = request.page
+      pageSize = request.pageSize
+      sort = request.sort ? { ...request.sort } : undefined
       rows = [...result.rows]
       total = result.total
+      if (clearSelection) selectedKeys = []
     } catch (error) {
       // Replaced requests are no longer observable operations, including their failures.
       if (sequence !== requestSequence) return
@@ -95,34 +110,23 @@ export const createListController = <TFilters extends object, TRow, TKey>(
 
   return {
     snapshot,
-    refresh,
+    refresh: () => execute({ filters, page, pageSize, ...(sort ? { sort } : {}) }),
     async search(nextFilters) {
-      filters = { ...nextFilters }
-      page = 1
-      await refresh()
+      await execute({ filters: nextFilters, page: 1, pageSize, ...(sort ? { sort } : {}) })
     },
     async reset() {
-      filters = options.initialFilters()
-      page = 1
-      sort = undefined
-      selectedKeys = []
-      await refresh()
+      await execute({ filters: options.initialFilters(), page: 1, pageSize }, true)
     },
     async setPage(nextPage) {
       requirePositiveInteger(nextPage, 'page')
-      page = nextPage
-      await refresh()
+      await execute({ filters, page: nextPage, pageSize, ...(sort ? { sort } : {}) })
     },
     async setPageSize(nextPageSize) {
       requirePositiveInteger(nextPageSize, 'pageSize')
-      pageSize = nextPageSize
-      page = 1
-      await refresh()
+      await execute({ filters, page: 1, pageSize: nextPageSize, ...(sort ? { sort } : {}) })
     },
     async setSort(nextSort) {
-      sort = nextSort ? { ...nextSort } : undefined
-      page = 1
-      await refresh()
+      await execute({ filters, page: 1, pageSize, ...(nextSort ? { sort: nextSort } : {}) })
     },
     select(nextRows) {
       selectedKeys = nextRows.map(options.rowKey)

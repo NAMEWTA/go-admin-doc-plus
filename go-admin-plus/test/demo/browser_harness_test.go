@@ -294,11 +294,7 @@ func seedForeignDemoProduct(t *testing.T, ctx context.Context, db *database.Data
 }
 
 func demoFixtureNameKey(value string) string {
-	var result strings.Builder
-	for _, value := range []byte(strings.ToLower(value)) {
-		_, _ = fmt.Fprintf(&result, "%02x.", value)
-	}
-	return result.String()
+	return strings.ToLower(value)
 }
 
 func demoDatabaseOpener(t *testing.T, ctx context.Context, profile string) (func() *database.Database, func(), string) {

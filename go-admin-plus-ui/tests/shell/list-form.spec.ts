@@ -92,6 +92,38 @@ describe('shared list interaction', () => {
       total: 1
     })
   })
+
+  it('normalizes before transport and keeps the last successful state when validation cancels an older request', async () => {
+    const pending = deferred<{ rows: Array<{ id: string }>, total: number }>()
+    const load = vi.fn()
+      .mockResolvedValueOnce({ rows: [{ id: 'stable' }], total: 1 })
+      .mockReturnValueOnce(pending.promise)
+    const list = createListController({
+      initialFilters: () => ({ name: '' }),
+      load,
+      normalizeFilters: filters => ({ name: filters.name.trim() }),
+      validate: request => {
+        if (request.filters.name.length > 4) throw new Error('invalid filters')
+      },
+      rowKey: (row: { id: string }) => row.id
+    })
+
+    await list.search({ name: ' ok ' })
+    list.select(list.snapshot().rows)
+    const stale = list.search({ name: 'next' })
+    await expect(list.search({ name: 'invalid' })).rejects.toThrow('invalid filters')
+    expect(load).toHaveBeenCalledTimes(2)
+    expect(list.snapshot()).toMatchObject({
+      filters: { name: 'ok' },
+      loading: false,
+      rows: [{ id: 'stable' }],
+      selectedKeys: ['stable'],
+      total: 1
+    })
+    pending.resolve({ rows: [{ id: 'stale' }], total: 99 })
+    await stale
+    expect(list.snapshot()).toMatchObject({ filters: { name: 'ok' }, rows: [{ id: 'stable' }], total: 1 })
+  })
 })
 
 describe('shared form interaction', () => {

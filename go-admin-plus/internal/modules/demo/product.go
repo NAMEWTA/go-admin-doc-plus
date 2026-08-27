@@ -111,16 +111,7 @@ func runeLength(value string) int {
 	return utf8.RuneCountInString(value)
 }
 
-// normalizedNameKey makes Unicode search and ordering independent of database collation.
+// normalizedNameKey makes Unicode search and ordering independent of database case folding.
 func normalizedNameKey(value string) string {
-	const hexadecimal = "0123456789abcdef"
-	bytes := []byte(strings.ToLower(value))
-	var result strings.Builder
-	result.Grow(len(bytes) * 3)
-	for _, value := range bytes {
-		result.WriteByte(hexadecimal[value>>4])
-		result.WriteByte(hexadecimal[value&0x0f])
-		result.WriteByte('.')
-	}
-	return result.String()
+	return strings.ToLower(value)
 }
