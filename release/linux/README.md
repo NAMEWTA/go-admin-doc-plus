@@ -1,33 +1,33 @@
-# Linux AMD64 Compose 发布
+# Linux Server release
 
-发布包只向宿主机暴露 Web 服务。API、迁移、PostgreSQL 和 Redis 只存在于 Compose
-网络，默认绑定 `127.0.0.1:8080`；远程访问必须在前面部署 TLS 反向代理。
+The Linux release contains two OCI images built from one source commit:
 
-从源码构建并启动：
+- `go-admin-plus-server` for `linux/amd64` and `linux/arm64`;
+- `go-admin-plus-web` for `linux/amd64` and `linux/arm64`.
 
-```bash
+Compose exposes only the Web listener and offers two explicit profiles. Use
+`postgres` for a PostgreSQL deployment and `sqlite` for a single-instance SQLite
+deployment. Both profiles run the same product binary, apply forward-only
+migrations before readiness, keep application files on named volumes, and run
+with a read-only root filesystem and dropped capabilities.
+
+```sh
 cp deploy/compose/.env.example deploy/compose/.env
-./release/linux/prepare-config.sh
-docker compose --env-file deploy/compose/.env \
-  -f deploy/compose/compose.yml \
-  -f deploy/compose/compose.build.yml \
-  up -d --build --wait
+scripts/release/linux/prepare-secrets.sh
+GO_ADMIN_COMPOSE_BUILD=1 scripts/release/linux/compose.sh postgres up -d --build --wait
+scripts/release/linux/verify-compose.sh postgres
 ```
 
-一次性 `migrate` 是第一个修改数据的服务，迁移失败会阻止 API 启动。PostgreSQL、Redis
-和文件数据由 named volume 持久化。运行时密钥保存在 Git 忽略的
-`deploy/compose/runtime/`；`prepare-config.sh` 只创建缺失值，不覆盖已有非空配置。
+For SQLite, replace `postgres` with `sqlite`. Never run both profiles in the
+same Compose project because they intentionally publish the same Web port.
 
-发布部署使用 manifest 中的不可变镜像 digest，省略 `compose.build.yml`。升级前备份三个
-named volume 和 runtime 目录；回滚时恢复这些数据并使用上一版 digest。
+Production deployment consumes immutable image digests recorded in
+`release-output/provenance.json`. `scripts/release/linux/emit-artifacts.sh`
+produces compressed OCI image archives, SPDX JSON SBOMs, provenance metadata,
+and `SHA256SUMS`. It does not authenticate to or publish into a remote registry.
 
-验证和停止：
-
-```bash
-./release/linux/verify-compose.sh
-docker compose --env-file deploy/compose/.env \
-  -f deploy/compose/compose.yml \
-  -f deploy/compose/compose.build.yml down
-```
-
-除非明确要永久删除全部 volume 数据且已有验证通过的备份，否则不要对 `down` 使用 `-v`。
+Runtime database credentials live only under the ignored
+`deploy/compose/runtime/secrets/` directory. The typed JSON profile files contain
+no credentials. Back up the selected database volume and the corresponding
+product-data volume before an upgrade. Removing volumes is a deliberate data
+destruction operation and is not part of normal shutdown.

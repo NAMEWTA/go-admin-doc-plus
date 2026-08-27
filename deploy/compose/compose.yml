@@ -1,148 +1,140 @@
 name: go-admin-plus
 
+x-api: &api
+  image: ${GO_ADMIN_SERVER_IMAGE:-go-admin-plus-server}:${GO_ADMIN_VERSION:-dev}
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=512m,uid=10001,gid=10001,mode=0700
+  networks: [backend]
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health/ready"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+    start_period: 20s
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  stop_grace_period: 20s
+  restart: unless-stopped
+
+x-web: &web
+  image: ${GO_ADMIN_WEB_IMAGE:-go-admin-plus-web}:${GO_ADMIN_VERSION:-dev}
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:size=16m,uid=101,gid=101,mode=0700
+    - /var/cache/nginx:size=32m,uid=101,gid=101,mode=0750
+    - /var/run:size=2m,uid=101,gid=101,mode=0750
+  ports:
+    - "${GO_ADMIN_WEB_BIND:-127.0.0.1}:${GO_ADMIN_WEB_PORT:-8080}:8080"
+  networks: [edge, backend]
+  healthcheck:
+    test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health/live"]
+    interval: 5s
+    timeout: 3s
+    retries: 30
+    start_period: 10s
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  stop_grace_period: 10s
+  restart: unless-stopped
+
 services:
   postgres:
-    image: postgres:17.11-alpine3.23
-    restart: unless-stopped
+    profiles: [postgres]
+    image: postgres:17.11-alpine3.23@sha256:9ae4e8f8d0284836a505f0b2e825144e32e20499856e7dc5f7b99e19d10eedd6
     environment:
-      POSTGRES_DB: go_admin
-      POSTGRES_USER: go_admin
+      POSTGRES_DB: go_admin_plus
+      POSTGRES_USER: go_admin_plus
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-    secrets:
-      - postgres_password
+    secrets: [postgres_password]
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U go_admin -d go_admin"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 10s
-    security_opt:
-      - no-new-privileges:true
-
-  redis:
-    image: redis:8.10.0-alpine3.23
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
-    volumes:
-      - redis-data:/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 5s
-    security_opt:
-      - no-new-privileges:true
-
-  migrate:
-    image: ${GO_ADMIN_API_IMAGE:-go-admin-api}:${GO_ADMIN_VERSION:-dev}
-    platform: linux/amd64
-    command: ["migrate", "--config", "/run/secrets/go_admin_settings.yml"]
-    init: true
-    read_only: true
     tmpfs:
       - /tmp:size=32m,mode=1777
-    secrets:
-      - source: go_admin_settings
-        target: go_admin_settings.yml
-    networks:
-      - backend
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: "no"
-
-  api:
-    image: ${GO_ADMIN_API_IMAGE:-go-admin-api}:${GO_ADMIN_VERSION:-dev}
-    platform: linux/amd64
-    command:
-      - server
-      - --profile
-      - server
-      - --config
-      - /run/secrets/go_admin_settings.yml
-      - --files
-      - /srv/go-admin/static/uploadfile
-    init: true
-    read_only: true
-    tmpfs:
-      - /tmp:size=64m,mode=1777
-    secrets:
-      - source: go_admin_settings
-        target: go_admin_settings.yml
-    volumes:
-      - server-files:/srv/go-admin/static/uploadfile
-    networks:
-      - backend
-      - edge
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - /run/postgresql:size=4m,uid=70,gid=70,mode=0750
+    networks: [backend]
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8000/health/ready"]
+      test: ["CMD-SHELL", "pg_isready -U go_admin_plus -d go_admin_plus"]
       interval: 5s
       timeout: 3s
-      retries: 20
+      retries: 30
       start_period: 10s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
     restart: unless-stopped
 
-  web:
-    image: ${GO_ADMIN_WEB_IMAGE:-go-admin-web}:${GO_ADMIN_VERSION:-dev}
-    platform: linux/amd64
-    init: true
-    read_only: true
-    tmpfs:
-      - /var/cache/nginx:size=32m,uid=101,gid=101,mode=0750
-      - /var/run/nginx:size=1m,uid=101,gid=101,mode=0750
-    ports:
-      - "${GO_ADMIN_WEB_BIND:-127.0.0.1}:${GO_ADMIN_WEB_PORT:-8080}:8080"
-    networks:
-      - edge
+  api-postgres:
+    <<: *api
+    profiles: [postgres]
+    command:
+      - --profile=server-postgres
+      - --config=/run/config/server-postgres.json
+      - --data-root=/var/lib/go-admin-plus
+      - --repository-root=/opt/go-admin-plus/repository
+    environment:
+      GO_ADMIN_DATABASE_DSN_FILE: /run/secrets/database_dsn
+    configs:
+      - source: server_postgres
+        target: /run/config/server-postgres.json
+    secrets: [database_dsn]
+    volumes:
+      - postgres-product-data:/var/lib/go-admin-plus
     depends_on:
-      api:
+      postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health/live"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 5s
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    restart: unless-stopped
+
+  web-postgres:
+    <<: *web
+    profiles: [postgres]
+    environment:
+      API_UPSTREAM: api-postgres:8080
+    depends_on:
+      api-postgres:
+        condition: service_healthy
+
+  api-sqlite:
+    <<: *api
+    profiles: [sqlite]
+    command:
+      - --profile=server-sqlite
+      - --config=/run/config/server-sqlite.json
+      - --data-root=/var/lib/go-admin-plus
+      - --repository-root=/opt/go-admin-plus/repository
+    environment:
+      GO_ADMIN_SQLITE_PATH: /var/lib/go-admin-plus/database.sqlite3
+    configs:
+      - source: server_sqlite
+        target: /run/config/server-sqlite.json
+    volumes:
+      - sqlite-product-data:/var/lib/go-admin-plus
+
+  web-sqlite:
+    <<: *web
+    profiles: [sqlite]
+    environment:
+      API_UPSTREAM: api-sqlite:8080
+    depends_on:
+      api-sqlite:
+        condition: service_healthy
+
+configs:
+  server_postgres:
+    file: ./config/server-postgres.json
+  server_sqlite:
+    file: ./config/server-sqlite.json
 
 secrets:
-  go_admin_settings:
-    file: ./runtime/settings.yml
   postgres_password:
     file: ./runtime/secrets/postgres_password
+  database_dsn:
+    file: ./runtime/secrets/database_dsn
 
 volumes:
   postgres-data:
-  redis-data:
-  server-files:
+  postgres-product-data:
+  sqlite-product-data:
 
 networks:
   edge:

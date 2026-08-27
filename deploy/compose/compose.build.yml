@@ -1,30 +1,23 @@
+x-server-build: &server-build
+  context: ../..
+  dockerfile: release/linux/Containerfile.server
+  args:
+    VERSION: ${GO_ADMIN_RELEASE_VERSION:-0.0.0-dev}
+    VCS_REF: ${GO_ADMIN_SOURCE_SHA:-unknown}
+
+x-web-build: &web-build
+  context: ../..
+  dockerfile: release/linux/Containerfile.web
+  args:
+    VERSION: ${GO_ADMIN_RELEASE_VERSION:-0.0.0-dev}
+    VCS_REF: ${GO_ADMIN_SOURCE_SHA:-unknown}
+
 services:
-  migrate:
-    build:
-      context: ../../go-admin-plus
-      dockerfile: Dockerfile
-      args:
-        VERSION: ${GO_ADMIN_VERSION:-dev}
-        VCS_REF: ${GO_ADMIN_BACKEND_SHA:-unknown}
-      platforms:
-        - linux/amd64
-
-  api:
-    build:
-      context: ../../go-admin-plus
-      dockerfile: Dockerfile
-      args:
-        VERSION: ${GO_ADMIN_VERSION:-dev}
-        VCS_REF: ${GO_ADMIN_BACKEND_SHA:-unknown}
-      platforms:
-        - linux/amd64
-
-  web:
-    build:
-      context: ../../go-admin-ui-plus
-      dockerfile: Dockerfile
-      args:
-        VERSION: ${GO_ADMIN_VERSION:-dev}
-        VCS_REF: ${GO_ADMIN_FRONTEND_SHA:-unknown}
-      platforms:
-        - linux/amd64
+  api-postgres:
+    build: *server-build
+  api-sqlite:
+    build: *server-build
+  web-postgres:
+    build: *web-build
+  web-sqlite:
+    build: *web-build

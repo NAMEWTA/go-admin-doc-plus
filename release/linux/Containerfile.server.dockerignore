@@ -1,0 +1,15 @@
+.git
+.github
+.agents
+.husky
+specdev-candidate
+specdev-worktree
+speculo
+go-admin-ui-plus
+release/macos
+release/windows
+**/node_modules
+**/dist
+**/target
+**/.env
+**/.env.*
