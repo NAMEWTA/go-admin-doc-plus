@@ -17,6 +17,9 @@ export default defineConfig({
       'packages/web-domains/settings/src/**/*.spec.ts',
       'packages/domains/scheduler/src/**/*.spec.ts',
       'packages/web-domains/scheduler/src/**/*.spec.ts',
+      'packages/domains/files/src/**/*.spec.ts',
+      'packages/web-domains/files/src/**/*.spec.ts',
+      'packages/adapters/browser/src/files.spec.ts',
       'packages/adapters/desktop/src/**/*.spec.ts'
     ]
   }
