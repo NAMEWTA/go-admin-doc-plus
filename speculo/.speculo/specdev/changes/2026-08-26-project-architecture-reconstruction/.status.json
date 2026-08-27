@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T10:14:46+08:00",
+  "updated_at": "2026-08-27T11:12:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -706,38 +706,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-09",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-09",
-      "source_checkpoint": "86e21101c86b9672469f3bb5494f745ce2d4b4b3",
+      "source_checkpoint": "42df51eff0d21617ecf2cf8075fc06723cf29a08",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "5064f44e72cc44efa84fe6d5d3ec2768be3926c5",
+        "source_sha": "42df51eff0d21617ecf2cf8075fc06723cf29a08",
+        "candidate_sha": "b71fb04b3fa2f87b4d21c7529c589b8c79d9223a",
+        "candidate_tree_sha": "3612509143c3d5bcdbf0dde1ff6d9148c8aec399",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-09",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-09",
+        "result_sha": "b71fb04b3fa2f87b4d21c7529c589b8c79d9223a",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G4 requires Organization tree, position, reference invariant, permission, Go/TypeScript, contract, and build checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-09.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-09 must prove PostgreSQL and SQLite Organization API/UI behavior, authorization, and reference conflicts",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-09.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-09.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T10:08:38+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-27T11:12:00+08:00"
     },
     {
       "ticket_id": "T-16",

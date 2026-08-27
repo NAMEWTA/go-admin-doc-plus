@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-09
 title: Organization 部门与岗位垂直切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 模块新增公共 API、双方言 schema、组织树不变量和 IAM 消费者 Port
 ready: true
@@ -112,9 +112,9 @@ shared_path_owners: ["<Path>go-admin-plus/internal/modules/iam/administration/or
 
 ## 10. 验收标准
 
-- [ ] `AC-014`：合法组织 CRUD 成功，非法树、引用冲突和越权失败且不破坏数据。
-- [ ] `AC-035`：搜索、表单校验、删除确认和刷新符合共享交互。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-09.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] E2E disposition 已执行且 shared path 无越权写入。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-014`：合法组织 CRUD 成功，非法树、引用冲突和越权失败且不破坏数据。
+- [x] `AC-035`：搜索、表单校验、删除确认和刷新符合共享交互。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-09.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] E2E disposition 已执行且 shared path 无越权写入。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。

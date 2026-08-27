@@ -31,7 +31,7 @@ status: in_progress
 | T-06 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/06-iam-session-account.md</Path>` | Web 安全登录与账户闭环 | T-02, T-03, T-04, T-05 | deep | critical | yes | codex-t06-iam | AC-008, AC-010, AC-012, AC-025, AC-036 | W4 / G3 | done |
 | T-07 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/07-iam-administration-authorization.md</Path>` | IAM 管理与最终授权 | T-06 | deep | critical | yes | codex-t07-iam | AC-011, AC-013, AC-035, AC-036 | W5 / G3 | done |
 | T-08 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/08-reliable-runtime-no-redis.md</Path>` | 无 Redis Outbox 与唯一 executor | T-03, T-04 | deep | critical | yes | codex-t08-reliability | AC-018, AC-034 | W4 / G3 | done |
-| T-09 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/09-organization-module.md</Path>` | Organization 完整管理闭环 | T-07 | deep | high | yes | codex-t09-organization | AC-014, AC-035 | W6 / G4 | in_progress |
+| T-09 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/09-organization-module.md</Path>` | Organization 完整管理闭环 | T-07 | deep | high | yes | codex-t09-organization | AC-014, AC-035 | W6 / G4 | done |
 | T-10 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>` | Settings 完整管理闭环 | T-07 | deep | high | yes | unassigned | AC-015, AC-035 | W6 / G4 | ready |
 | T-11 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/11-audit-module.md</Path>` | Audit 可靠脱敏闭环 | T-06, T-08 | deep | high | yes | codex-t11-audit | AC-016, AC-035 | W5 / G4 | done |
 | T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | unassigned | AC-017, AC-018, AC-035 | W6 / G4 | ready |
@@ -142,7 +142,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | `<Path>contracts/openapi/openapi.yaml</Path>`、公共 components、合同工具与公共 client | T-02 | 模块写自有 fragment |
 | kernel/config/observability | T-03 | 宿主和模块只读依赖 |
 | Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
-| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14 串行接入已完成；现由 `T09-D02` 仅拥有 Organization 根 checks/importers，T-16 先按 `T16-D01` 独占 Desktop adapter，待 T-09 result 后再接管 Desktop 根 checks/importer | 模块只写获批 manifest/importer；browser adapter 与 App Shell core 保持只读 |
+| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14/T-09 串行接入已完成；下一共享根 owner 由 Lead 在 T-15/T-16 stage 2 激活时逐一授予 | 模块只写获批 manifest/importer；browser adapter 与 App Shell core 保持只读 |
 | Shared list request state | T-05 基座；T-14 under `T14-D04` 精确修改 `<Path>go-admin-plus-ui/packages/ui/src/list.ts</Path>` 与既有回归 | 请求可规范化/校验，最新成功前不提交 query state；模块只配置/包装，不复制列表状态机 |
 | IAM Session request authorization seam | T-06；`T07-D02` 精确追加 `AuthorizeRequest` 与既有测试 | T-07 HTTP 只消费统一 token/CSRF/touch/rotation 结果，不读取 Session 私表或复制 secret/hash 规则 |
 | IAM Session login audit seam | T-06；T-07 result 已完成 `T07-D02`，现由 `T11-D02/T11-D03` 追加 fail-closed 模块无关 Login Fact Port 与精确 test-only 调用点 | T-11 Audit adapter 同步记录成功/失败登录；Session 不导入 Audit且无生产 discard，T-17 composition 必须注入 Port，密码/用户名/token/CSRF 不进入事实 |
