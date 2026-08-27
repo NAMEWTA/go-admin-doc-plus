@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T16:00:53+08:00",
+  "updated_at": "2026-08-27T18:09:35+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -323,6 +323,16 @@
       "approved_at": "2026-08-27T13:25:00+08:00",
       "reason": "T-17 product preflight proved Audit declares permission constants but never registers permissions or a menu with the IAM-owned Module Capability Registry, so the protected system administrator cannot receive the completed Audit capability",
       "resolution": "Reopen T-11 only for Audit-owned capabilities.go and focused tests that register read/cleanup permissions plus the read-gated Audit menu through the existing registry; Session, Outbox, Audit data behavior, frontend, root manifests, lockfile, and composition remain unchanged"
+    },
+    {
+      "id": "T17-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-17",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T18:09:35+08:00",
+      "reason": "The precreated app-shell manifest exposes only its core entry point and has no package-local check for the T-17 product manifest, while opening Apps, adapters, Rust, root aggregation, or module internals before the composition failure baseline would make shared ownership unauditable",
+      "resolution": "Stage 1 authorizes only the app-shell package manifest product subpath export and package-local checks in addition to T-17 exclusive product paths; Apps, Browser/Desktop adapters, Rust bridge, root package/Vitest/lock, module implementations, and central contract tooling remain read-only until evidence-backed serialized amendments"
     }
   ],
   "worktrees": [
@@ -1013,6 +1023,49 @@
       },
       "status": "review",
       "updated_at": "2026-08-27T18:04:06+08:00"
+    },
+    {
+      "ticket_id": "T-17",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "0cf98457a3eb68b636a45cd17dcc62b24d01d4e1",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-17",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-17",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G5 requires complete product composition, three-profile and two-App static contracts, architecture, cache-disabled, build, contract, and package checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "Three profiles, Web/Desktop, permissions, filesystem, reliable runtime, and complete business workflows are deferred to the single unified final system E2E after T-21 implementation integration",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T18:09:35+08:00"
     }
   ]
 }
