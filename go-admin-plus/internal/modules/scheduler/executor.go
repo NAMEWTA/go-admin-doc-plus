@@ -129,8 +129,7 @@ func (e *Executor) executeDue(ctx context.Context, tx database.Tx, now time.Time
 	if err != nil {
 		return false, false, err
 	}
-	next, ok := nextOccurrence(schedule, now)
-	if !ok || !record.NextRunAt.Valid {
+	if !record.NextRunAt.Valid {
 		return false, false, ErrInternal
 	}
 	started, err := utcNow(e.config.Clock)
@@ -148,6 +147,10 @@ func (e *Executor) executeDue(ctx context.Context, tx database.Tx, now time.Time
 	if started.Before(record.NextRunAt.Time.UTC()) || finished.Before(started) {
 		return false, false, ErrInternal
 	}
+	next, ok := nextOccurrence(schedule, finished)
+	if !ok {
+		return false, false, ErrInternal
+	}
 	execution := Execution{
 		ID:                 uuid.NewString(),
 		DefinitionID:       record.ID,
@@ -163,7 +166,7 @@ func (e *Executor) executeDue(ctx context.Context, tx database.Tx, now time.Time
 	if err := e.repository.insertExecution(ctx, tx, execution); err != nil {
 		return false, false, err
 	}
-	if err := e.repository.advanceDefinition(ctx, tx, record.ID, next, now); err != nil {
+	if err := e.repository.advanceDefinition(ctx, tx, record.ID, next, finished); err != nil {
 		return false, false, err
 	}
 	return true, status == ExecutionFailed, nil
@@ -182,15 +185,21 @@ func (e *Executor) runTask(ctx context.Context, tx database.Tx, record definitio
 	}
 	taskContext, cancel := context.WithTimeout(ctx, e.config.TaskTimeout)
 	err := safelyRun(taskContext, task, tx, record.ParametersJSON)
+	taskContextErr := taskContext.Err()
 	cancel()
-	if err == nil {
+	if taskContextErr == nil {
+		if afterCancel := taskContext.Err(); errors.Is(afterCancel, context.DeadlineExceeded) {
+			taskContextErr = afterCancel
+		}
+	}
+	if ctx.Err() != nil {
+		return "", "", ctx.Err()
+	}
+	if err == nil && taskContextErr == nil {
 		if _, releaseErr := tx.ExecContext(ctx, `RELEASE SAVEPOINT `+taskSavepoint); releaseErr != nil {
 			return "", "", releaseErr
 		}
 		return ExecutionSucceeded, "", nil
-	}
-	if ctx.Err() != nil {
-		return "", "", ctx.Err()
 	}
 	if _, rollbackErr := tx.ExecContext(ctx, `ROLLBACK TO SAVEPOINT `+taskSavepoint); rollbackErr != nil {
 		return "", "", rollbackErr
@@ -200,10 +209,10 @@ func (e *Executor) runTask(ctx context.Context, tx database.Tx, record definitio
 	}
 	var taskFailure TaskFailure
 	switch {
+	case errors.Is(taskContextErr, context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded):
+		return ExecutionFailed, "task_timeout", nil
 	case errors.As(err, &taskFailure) && errorCodePattern.MatchString(taskFailure.Code):
 		return ExecutionFailed, taskFailure.Code, nil
-	case errors.Is(err, context.DeadlineExceeded):
-		return ExecutionFailed, "task_timeout", nil
 	default:
 		return ExecutionFailed, "task_failed", nil
 	}

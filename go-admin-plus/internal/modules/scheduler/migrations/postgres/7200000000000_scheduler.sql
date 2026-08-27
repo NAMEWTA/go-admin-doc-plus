@@ -2,7 +2,7 @@
 CREATE TABLE scheduler_definitions (
     id uuid PRIMARY KEY,
     name text NOT NULL,
-    name_key text COLLATE "C" NOT NULL UNIQUE,
+    name_key text COLLATE "C" NOT NULL,
     task_type text COLLATE "C" NOT NULL,
     schedule_json bytea NOT NULL,
     parameters_json bytea NOT NULL,
@@ -14,6 +14,7 @@ CREATE TABLE scheduler_definitions (
     deleted_at timestamptz,
     CHECK ((enabled AND next_run_at IS NOT NULL AND deleted_at IS NULL) OR (NOT enabled AND next_run_at IS NULL))
 );
+CREATE UNIQUE INDEX scheduler_definitions_active_name_key_uq ON scheduler_definitions(name_key) WHERE deleted_at IS NULL;
 CREATE INDEX scheduler_definitions_due_idx ON scheduler_definitions(enabled, next_run_at, id) WHERE deleted_at IS NULL;
 CREATE TABLE scheduler_executions (
     id uuid PRIMARY KEY,

@@ -91,7 +91,7 @@ func testRuntime(t *testing.T, db *database.Database) {
 		t.Fatal(err)
 	}
 	now := time.Date(2026, 8, 27, 12, 5, 0, 0, time.UTC)
-	insertDue(t, db, "first", now)
+	firstID := insertDue(t, db, "first", now)
 	lease, err := coordination.Acquire(context.Background(), db, coordination.Config{Owner: "scheduler-runtime-owner"})
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +110,15 @@ func testRuntime(t *testing.T, db *database.Database) {
 	}
 	if err := lease.Close(context.Background()); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO scheduler_definitions(id, name, name_key, task_type, schedule_json, parameters_json, enabled, revision, next_run_at, created_at, updated_at) SELECT ?, name, name_key, task_type, schedule_json, parameters_json, ?, revision, NULL, created_at, updated_at FROM scheduler_definitions WHERE id = ?`, uuid.NewString(), false, firstID); err == nil {
+		t.Fatal("active definition name was not unique")
+	}
+	if _, err := db.Bun().ExecContext(context.Background(), `UPDATE scheduler_definitions SET enabled = ?, next_run_at = NULL, deleted_at = ? WHERE id = ?`, false, now, firstID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO scheduler_definitions(id, name, name_key, task_type, schedule_json, parameters_json, enabled, revision, next_run_at, created_at, updated_at) SELECT ?, name, name_key, task_type, schedule_json, parameters_json, ?, revision, NULL, created_at, updated_at FROM scheduler_definitions WHERE id = ?`, uuid.NewString(), false, firstID); err != nil {
+		t.Fatalf("recreate deleted definition: %v", err)
 	}
 	insertDue(t, db, "takeover", now)
 	takeover, err := coordination.Acquire(context.Background(), db, coordination.Config{Owner: "scheduler-runtime-owner"})
@@ -133,7 +142,7 @@ func testRuntime(t *testing.T, db *database.Database) {
 	}
 }
 
-func insertDue(t *testing.T, db *database.Database, value string, now time.Time) {
+func insertDue(t *testing.T, db *database.Database, value string, now time.Time) string {
 	t.Helper()
 	schedule, err := json.Marshal(scheduler.Schedule{Minutes: integers(0, 59), Hours: integers(0, 23), Months: integers(1, 12)})
 	if err != nil {
@@ -147,6 +156,7 @@ func insertDue(t *testing.T, db *database.Database, value string, now time.Time)
 	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO scheduler_definitions(id, name, name_key, task_type, schedule_json, parameters_json, enabled, revision, next_run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, id, value, value, "runtime.effect", schedule, parameters, true, 1, now, now, now); err != nil {
 		t.Fatal(err)
 	}
+	return id
 }
 
 func integers(minimum, maximum int) []int {

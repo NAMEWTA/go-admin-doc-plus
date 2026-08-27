@@ -2,7 +2,7 @@
 CREATE TABLE scheduler_definitions (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    name_key TEXT NOT NULL UNIQUE,
+    name_key TEXT NOT NULL,
     task_type TEXT NOT NULL,
     schedule_json BLOB NOT NULL,
     parameters_json BLOB NOT NULL,
@@ -14,6 +14,7 @@ CREATE TABLE scheduler_definitions (
     deleted_at TIMESTAMP,
     CHECK ((enabled = 1 AND next_run_at IS NOT NULL AND deleted_at IS NULL) OR (enabled = 0 AND next_run_at IS NULL))
 );
+CREATE UNIQUE INDEX scheduler_definitions_active_name_key_uq ON scheduler_definitions(name_key COLLATE BINARY) WHERE deleted_at IS NULL;
 CREATE INDEX scheduler_definitions_due_idx ON scheduler_definitions(enabled, next_run_at, id) WHERE deleted_at IS NULL;
 CREATE TABLE scheduler_executions (
     id TEXT PRIMARY KEY,

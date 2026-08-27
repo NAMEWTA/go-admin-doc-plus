@@ -195,9 +195,93 @@ func TestServiceLifecycleAuthorizationRevisionAndLiteralSearch(t *testing.T) {
 	if err := service.DeleteDefinition(context.Background(), "actor", created.ID, stopped.Revision); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("deleted again = %v", err)
 	}
+	recreated, err := service.CreateDefinition(context.Background(), "actor", input)
+	if err != nil || recreated.ID == created.ID || recreated.Name != created.Name {
+		t.Fatalf("recreated = %#v, %v", recreated, err)
+	}
 	authorizer.scope = authorization.ScopeSelf
 	if _, err := service.ListDefinitions(context.Background(), "actor", DefinitionQuery{Page: 1, PageSize: 20}); !errors.Is(err, ErrDenied) {
 		t.Fatalf("self scope = %v", err)
+	}
+}
+
+func TestExecutorRollsBackAndRecordsTimeoutWhenHandlerIgnoresContext(t *testing.T) {
+	db := schedulerDatabase(t)
+	if _, err := db.SQL().Exec(`CREATE TABLE scheduler_test_effects(value TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	registry := schedulerRegistry(t, func(ctx context.Context, tx database.Tx, parameters testParameters) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO scheduler_test_effects(value) VALUES (?)`, parameters.Message); err != nil {
+			return err
+		}
+		<-ctx.Done()
+		return nil
+	})
+	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	current := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
+	clock := ClockFunc(func() time.Time { return current })
+	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	definition := createEnabled(t, service, "timeout", "must-rollback")
+	current = time.Date(2026, 8, 27, 10, 1, 0, 0, time.UTC)
+	lease, err := coordination.Acquire(context.Background(), db, coordination.Config{Owner: "timeout-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = lease.Close(context.Background()) })
+	executor, err := NewExecutor(db, registry, ExecutorConfig{Owner: "timeout-owner", BatchSize: 1, TaskTimeout: 10 * time.Millisecond, Clock: clock})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := executor.RunOnce(context.Background(), lease)
+	if err != nil || result != (ExecuteResult{Triggered: 1, Failed: 1}) {
+		t.Fatalf("timeout result = %#v, %v", result, err)
+	}
+	var effects int
+	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM scheduler_test_effects`).Scan(&effects); err != nil || effects != 0 {
+		t.Fatalf("timeout effects = %d, %v", effects, err)
+	}
+	page, err := service.ListExecutions(context.Background(), "actor", ExecutionQuery{DefinitionID: definition.ID, Page: 1, PageSize: 20})
+	if err != nil || page.Total != 1 || page.Rows[0].Status != ExecutionFailed || page.Rows[0].ErrorCode != "task_timeout" {
+		t.Fatalf("timeout execution = %#v, %v", page, err)
+	}
+}
+
+func TestExecutorCoalescesOccurrencesMissedWhileTaskRuns(t *testing.T) {
+	db := schedulerDatabase(t)
+	current := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
+	invocations := 0
+	registry := schedulerRegistry(t, func(context.Context, database.Tx, testParameters) error {
+		invocations++
+		current = current.Add(5 * time.Minute)
+		return nil
+	})
+	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	clock := ClockFunc(func() time.Time { return current })
+	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	definition := createEnabled(t, service, "long-running", "advance-clock")
+	current = time.Date(2026, 8, 27, 10, 1, 0, 0, time.UTC)
+	lease, err := coordination.Acquire(context.Background(), db, coordination.Config{Owner: "long-owner"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = lease.Close(context.Background()) })
+	executor, err := NewExecutor(db, registry, ExecutorConfig{Owner: "long-owner", BatchSize: 10, TaskTimeout: time.Second, Clock: clock})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := executor.RunOnce(context.Background(), lease)
+	if err != nil || result != (ExecuteResult{Triggered: 1, Succeeded: 1}) || invocations != 1 {
+		t.Fatalf("long task result = %#v invocations=%d, %v", result, invocations, err)
+	}
+	page, err := service.ListDefinitions(context.Background(), "actor", DefinitionQuery{Page: 1, PageSize: 20})
+	if err != nil || page.Total != 1 || page.Rows[0].ID != definition.ID || page.Rows[0].NextRunAt == nil || !page.Rows[0].NextRunAt.Equal(time.Date(2026, 8, 27, 10, 7, 0, 0, time.UTC)) {
+		t.Fatalf("long task definition = %#v, %v", page, err)
 	}
 }
 
