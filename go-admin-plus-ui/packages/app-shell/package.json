@@ -4,9 +4,18 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/core/index.ts"
+    ".": "./src/core/index.ts",
+    "./product": "./src/product/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run src/product/manifest.spec.ts --environment node",
+    "typecheck": "tsc --noEmit -p src/product/tsconfig.json"
   },
   "dependencies": {
     "@go-admin/platform": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

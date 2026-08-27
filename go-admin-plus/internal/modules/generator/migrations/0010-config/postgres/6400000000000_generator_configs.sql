@@ -10,6 +10,3 @@ CREATE TABLE generator_configs (
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
-
--- +goose Down
-DROP TABLE generator_configs;

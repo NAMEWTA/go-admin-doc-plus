@@ -1,0 +1,376 @@
+package product
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"net/http"
+	"os"
+	"time"
+
+	"go-admin/internal/application"
+	"go-admin/internal/application/health"
+	"go-admin/internal/contracts"
+	"go-admin/internal/modules/audit"
+	"go-admin/internal/modules/demo"
+	"go-admin/internal/modules/files"
+	"go-admin/internal/modules/generator"
+	"go-admin/internal/modules/iam/administration"
+	"go-admin/internal/modules/iam/authorization"
+	"go-admin/internal/modules/iam/session"
+	"go-admin/internal/modules/organization"
+	"go-admin/internal/modules/scheduler"
+	"go-admin/internal/modules/settings"
+	"go-admin/internal/platform/config"
+	"go-admin/internal/platform/database"
+	"go-admin/internal/platform/outbox"
+)
+
+type Options struct {
+	SessionPolicy       config.SessionPolicy
+	FilesRoot           string
+	RepositoryRoot      string
+	GeneratorOutputRoot string
+	GeneratorSchema     string
+	GeneratorTables     []string
+	WorkerOwner         string
+	WorkerInterval      time.Duration
+	AuditRetentionAge   time.Duration
+}
+
+type Runtime struct {
+	Application *application.Application
+	Readiness   []health.Checker
+}
+
+type schedulerParameters struct {
+	Message string `json:"message"`
+}
+
+func Build(ctx context.Context, db *database.Database, options Options) (Runtime, error) {
+	if ctx == nil || db == nil || options.SessionPolicy == (config.SessionPolicy{}) ||
+		options.FilesRoot == "" || options.RepositoryRoot == "" || options.GeneratorOutputRoot == "" ||
+		options.GeneratorSchema == "" || len(options.GeneratorTables) == 0 || options.WorkerOwner == "" ||
+		options.WorkerInterval <= 0 || options.AuditRetentionAge <= 0 {
+		return Runtime{}, errors.New("product runtime options are invalid")
+	}
+	if err := os.MkdirAll(options.FilesRoot, 0o700); err != nil {
+		return Runtime{}, errors.New("product files root is unavailable")
+	}
+	if err := os.MkdirAll(options.GeneratorOutputRoot, 0o700); err != nil {
+		return Runtime{}, errors.New("product generator output root is unavailable")
+	}
+
+	runner, err := NewMigrationRunner()
+	if err != nil {
+		return Runtime{}, errors.New("product migrations are invalid")
+	}
+	if _, err := runner.Up(ctx, db); err != nil {
+		return Runtime{}, errors.New("product migration failed")
+	}
+	capabilities, err := authorization.NewCapabilityRegistry(db)
+	if err != nil {
+		return Runtime{}, errors.New("product capability registry failed")
+	}
+	if err := RegisterCapabilities(ctx, capabilities); err != nil {
+		return Runtime{}, err
+	}
+
+	trace := secureTraceID
+	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	if err != nil {
+		return Runtime{}, errors.New("product login audit adapter failed")
+	}
+	sessions, err := session.NewService(db, options.SessionPolicy, session.WithLoginFactPort(loginFacts))
+	if err != nil {
+		return Runtime{}, errors.New("product session service failed")
+	}
+	sessionHandler, err := session.NewHTTPHandler(sessions, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product session transport failed")
+	}
+	adminService, err := administration.NewService(db)
+	if err != nil {
+		return Runtime{}, errors.New("product administration service failed")
+	}
+	adminHandler, err := administration.NewHTTPHandler(adminService, sessions, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product administration transport failed")
+	}
+
+	auditAuthorizer, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
+	if err != nil {
+		return Runtime{}, errors.New("product audit authorization adapter failed")
+	}
+	auditService, err := audit.NewService(db, auditAuthorizer, audit.RetentionPolicy{MinimumAge: options.AuditRetentionAge, CleanupLimit: 100})
+	if err != nil {
+		return Runtime{}, errors.New("product audit service failed")
+	}
+	auditRequests, err := audit.NewIAMRequestAuthorizer(sessions)
+	if err != nil {
+		return Runtime{}, errors.New("product audit request adapter failed")
+	}
+	auditHandler, err := audit.NewHTTPHandler(auditService, auditRequests, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product audit transport failed")
+	}
+
+	organizationService, err := organization.NewService(db)
+	if err != nil {
+		return Runtime{}, errors.New("product organization service failed")
+	}
+	organizationHandler, err := organization.NewHTTPHandler(organizationService, sessions, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product organization transport failed")
+	}
+
+	settingsService, err := settings.NewService(db)
+	if err != nil {
+		return Runtime{}, errors.New("product settings service failed")
+	}
+	settingsSession, err := settings.NewIAMSessionRequestAdapter(sessions)
+	if err != nil {
+		return Runtime{}, errors.New("product settings session adapter failed")
+	}
+	settingsHandler, err := settings.NewHTTPHandler(settingsService, settingsSession, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product settings transport failed")
+	}
+
+	generatorHandler, err := buildGenerator(ctx, db, sessions, trace, options)
+	if err != nil {
+		return Runtime{}, err
+	}
+
+	registration, err := scheduler.NewTaskRegistration(
+		"maintenance.noop",
+		"Maintenance check",
+		[]scheduler.ParameterField{{Name: "message", Label: "Message", Kind: scheduler.ParameterString, Required: true}},
+		func(context.Context, database.Tx, schedulerParameters) error { return nil },
+	)
+	if err != nil {
+		return Runtime{}, errors.New("product scheduler task registration failed")
+	}
+	schedulerRegistry, err := scheduler.NewRegistry(registration)
+	if err != nil {
+		return Runtime{}, errors.New("product scheduler registry failed")
+	}
+	schedulerClock := scheduler.ClockFunc(func() time.Time { return time.Now().UTC() })
+	schedulerService, err := scheduler.NewService(db, schedulerRegistry, schedulerClock)
+	if err != nil {
+		return Runtime{}, errors.New("product scheduler service failed")
+	}
+	schedulerHandler, err := scheduler.NewHTTPHandler(schedulerService, sessions, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product scheduler transport failed")
+	}
+	schedulerExecutor, err := scheduler.NewExecutor(db, schedulerRegistry, scheduler.ExecutorConfig{
+		Owner: options.WorkerOwner, BatchSize: 100, TaskTimeout: time.Minute, Clock: schedulerClock,
+	})
+	if err != nil {
+		return Runtime{}, errors.New("product scheduler executor failed")
+	}
+
+	demoAuthorizer, err := demo.NewIAMAuthorizationAdapter(db)
+	if err != nil {
+		return Runtime{}, errors.New("product demo authorization adapter failed")
+	}
+	demoService, err := demo.NewService(db, demoAuthorizer)
+	if err != nil {
+		return Runtime{}, errors.New("product demo service failed")
+	}
+	demoSession, err := demo.NewIAMSessionRequestAdapter(sessions)
+	if err != nil {
+		return Runtime{}, errors.New("product demo session adapter failed")
+	}
+	demoHandler, err := demo.NewHTTPHandler(demoService, demoSession, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product demo transport failed")
+	}
+
+	storage, err := files.NewLocalStorage(options.FilesRoot)
+	if err != nil {
+		return Runtime{}, errors.New("product files storage failed")
+	}
+	storageOwnedByBuild := true
+	defer func() {
+		if storageOwnedByBuild {
+			_ = storage.Close()
+		}
+	}()
+	filesService, err := files.NewService(db, storage)
+	if err != nil {
+		return Runtime{}, errors.New("product files service failed")
+	}
+	if err := filesService.Reconcile(ctx); err != nil {
+		return Runtime{}, errors.New("product files reconciliation failed")
+	}
+	filesSession, err := files.NewIAMSessionRequestAdapter(sessions)
+	if err != nil {
+		return Runtime{}, errors.New("product files session adapter failed")
+	}
+	filesHandler, err := files.NewHTTPHandler(filesService, filesSession, trace)
+	if err != nil {
+		return Runtime{}, errors.New("product files transport failed")
+	}
+
+	store, err := outbox.NewStore(db, audit.TopicSchemas()...)
+	if err != nil {
+		return Runtime{}, errors.New("product outbox store failed")
+	}
+	consumers, err := audit.TransactionalConsumers()
+	if err != nil {
+		return Runtime{}, errors.New("product audit consumers failed")
+	}
+	dispatcher, err := outbox.NewDispatcher(store, outbox.DispatcherConfig{
+		Owner: options.WorkerOwner, LeaseDuration: time.Minute, RetryDelay: time.Minute, BatchSize: 100,
+	}, consumers)
+	if err != nil {
+		return Runtime{}, errors.New("product outbox dispatcher failed")
+	}
+	workers := newWorkerGroup(db, options.WorkerOwner, options.WorkerInterval, schedulerExecutor, dispatcher)
+
+	root := http.NewServeMux()
+	modules := []application.Module{
+		newRouteModule(ModuleIAM, nil, route{"/api/iam/session/", sessionHandler}, route{"/api/iam/administration/", adminHandler}),
+		newRouteModule(ModuleAudit, nil, route{"/api/audit/", auditHandler}),
+		newRouteModule(ModuleOrganization, nil, route{"/api/organization/", organizationHandler}),
+		newRouteModule(ModuleSettings, nil, route{"/api/settings/", settingsHandler}),
+		newRouteModule(ModuleGenerator, nil, route{"/api/generator/", generatorHandler}),
+		newRouteModule(ModuleScheduler, workers, route{"/api/scheduler/", schedulerHandler}),
+		newRouteModule(ModuleDemo, nil, route{"/api/demo/", demoHandler}),
+		newRouteModule(ModuleFiles, nil, route{"/api/files/", filesHandler}),
+	}
+	modules[len(modules)-1].(*routeModule).stop = func(context.Context) error { return storage.Close() }
+	app, err := application.Build(application.Config{Name: "go-admin-plus"}, application.Dependencies{Handler: root}, application.NewModuleSet(modules...))
+	if err != nil {
+		return Runtime{}, errors.New("product application assembly failed")
+	}
+	storageOwnedByBuild = false
+	return Runtime{
+		Application: app,
+		Readiness: []health.Checker{
+			{Name: "database", Check: func(ctx context.Context) error { return db.SQL().PingContext(ctx) }},
+			{Name: "workers", Check: workers.Check},
+		},
+	}, nil
+}
+
+func buildGenerator(ctx context.Context, db *database.Database, sessions *session.Service, trace contracts.TraceIDProvider, options Options) (http.Handler, error) {
+	metadata, err := generator.NewSQLMetadataSource(ctx, db, generator.MetadataAllowlist{CurrentSchema: options.GeneratorSchema, Tables: append([]string(nil), options.GeneratorTables...)})
+	if err != nil {
+		return nil, errors.New("product generator metadata failed")
+	}
+	gate, err := generator.NewWorkspaceCompileGate(options.RepositoryRoot)
+	if err != nil {
+		return nil, errors.New("product generator compile gate failed")
+	}
+	writer, err := generator.NewAtomicWriter(options.GeneratorOutputRoot, gate)
+	if err != nil {
+		return nil, errors.New("product generator writer failed")
+	}
+	transportGenerator, err := generator.NewCanonicalTransportGenerator(options.RepositoryRoot)
+	if err != nil {
+		return nil, errors.New("product generator transport failed")
+	}
+	renderer, err := generator.NewCanonicalRenderer(transportGenerator)
+	if err != nil {
+		return nil, errors.New("product generator renderer failed")
+	}
+	authorizer, err := generator.NewIAMAuthorizationAdapter(db)
+	if err != nil {
+		return nil, errors.New("product generator authorization adapter failed")
+	}
+	store, err := generator.NewSQLConfigStore(db)
+	if err != nil {
+		return nil, errors.New("product generator config store failed")
+	}
+	service, err := generator.New(metadata, writer, authorizer, store, renderer, 10*time.Minute)
+	if err != nil {
+		return nil, errors.New("product generator service failed")
+	}
+	authenticator, err := generator.NewIAMSessionRequestAdapter(sessions)
+	if err != nil {
+		return nil, errors.New("product generator session adapter failed")
+	}
+	handler, err := generator.NewHTTPHandler(service, authenticator, trace)
+	if err != nil {
+		return nil, errors.New("product generator HTTP transport failed")
+	}
+	return handler, nil
+}
+
+func secureTraceID(*http.Request) string {
+	var value [16]byte
+	if _, err := rand.Read(value[:]); err != nil {
+		return "0000000000000000"
+	}
+	return hex.EncodeToString(value[:])
+}
+
+type route struct {
+	pattern string
+	handler http.Handler
+}
+
+type routeModule struct {
+	id         ModuleID
+	migrations []application.Migration
+	routes     []route
+	workers    *workerGroup
+	stop       func(context.Context) error
+}
+
+func newRouteModule(id ModuleID, workers *workerGroup, routes ...route) *routeModule {
+	definition := moduleDefinition(id)
+	migrations := make([]application.Migration, len(definition.MigrationModules))
+	for index, name := range definition.MigrationModules {
+		migrations[index] = application.Migration{ID: name}
+	}
+	return &routeModule{id: id, migrations: migrations, routes: append([]route(nil), routes...), workers: workers}
+}
+
+func (module *routeModule) ID() string { return string(module.id) }
+
+func (module *routeModule) RegisterRoutes(handler http.Handler) error {
+	mux, ok := handler.(*http.ServeMux)
+	if !ok {
+		return errors.New("product route target is invalid")
+	}
+	for _, entry := range module.routes {
+		mux.Handle(entry.pattern, http.StripPrefix("/api", entry.handler))
+	}
+	return nil
+}
+
+func (module *routeModule) Migrations() []application.Migration {
+	return append([]application.Migration(nil), module.migrations...)
+}
+
+func (module *routeModule) Start(ctx context.Context) error {
+	if module.workers == nil {
+		return nil
+	}
+	return module.workers.Start(ctx)
+}
+
+func (module *routeModule) Stop(ctx context.Context) error {
+	var result error
+	if module.workers != nil {
+		result = module.workers.Stop(ctx)
+	}
+	if module.stop != nil {
+		result = errors.Join(result, module.stop(ctx))
+	}
+	return result
+}
+
+func moduleDefinition(id ModuleID) ModuleDefinition {
+	for _, definition := range moduleDefinitions {
+		if definition.ID == id {
+			return definition
+		}
+	}
+	return ModuleDefinition{ID: id}
+}

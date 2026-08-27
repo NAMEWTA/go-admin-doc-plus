@@ -1,0 +1,119 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Go Admin Plus Product API
+  version: 1.0.0
+  description: Complete Server and Desktop product contract composed from module-owned fragments.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /api
+    description: Same-origin product API base path.
+security:
+  - SessionCookie: []
+paths:
+  /iam/session/login:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1login
+  /iam/session/current:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1current
+  /iam/session/logout:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1logout
+  /iam/account/profile:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1account~1profile
+  /iam/account/password:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1account~1password
+  /iam/administration/manifest:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1manifest
+  /iam/administration/users:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users
+  /iam/administration/users/batch-delete:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1batch-delete
+  /iam/administration/users/{userId}:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}
+  /iam/administration/users/{userId}/roles:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}~1roles
+  /iam/administration/users/{userId}/password:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}~1password
+  /iam/administration/roles:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1roles
+  /iam/administration/roles/{roleId}:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1roles~1{roleId}
+  /iam/administration/roles/{roleId}/grants:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1roles~1{roleId}~1grants
+  /iam/administration/menus:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1menus
+  /iam/administration/menus/{menuId}:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1menus~1{menuId}
+  /iam/administration/permissions:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1permissions
+  /audit/records:
+    $ref: ./modules/audit.yaml#/paths/~1audit~1records
+  /audit/records/{id}:
+    $ref: ./modules/audit.yaml#/paths/~1audit~1records~1{id}
+  /audit/records/cleanup:
+    $ref: ./modules/audit.yaml#/paths/~1audit~1records~1cleanup
+  /organization/departments:
+    $ref: ./modules/organization.yaml#/paths/~1organization~1departments
+  /organization/departments/{departmentId}:
+    $ref: ./modules/organization.yaml#/paths/~1organization~1departments~1{departmentId}
+  /organization/positions:
+    $ref: ./modules/organization.yaml#/paths/~1organization~1positions
+  /organization/positions/{positionId}:
+    $ref: ./modules/organization.yaml#/paths/~1organization~1positions~1{positionId}
+  /settings/values:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1values
+  /settings/values/{settingId}:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1values~1{settingId}
+  /settings/dictionaries:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1dictionaries
+  /settings/dictionaries/{dictionaryId}:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1dictionaries~1{dictionaryId}
+  /settings/dictionaries/{dictionaryId}/items:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1dictionaries~1{dictionaryId}~1items
+  /settings/dictionary-items/{itemId}:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1dictionary-items~1{itemId}
+  /settings/options/{dictionaryKey}:
+    $ref: ./modules/settings.yaml#/paths/~1settings~1options~1{dictionaryKey}
+  /generator/configs/{moduleName}:
+    $ref: ./modules/generator.yaml#/paths/~1generator~1configs~1{moduleName}
+  /generator/tables:
+    $ref: ./modules/generator.yaml#/paths/~1generator~1tables
+  /generator/tables/{schemaName}/{tableName}:
+    $ref: ./modules/generator.yaml#/paths/~1generator~1tables~1{schemaName}~1{tableName}
+  /generator/previews:
+    $ref: ./modules/generator.yaml#/paths/~1generator~1previews
+  /generator/writes:
+    $ref: ./modules/generator.yaml#/paths/~1generator~1writes
+  /scheduler/task-types:
+    $ref: ./modules/scheduler.yaml#/paths/~1scheduler~1task-types
+  /scheduler/definitions:
+    $ref: ./modules/scheduler.yaml#/paths/~1scheduler~1definitions
+  /scheduler/definitions/{definitionId}:
+    $ref: ./modules/scheduler.yaml#/paths/~1scheduler~1definitions~1{definitionId}
+  /scheduler/definitions/{definitionId}/enable:
+    $ref: ./modules/scheduler.yaml#/paths/~1scheduler~1definitions~1{definitionId}~1enable
+  /scheduler/definitions/{definitionId}/stop:
+    $ref: ./modules/scheduler.yaml#/paths/~1scheduler~1definitions~1{definitionId}~1stop
+  /scheduler/executions:
+    $ref: ./modules/scheduler.yaml#/paths/~1scheduler~1executions
+  /demo/products:
+    $ref: ./modules/demo.yaml#/paths/~1demo~1products
+  /demo/products/batch-delete:
+    $ref: ./modules/demo.yaml#/paths/~1demo~1products~1batch-delete
+  /demo/products/{productId}:
+    $ref: ./modules/demo.yaml#/paths/~1demo~1products~1{productId}
+  /files/objects:
+    $ref: ./modules/files.yaml#/paths/~1files~1objects
+  /files/objects/batch-delete:
+    $ref: ./modules/files.yaml#/paths/~1files~1objects~1batch-delete
+  /files/objects/{fileId}:
+    $ref: ./modules/files.yaml#/paths/~1files~1objects~1{fileId}
+  /files/objects/{fileId}/content:
+    $ref: ./modules/files.yaml#/paths/~1files~1objects~1{fileId}~1content
+components:
+  securitySchemes:
+    SessionCookie:
+      $ref: ./components/security-schemes.yaml#/SessionCookie
+    CsrfToken:
+      $ref: ./components/security-schemes.yaml#/CsrfToken
