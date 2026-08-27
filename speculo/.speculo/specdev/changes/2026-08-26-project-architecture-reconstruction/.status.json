@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T23:01:54+08:00",
+  "updated_at": "2026-08-27T23:21:53+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -373,6 +373,16 @@
       "approved_at": "2026-08-27T19:10:00+08:00",
       "reason": "The full TypeScript aggregate gate proves tests/shell/app-shell.spec.ts is a second direct compile-time consumer of PermissionCode and its five legacy colon literals no longer typecheck after T17-D04",
       "resolution": "Authorize only tests/shell/app-shell.spec.ts to replace its five colon Permission literals with canonical dot-separated values; shell behavior, assertions, runtime implementation, and all other fixtures remain unchanged"
+    },
+    {
+      "id": "T20-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-20",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T23:21:53+08:00",
+      "reason": "The T-19 release sidecar environment maps x86_64 only to darwin-amd64 and hard-codes Unix executable paths, so a Windows installer built solely from T-20 release assets cannot start the complete packaged Generator",
+      "resolution": "Authorize only go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs to select the release toolchain by OS plus architecture, require packaged Windows Go/Node/pnpm/MinGit, pass only the bounded Windows bootstrap environment, and add matching tests; product transport, vault, lifecycle, other Desktop files, and existing macOS behavior remain unchanged"
     }
   ],
   "worktrees": [
@@ -1234,7 +1244,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T23:01:54+08:00"
+      "updated_at": "2026-08-27T23:21:53+08:00"
     }
   ]
 }

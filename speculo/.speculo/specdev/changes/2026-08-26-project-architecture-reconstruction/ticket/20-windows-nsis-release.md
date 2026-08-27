@@ -12,11 +12,11 @@ risk: critical
 blocked_by: [T-17]
 contract_ids: [AC-032, AC-033]
 owner: codex-root
-expected_changes: ["<Path>release/windows/**</Path>", "<Path>scripts/release/windows/**</Path>", "<Path>.github/workflows/release-windows.yml</Path>"]
-writable_paths: ["<Path>release/windows/**</Path>", "<Path>scripts/release/windows/**</Path>", "<Path>.github/workflows/release-windows.yml</Path>"]
+expected_changes: ["<Path>release/windows/**</Path>", "<Path>scripts/release/windows/**</Path>", "<Path>.github/workflows/release-windows.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>"]
+writable_paths: ["<Path>release/windows/**</Path>", "<Path>scripts/release/windows/**</Path>", "<Path>.github/workflows/release-windows.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-shared_paths: []
-shared_path_owners: []
+shared_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path> => T-20 under T20-D01; add only the packaged Windows Generator platform/toolchain mapping and tests without changing product transport or sidecar lifecycle"]
 ---
 
 # Ticket T-20: Windows x64 NSIS 发行切片
@@ -40,6 +40,7 @@ shared_path_owners: []
 
 - 仅 Windows x64 NSIS；生产制品在受保护 runner 签名。
 - 卸载默认不静默删除用户业务数据，清理边界必须明确验证。
+- `T20-D01`：发布态 Tauri sidecar 环境必须按 OS + architecture 选择 `windows-amd64`，只使用安装包内的 Go/Node/pnpm/MinGit，并白名单传递 Windows 启动必需环境；macOS 映射、产品 transport 和 sidecar 生命周期保持不变。
 
 ### 已采用的低影响假设
 
@@ -80,10 +81,10 @@ shared_path_owners: []
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Windows 专属 release/script/workflow。
+- **预计修改点：** Windows 专属 release/script/workflow，以及 `T20-D01` 精确开放的 Tauri 发布工具链映射。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** Tauri App 和 sidecar layout。
-- **共享路径：** 无；根 CI 归 T-21。
+- **共享路径：** Tauri `main.rs` 仅由 T-20 增加 Windows packaged Generator 映射和测试；根 CI 归 T-21。
 - **保留或不动：** macOS/Linux 资产。
 
 ## 8. 验证矩阵
