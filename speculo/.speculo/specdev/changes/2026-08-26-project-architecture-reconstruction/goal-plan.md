@@ -384,12 +384,13 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-16 source 已在同一第 4 次修复链更新到 clean `fdfa4afbe342edbd5b6feb00a8699780dd04caf4`（tree `792f1dc446648f32469054e974e75aa9bab28c1c`）：补齐 release `custom-protocol` 资产、阶段安全诊断、有界 Accessibility 查询、预期宿主退出竞态处理和 macOS 先显示窗口后激活应用的顺序。锁屏不再是当前执行 blocker；同一 retained candidate 只需合入该 checkpoint 与最新父状态并重跑全部非 E2E Gate，native E2E 归入最终统一系统验证。
 - T-16 最终 source `fdfa4afbe342edbd5b6feb00a8699780dd04caf4` 已在同一 retained attempt 4 形成 candidate/result `cd50bfdbd24517c8b3e8f3565d75fae8c3f6a22a`（tree `901fdbb2d967164178da02faabba7e1811af6caf`，parent before `ce21e84a432e5d882634399c4e607c94866442f9`）。Go 普通/SQLite/tag/race/vet/CGO0/module、25-package frozen/83+6+6/build、Rust 16+17 tests/clippy/compile guard/locked custom-protocol release、合同 28/28、API client 7/7、governance、`TASK_CONTRACT_PASS`、SpecDev/path/clean 与 production artifact/resource scan 全绿；`main` 已快进到同一 result。T-16 为 `implemented-pending-final-e2e`，native tracer 延后 G8，现解除 T-17 的 T-16 实现依赖。
 - T-15 首次 parent-candidate preflight 证明 source 的两个 Generator package manifest 已声明真实依赖与 package-local checks，但根 `verify` 未调用其 typecheck/tests，lockfile 两个预建 importer 仍为空。Lead 批准 `T15-D02`：在 T-16 result 后只开放根 Generator typecheck 聚合、Vitest 两个 Generator include 和 lockfile 两个既有 Generator importer；禁止修改其他 script/include/importer/catalog、引入新版本或触碰 composition。
+- T-15 最终 source `8458ceac6a5ce05a1eec811374f60b2f33a83729` 已在 attempt 1 形成 candidate/result `b60d1bc33d702fdaac0cef7a28dad27582e5b975`（tree `38fa0f96eefd74bcbd5ec4e71e7df979d923d7cd`，parent before `b01540bf21d42cdf49270f50b39ca7d253f7b198`）。候选闭合重复 Vite raw 类型与测试复用过期 parent deadline 两项集成问题；真实生成/编译、SQLite full/focused race/vet/CGO0/module、15 files / 90 frontend tests、Web/Desktop build、合同 28/28、API client 7/7、governance、`TASK_CONTRACT_PASS`、path/clean 和 Goal Plan validator 0 error 全部通过，`main` 已快进到同一 result。T-15 为 `implemented-pending-final-e2e`，Web wizard 与跨 profile 场景延后 G8，现解除 T-17 的 T-15 实现依赖。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
 
 - 无阻止 T-02 开始的产品决定。
-- T-16 第 4 次 retained candidate 继续复用，不建立第 5 次尝试；合入 source `fdfa4afbe342edbd5b6feb00a8699780dd04caf4` 与最新父状态后必须从头重跑全部非 E2E 门禁，之后方可作为实现 result 提升。native E2E 已按用户最新决定延后到最终统一系统候选，macOS 锁屏不再阻塞当前实现集成。
+- T-16 与 T-15 的 implementation result 均已提升；各自 E2E 延后到最终统一系统候选，不再构成后续实现 blocker。
 - G6 的生产签名、公证、受保护 runner、远端制品发布仍需到达该 Gate 后逐项批准；在此之前 T-19/T-20 不能以模拟或未签名制品关闭最终发行验收。
 - source branch/worktree cleanup 未授权，不阻止集成与 change 本地完成，但所有保留 locator 必须写入状态。
 

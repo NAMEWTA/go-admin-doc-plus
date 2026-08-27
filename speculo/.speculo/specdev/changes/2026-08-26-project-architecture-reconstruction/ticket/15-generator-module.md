@@ -118,3 +118,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-15 under T
 - [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>`。
 - [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
 - [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+
+## 11. 当前实现结果
+
+`main` 已包含 implementation result `b60d1bc33d702fdaac0cef7a28dad27582e5b975`（tree `38fa0f96eefd74bcbd5ec4e71e7df979d923d7cd`）。全部非 E2E candidate Gate 已通过，T-15 进入 `implemented-pending-final-e2e`；上述验收框继续保持未勾选，直到唯一最终系统候选完成 Web wizard 与跨 profile 联合验证。
