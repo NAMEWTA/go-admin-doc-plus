@@ -337,12 +337,12 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
         }
     });
 
-    #[cfg(target_os = "macos")]
-    app.show().map_err(|_| "desktop application failed")?;
     let window = app
         .get_webview_window("main")
         .ok_or("desktop main window unavailable")?;
     window.show().map_err(|_| "desktop main window failed")?;
+    #[cfg(target_os = "macos")]
+    app.show().map_err(|_| "desktop application failed")?;
     let _ = window.set_focus();
     Ok(())
 }
