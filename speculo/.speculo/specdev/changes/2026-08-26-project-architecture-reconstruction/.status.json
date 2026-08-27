@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T23:21:53+08:00",
+  "updated_at": "2026-08-28T01:21:58+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -1256,7 +1256,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-21",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-21",
-      "source_checkpoint": null,
+      "source_checkpoint": "c6c669b720b6be7448de4a00a82940caf0a1abd0",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -1286,8 +1286,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-28T00:24:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-28T01:21:58+08:00"
     }
   ]
 }
