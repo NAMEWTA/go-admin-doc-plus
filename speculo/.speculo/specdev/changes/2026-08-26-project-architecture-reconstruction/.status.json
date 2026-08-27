@@ -897,36 +897,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-10",
       "source_checkpoint": "a630c50fd0f8f22208564a807accfb325ca34f6a",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "71108aea07acef377157480c27844096debb6283",
+        "source_sha": "a630c50fd0f8f22208564a807accfb325ca34f6a",
+        "candidate_sha": "030eb0b57fd47a4a5381f80a24cd3dafaeb35310",
+        "candidate_tree_sha": "8cdd579f60f3018be864f55fb54cfa8b9fb8ab3f",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-10",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-10",
+        "result_sha": "030eb0b57fd47a4a5381f80a24cd3dafaeb35310",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "G4 requires Settings parameters, dictionaries, secret rejection, Go/TypeScript, contract, and build checks on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Attempt 1 passed frozen pnpm verify/build, Go normal/SQLite full, Settings race, vet, CGO0 build, module verify, contract, API client, governance, Task contract, path, clean-tree, and Goal Plan validation gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-        "reason": "PostgreSQL and SQLite Settings API/UI, authorization, options, reference conflicts, and runtime secret rejection are deferred to the single unified final system E2E after all implementations are integrated",
-          "evidence": null
+          "reason": "PostgreSQL and SQLite Settings API/UI, authorization, options, reference conflicts, and runtime secret rejection are deferred to the single unified final system E2E after all implementations are integrated",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
       "status": "review",
-      "updated_at": "2026-08-27T16:55:00+08:00"
+      "updated_at": "2026-08-27T17:16:46+08:00"
     },
     {
       "ticket_id": "T-12",
