@@ -19,3 +19,8 @@ func tryLockFile(file *os.File) (bool, error) {
 func unlockFile(file *os.File) error {
 	return syscall.Flock(int(file.Fd()), syscall.LOCK_UN)
 }
+
+func privateSingleLink(_ *os.File, info os.FileInfo) bool {
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	return ok && stat.Nlink == 1
+}

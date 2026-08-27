@@ -23,11 +23,7 @@ var (
 func tryLockFile(file *os.File) (bool, error) {
 	overlapped := new(syscall.Overlapped)
 	result, _, callErr := lockFileExProc.Call(
-		file.Fd(),
-		lockFileExclusiveLock|lockFileFailImmediately,
-		0,
-		1,
-		0,
+		file.Fd(), lockFileExclusiveLock|lockFileFailImmediately, 0, 1, 0,
 		uintptr(unsafe.Pointer(overlapped)),
 	)
 	if result != 0 {
@@ -41,15 +37,15 @@ func tryLockFile(file *os.File) (bool, error) {
 
 func unlockFile(file *os.File) error {
 	overlapped := new(syscall.Overlapped)
-	result, _, callErr := unlockFileExProc.Call(
-		file.Fd(),
-		0,
-		1,
-		0,
-		uintptr(unsafe.Pointer(overlapped)),
-	)
+	result, _, callErr := unlockFileExProc.Call(file.Fd(), 0, 1, 0, uintptr(unsafe.Pointer(overlapped)))
 	if result != 0 {
 		return nil
 	}
 	return callErr
+}
+
+func privateSingleLink(file *os.File, info os.FileInfo) bool {
+	var opened syscall.ByHandleFileInformation
+	err := syscall.GetFileInformationByHandle(syscall.Handle(file.Fd()), &opened)
+	return err == nil && info.Mode().IsRegular() && opened.NumberOfLinks == 1
 }
