@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T11:12:00+08:00",
+  "updated_at": "2026-08-27T11:17:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -263,6 +263,16 @@
       "approved_at": "2026-08-27T10:14:46+08:00",
       "reason": "The precreated Generator package manifests are placeholder shells without the direct dependencies, public exports, and package-local checks required by the approved Web wizard slice",
       "resolution": "Authorize only the two Generator package manifests using existing workspace and catalog dependencies; root aggregate checks and lock remain read-only during stage 1 and will be serialized after the T-09 root owner completes"
+    },
+    {
+      "id": "T10-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-10",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T11:17:00+08:00",
+      "reason": "The precreated Settings package manifests are placeholder shells without the direct dependencies, public exports, and package-local checks required by the approved Web vertical slice",
+      "resolution": "Authorize only the two Settings package manifests during stage 1 using existing workspace and catalog dependencies; root aggregate checks, Vitest include, lockfile, shared UI, and composition remain read-only until a later Lead-serialized amendment"
     }
   ],
   "worktrees": [
@@ -824,6 +834,49 @@
       },
       "status": "active",
       "updated_at": "2026-08-27T10:14:46+08:00"
+    },
+    {
+      "ticket_id": "T-10",
+      "owner": "codex-t10-settings",
+      "implementation_owner": "codex-t10-settings",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "cc2ae75c0f2374f7b57c171cc1e819955e1da9fd",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-10",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-10",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G4 requires Settings parameters, dictionaries, secret rejection, Go/TypeScript, contract, and build checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-10 must prove PostgreSQL and SQLite Settings API/UI behavior, authorization, options, reference conflicts, and runtime secret rejection",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T11:17:00+08:00"
     }
   ]
 }
