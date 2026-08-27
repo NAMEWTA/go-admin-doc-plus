@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 
 	"go-admin/internal/modules/iam/account"
 	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
@@ -45,15 +45,11 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 		_, _ = adminDB.SQL().ExecContext(context.Background(), `DROP SCHEMA IF EXISTS `+schema+` CASCADE`)
 	})
 
-	parsed, err := pgx.ParseConfig(dsn)
+	isolatedDSN, err := isolatedSessionPostgresDSN(dsn, schema)
 	if err != nil {
 		t.Fatal("parse disposable PostgreSQL connection material")
 	}
-	if parsed.RuntimeParams == nil {
-		parsed.RuntimeParams = make(map[string]string)
-	}
-	parsed.RuntimeParams["search_path"] = schema
-	db := openPostgres(t, ctx, parsed.ConnString())
+	db := openPostgres(t, ctx, isolatedDSN)
 	runner, err := migrations.NewRunner(sessionmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
@@ -155,6 +151,35 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 		if _, err := service.Current(ctx, token); !errors.Is(err, ErrAuthentication) {
 			t.Fatal("generation fence allowed a token after concurrent PostgreSQL revoke")
 		}
+	}
+}
+
+func isolatedSessionPostgresDSN(dsn, schema string) (string, error) {
+	suffix := strings.TrimPrefix(schema, "iam_session_")
+	if suffix == "" || strings.Trim(suffix, "0123456789") != "" {
+		return "", fmt.Errorf("invalid IAM session schema")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || parsed.Host == "" || parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
+		return "", fmt.Errorf("invalid PostgreSQL URL")
+	}
+	query := parsed.Query()
+	query.Set("search_path", schema)
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
+func TestIsolatedSessionPostgresDSNPreservesParameters(t *testing.T) {
+	value, err := isolatedSessionPostgresDSN("postgres://localhost/database?application_name=session+runner&sslmode=disable", "iam_session_1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Query().Get("search_path") != "iam_session_1234" || parsed.Query().Get("application_name") != "session runner" || parsed.Query().Get("sslmode") != "disable" {
+		t.Fatal("isolated IAM session DSN lost its search path or existing parameters")
+	}
+	if _, err := isolatedSessionPostgresDSN("postgres://localhost/database", "public"); err == nil {
+		t.Fatal("invalid IAM session schema was accepted")
 	}
 }
 

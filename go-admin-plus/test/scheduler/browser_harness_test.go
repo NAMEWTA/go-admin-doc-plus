@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,8 +16,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-
 	"go-admin/internal/modules/iam/account"
 	"go-admin/internal/modules/iam/administration"
 	"go-admin/internal/modules/iam/authorization"
@@ -310,12 +310,11 @@ func openSchedulerBrowserDB(t *testing.T, ctx context.Context, profile string) *
 		_ = admin.Close()
 		t.Fatal("scheduler PostgreSQL schema failed")
 	}
-	parsed, err := pgx.ParseConfig(dsn)
+	isolatedDSN, err := isolatedSchedulerBrowserDSN(dsn, schema)
 	if err != nil {
 		t.Fatal("scheduler PostgreSQL DSN invalid")
 	}
-	parsed.RuntimeParams["search_path"] = schema
-	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString(), MaxOpenConnections: 8, MaxIdleConnections: 4})
+	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: isolatedDSN, MaxOpenConnections: 8, MaxIdleConnections: 4})
 	if err != nil {
 		t.Fatal("scheduler isolated PostgreSQL failed")
 	}
@@ -329,4 +328,34 @@ func openSchedulerBrowserDB(t *testing.T, ctx context.Context, profile string) *
 		_ = admin.Close()
 	})
 	return db
+}
+
+func isolatedSchedulerBrowserDSN(dsn, schema string) (string, error) {
+	suffix := strings.TrimPrefix(schema, "t12_")
+	if len(suffix) != 32 || strings.Trim(suffix, "0123456789abcdef") != "" {
+		return "", fmt.Errorf("invalid Scheduler browser schema")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || parsed.Host == "" || parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
+		return "", fmt.Errorf("invalid PostgreSQL URL")
+	}
+	query := parsed.Query()
+	query.Set("search_path", schema)
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
+func TestIsolatedSchedulerBrowserDSNPreservesParameters(t *testing.T) {
+	const schema = "t12_0123456789abcdef0123456789abcdef"
+	value, err := isolatedSchedulerBrowserDSN("postgres://localhost/database?host=%2Ftmp%2Fpostgres&sslmode=disable", schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Query().Get("search_path") != schema || parsed.Query().Get("host") != "/tmp/postgres" || parsed.Query().Get("sslmode") != "disable" {
+		t.Fatal("isolated Scheduler browser DSN lost its search path or existing parameters")
+	}
+	if _, err := isolatedSchedulerBrowserDSN("postgres://localhost/database", "public"); err == nil {
+		t.Fatal("invalid Scheduler browser schema was accepted")
+	}
 }
