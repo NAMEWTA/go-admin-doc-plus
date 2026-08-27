@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T18:44:25+08:00",
+  "updated_at": "2026-08-27T19:05:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -353,6 +353,16 @@
       "approved_at": "2026-08-27T18:44:25+08:00",
       "reason": "The clean stage-1 product checkpoint proves Web remains a placeholder, Browser rejects real dot-separated Permission Codes, Desktop UI/TypeScript/Rust/sidecar expose only Demo, and the shared product manifest is not consumed by either App",
       "resolution": "Stage 2 authorizes only the app-shell product workspace, two App composition entries, Browser permission parser, Desktop transport adapter and Rust product allowlist/proxy, desktop-sidecar product runtime wiring, plus exact package/Vitest/boundary/lock importer updates required to compile and verify those seams; domain and web-domain business implementations, generated module contracts, unrelated root scripts/importers, and final E2E remain unchanged"
+    },
+    {
+      "id": "T17-D04",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-17",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T19:05:00+08:00",
+      "reason": "The stage-2 aggregate test proves the platform PermissionCode type and its Web runtime fixture still encode the removed colon convention while the IAM registry, module contracts, database capabilities, product OpenAPI, and both runtime adapters use canonical dot-separated codes",
+      "resolution": "Authorize only packages/platform/src/index.ts and tests/shell/web-runtime.spec.ts to replace colon Permission Codes with canonical dot-separated module.resource.action values; dual-format parsing, compatibility aliases, unrelated platform contracts, and other shell tests remain forbidden"
     }
   ],
   "worktrees": [
@@ -1085,7 +1095,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T18:44:25+08:00"
+      "updated_at": "2026-08-27T19:05:00+08:00"
     }
   ]
 }
