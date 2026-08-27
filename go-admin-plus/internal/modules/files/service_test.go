@@ -82,6 +82,40 @@ func TestFilesUploadAuthorizesBeforeReadingAndAgainBeforeInsert(t *testing.T) {
 	}
 }
 
+func TestFilesUploadReturnsThePersistedReadyTimestamp(t *testing.T) {
+	db := filesDatabase(t)
+	storage, err := NewLocalStorage(canonicalTestRoot(t, "files"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = storage.Close() })
+	createdAt := time.Date(2026, time.August, 27, 10, 0, 0, 0, time.UTC)
+	readyAt := createdAt.Add(3 * time.Second)
+	times := []time.Time{createdAt, readyAt}
+	clock := func() time.Time {
+		value := times[0]
+		if len(times) > 1 {
+			times = times[1:]
+		}
+		return value
+	}
+	service, err := newServiceWithAuthorizer(db, storage, &authorizerStub{scope: ScopeAll}, WithClock(clock))
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := service.Upload(context.Background(), "account-a", UploadInput{OriginalName: "ready.txt", DeclaredMediaType: "text/plain", Content: strings.NewReader("ready")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := service.List(context.Background(), "account-a", ListQuery{Page: 1, PageSize: 20})
+	if err != nil || len(page.Rows) != 1 {
+		t.Fatalf("ready projection=%#v err=%v", page, err)
+	}
+	if !created.CreatedAt.Equal(createdAt) || !created.UpdatedAt.Equal(readyAt) || !sameMetadata(created, page.Rows[0]) {
+		t.Fatalf("upload response=%#v persisted=%#v", created, page.Rows[0])
+	}
+}
+
 func TestFilesObserverEmitsOnlyStableNonSensitiveSignals(t *testing.T) {
 	db := filesDatabase(t)
 	storage, err := NewLocalStorage(canonicalTestRoot(t, "files"))

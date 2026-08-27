@@ -42,14 +42,12 @@ export class FilesRequestError extends Error {
 export const fileMediaTypes = ['application/pdf', 'image/jpeg', 'image/png', 'text/plain'] as const
 export const maximumFileBytes = 10 * 1024 * 1024
 export const codePointLength = (value: string): number => Array.from(value).length
+const containsUnicodeControl = (value: string): boolean => /\p{Cc}/u.test(value)
 export const validFileSearch = (value: string): boolean => codePointLength(value.trim()) <= 100
 export const validFileName = (value: string): boolean => {
   const name = value.trim()
   return codePointLength(name) >= 1 && codePointLength(name) <= 255 && name !== '.' && name !== '..'
-    && !name.includes('/') && !name.includes('\\') && !Array.from(name).some(character => {
-      const codePoint = character.codePointAt(0) ?? 0
-      return codePoint < 32 || codePoint === 127
-    })
+    && !name.includes('/') && !name.includes('\\') && !containsUnicodeControl(name)
 }
 export const validUploadCandidate = (candidate: UploadCandidate): boolean => {
   return validFileName(candidate.name) && fileMediaTypes.includes(candidate.type as typeof fileMediaTypes[number])

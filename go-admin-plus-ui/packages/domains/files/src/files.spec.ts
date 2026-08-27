@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { codePointLength, maximumFileBytes, validFileSearch, validUploadCandidate } from './files'
+import { codePointLength, maximumFileBytes, validFileName, validFileSearch, validUploadCandidate } from './files'
 
 describe('files domain', () => {
   it('uses Unicode code-point limits for names and search', () => {
@@ -14,5 +14,11 @@ describe('files domain', () => {
     expect(validUploadCandidate({ name: '../outside.txt', type: 'text/plain', size: 1, body: new Blob(['x']) })).toBe(false)
     expect(validUploadCandidate({ name: 'file.exe', type: 'application/octet-stream', size: 1, body: new Blob(['x']) })).toBe(false)
     expect(validUploadCandidate({ name: 'large.txt', type: 'text/plain', size: maximumFileBytes + 1, body: new Blob([]) })).toBe(false)
+  })
+
+  it('rejects every Unicode control character accepted by JavaScript strings', () => {
+    expect(validFileName('line\nfeed.txt')).toBe(false)
+    expect(validFileName('next\u0085line.txt')).toBe(false)
+    expect(validFileName('printable\u2028separator.txt')).toBe(true)
   })
 })

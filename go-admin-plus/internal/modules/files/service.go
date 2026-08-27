@@ -107,8 +107,10 @@ func (service *Service) Upload(ctx context.Context, actorID string, input Upload
 		return Metadata{}, service.normalize(ctx, err)
 	}
 	record.TemporaryKey = nil
+	readyAt := service.now().UTC()
+	record.UpdatedAt = readyAt
 	err = service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		return service.repository.markReady(ctx, tx, record.ID, service.now().UTC())
+		return service.repository.markReady(ctx, tx, record.ID, readyAt)
 	})
 	if err != nil {
 		return Metadata{}, service.normalize(ctx, err)
