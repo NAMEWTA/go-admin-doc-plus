@@ -141,14 +141,29 @@ const assertSafeDiagnostics = (output, protectedRoots) => {
 }
 
 const runAppleScript = script => execute('/usr/bin/osascript', ['-'], { input: script, timeout: 10_000 })
+const processIsAlive = pid => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    if (error?.code === 'ESRCH') return false
+    throw error
+  }
+}
 
 const windowCount = async pid => {
-  const output = await runAppleScript(`tell application "System Events"
+  let output
+  try {
+    output = await runAppleScript(`tell application "System Events"
 if exists (first process whose unix id is ${pid}) then
   tell (first process whose unix id is ${pid}) to return count of windows
 end if
 return 0
 end tell`)
+  } catch (error) {
+    if (!processIsAlive(pid)) return 0
+    throw error
+  }
   return Number.parseInt(output.trim(), 10) || 0
 }
 
