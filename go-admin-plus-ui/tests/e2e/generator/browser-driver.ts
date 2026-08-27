@@ -5,11 +5,13 @@ import { createCapabilityController } from '@go-admin/domain-iam/administration'
 import { createSessionController } from '@go-admin/domain-iam/session'
 import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
+import { createBrowserSessionFetch } from '@go-admin/adapter-browser'
 
 const result = document.querySelector<HTMLElement>('#result')!
-const session = createSessionController(createWebSessionClient(fetch, '/api'))
-const capabilities = createCapabilityController(createWebAdministrationClient(fetch, '/api'))
-const client = createWebGeneratorClient(fetch, '/api')
+const sessionFetch = createBrowserSessionFetch(fetch)
+const session = createSessionController(createWebSessionClient(sessionFetch, '/api'))
+const capabilities = createCapabilityController(createWebAdministrationClient(sessionFetch, '/api'))
+const client = createWebGeneratorClient(sessionFetch, '/api')
 const controller = createGeneratorController(client, { can: permission => capabilities.can(permission) })
 const wait = async (condition: () => boolean, message: string) => { const deadline = Date.now()+30_000; while(Date.now()<deadline){ if(condition()) return; await new Promise(resolve => setTimeout(resolve, 25)) }; throw new Error(message) }
 

@@ -162,6 +162,37 @@ func testDraft() Draft {
 	}}
 }
 
+func TestGeneratedServiceDeduplicatesPrimarySortAndUsesConditionalSearchImports(t *testing.T) {
+	draft := testDraft()
+	for index := range draft.Columns {
+		draft.Columns[index].Sortable = draft.Columns[index].Name == "id"
+	}
+	model, err := normalize(testTable(), draft)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := renderBase(model)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := make(map[string]string, len(files))
+	for _, file := range files {
+		content[file.Path] = file.Content
+	}
+	service := content["go-admin-plus/internal/modules/catalog/service.go"]
+	if strings.Count(service, `case "id":`) != 1 {
+		t.Fatal("generated service duplicated the primary sort key")
+	}
+	sqliteTest := content["go-admin-plus/internal/modules/catalog/service_test.go"]
+	if strings.Contains(sqliteTest, `"fmt"`) || strings.Contains(sqliteTest, `"sort"`) {
+		t.Fatal("generated SQLite test retained unused search imports")
+	}
+	postgresTest := content["go-admin-plus/internal/modules/catalog/service_postgres_test.go"]
+	if !strings.Contains(postgresTest, `"fmt"`) || strings.Contains(postgresTest, `"sort"`) {
+		t.Fatal("generated PostgreSQL test imports do not match their use")
+	}
+}
+
 func TestPreviewIsDeterministicAndUsesOneNormalizedModel(t *testing.T) {
 	root := t.TempDir()
 	writer, err := NewAtomicWriter(root, passingGate{})
