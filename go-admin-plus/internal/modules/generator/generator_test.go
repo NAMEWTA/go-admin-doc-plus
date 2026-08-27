@@ -365,7 +365,9 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		t.Fatal(err)
 	}
 	preview := signedPreview(model.Module, files)
-	if err := gate.Check(ctx, t.TempDir(), preview); err != nil {
+	gateCtx, gateCancel := context.WithTimeout(context.Background(), compileGateTimeout+time.Minute)
+	defer gateCancel()
+	if err := gate.Check(gateCtx, t.TempDir(), preview); err != nil {
 		t.Fatalf("production compile gate: %v", err)
 	}
 }
