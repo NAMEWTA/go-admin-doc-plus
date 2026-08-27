@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "outputs": [
+    "go-admin-plus-ui/packages/domains/generator/src/generated/client.ts",
+    "go-admin-plus-ui/packages/domains/generator/src/generated/schema.ts",
+    "go-admin-plus/internal/modules/generator/transport/openapi.gen.go",
+    "go-admin-plus/internal/modules/generator/transport/openapi.json",
+    "go-admin-plus/internal/modules/generator/transport/openapi.manifest.json"
+  ]
+}
