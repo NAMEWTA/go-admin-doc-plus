@@ -5,15 +5,15 @@ import { fileURLToPath } from 'node:url'
 import { quoteAppleScript, windowContainsScript } from './accessibility.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
-test('accessibility query handles nested elements without coercing the collection', () => {
+test('accessibility query bulk-loads and safely walks nested names', () => {
   assert.equal(quoteAppleScript('a\\"b'), '"a\\\\\\"b"')
   const script = windowContainsScript(42, 'Products')
-  assert.match(script, /set allElements to entire contents of window 1/)
-  assert.match(script, /repeat with currentElement in allElements/)
-  assert.match(script, /name of currentElement/)
-  assert.match(script, /value of currentElement/)
-  assert.match(script, /description of currentElement/)
-  assert.doesNotMatch(script, /name of every UI element/)
+  assert.match(script, /on collectionContains\(itemsToScan, expectedValue\)/)
+  assert.match(script, /if class of rawItem is list/)
+  assert.match(script, /rawItem is not missing value/)
+  assert.match(script, /set elementNames to name of every UI element of entire contents of window 1/)
+  assert.match(script, /my collectionContains\(elementNames, expectedValue\)/)
+  assert.doesNotMatch(script, /name of every UI element.*as text/)
 })
 
 test('native runner is a default skip with no environment prerequisites', () => {
