@@ -121,3 +121,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.
 - [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>`。
 - [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
 - [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+
+## 11. 当前实现结果
+
+`main` 已包含 implementation result `d9e7d5aa5fd973e76a6d3c5b0a8648db04df7b71`（tree `fe2415cac6f73942f4507ed50e24da8fb13907c8`）。全部非 E2E candidate Gate 已通过，T-12 进入 `implemented-pending-final-e2e`；上述验收框继续保持未勾选，直到唯一最终系统候选完成双方言、多实例、lease-loss/takeover、Outbox coupling 与浏览器记录验证。

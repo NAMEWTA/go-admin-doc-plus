@@ -940,36 +940,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-12",
       "source_checkpoint": "a9b8a568b17934db78ea2d89d258cf5dfa065fad",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "3d8bc072241c7e76b4f9baf6793f26fdd5d30896",
+        "source_sha": "a9b8a568b17934db78ea2d89d258cf5dfa065fad",
+        "candidate_sha": "d9e7d5aa5fd973e76a6d3c5b0a8648db04df7b71",
+        "candidate_tree_sha": "fe2415cac6f73942f4507ed50e24da8fb13907c8",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-12",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-12",
+        "result_sha": "d9e7d5aa5fd973e76a6d3c5b0a8648db04df7b71",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "G4 requires typed Scheduler registry, structured UTC schedules, shared lease transaction safety, Go/TypeScript, contract, and package checks on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Attempt 1 passed frozen pnpm verify/build, Go normal/SQLite full, Scheduler race, vet, CGO0 build, module verify, contract, API client, governance, Task contract, path, clean-tree, and Goal Plan validation gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-        "reason": "SQLite and PostgreSQL multi-instance uniqueness, lease-loss rollback, takeover, stop linearization, Outbox coupling, and browser records are deferred to the single unified final system E2E after all implementations are integrated",
-          "evidence": null
+          "reason": "SQLite and PostgreSQL multi-instance uniqueness, lease-loss rollback, takeover, stop linearization, Outbox coupling, and browser records are deferred to the single unified final system E2E after all implementations are integrated",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
       "status": "review",
-      "updated_at": "2026-08-27T14:24:24+08:00"
+      "updated_at": "2026-08-27T17:43:01+08:00"
     },
     {
       "ticket_id": "T-13",
