@@ -5,5 +5,16 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@go-admin/api-client": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run src",
+    "typecheck": "tsc -p src/tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

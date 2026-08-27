@@ -6,6 +6,17 @@ import test from 'node:test'
 
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
+const browserAdapterWorkspaceDependencies = ['@go-admin/domain-files', '@go-admin/platform']
+const assertBrowserAdapterDependencies = dependencies => {
+  for (const dependency of browserAdapterWorkspaceDependencies) {
+    assert.equal(dependencies[dependency], 'workspace:*')
+  }
+  assert.deepEqual(
+    Object.keys(dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
+    browserAdapterWorkspaceDependencies,
+    'browser adapter may only depend on its platform and Files domain ports'
+  )
+}
 const requiredPackageNames = [
   '@go-admin/adapter-browser',
   '@go-admin/adapter-desktop',
@@ -158,7 +169,7 @@ test('apps select adapters without owning runtime transport', async () => {
   )
 
   const browserAdapter = await readJson(join(workspaceRoot, 'packages/adapters/browser/package.json'))
-  assert.deepEqual(browserAdapter.dependencies, { '@go-admin/platform': 'workspace:*' })
+  assertBrowserAdapterDependencies(browserAdapter.dependencies)
 
   const adminDesktop = await readJson(join(workspaceRoot, 'apps/admin-desktop/package.json'))
   assert.equal(adminDesktop.dependencies['@go-admin/adapter-desktop'], 'workspace:*')
@@ -168,6 +179,17 @@ test('apps select adapters without owning runtime transport', async () => {
     const source = await readFile(file, 'utf8')
     assert.doesNotMatch(source, /\bfetch\s*\(|implements\s+ShellRuntimePort/)
   }
+})
+
+test('browser adapter dependency allowlist rejects additional workspace packages', () => {
+  assert.throws(
+    () => assertBrowserAdapterDependencies({
+      '@go-admin/domain-files': 'workspace:*',
+      '@go-admin/platform': 'workspace:*',
+      '@go-admin/app-shell': 'workspace:*'
+    }),
+    /browser adapter may only depend/
+  )
 })
 
 test('headless packages do not depend on Vue, DOM globals, deep imports, or credential values', async () => {
