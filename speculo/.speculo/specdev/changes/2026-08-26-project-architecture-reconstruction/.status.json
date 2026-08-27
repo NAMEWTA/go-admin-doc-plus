@@ -803,12 +803,12 @@
       "integration": {
         "status": "failed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "9b086f025dd31909edea086727e45c7f301c5ccf",
-        "source_sha": "cf4244101da4dd053527150da66ddb02e1f563bc",
-        "candidate_sha": "a142911174d22aebe91bb7aa391fd9e2260e7f57",
-        "candidate_tree_sha": "87c202a4cf9a88e61f619a58a078085c675bfd00",
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
+        "parent_before_sha": "ce21e84a432e5d882634399c4e607c94866442f9",
+        "source_sha": "f2d611133a302b912f43cb1d648943e1909762f0",
+        "candidate_sha": "004bd0d5b936018ffd95c01324423e7feaa7fb0d",
+        "candidate_tree_sha": "36c068722c898aa0e8ad2d31d65dcf58fccaa3d6",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
         "result_sha": null,
         "method": "merge-commit",
         "conflict_paths": [],
@@ -822,15 +822,15 @@
         "e2e": {
           "required": true,
           "status": "failed",
-          "reason": "T-16 must prove a native Tauri host supervises the real SQLite sidecar, keeps Session material out of WebView JavaScript, and persists Demo CRUD across restart",
+          "reason": "Attempt 4 reached the release native host and sidecar, but the required login-window tracer timed out because the interactive macOS session was locked; rerun the same retained candidate after unlock",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
-        "attempts": 3,
+        "attempts": 4,
         "promotion_status": "failed"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:06:00+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-27T14:08:00+08:00"
     },
     {
       "ticket_id": "T-15",

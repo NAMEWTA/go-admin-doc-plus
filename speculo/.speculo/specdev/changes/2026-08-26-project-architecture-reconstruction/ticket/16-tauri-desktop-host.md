@@ -50,6 +50,10 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 
 无。
 
+## 当前执行环境
+
+- 第 4 次候选的 required native E2E 需要可交互且已解锁的 macOS 图形会话；当前锁屏使 System Events 无法观察 Tauri 登录窗口。源码、候选和父分支未变化，解锁后复跑同一候选。
+
 ## 3. 范围边界
 
 | IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |

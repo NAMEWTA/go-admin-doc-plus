@@ -374,6 +374,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 
 - 无阻止 T-02 开始的产品决定。
 - T-16 第 4 次 candidate 已由用户最新 `Q1A/Q2A` 明确批准，Speculo config 与本 Goal Plan 的 `integration_attempt_limit` 已同步提升为 4；它仍必须从当前父提交新建并完整通过 required native E2E，不能复用前三次失败候选的验证结论。
+- T-16 第 4 次 retained candidate `004bd0d5b936018ffd95c01324423e7feaa7fb0d`（tree `36c068722c898aa0e8ad2d31d65dcf58fccaa3d6`）已通过全部静态/构建/治理门禁，但 required release native tracer 因当前 macOS 交互会话处于锁屏、System Events 窗口计数为 0 而登录窗超时；父分支未移动，资源与测试钥匙串零残留。解锁后复跑同一 candidate，不建立第 5 次尝试。
 - G6 的生产签名、公证、受保护 runner、远端制品发布仍需到达该 Gate 后逐项批准；在此之前 T-19/T-20 不能以模拟或未签名制品关闭最终发行验收。
 - source branch/worktree cleanup 未授权，不阻止集成与 change 本地完成，但所有保留 locator 必须写入状态。
 
