@@ -34,8 +34,8 @@ status: in_progress
 | T-09 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/09-organization-module.md</Path>` | Organization 完整管理闭环 | T-07 | deep | high | yes | codex-t09-organization | AC-014, AC-035 | W6 / G4 | done |
 | T-10 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>` | Settings 完整管理闭环 | T-07 | deep | high | yes | codex-t10-settings | AC-015, AC-035 | W6 / G4 | in_progress |
 | T-11 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/11-audit-module.md</Path>` | Audit 可靠脱敏闭环 | T-06, T-08 | deep | high | yes | codex-t11-audit | AC-016, AC-035 | W5 / G4 | done |
-| T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | unassigned | AC-017, AC-018, AC-035 | W6 / G4 | ready |
-| T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | unassigned | AC-020, AC-035 | W6 / G4 | ready |
+| T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | codex-t12-scheduler | AC-017, AC-018, AC-035 | W6 / G4 | in_progress |
+| T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4 | in_progress |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
 | T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | codex-root | AC-019, AC-023, AC-028, AC-035 | W7 / G4 | in_progress |
 | T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 priority | in_progress |
@@ -132,7 +132,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | P2 | T-03, T-05 | 无 | 后端 runtime 与前端 workspace 分离 |
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
 | P5 | T-07, T-11 | Session service/test 与 workspace lock 已按 result 串行移交 | T-07 已 done；T-11 写 `T11-D01` Audit importer、`T11-D02` 登录事实接缝与 `T11-D03` 四个 test-only 显式 Port 调用点，其他共享路径仍只读 |
-| P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行分配；T-14 另按 `T14-D02/T14-D03` 精确拥有 IAM Module Capability Registry，并按 `T14-D04` 精确扩展共享 list 的成功原子状态接缝 | 各模块独占合同/schema/backend/frontend；顺序为 T-11 lock -> T-14 verify/lock -> T-09 verify/lock |
+| P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行完成；T-12/T-13 现分别以 `T12-D01`/`T13-D01` 只拥有 package-local manifests，T-13 另精确拥有 Browser Files adapter export/manifest；后续根 verify/lock 继续由 Lead 串行分配 | 各模块独占合同/schema/backend/frontend；Scheduler 只读消费 T-08 同一全局 lease，Files 的 Desktop/config composition 延后 |
 | P7 | T-15, T-16 | `T15-D01` 只开放 Generator 自有 manifests；`T16-D01` 只把 T-05 已预留的 Desktop adapter 移交 T-16；两者根 verify/lock stage 2 均等待 T-09 result | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
 
@@ -149,6 +149,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | IAM Module Capability Registry | T-07 基座；T-14 under `T14-D02/T14-D03` 精确新增 `<Path>go-admin-plus/internal/modules/iam/authorization/capability_registry.go</Path>` 与对应测试 | 模块声明 Permission Code 与 protected menu 并调用 IAM registry；只有 IAM 写 capability/role grant 表，T-17 composition 显式注册完整目录 |
 | IAM Organization consumer Port | T-09 under `T09-D01`，精确文件为 `<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>` | IAM 定义最小投影接口，Organization 提供 adapter，T-17 只负责显式注入；IAM 不导入 Organization |
 | Outbox/coordination/local cache | T-08 | Audit/Scheduler 只读消费 |
+| Browser Files transfer adapter export/manifest | T-13 under `T13-D01` | 只追加 Files 的流式上传/下载 adapter、测试、export 与直接依赖；不得修改通用 RuntimePort 或其他 adapter |
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |
 | product OpenAPI/composition/manifest | T-17 | 发行 Ticket 只读消费 |
 | 根 CI、quality scripts、README/docs | T-21 | 最终收缩专属写入 |

@@ -4,19 +4,19 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-13
 title: Files 本地存储安全垂直切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 文件写入、授权下载、路径和符号链接逃逸属于关键安全与数据完整性边界
 ready: true
 risk: critical
 blocked_by: [T-07]
 contract_ids: [AC-020, AC-035]
-owner: unassigned
-expected_changes: ["<Path>contracts/openapi/modules/files.yaml</Path>", "<Path>go-admin-plus/internal/modules/files/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/files/src/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/files.yaml</Path>", "<Path>go-admin-plus/internal/modules/files/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/files/src/**</Path>", "<Path>go-admin-plus/test/files/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/files/**</Path>"]
+owner: codex-t13-files
+expected_changes: ["<Path>contracts/openapi/modules/files.yaml</Path>", "<Path>go-admin-plus/internal/modules/files/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/files/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/files.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/files.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/package.json</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/files.yaml</Path>", "<Path>go-admin-plus/internal/modules/files/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/files/**</Path>", "<Path>go-admin-plus/test/files/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/files/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/files.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/files.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/package.json</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_paths: []
-shared_path_owners: []
+shared_paths: ["<Path>go-admin-plus-ui/packages/domains/files/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/files/package.json</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/package.json</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/files/package.json</Path> => T-13 under T13-D01; package-local exports/dependencies/checks only", "<Path>go-admin-plus-ui/packages/web-domains/files/package.json</Path> => T-13 under T13-D01; package-local exports/dependencies/checks only", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path> => T-13 under T13-D01; Files transfer export only", "<Path>go-admin-plus-ui/packages/adapters/browser/package.json</Path> => T-13 under T13-D01; Files adapter dependency/check only"]
 ---
 
 # Ticket T-13: Files 本地存储安全垂直切片
@@ -44,6 +44,9 @@ shared_path_owners: []
 ### 已采用的低影响假设
 
 - 写入采用临时文件、大小/类型检查和原子落位。
+- Files 构造函数接收并自行校验 canonical absolute private root；模块不读取 env/config，也不依赖旧 platform files helper。Server typed root 与 Desktop `DataDirectory/files` 的产品注入归 T-17/T-16 后续 amendment。
+- 上传 handler 先完成 Session/CSRF，再通过 `MaxBytesReader` 与 `MultipartReader` 流式解析；只绕过会物化 multipart body 的通用 validator 路径，其他生成路由和错误模型保持严格合同。
+- 元数据采用 `pending/ready/deleting` 状态；本地 adapter 使用 anchored/no-follow 文件操作、fsync 和原子发布，启动 reconciliation 幂等收敛中断状态。
 
 ### 未决问题
 
@@ -83,7 +86,8 @@ shared_path_owners: []
 - **预计修改点：** Files 独占路径。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM、配置和共享 UI。
-- **共享路径：** 无。
+- **共享路径：** 两个预建 Files manifest，以及 Browser adapter 的 export/manifest，仅在 `T13-D01` 精确范围内由本 Ticket 拥有。
+- **批准偏差：** `T13-D01` 只开放两个预建 Files package manifest，以及 Browser adapter 的 Files 专属实现/测试、单一 export 和 package-local dependency/check；根 package、Vitest、lockfile、共享 UI、Desktop adapter/Rust bridge、typed Server config 和 composition 继续只读，等待 Lead 串行 amendment。
 - **保留或不动：** Desktop 宿主路径注入由 T-16 完成。
 
 ## 8. 验证矩阵

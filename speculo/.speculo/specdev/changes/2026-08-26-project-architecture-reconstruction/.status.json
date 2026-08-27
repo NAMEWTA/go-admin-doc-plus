@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T11:21:00+08:00",
+  "updated_at": "2026-08-27T13:06:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -283,6 +283,26 @@
       "approved_at": "2026-08-27T11:21:00+08:00",
       "reason": "T-16 stage 1 cannot enter standard pnpm verification and its existing Desktop lock importers do not reflect the completed Tauri App and adapter dependencies after the serialized T-09 root owner finished",
       "resolution": "After a clean stage-1 commit and rebase to the amendment parent, authorize only Desktop aggregate checks in the root package, Desktop specs in shell Vitest, and the existing admin-desktop and adapter-desktop lock importers; all other root scripts, includes, importers, catalog entries, external versions, shared UI, and composition remain unchanged"
+    },
+    {
+      "id": "T12-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-12",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T13:06:00+08:00",
+      "reason": "The precreated Scheduler package manifests cannot expose or verify the approved typed registry and Web vertical slice, while T-08 provides one global Scheduler/Outbox lease rather than independent namespace leases",
+      "resolution": "Authorize only the two Scheduler package manifests for package-local exports, direct dependencies, and checks; require Scheduler and Outbox to consume the same injected global lease and transaction boundary; keep root checks, Vitest, lockfile, composition, Outbox, and coordination implementations read-only"
+    },
+    {
+      "id": "T13-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-13",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T13:06:00+08:00",
+      "reason": "The precreated Files package manifests and Browser runtime adapter lack the exports and streaming transfer implementation required by the approved Web vertical slice",
+      "resolution": "Authorize only the two Files package manifests plus Browser Files implementation/test, one export, and package-local dependency/check; keep root checks, Vitest, lockfile, shared UI, Desktop native bridge, typed Server config, and product composition read-only until serialized amendments"
     }
   ],
   "worktrees": [
@@ -769,38 +789,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-16",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-16",
-      "source_checkpoint": null,
+      "source_checkpoint": "f2d611133a302b912f43cb1d648943e1909762f0",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
+        "status": "failed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "9b086f025dd31909edea086727e45c7f301c5ccf",
+        "source_sha": "cf4244101da4dd053527150da66ddb02e1f563bc",
+        "candidate_sha": "a142911174d22aebe91bb7aa391fd9e2260e7f57",
+        "candidate_tree_sha": "87c202a4cf9a88e61f619a58a078085c675bfd00",
         "candidate_branch": null,
         "candidate_workspace_ref": null,
         "result_sha": null,
-        "method": null,
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "failed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G4 requires Tauri 2, sidecar, Stronghold, SQLite migration, Go/Rust/TypeScript, hardening, and package checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "failed",
           "reason": "T-16 must prove a native Tauri host supervises the real SQLite sidecar, keeps Session material out of WebView JavaScript, and persists Demo CRUD across restart",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 3,
+        "promotion_status": "failed"
       },
       "status": "active",
-      "updated_at": "2026-08-27T10:08:38+08:00"
+      "updated_at": "2026-08-27T13:06:00+08:00"
     },
     {
       "ticket_id": "T-15",
@@ -887,6 +907,92 @@
       },
       "status": "active",
       "updated_at": "2026-08-27T11:17:00+08:00"
+    },
+    {
+      "ticket_id": "T-12",
+      "owner": "codex-t12-scheduler",
+      "implementation_owner": "codex-t12-scheduler",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "9b086f025dd31909edea086727e45c7f301c5ccf",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-12",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-12",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G4 requires typed Scheduler registry, structured UTC schedules, shared lease transaction safety, Go/TypeScript, contract, and package checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-12 must prove SQLite and PostgreSQL multi-instance uniqueness, lease-loss rollback, takeover, stop linearization, Outbox coupling, and browser records",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T13:06:00+08:00"
+    },
+    {
+      "ticket_id": "T-13",
+      "owner": "codex-t13-files",
+      "implementation_owner": "codex-t13-files",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "9b086f025dd31909edea086727e45c7f301c5ccf",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-13",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-13",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G4 requires Files metadata state, anchored local storage, streaming transport, authorization, Go/TypeScript, contract, and package checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-13 must prove real filesystem upload/download/restart across supported profiles plus traversal, symlink, TOCTOU, interruption, and authorization failures",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T13:06:00+08:00"
     }
   ]
 }

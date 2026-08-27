@@ -4,19 +4,19 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-12
 title: Scheduler 受控任务垂直切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 调度定义、后台副作用、唯一 executor、停止语义和执行记录具有高事故半径
 ready: true
 risk: critical
 blocked_by: [T-07, T-08]
 contract_ids: [AC-017, AC-018, AC-035]
-owner: unassigned
-expected_changes: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/src/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/src/**</Path>", "<Path>go-admin-plus/test/scheduler/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/scheduler/**</Path>"]
+owner: codex-t12-scheduler
+expected_changes: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/**</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/**</Path>", "<Path>go-admin-plus/test/scheduler/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/scheduler/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus/internal/platform/coordination/**</Path>"]
-shared_paths: []
-shared_path_owners: []
+shared_paths: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/package.json</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.json</Path> => T-12 under T12-D01; package-local exports/dependencies/checks only", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/package.json</Path> => T-12 under T12-D01; package-local exports/dependencies/checks only"]
 ---
 
 # Ticket T-12: Scheduler 受控任务垂直切片
@@ -40,6 +40,9 @@ shared_path_owners: []
 
 - 任务只引用编译期注册类型和校验后的参数，不执行任意代码字符串。
 - executor 权限来自 T-08；失权立即停止新触发。
+- Scheduler 与 Outbox 消费 T-08 注入的同一个全局 coordination lease；T-17 只获取一次并以同一 DB、owner 和取消边界启动整个 worker group，禁止 Scheduler 再申请 namespace lease。
+- task handler 的数据库副作用只能在 `Lease.WithinTx` 内发生；外部效果必须在同一事务写入 Outbox。lease loss 回滚整个事务，只允许发送脱敏 observer，不得另写“执行失败”记录。
+- task registry 为编译期 typed registry；schedule 使用结构化 UTC 模型和注入时钟，不接受 cron 字符串、任意代码、动态调用目标或 API 注册 task type。
 
 ### 已采用的低影响假设
 
@@ -83,7 +86,8 @@ shared_path_owners: []
 - **预计修改点：** Scheduler 独占路径。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM、Outbox 和 coordination。
-- **共享路径：** 无。
+- **共享路径：** 两个预建 Scheduler package manifest 仅在 `T12-D01` 下由本 Ticket 拥有；根聚合文件仍串行保留。
+- **批准偏差：** `T12-D01` 只开放两个预建 Scheduler package manifest，用于 package-local exports、直接依赖和检查；根 package、Vitest、lockfile、composition、Outbox 与 coordination 实现仍只读，等待 Lead 串行 amendment。
 - **保留或不动：** T-08 executor lease 实现。
 
 ## 8. 验证矩阵

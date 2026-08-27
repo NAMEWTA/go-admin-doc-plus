@@ -364,11 +364,14 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-09 最终 clean source 为 `42df51eff0d21617ecf2cf8075fc06723cf29a08`（tree `d835504067a91fe2598166a51dd45259e4eb247b`），parent-candidate/result 为 `b71fb04b3fa2f87b4d21c7529c589b8c79d9223a`（tree `3612509143c3d5bcdbf0dde1ff6d9148c8aec399`，parent before `5064f44e72cc44efa84fe6d5d3ec2768be3926c5`，merge-commit attempt 1）。Go 普通/SQLite/全 race/vet/build/CGO=0/mod、25-package frozen/77 tests/6 boundary/build、合同 28/28、governance/Task contract/SpecDev/clean 全绿；Chrome for Testing 151 在真实 SQLite 与 PostgreSQL 17.11 完成 IAM Session/CSRF、部门与岗位 CRUD、循环/引用/revision 冲突、Unicode 与字面量搜索、权限撤销和 Session revoke，精确返回 `ORGANIZATION_E2E_PASS profiles=sqlite,postgres`，`public`、`t09_*`、进程、端口与临时目录零残留。候选创建时 Lead 首次误把 merge 落到 clean 根 worktree，立即精确恢复 frozen parent，并在正确独立 candidate 从 frozen install 起重跑全部 Gate 后才正式提升；误提交未进入结果或证据。T-09 状态为 `done`。
 - T-10 已从 clean `main@cc2ae75c0f2374f7b57c171cc1e819955e1da9fd` 激活，source worktree/branch 固定为 `specdev-worktree/2026-08-26-project-architecture-reconstruction/T-10` / `speculo/2026-08-26-project-architecture-reconstruction/T-10`，implementation owner 为 `codex-t10-settings`。`T10-D01` 第一阶段只开放两个 Settings manifests 与原独占路径；根 checks、Vitest include、lockfile 和 required 双 profile E2E 继续由 Lead 串行保留。
 - T-16 stage 2 以 `T16-D02` 获得 T-09 result 后的下一段共享根所有权：原 owner 先固定 stage-1 clean commit，再 rebase 到 amendment parent；只可追加 Desktop aggregate checks/spec includes，并更新 lockfile 现有 `apps/admin-desktop` 与 `packages/adapters/desktop` 两个 importer。T-15/T-10 在 T-16 result 前不得写这些共享根文件。
+- T-16 三次 parent-candidate 均未提升：`bbd9b225` 因无界进程发现输出失败，`7fba6219` 因 migration-failure startup ordering 超时，`a1429111` 的静态门禁通过但 debug 原生宿主 90 秒未开登录窗且异常退出曾留下孤立 sidecar。最终 source `f2d611133a302b912f43cb1d648943e1909762f0`（tree `8e93354e88ae5b1ebbbbdc373252523f509fa4e8`）已改用 release host、父 stdin EOF 自停和精确有界回收并通过全部 source 门禁；当前达到 `integration_attempt_limit=3`，新 candidate 等待用户明确扩容，父分支未移动。
+- T-12/T-13 从 `main@9b086f025dd31909edea086727e45c7f301c5ccf` 激活，implementation owner 分别为 `codex-t12-scheduler` 与 `codex-t13-files`。`T12-D01` 只开放两个 Scheduler manifests 并锁定与 Outbox 共用同一全局 lease/事务；`T13-D01` 只开放两个 Files manifests 与 Browser Files adapter 精确接缝。两者根 checks/Vitest/lock、T13 Desktop/config composition 均等待 Lead 后续串行 amendment。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
 
 - 无阻止 T-02 开始的产品决定。
+- T-16 已耗尽当前计划允许的 3 次集成尝试；第 4 次 candidate 必须先获得用户明确批准，并同步提升 Speculo config 与本 Goal Plan 的 `integration_attempt_limit`。该批准点不阻止 T-12/T-13 独立 source 阶段。
 - G6 的生产签名、公证、受保护 runner、远端制品发布仍需到达该 Gate 后逐项批准；在此之前 T-19/T-20 不能以模拟或未签名制品关闭最终发行验收。
 - source branch/worktree cleanup 未授权，不阻止集成与 change 本地完成，但所有保留 locator 必须写入状态。
 
