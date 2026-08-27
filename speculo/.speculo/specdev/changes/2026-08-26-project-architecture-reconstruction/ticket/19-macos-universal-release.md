@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-19
 title: macOS Universal DMG 发行切片
-status: review
+status: in_progress
 planning_depth: deep
 planning_depth_reason: Universal 原生制品、签名、公证、安装和本地数据重启需要受保护发行 Gate
 ready: true
