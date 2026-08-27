@@ -7,6 +7,7 @@ import { createConnection } from 'node:net'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execute, sidecarProcesses } from './processes.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
 const maxOutput = 16 * 1024
@@ -51,14 +52,6 @@ const deleteTestKeyring = async account => {
   if (await keyringExists(testKeyringService, account)) throw new Error('native test credential cleanup failed')
 }
 
-const sidecarProcesses = async () => {
-  const output = await execute('/bin/ps', ['-axo', 'pid=,command='])
-  return new Set(output.split('\n')
-    .filter(line => line.includes('go-admin-sidecar') && !line.includes('ps -axo'))
-    .map(line => Number.parseInt(line.trim(), 10))
-    .filter(Number.isInteger))
-}
-
 const assertNoNewSidecars = async baseline => {
   const current = await sidecarProcesses()
   const leaked = [...current].filter(pid => !baseline.has(pid))
@@ -95,39 +88,6 @@ const assertSafeDiagnostics = (output, protectedRoots) => {
     throw new Error('native diagnostics leaked protected material')
   }
 }
-
-const execute = (command, args, { cwd, env = process.env, input, timeout = 120_000 } = {}) => new Promise((resolveRun, rejectRun) => {
-  const child = spawn(command, args, { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] })
-  const chunks = []
-  let size = 0
-  let settled = false
-  const timer = setTimeout(() => {
-    child.kill('SIGKILL')
-    finish(new Error('desktop native command timed out'))
-  }, timeout)
-  const finish = error => {
-    if (settled) return
-    settled = true
-    clearTimeout(timer)
-    if (error) rejectRun(error)
-    else resolveRun(Buffer.concat(chunks).toString('utf8'))
-  }
-  const collect = chunk => {
-    size += chunk.length
-    if (size > maxOutput) {
-      child.kill('SIGKILL')
-      finish(new Error('desktop native command output exceeded the limit'))
-      return
-    }
-    chunks.push(chunk)
-  }
-  child.stdout.on('data', collect)
-  child.stderr.on('data', collect)
-  child.once('error', () => finish(new Error('desktop native command unavailable')))
-  child.once('exit', (code, signal) => finish(code === 0 && signal === null ? undefined : new Error('desktop native command failed')))
-  if (input !== undefined) child.stdin.end(input)
-  else child.stdin.end()
-})
 
 const runAppleScript = script => execute('/usr/bin/osascript', ['-'], { input: script, timeout: 10_000 })
 const quoteAppleScript = value => `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
