@@ -7,6 +7,7 @@ import type {
 } from '@go-admin/platform'
 
 export { createBrowserFilesClient } from './files'
+export { createBrowserSessionFetch } from './session-fetch'
 
 type Fetch = typeof globalThis.fetch
 const permissionPattern = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,2}$/
