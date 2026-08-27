@@ -134,7 +134,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | P5 | T-07, T-11 | Session service/test 与 workspace lock 已按原 result 串行移交；`T11-D04` 仅重开 Audit 自有 capability 文件/测试 | T-07 已 done；T-11 原 result 保留，当前只补 IAM registry 所需 Audit permissions/menu，其他共享路径仍只读 |
 | P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09/T-10/T-12/T-13 根接入已全部串行完成；后续共享路径等待 T-17 激活 | 各模块独占合同/schema/backend/frontend；Scheduler 只读消费 T-08 同一全局 lease，Files 的 Desktop/config composition 延后到 T-17 |
 | P7 | T-15, T-16 | `T16-D02` 先完成 Desktop 根接入，随后 `T15-D02` 串行完成 Generator 根接入；无并发写入 | Generator 与 Desktop 分离，共同只读 Demo；两项实现 result 均已提升 |
-| P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
+| P9 | T-18, T-19, T-20 | `T19-D01` 先完成通用 packaged Generator/macOS 映射并集成，`T20-D01` 随后只追加 Windows 映射 | 平台 release/script/workflow 独占；Tauri `main.rs` 按 T-19 -> T-20 串行移交，无并发写入 |
 
 | 共享路径 | 唯一 owner | 消费方式 |
 |---|---|---|
@@ -151,6 +151,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | Outbox/coordination/local cache | T-08 | Audit/Scheduler 只读消费 |
 | Browser Files transfer adapter export/manifest | T-13 under `T13-D01` | 只追加 Files 的流式上传/下载 adapter、测试、export 与直接依赖；不得修改通用 RuntimePort 或其他 adapter |
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |
+| `<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>` packaged release environment | T-19 under `T19-D01` 建立基座；T-20 under `T20-D01` 在 T-19 result 后串行追加 Windows x64 映射 | T-20 不改变 macOS 映射、product proxy/vault、sidecar transport 或生命周期；T-21 只读消费 |
 | product OpenAPI/composition/manifest | T-17 | 发行 Ticket 只读消费 |
 | 根 CI、quality scripts、README/docs | T-21 | 最终收缩专属写入 |
 
