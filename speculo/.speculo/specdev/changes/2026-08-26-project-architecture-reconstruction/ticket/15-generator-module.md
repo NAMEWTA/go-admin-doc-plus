@@ -76,7 +76,7 @@ shared_path_owners: []
 2. 实现 metadata Port、配置模型和稳定 preview。
 3. 重写 OpenAPI/Go/pnpm 模板与安全落盘事务。
 4. 实现 Web wizard 和生成后门禁。
-5. 运行 golden、clean-tree、compile 和路径逃逸 E2E。
+5. 在本 Ticket candidate 运行 golden、clean-tree、真实生成/compile 和路径逃逸非浏览器 Gate，并把 UI 场景登记到最终统一系统 E2E。
 
 ## 7. 路径访问契约
 
@@ -96,9 +96,9 @@ shared_path_owners: []
 | 回归 | architecture scan | 对生成 fixture 运行合同/Go/TS/边界检查 | clean tree 且无旧模式 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 运行 golden/unit/type/build。
-- **E2E disposition：** required：必须在临时输出中执行真实生成、编译和测试。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、生成 E2E 与父分支包含关系。
+- **E2E disposition：** deferred：真实临时输出生成、编译和测试仍属于本 Ticket 非 E2E Gate；Web wizard 与跨产品场景保留到全部 Ticket 实现集成后的统一系统 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选；逐 Ticket source-worktree 与 parent-candidate 不运行浏览器 E2E。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、真实生成/编译非 E2E Gate、统一系统 E2E 引用与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 

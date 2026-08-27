@@ -79,7 +79,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.
 2. 实现 migration、定义/记录 repository 和 task registry。
 3. 实现 executor、Outbox 接缝、API mapping 和 Web 页面。
 4. 覆盖重复触发、接管、未注册类型和敏感参数。
-5. 运行双方言、多实例与浏览器 E2E。
+5. 将双方言、多实例与浏览器场景登记到全部 Ticket 实现集成后的统一系统 E2E；本 Ticket candidate 只运行完整非 E2E Gate。
 
 ## 7. 路径访问契约
 
@@ -99,9 +99,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.
 | 回归 | multi-instance E2E | 多 worker 触发、断连接管、停止任务 | 同时唯一执行，停止后无新记录 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 非 E2E 检查。
-- **E2E disposition：** required：多实例执行权、停止和 UI 记录必须联合验证。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、E2E 与父分支包含关系。
+- **E2E disposition：** deferred：多实例执行权、停止和 UI 记录保留到全部 Ticket 实现集成后的统一系统 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选；逐 Ticket source-worktree 与 parent-candidate 均不运行或声明 E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、完整非 E2E Gate、统一系统 E2E 引用与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 

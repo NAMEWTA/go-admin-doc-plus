@@ -52,7 +52,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 
 ## 当前执行环境
 
-- 第 4 次候选的 required native E2E 需要可交互且已解锁的 macOS 图形会话；当前锁屏使 System Events 无法观察 Tauri 登录窗口。源码、候选和父分支未变化，解锁后复跑同一候选。
+- 用户最新决定把 native E2E 延后到全部 Ticket 实现集成后的统一系统 E2E，当前 macOS 锁屏不再阻塞 T-16 实现集成。此前原生诊断发现的 release asset、Accessibility 查询、宿主退出竞态和窗口显示顺序问题已经在 source `fdfa4afbe342edbd5b6feb00a8699780dd04caf4` 闭合；第 4 次 retained candidate 合入该 checkpoint 后只需从头通过全部非 E2E Gate。
 
 ## 3. 范围边界
 
@@ -102,9 +102,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 | 回归 | package/build suite | 构建目标 sidecar 并检查资产/triple | Tauri 正确打包且无 Wails 依赖 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 运行 Go/Rust/TS 非 E2E 检查。
-- **E2E disposition：** required：必须在原生宿主运行真实 sidecar、Stronghold、迁移和窗口 Gate。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、native E2E 与父分支包含关系。
+- **E2E disposition：** deferred：真实 sidecar、Stronghold、迁移、窗口与重启场景保留到全部 Ticket 实现集成后的统一系统 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选中的可交互原生环境；逐 Ticket source-worktree 与 parent-candidate 不运行或声明 native E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、完整 Go/Rust/TS/release 非 E2E Gate、统一 native E2E 引用与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 

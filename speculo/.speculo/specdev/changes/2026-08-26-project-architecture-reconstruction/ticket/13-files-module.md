@@ -79,7 +79,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/files/package.json
 2. 实现 migration、repository、storage Port 和本地 adapter。
 3. 实现上传/下载 API mapping 与前端页面。
 4. 覆盖原子写、临时清理和重启持久化。
-5. 运行三个 profile 文件安全 E2E。
+5. 将三个 profile 文件安全场景登记到全部 Ticket 实现集成后的统一系统 E2E；本 Ticket candidate 只运行完整非 E2E Gate。
 
 ## 7. 路径访问契约
 
@@ -100,9 +100,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/files/package.json
 | 回归 | profile E2E | 三 profile 上传/重启/下载 | 内容和元数据持久且语义一致 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 非 E2E 检查。
-- **E2E disposition：** required：真实文件系统、API/UI 与重启持久化必须验证。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、文件 E2E 与父分支包含关系。
+- **E2E disposition：** deferred：真实文件系统、API/UI 与重启持久化场景保留到全部 Ticket 实现集成后的统一系统 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选；逐 Ticket source-worktree 与 parent-candidate 均不运行或声明 E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、完整非 E2E Gate、统一文件 E2E 引用与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 
@@ -119,5 +119,5 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/files/package.json
 - [ ] `AC-035`：文件列表/上传/删除确认和刷新符合共享交互。
 - [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>`。
 - [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] E2E disposition 已执行且 shared path 无越权写入。
+- [ ] 非 E2E 实现 Gate 已执行、E2E 已登记到最终统一矩阵且 shared path 无越权写入。
 - [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
