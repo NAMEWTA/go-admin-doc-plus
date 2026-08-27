@@ -37,6 +37,9 @@ const delay = milliseconds => new Promise(resolveDelay => setTimeout(resolveDela
 const safeText = value => value
   .replaceAll(fixturePassword, '[redacted]')
   .replaceAll(/(?:csrf|token|cookie|password)[^\s]*/gi, '[redacted]')
+const qualifyCommandFailure = (error, phase) => error instanceof Error && error.message.startsWith('desktop native command ')
+  ? new Error(`desktop native ${phase} failed`)
+  : error
 
 const keyringExists = (service, account) => new Promise((resolveKeyring, rejectKeyring) => {
   const child = spawn('/usr/bin/security', ['find-generic-password', '-s', service, '-a', account], { stdio: 'ignore' })
@@ -274,6 +277,7 @@ const main = async () => {
   }
   let app
   let failure
+  let phase = 'preflight'
   try {
     if (await keyringExists(productionKeyringService, productionKeyringAccount)) {
       throw new Error('production desktop credential pre-existed; native E2E refuses to touch it')
@@ -281,25 +285,31 @@ const main = async () => {
     if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
       throw new Error('native test credential identity collision')
     }
+    phase = 'native-sidecar-build'
     await execute(process.execPath, [join(root, 'release/shared/sidecar/build.mjs'), '--native-e2e', '--target', 'aarch64-apple-darwin'], { cwd: root })
+    phase = 'native-ui-build'
     await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts'], {
       cwd: appRoot,
       env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', VITE_GO_ADMIN_NATIVE_E2E: '1' }
     })
+    phase = 'native-host-build'
     await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'native-e2e'], { cwd: rustRoot, timeout: 600_000 })
     const binary = hostBinary
 
+    phase = 'migration-failure-fixture'
     const failedRoot = join(workspace, 'failed')
     await mkdir(failedRoot, { recursive: true, mode: 0o700 })
     await execute('go', ['run', './test/desktop/fixture', '--root', failedRoot, '--mode', 'migration-failure'], { cwd: goRoot })
     const database = join(failedRoot, 'data/go-admin-plus.db')
     const beforeFailure = await hashFile(database)
+    phase = 'migration-failure-host'
     const failed = startTracked(binary, failedRoot, failedKeyring)
     const failureDeadline = Date.now() + 15_000
     while (Date.now() < failureDeadline && failed.child.exitCode === null) {
       if (await windowCount(failed.child.pid) !== 0) throw new Error('migration failure opened the native window')
       await delay(100)
     }
+    phase = 'migration-failure-verification'
     if (failed.child.exitCode === null) throw new Error('migration failure did not terminate the native host')
     const failedExit = await failed.exited
     if (failedExit.spawnError || failedExit.code === 0 || failedExit.code === null) throw new Error('migration failure did not produce a nonzero exit')
@@ -315,28 +325,35 @@ const main = async () => {
     await deleteTestKeyring(failedKeyring)
     await assertNoNewSidecars(sidecarBaseline)
 
+    phase = 'live-fixture'
     const liveRoot = join(workspace, 'live')
     await mkdir(liveRoot, { recursive: true, mode: 0o700 })
     await execute('go', ['run', './test/desktop/fixture', '--root', liveRoot, '--mode', 'previous'], { cwd: goRoot })
+    phase = 'login-window'
     app = startTracked(binary, liveRoot, liveKeyring)
     await poll('native login window', () => windowContains(app.child.pid, '登录'), 90_000)
+    phase = 'login'
     await login(app.child.pid, 'admin', fixturePassword)
     await poll('native Demo page', () => windowContains(app.child.pid, 'Products'))
     await poll('authenticated WebView storage and URL boundary', () => windowContains(app.child.pid, 'E2E authenticated boundary verified'))
+    phase = 'scope-authorization'
     await clickButton(app.child.pid, 'E2E scope self')
     await poll('self scope request denied', () => windowContains(app.child.pid, 'E2E authorization denied'))
     await poll('self scope capability hidden', () => windowContains(app.child.pid, '无权访问'))
     await clickButton(app.child.pid, 'E2E scope all')
     await poll('all scope capability restored', () => windowContains(app.child.pid, 'Products'))
+    phase = 'permission-authorization'
     await clickButton(app.child.pid, 'E2E permissions off')
     await poll('revoked permission request denied', () => windowContains(app.child.pid, 'E2E authorization denied'))
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
     await clickButton(app.child.pid, 'E2E permissions on')
     await poll('permission capability restored', () => windowContains(app.child.pid, 'Products'))
+    phase = 'session-revocation'
     await clickButton(app.child.pid, 'E2E revoke session')
     await poll('session revoke requires login', () => windowContains(app.child.pid, '登录'))
     await login(app.child.pid, 'admin', fixturePassword)
     await poll('native Demo page after relogin', () => windowContains(app.child.pid, 'Products'))
+    phase = 'single-instance'
     const firstSidecar = await newSidecarPid(sidecarBaseline)
     await assertLoopbackOnly(firstSidecar)
     const firstWindowCount = await windowCount(app.child.pid)
@@ -352,27 +369,34 @@ const main = async () => {
     }
     if (!(await windowContains(app.child.pid, 'Products'))) throw new Error('first native instance stopped serving after duplicate launch')
     if (await newSidecarPid(sidecarBaseline) !== firstSidecar) throw new Error('second native instance spawned another sidecar')
+    phase = 'product-create'
     await createProduct(app.child.pid)
     await poll('native product create', () => windowContains(app.child.pid, 'E2E-001'))
+    phase = 'product-update'
     await updateProduct(app.child.pid)
     await poll('native product update', () => windowContains(app.child.pid, 'Native product updated'))
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
     await assertNoNewSidecars(sidecarBaseline)
 
+    phase = 'stronghold-restart'
     app = startTracked(binary, liveRoot, liveKeyring)
     await poll('Stronghold session restart', () => windowContains(app.child.pid, 'Products'))
     await poll('restarted authenticated WebView boundary', () => windowContains(app.child.pid, 'E2E authenticated boundary verified'))
     await poll('SQLite product restart', () => windowContains(app.child.pid, 'Native product updated'))
+    phase = 'persistence-verification'
     await execute('go', [
       'run', './test/desktop/fixture', '--root', liveRoot, '--mode', 'verify', '--expected-product', 'Native product updated'
     ], { cwd: goRoot })
+    phase = 'product-delete'
     await deleteProduct(app.child.pid)
     await poll('native product delete', async () => !(await windowContains(app.child.pid, 'E2E-001')))
+    phase = 'logout'
     await logout(app.child.pid)
     await poll('native logout', () => windowContains(app.child.pid, '登录'))
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
+    phase = 'logout-restart'
     app = startTracked(binary, liveRoot, liveKeyring)
     await poll('logout persistence after restart', () => windowContains(app.child.pid, '登录'), 90_000)
     if (await windowContains(app.child.pid, 'Products')) throw new Error('logout left a restartable desktop session')
@@ -384,10 +408,11 @@ const main = async () => {
       throw new Error('native E2E created a production credential')
     }
   } catch (error) {
-    failure = error
+    failure = qualifyCommandFailure(error, phase)
   } finally {
     const cleanups = [
       async () => {
+        phase = 'cleanup-hosts'
         let cleanupFailure
         for (const owner of owners) {
           try {
@@ -398,26 +423,40 @@ const main = async () => {
         }
         if (cleanupFailure) throw cleanupFailure
       },
-      () => deleteTestKeyring(failedKeyring),
-      () => deleteTestKeyring(liveKeyring),
+      () => {
+        phase = 'cleanup-failed-credential'
+        return deleteTestKeyring(failedKeyring)
+      },
+      () => {
+        phase = 'cleanup-live-credential'
+        return deleteTestKeyring(liveKeyring)
+      },
       async () => {
+        phase = 'cleanup-sidecars'
         const leaked = await reapNewSidecars(sidecarBaseline)
         if (leaked.size !== 0) throw new Error('desktop sidecar leak was recovered')
       },
-      () => restoreProductionArtifacts(),
+      () => {
+        phase = 'cleanup-production-artifacts'
+        return restoreProductionArtifacts()
+      },
       async () => {
+        phase = 'cleanup-verification'
         await assertNoNewSidecars(sidecarBaseline)
         if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
           throw new Error('native E2E left a test credential')
         }
       },
-      () => rm(workspace, { recursive: true, force: true })
+      () => {
+        phase = 'cleanup-workspace'
+        return rm(workspace, { recursive: true, force: true })
+      }
     ]
     for (const cleanup of cleanups) {
       try {
         await cleanup()
       } catch (error) {
-        failure ??= error
+        failure ??= qualifyCommandFailure(error, phase)
       }
     }
   }
