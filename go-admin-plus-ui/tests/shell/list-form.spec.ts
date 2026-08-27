@@ -124,6 +124,33 @@ describe('shared list interaction', () => {
     await stale
     expect(list.snapshot()).toMatchObject({ filters: { name: 'ok' }, rows: [{ id: 'stable' }], total: 1 })
   })
+
+  for (const staleOutcome of ['resolve', 'reject'] as const) {
+    it(`clears loading after normalization throws and the stale request later ${staleOutcome}s`, async () => {
+      const pending = deferred<{ rows: Array<{ id: string }>, total: number }>()
+      const load = vi.fn()
+        .mockResolvedValueOnce({ rows: [{ id: 'stable' }], total: 1 })
+        .mockReturnValueOnce(pending.promise)
+      const list = createListController({
+        initialFilters: () => ({ name: '' }),
+        load,
+        normalizeFilters: filters => {
+          if (filters.name === 'explode') throw new Error('normalization failed')
+          return { name: filters.name.trim() }
+        },
+        rowKey: (row: { id: string }) => row.id
+      })
+
+      await list.search({ name: 'stable' })
+      const stale = list.search({ name: 'pending' })
+      await expect(list.search({ name: 'explode' })).rejects.toThrow('normalization failed')
+      expect(list.snapshot()).toMatchObject({ filters: { name: 'stable' }, loading: false, rows: [{ id: 'stable' }], total: 1 })
+      if (staleOutcome === 'resolve') pending.resolve({ rows: [{ id: 'stale' }], total: 99 })
+      else pending.reject(new Error('stale request failed'))
+      await expect(stale).resolves.toBeUndefined()
+      expect(list.snapshot()).toMatchObject({ filters: { name: 'stable' }, loading: false, rows: [{ id: 'stable' }], total: 1 })
+    })
+  }
 })
 
 describe('shared form interaction', () => {

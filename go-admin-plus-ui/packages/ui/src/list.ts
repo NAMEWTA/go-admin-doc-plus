@@ -75,14 +75,15 @@ export const createListController = <TFilters extends object, TRow, TKey>(
 
   const execute = async (candidate: ListRequest<TFilters>, clearSelection = false): Promise<void> => {
     const sequence = ++requestSequence
-    const normalizedFilters = options.normalizeFilters?.({ ...candidate.filters }) ?? { ...candidate.filters }
-    const request: ListRequest<TFilters> = {
-      filters: { ...normalizedFilters },
-      page: candidate.page,
-      pageSize: candidate.pageSize,
-      ...(candidate.sort ? { sort: { ...candidate.sort } } : {})
-    }
+    let request!: ListRequest<TFilters>
     try {
+      const normalizedFilters = options.normalizeFilters?.({ ...candidate.filters }) ?? { ...candidate.filters }
+      request = {
+        filters: { ...normalizedFilters },
+        page: candidate.page,
+        pageSize: candidate.pageSize,
+        ...(candidate.sort ? { sort: { ...candidate.sort } } : {})
+      }
       options.validate?.(request)
     } catch (error) {
       if (sequence === requestSequence) loading = false
