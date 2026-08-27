@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/main.ts"
+  },
   "scripts": {
     "dev": "vite --config vite.config.ts",
     "dev:native": "node ../../../release/shared/sidecar/build.mjs --host && tauri dev",

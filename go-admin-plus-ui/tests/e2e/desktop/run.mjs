@@ -256,6 +256,7 @@ const main = async () => {
   const liveKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
   const sidecarBaseline = await sidecarProcesses()
   let app
+  let failure
   try {
     if (await keyringExists(productionKeyringService, productionKeyringAccount)) {
       throw new Error('production desktop credential pre-existed; native E2E refuses to touch it')
@@ -339,17 +340,33 @@ const main = async () => {
     if (await keyringExists(productionKeyringService, productionKeyringAccount)) {
       throw new Error('native E2E created a production credential')
     }
-    process.stdout.write(`${JSON.stringify({ state: 'passed', runtime: 'tauri-native', profile: 'sqlite' })}\n`)
+  } catch (error) {
+    failure = error
   } finally {
-    if (app) await stopApp(app)
-    await deleteTestKeyring(failedKeyring)
-    await deleteTestKeyring(liveKeyring)
-    await assertNoNewSidecars(sidecarBaseline)
-    await rm(workspace, { recursive: true, force: true })
-    if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
-      throw new Error('native E2E left a test credential')
+    const cleanups = [
+      () => app ? stopApp(app) : Promise.resolve(),
+      () => deleteTestKeyring(failedKeyring),
+      () => deleteTestKeyring(liveKeyring),
+      () => assertNoNewSidecars(sidecarBaseline),
+      () => rm(workspace, { recursive: true, force: true })
+    ]
+    for (const cleanup of cleanups) {
+      try {
+        await cleanup()
+      } catch (error) {
+        failure ??= error
+      }
+    }
+    try {
+      if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
+        failure ??= new Error('native E2E left a test credential')
+      }
+    } catch (error) {
+      failure ??= error
     }
   }
+  if (failure) throw failure
+  process.stdout.write(`${JSON.stringify({ state: 'passed', runtime: 'tauri-native', profile: 'sqlite' })}\n`)
 }
 
 main().catch(error => {

@@ -132,8 +132,11 @@ func databaseStartupFailure(closeDatabase, restoreDatabase func() error, cause s
 	if closeDatabase != nil {
 		closeErr = closeDatabase()
 	}
+	if closeErr != nil {
+		return errors.New("desktop database recovery failed")
+	}
 	restoreErr := restoreDatabase()
-	if closeErr != nil || restoreErr != nil {
+	if restoreErr != nil {
 		return errors.New("desktop database recovery failed")
 	}
 	return errors.New(cause)

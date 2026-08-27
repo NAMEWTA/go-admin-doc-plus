@@ -32,6 +32,17 @@ func TestDatabaseStartupFailureAlwaysClosesBeforeRestoreAndReportsRecoveryFault(
 	if err.Error() != "desktop database recovery failed" || fmt.Sprint(order) != "[restore]" {
 		t.Fatalf("failed recovery = %v order=%v", err, order)
 	}
+	order = nil
+	err = databaseStartupFailure(func() error {
+		order = append(order, "close")
+		return errors.New("injected close fault")
+	}, func() error {
+		order = append(order, "restore")
+		return nil
+	}, "desktop database migration failed")
+	if err.Error() != "desktop database recovery failed" || fmt.Sprint(order) != "[close]" {
+		t.Fatalf("close fault recovery = %v order=%v", err, order)
+	}
 }
 
 func TestControlBoundaryRejectsOriginAndMissingSecret(t *testing.T) {
