@@ -1,41 +1,46 @@
 # 仓库架构
 
-Go Admin Plus 是单一 Git 仓库、单一 `main` 分支和单一产品版本的模块化单体。根提交 SHA
-同时标识后端、前端、桌面宿主和部署契约，不存在子模块提交漂移。
+## 后端
 
-## 运行形态
+`go-admin-plus/` 采用组合根、应用层、模块和平台能力分离的结构：
 
 ```text
-Vue 3 Admin Web
-       |
-       | HTTP / OpenAPI contract
-       v
-Go application kernel
-       |
-       +-- Server host  -> PostgreSQL/MySQL/SQLite + Redis/Memory
-       +-- Desktop host -> SQLite + Memory + embedded Web assets
-
-Linux delivery   -> Nginx + API + migration + PostgreSQL + Redis
-macOS / Windows  -> Wails native application
+cmd/
+  go-admin-plus/       Server 进程入口
+  desktop-sidecar/     Tauri 管理的本地进程入口
+  config-check/        配置预检入口
+  migrate/             向前迁移入口
+internal/
+  app/product/         唯一产品组合根
+  application/         跨模块用例与应用协议
+  contracts/           生成的传输合同
+  host/                Server 宿主
+  modules/             iam、audit、organization、settings、generator、scheduler、files、demo
+  platform/            config、database、migrations、coordination、outbox 等技术能力
 ```
 
-后端业务模块位于 `go-admin-plus/app/`，共享运行时装配位于 `internal/`。Web 管理端以
-`go-admin-ui-plus/apps/admin` 为宿主，领域页面位于 `domains/`，跨领域能力位于
-`packages/`。
+模块拥有自己的领域、存储、传输、权限声明和迁移。模块之间通过端口或产品组合根协作，不直接导入其他模块的私有实现。Server 支持 SQLite 与 PostgreSQL；Desktop profile 只映射 SQLite。
 
-## 契约边界
+## 前端
 
-- `go-admin-plus/api/openapi/openapi.json` 是前后端 HTTP 契约的规范化工件。
-- `go-admin-ui-plus/packages/contracts` 保存由 OpenAPI 生成的前端契约。
-- `go-admin-ui-plus/scripts/check-api-contract.mjs` 校验页面、fixture、DTO 和 Go Model。
-- 数据库结构只通过 `cmd/migrate/migration/version/` 中的新迁移演进。
-- `release/manifest/` 将各平台候选工件绑定到同一根提交和产品版本。
+`go-admin-plus-ui/` 是 pnpm workspace：
 
-## 配置与状态
+```text
+apps/
+  admin-web/           浏览器 App
+  admin-desktop/       Tauri 2 App 与 Rust host
+packages/
+  app-shell/           产品装配与导航壳
+  platform/            平台无关类型和端口
+  api-client/          OpenAPI 生成客户端
+  ui/                  共享 UI 与交互状态机
+  adapters/            browser、desktop 运行时适配
+  domains/             领域逻辑包
+  web-domains/         领域 Vue 页面包
+```
 
-提交到 Git 的文件只能保存可公开的默认值和模板。开发数据库、上传文件、日志、临时文件、
-渲染后的生产配置及密钥均属于运行时状态，分别由 `dev_store/`、Compose runtime 目录或
-桌面应用数据目录持有。
+依赖方向为 App -> app-shell/adapters -> domain ports；领域逻辑不依赖具体宿主。Web 与 Desktop 复用领域功能，但分别选择浏览器 HTTP 和 Tauri IPC 适配器。
 
-Speculo 的历史 change 是设计和实现证据；当前项目使用说明只存在于根 README、`docs/`、
-组件 README 和各级 `AGENTS.md`。
+## 根治理
+
+GitHub Actions、Hook、忽略规则、Taskfile、部署、数据库和发行资产只归仓库根管理。`scripts/quality/architecture-check.mjs` 校验目标目录与层级，`scripts/quality/compatibility-zero.mjs` 阻止已移除体系重新进入活动命令、CI 和文档。

@@ -1,2 +1,0 @@
-cd "$(git rev-parse --show-toplevel)/go-admin-ui-plus"
-pnpm exec lint-staged

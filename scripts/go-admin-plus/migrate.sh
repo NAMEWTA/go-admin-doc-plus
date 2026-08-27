@@ -6,7 +6,9 @@ profile=${1:-server-sqlite}
 require_tool go
 config_file=$(profile_config "$profile")
 cd "$backend_root"
+set -- --profile "$profile"
+test -z "$config_file" || set -- "$@" --config "$config_file"
 if test "$profile" = server-sqlite; then
-  exec go run -tags sqlite3 . migrate --config "$config_file"
+  set -- "$@" --sqlite-path "$(sqlite_path)"
 fi
-exec go run . migrate --config "$config_file"
+exec go run ./cmd/migrate "$@"

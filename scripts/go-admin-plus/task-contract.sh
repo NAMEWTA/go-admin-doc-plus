@@ -16,9 +16,9 @@ printf '%s' "$task_list" | "$node_command" -e '
   const { tasks } = JSON.parse(require("node:fs").readFileSync(0, "utf8"))
   const actual = tasks.map(({ name }) => name).sort()
   const expected = [
-    "build", "contract:lint", "default", "dev", "generate", "generate:check",
-    "governance:check", "lint", "lint:staged", "migrate", "package", "release",
-    "task:contract", "test",
+    "architecture:check", "build", "compatibility:zero", "contract:lint", "default",
+    "dev", "docs:check", "generate", "generate:check", "governance:check", "lint",
+    "lint:staged", "migrate", "package", "release", "release:verify", "task:contract", "test",
   ].sort()
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     console.error(`task contract: public tasks differ\nexpected=${expected}\nactual=${actual}`)
@@ -79,7 +79,7 @@ case $runner_output in
 esac
 
 GO_ADMIN_ARTIFACTS_DIR='.artifacts/path with spaces' \
-GO_ADMIN_CONFIG_FILE='go-admin-plus/config/settings.yml' \
+GO_ADMIN_SQLITE_PATH='.data/path with spaces/product.sqlite3' \
   "$shell_command" "$repo_root/scripts/go-admin-plus/path-contract.sh"
 GO_ADMIN_ARTIFACTS_DIR='.artifacts/path with spaces' \
   "$shell_command" "$repo_root/scripts/go-admin-plus-ui/path-contract.sh"

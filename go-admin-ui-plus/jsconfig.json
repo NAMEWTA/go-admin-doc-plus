@@ -1,9 +1,0 @@
-{ 
-  "compilerOptions": {
-    "baseUrl": "./",
-    "paths": {
-        "@/*": ["apps/admin/src/*"]
-    }
-  },
-  "exclude": ["node_modules", "dist"]
-}

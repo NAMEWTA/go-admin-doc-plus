@@ -11,7 +11,8 @@ case ${1:-} in
   desktop)
     require_desktop_workspace
     cd "$frontend_root"
-    exec pnpm --filter @go-admin/desktop tauri dev
+    node "$repo_root/release/shared/sidecar/build.mjs" --host
+    exec pnpm --filter @go-admin/admin-desktop tauri dev
     ;;
   *)
     fail "unsupported frontend development target: ${1:-} (expected web or desktop)"

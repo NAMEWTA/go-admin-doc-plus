@@ -1,1 +1,0 @@
-{"name":"@go-admin/domain-jobs","version":"0.0.0","private":true,"type":"module","exports":{".":"./src/index.ts"},"scripts":{"type-check":"../../node_modules/.bin/vue-tsc --noEmit -p tsconfig.json"}}

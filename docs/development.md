@@ -1,118 +1,65 @@
 # 开发指南
 
-所有命令默认从仓库根目录开始。本地开发使用 SQLite 与进程内缓存/队列，不要求 Docker、
-MySQL、PostgreSQL 或 Redis。
+## 前置环境
 
-## 环境
+- Go 1.26.5
+- Node.js 22 或更高版本
+- pnpm 11 或更高版本
+- Desktop：Rust stable、Cargo 和 Tauri 2 当前平台系统依赖
+- PostgreSQL profile：可访问的 PostgreSQL 实例
 
-- Go：`.go-version` 固定 `1.26.7`，`go.mod` 声明模块最低版本 `1.26.5`
-- Node.js：`>=22`，建议与发布流水线一致使用 `22.22.3`
-- pnpm：由 `package.json` 固定为 `11.1.3`
-
-```bash
-cd go-admin-plus
-go mod download
-go mod verify
-cd ../go-admin-ui-plus
-corepack enable
-corepack install --global pnpm@11.1.3
-pnpm install --frozen-lockfile
-```
-
-## 本地数据目录
-
-`dev_store/` 是 Git 忽略的本地持久化根：
-
-```text
-dev_store/
-|-- backend/
-|   |-- db/go-admin.db
-|   |-- logs/
-|   |-- uploads/
-|   `-- temp/
-`-- frontend/logs/
-```
-
-创建目录和后端软链接：
+首次安装前端依赖：
 
 ```bash
-mkdir -p dev_store/backend/{db,logs,uploads,temp} dev_store/frontend/logs
-test -e go-admin-plus/static/uploadfile || \
-  ln -s ../../dev_store/backend/uploads go-admin-plus/static/uploadfile
-test -e go-admin-plus/temp || \
-  ln -s ../dev_store/backend/temp go-admin-plus/temp
+pnpm --dir go-admin-plus-ui install --frozen-lockfile
 ```
 
-## 本地配置
+## Server 与 Web
 
-创建 Git 忽略的 `go-admin-plus/config/settings.local.dev.yml`：
-
-```yaml
-settings:
-  application:
-    mode: dev
-    host: 0.0.0.0
-    name: go-admin-plus-local
-    port: 8000
-    readtimeout: 3000
-    writetimeout: 2000
-    enabledp: false
-  logger:
-    path: ../dev_store/backend/logs
-    stdout: ''
-    level: trace
-    enableddb: false
-  jwt:
-    secret: local-development-only
-    timeout: 3600
-  database:
-    driver: sqlite3
-    source: ../dev_store/backend/db/go-admin.db
-  gen:
-    dbname: go-admin-plus
-    frontpath: ../go-admin-ui-plus/apps/admin/src
-  cache:
-    memory: ''
-  queue:
-    memory:
-      poolSize: 100
-```
-
-创建 `go-admin-ui-plus/.env.development.local`：
-
-```dotenv
-VUE_APP_BASE_API = 'http://localhost:8000'
-```
-
-两个文件都只能保存本机开发值，不能提交生产凭据。
-
-## 初始化与启动
+SQLite 是本地默认 profile，数据库写入根目录 `.data/server/`：
 
 ```bash
-test -f dev_store/backend/db/go-admin.db || \
-  cp go-admin-plus/go-admin-db.db dev_store/backend/db/go-admin.db
-cd go-admin-plus
-go run -tags sqlite3 . migrate -c config/settings.local.dev.yml
-go run -tags sqlite3 . server -c config/settings.local.dev.yml
+task dev TARGET=server PROFILE=server-sqlite
+task dev TARGET=web
 ```
 
-另开终端启动前端：
+Web 开发服务器默认连接 `127.0.0.1:8080` 的 Server。PostgreSQL 的连接材料只能通过环境或只读 secret 文件传入：
 
 ```bash
-cd go-admin-ui-plus
-pnpm dev --host 0.0.0.0
+GO_ADMIN_DATABASE_DSN='postgres://user:password@127.0.0.1:5432/go_admin_plus?sslmode=disable' \
+  task dev TARGET=server PROFILE=server-postgres
 ```
 
-SQLite 命令必须带 `-tags sqlite3`。配置中的相对路径以 `go-admin-plus/` 为基准，因此
-后端命令必须在该目录执行。
+非敏感配置可通过 `GO_ADMIN_CONFIG_FILE` 指向符合 `go-admin-plus/config/schema/` 的 JSON 文件。
 
-## 提交前验证
+## Desktop
+
+Desktop 是 Tauri 2 App。开发命令先为当前平台构建 Go sidecar，再启动 Tauri；sidecar 只使用 App 数据目录中的 SQLite，不连接 Server PostgreSQL。
 
 ```bash
-(cd go-admin-plus && go test ./...)
-(cd go-admin-ui-plus && pnpm test:ci && pnpm e2e && pnpm build:prod)
-node release/manifest/scan-compatibility.mjs
-node --test release/manifest/product-release.test.mjs
+task dev TARGET=desktop
 ```
 
-依赖发生变化时才运行 `go mod tidy`。已经执行过的数据库迁移不得修改，应增加新迁移。
+## 数据库迁移
+
+迁移只向前执行，由模块分别拥有并由产品组合层统一排序：
+
+```bash
+task migrate PROFILE=server-sqlite
+GO_ADMIN_DATABASE_DSN_FILE=/absolute/path/to/dsn task migrate PROFILE=server-postgres
+```
+
+## 验证
+
+```bash
+task test
+task lint
+task contract:lint
+task generate:check
+task governance:check
+task architecture:check
+task compatibility:zero
+task docs:check
+```
+
+前端单独验证可在 `go-admin-plus-ui/` 运行 `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm check:workspace` 和 `pnpm build`。

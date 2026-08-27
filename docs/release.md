@@ -1,23 +1,19 @@
-# 发布说明
+# 发行指南
 
-当前产品版本由一个 monorepo commit 和一个三段式版本号共同标识。平台 workflow 构建并
-验证候选工件，产品 manifest 再将三个平台结果收敛为同一份来源记录。
+发行候选必须绑定同一个精确 Git SHA、产品版本、OpenAPI 摘要和最高迁移版本。平台 workflow 只在受保护环境中取得签名材料，普通 PR CI 不接触发行凭据。
 
-| 平台 | 形态 | 文档 |
-| --- | --- | --- |
-| Linux AMD64 | Docker Compose | `release/linux/README.md` |
-| macOS ARM64 | Wails DMG，自用签名策略 | `release/macos/README.md`、`INSTALL.md` |
-| Windows AMD64 | Wails NSIS，自用签名策略 | `release/windows/README.md`、`INSTALL.md` |
+| 平台 | 候选 |
+|---|---|
+| Linux | `linux/amd64` 与 `linux/arm64` 的 Server/Web OCI 镜像及 Compose 定义 |
+| macOS | Universal Tauri 2 App 和 DMG，Developer ID 签名、公证并通过 Gatekeeper 验证 |
+| Windows | x64 Tauri 2 NSIS 安装包，应用、sidecar 和安装包均带时间戳 Authenticode 签名 |
 
-本地预检：
+本地预检只验证来源和策略，不签名、不公证、不部署：
 
 ```bash
-task release:preflight VERSION=0.1.0
+task release VERSION=0.1.0
 ```
 
-平台门禁需要显式 dispatch。现有 workflow 只上传短期 Actions artifact，不创建 GitHub
-Release、不推送生产镜像、不部署环境，也不改变系统级安全设置。外部发布必须通过独立
-授权和发布流程。
+平台构建、安装验证和制品收集必须由 `.github/workflows/product-release.yml` 的受保护 jobs 执行。最终产品 manifest 只有在三个平台结果、摘要、SBOM、签名状态和来源完全一致时才可形成。
 
-每个平台的安装文档包含校验和、签名状态及系统安全警告。制作或分发候选工件时不得省略
-这些文件，也不得把未签名产物描述为受 Apple 或 Microsoft 信任。
+平台细节见 [Linux](../release/linux/README.md)、[macOS](../release/macos/README.md) 和 [Windows](../release/windows/README.md)。

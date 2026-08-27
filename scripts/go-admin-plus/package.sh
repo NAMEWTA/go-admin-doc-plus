@@ -13,11 +13,7 @@ case $target in
     os=$(go env GOOS)
     arch=$(go env GOARCH)
     mkdir -p "$artifacts_root/packages"
-    if test "$profile" = server-sqlite; then
-      exec sh -c 'cd "$1" && go build -tags sqlite3 -trimpath -o "$2/go-admin-$3-$4" .' sh \
-        "$backend_root" "$artifacts_root/packages" "$os" "$arch"
-    fi
-    exec sh -c 'cd "$1" && go build -trimpath -o "$2/go-admin-$3-$4" .' sh \
+    exec sh -c 'cd "$1" && go build -trimpath -o "$2/go-admin-plus-$3-$4" ./cmd/go-admin-plus' sh \
       "$backend_root" "$artifacts_root/packages" "$os" "$arch"
     ;;
   web|desktop)
