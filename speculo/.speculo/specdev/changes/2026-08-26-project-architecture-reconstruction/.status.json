@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T18:18:57+08:00",
+  "updated_at": "2026-08-27T18:44:25+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -343,6 +343,16 @@
       "approved_at": "2026-08-27T18:18:57+08:00",
       "reason": "The T-17 product migration matrix fails for both SQLite and PostgreSQL because the completed Generator provider still publishes a +goose Down section, which violates the forward-only atomic migration contract enforced by the platform runner",
       "resolution": "Authorize only the SQLite and PostgreSQL 6400000000000_generator_configs.sql files to remove their Down directive and DROP statement; all other Generator implementation, schema meaning, migration version/content, module paths, root manifests, lockfile, Apps, adapters, Rust, and composition dependencies remain unchanged"
+    },
+    {
+      "id": "T17-D03",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-17",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T18:44:25+08:00",
+      "reason": "The clean stage-1 product checkpoint proves Web remains a placeholder, Browser rejects real dot-separated Permission Codes, Desktop UI/TypeScript/Rust/sidecar expose only Demo, and the shared product manifest is not consumed by either App",
+      "resolution": "Stage 2 authorizes only the app-shell product workspace, two App composition entries, Browser permission parser, Desktop transport adapter and Rust product allowlist/proxy, desktop-sidecar product runtime wiring, plus exact package/Vitest/boundary/lock importer updates required to compile and verify those seams; domain and web-domain business implementations, generated module contracts, unrelated root scripts/importers, and final E2E remain unchanged"
     }
   ],
   "worktrees": [
@@ -1044,7 +1054,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-17",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-17",
-      "source_checkpoint": null,
+      "source_checkpoint": "92a0ff8a56226fd317c20e71e1665822c9226595",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -1075,7 +1085,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T18:18:57+08:00"
+      "updated_at": "2026-08-27T18:44:25+08:00"
     }
   ]
 }
