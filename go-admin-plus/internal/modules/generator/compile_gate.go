@@ -243,7 +243,15 @@ func minimalCommandEnvironment(safeHome string) []string {
 		if runtime.GOOS == "windows" {
 			nullConfig = "NUL"
 		}
-		baseEnvironment = append(baseEnvironment, "CI=1", "GIT_TERMINAL_PROMPT=0", "NPM_CONFIG_USERCONFIG="+nullConfig)
+		baseEnvironment = append(baseEnvironment,
+			"CI=1",
+			"GIT_TERMINAL_PROMPT=0",
+			"NPM_CONFIG_USERCONFIG="+nullConfig,
+			"GOENV=off",
+			"GOTOOLCHAIN=local",
+			"GOPROXY=off",
+			"GOSUMDB=off",
+		)
 	})
 	result := append([]string(nil), baseEnvironment...)
 	if safeHome != "" {

@@ -8,6 +8,8 @@ mod proxy;
 mod vault;
 
 use std::{
+    env,
+    ffi::OsString,
     fs,
     path::{Path, PathBuf},
     sync::{
@@ -33,6 +35,25 @@ use zeroize::Zeroizing;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(30);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_DIAGNOSTIC_BYTES: usize = 4096;
+#[cfg(any(debug_assertions, test))]
+const DEVELOPMENT_ENVIRONMENT_ALLOWLIST: &[&str] = &[
+    "PATH",
+    "GOROOT",
+    "GOMODCACHE",
+    "GOPATH",
+    "GOENV_ROOT",
+    "TMPDIR",
+    "TMP",
+    "TEMP",
+    "SystemRoot",
+    "WINDIR",
+    "PATHEXT",
+];
+
+struct SidecarEnvironment {
+    repository: PathBuf,
+    variables: Vec<(OsString, OsString)>,
+}
 
 struct HostState {
     proxy: RwLock<Option<Arc<TransportProxy>>>,
@@ -229,11 +250,16 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
     .map_err(|_| "desktop launch material encode failed")?;
     launch.push(b'\n');
 
-    let command = app
+    let generator = sidecar_environment(&app)?;
+    let mut command = app
         .shell()
         .sidecar("go-admin-sidecar")
         .map_err(|_| "desktop sidecar command unavailable")?
-        .env_clear();
+        .env_clear()
+        .current_dir(&generator.repository);
+    for (key, value) in generator.variables {
+        command = command.env(key, value);
+    }
     let (mut events, mut child) = command
         .spawn()
         .map_err(|_| "desktop sidecar spawn failed")?;
@@ -345,6 +371,120 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
     app.show().map_err(|_| "desktop application failed")?;
     let _ = window.set_focus();
     Ok(())
+}
+
+#[cfg(debug_assertions)]
+fn sidecar_environment(_app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'static str> {
+    let repository = discover_development_repository(
+        env::current_dir().map_err(|_| "desktop generator repository unavailable")?,
+    )?;
+    Ok(SidecarEnvironment {
+        repository,
+        variables: allowlisted_development_environment(env::vars_os()),
+    })
+}
+
+#[cfg(not(debug_assertions))]
+fn sidecar_environment(app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'static str> {
+    let resources = app
+        .path()
+        .resource_dir()
+        .map_err(|_| "desktop generator resources unavailable")?;
+    release_sidecar_environment(&resources, env::consts::ARCH)
+}
+
+#[cfg(any(debug_assertions, test))]
+fn allowlisted_development_environment(
+    source: impl IntoIterator<Item = (OsString, OsString)>,
+) -> Vec<(OsString, OsString)> {
+    source
+        .into_iter()
+        .filter(|(key, _)| {
+            DEVELOPMENT_ENVIRONMENT_ALLOWLIST
+                .iter()
+                .any(|allowed| key == std::ffi::OsStr::new(allowed))
+        })
+        .collect()
+}
+
+#[cfg(any(debug_assertions, test))]
+fn discover_development_repository(start: PathBuf) -> Result<PathBuf, &'static str> {
+    let start = fs::canonicalize(start).map_err(|_| "desktop generator repository unavailable")?;
+    for candidate in start.ancestors() {
+        if generator_repository_is_complete(candidate) {
+            return Ok(candidate.to_path_buf());
+        }
+    }
+    Err("desktop generator repository unavailable")
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn release_sidecar_environment(
+    resources: &Path,
+    architecture: &str,
+) -> Result<SidecarEnvironment, &'static str> {
+    let architecture = match architecture {
+        "aarch64" => "darwin-arm64",
+        "x86_64" => "darwin-amd64",
+        _ => return Err("desktop generator architecture unsupported"),
+    };
+    let generator = canonical_release_directory(&resources.join("generator"))?;
+    let repository = canonical_release_directory(&generator.join("repository"))?;
+    if !generator_repository_is_complete(&repository) {
+        return Err("desktop generator repository incomplete");
+    }
+    let toolchain = canonical_release_directory(&generator.join("toolchains").join(architecture))?;
+    let go_root = canonical_release_directory(&toolchain.join("go"))?;
+    let node_root = canonical_release_directory(&toolchain.join("node"))?;
+    let executable_root = canonical_release_directory(&toolchain.join("bin"))?;
+    let module_cache = canonical_release_directory(&generator.join("go-mod"))?;
+    canonical_release_directory(&generator.join("pnpm-store"))?;
+    for executable in [
+        go_root.join("bin/go"),
+        node_root.join("bin/node"),
+        executable_root.join("pnpm"),
+    ] {
+        if !executable.is_file() {
+            return Err("desktop generator toolchain incomplete");
+        }
+    }
+    let path = env::join_paths([
+        go_root.join("bin"),
+        node_root.join("bin"),
+        executable_root,
+        PathBuf::from("/usr/bin"),
+        PathBuf::from("/bin"),
+    ])
+    .map_err(|_| "desktop generator toolchain invalid")?;
+    Ok(SidecarEnvironment {
+        repository,
+        variables: vec![
+            (OsString::from("PATH"), path),
+            (OsString::from("GOROOT"), go_root.into_os_string()),
+            (OsString::from("GOMODCACHE"), module_cache.into_os_string()),
+        ],
+    })
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn canonical_release_directory(path: &Path) -> Result<PathBuf, &'static str> {
+    let metadata =
+        fs::symlink_metadata(path).map_err(|_| "desktop generator resources unavailable")?;
+    if !metadata.is_dir() || metadata.file_type().is_symlink() {
+        return Err("desktop generator resources invalid");
+    }
+    let canonical = fs::canonicalize(path).map_err(|_| "desktop generator resources invalid")?;
+    if canonical != path {
+        return Err("desktop generator resources invalid");
+    }
+    Ok(canonical)
+}
+
+fn generator_repository_is_complete(root: &Path) -> bool {
+    root.join(".git").is_dir()
+        && root.join("scripts/contracts/cli.mjs").is_file()
+        && root.join("go-admin-plus/go.mod").is_file()
+        && root.join("go-admin-plus-ui/pnpm-workspace.yaml").is_file()
 }
 
 fn runtime_paths(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), &'static str> {
@@ -669,6 +809,81 @@ mod tests {
         assert!(state.requests.try_acquire().is_err());
         drop(permit);
         assert!(state.requests.try_acquire().is_ok());
+    }
+
+    #[test]
+    fn development_sidecar_environment_drops_unrelated_values() {
+        let environment = allowlisted_development_environment([
+            (OsString::from("PATH"), OsString::from("/tools")),
+            (OsString::from("DATABASE_URL"), OsString::from("secret")),
+            (
+                OsString::from("APPLE_SIGNING_IDENTITY"),
+                OsString::from("secret"),
+            ),
+        ]);
+        assert_eq!(
+            environment,
+            vec![(OsString::from("PATH"), OsString::from("/tools"))]
+        );
+    }
+
+    #[test]
+    fn release_sidecar_environment_rejects_incomplete_resources() {
+        let temporary = std::env::temp_dir().join(format!(
+            "go-admin-desktop-release-resources-{}",
+            random_secret().unwrap()
+        ));
+        fs::create_dir_all(temporary.join("generator/repository/.git")).unwrap();
+        assert!(release_sidecar_environment(&temporary, "aarch64").is_err());
+        fs::remove_dir_all(temporary).unwrap();
+    }
+
+    #[test]
+    fn release_sidecar_environment_rejects_unknown_architecture() {
+        assert!(release_sidecar_environment(Path::new("/unused"), "riscv64").is_err());
+    }
+
+    #[test]
+    fn release_sidecar_environment_uses_shared_offline_module_cache() {
+        let temporary = fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "go-admin-desktop-release-environment-{}",
+                random_secret().unwrap()
+            ));
+        let generator = temporary.join("generator");
+        let repository = generator.join("repository");
+        let toolchain = generator.join("toolchains/darwin-arm64");
+        for directory in [
+            repository.join(".git"),
+            repository.join("scripts/contracts"),
+            repository.join("go-admin-plus"),
+            repository.join("go-admin-plus-ui"),
+            toolchain.join("go/bin"),
+            toolchain.join("node/bin"),
+            toolchain.join("bin"),
+            generator.join("go-mod"),
+            generator.join("pnpm-store"),
+        ] {
+            fs::create_dir_all(directory).unwrap();
+        }
+        for file in [
+            repository.join("scripts/contracts/cli.mjs"),
+            repository.join("go-admin-plus/go.mod"),
+            repository.join("go-admin-plus-ui/pnpm-workspace.yaml"),
+            toolchain.join("go/bin/go"),
+            toolchain.join("node/bin/node"),
+            toolchain.join("bin/pnpm"),
+        ] {
+            fs::write(file, []).unwrap();
+        }
+
+        let environment = release_sidecar_environment(&temporary, "aarch64").unwrap();
+        assert_eq!(environment.repository, repository);
+        assert!(environment.variables.iter().any(|(key, value)| {
+            key == "GOMODCACHE" && Path::new(value) == generator.join("go-mod")
+        }));
+        fs::remove_dir_all(temporary).unwrap();
     }
 
     #[tokio::test]

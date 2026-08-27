@@ -1,368 +1,191 @@
-name: macOS ARM64 Release Gate
-run-name: macos product=${{ inputs.release_version }} root=${{ inputs.orchestration_ref }} frontend=${{ inputs.frontend_ref }} mode=${{ inputs.release_mode }}
+name: macOS Universal Release Gate
+run-name: macos source=${{ inputs.source_ref }} version=${{ inputs.release_version }}
 
 on:
   workflow_dispatch:
     inputs:
-      orchestration_ref:
-        description: Exact go-admin-plus monorepo commit to build
-        required: true
-        type: string
-      frontend_ref:
-        description: Exact monorepo commit containing the frontend to embed
+      source_ref:
+        description: Exact lowercase 40-character product source SHA
         required: true
         type: string
       release_version:
-        description: Numeric CFBundleShortVersionString such as 0.1.0
+        description: Product version
         required: true
         default: 0.1.0
         type: string
-      release_mode:
-        description: Self-use is ad-hoc signed and user-authorized; production is a future Developer ID option
-        required: true
-        default: unsigned-self-use
-        type: choice
-        options:
-          - unsigned-self-use
-          - signed-production
 
 permissions:
   contents: read
 
 concurrency:
-  group: macos-arm64-release-${{ github.ref }}
+  group: macos-release-${{ inputs.source_ref }}
   cancel-in-progress: false
 
 jobs:
-  native-release:
-    name: macOS ARM64 native build and release gate
+  release-gate:
+    name: macOS x86_64 and arm64 signed release candidate
     runs-on: macos-15
-    timeout-minutes: 45
+    environment: macos-production
+    timeout-minutes: 180
     env:
-      EXPECTED_ROOT_SHA: ${{ inputs.orchestration_ref }}
-      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_ref }}
+      SOURCE_SHA: ${{ inputs.source_ref }}
       RELEASE_VERSION: ${{ inputs.release_version }}
-      RELEASE_MODE: ${{ inputs.release_mode }}
       APPLE_DEVELOPER_ID_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
       APPLE_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
       APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
       APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARY_KEY_P8_BASE64 }}
       APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
       APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+      GOENV: "off"
       GOTOOLCHAIN: local
 
     steps:
-      - name: Check out exact monorepo
+      - name: Check out exact source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
-          path: workspace
+          ref: ${{ inputs.source_ref }}
           persist-credentials: false
 
-      - name: Verify release provenance and identity gate
-        working-directory: workspace
+      - name: Verify immutable source and protected credentials
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$EXPECTED_ROOT_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$EXPECTED_FRONTEND_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          expected_root_sha=$(printf '%s' "$EXPECTED_ROOT_SHA" | tr '[:upper:]' '[:lower:]')
-          expected_frontend_sha=$(printf '%s' "$EXPECTED_FRONTEND_SHA" | tr '[:upper:]' '[:lower:]')
-          root_sha=$(git rev-parse HEAD)
-          backend_sha=$(git -C go-admin-plus rev-parse HEAD)
-          frontend_sha=$(git -C go-admin-ui-plus rev-parse HEAD)
-          test "$root_sha" = "$expected_root_sha"
-          test "$backend_sha" = "${{ github.sha }}"
-          test "$frontend_sha" = "$expected_frontend_sha"
-          test "$root_sha" = "$backend_sha"
-          test "$root_sha" = "$frontend_sha"
-          test "$(uname -m)" = arm64
-          identity_status=$(jq -er '.identity_status' release/macos/identity.json)
-          self_use_release_status=$(jq -er '.self_use_release_status' release/macos/identity.json)
-          if [ "$RELEASE_MODE" = signed-production ]; then
-            test "$identity_status" = approved
-            for value in \
-              "$APPLE_DEVELOPER_ID_P12_BASE64" \
-              "$APPLE_DEVELOPER_ID_P12_PASSWORD" \
-              "$APPLE_SIGNING_IDENTITY" \
-              "$APPLE_NOTARY_KEY_P8_BASE64" \
-              "$APPLE_NOTARY_KEY_ID" \
-              "$APPLE_NOTARY_ISSUER_ID"; do
-              test -n "$value"
-            done
-          else
-            test "$RELEASE_MODE" = unsigned-self-use
-            test "$self_use_release_status" = approved
-          fi
-          jq -n \
-            --arg root_sha "$root_sha" \
-            --arg backend_sha "$backend_sha" \
-            --arg frontend_sha "$frontend_sha" \
-            --arg runner_os "$RUNNER_OS" \
-            --arg runner_arch "$RUNNER_ARCH" \
-            '{root_sha:$root_sha,backend_sha:$backend_sha,frontend_sha:$frontend_sha,runner_os:$runner_os,runner_arch:$runner_arch,platform:"darwin/arm64"}' \
-            > provenance.json
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          for value in \
+            "$APPLE_DEVELOPER_ID_P12_BASE64" \
+            "$APPLE_DEVELOPER_ID_P12_PASSWORD" \
+            "$APPLE_SIGNING_IDENTITY" \
+            "$APPLE_NOTARY_KEY_P8_BASE64" \
+            "$APPLE_NOTARY_KEY_ID" \
+            "$APPLE_NOTARY_ISSUER_ID"; do
+            test -n "$value"
+          done
 
       - name: Set up Go 1.26.5
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.26.5
-          cache-dependency-path: workspace/go-admin-plus/go.sum
+          cache-dependency-path: go-admin-plus/go.sum
 
       - name: Set up Node 22.22.3
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.3
 
-      - name: Install pinned build tools
-        working-directory: workspace
+      - name: Set up pinned Rust and workspace
         shell: bash
         run: |
           set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal \
+            --target aarch64-apple-darwin \
+            --target x86_64-apple-darwin
+          rustup default 1.96.0
           corepack enable
           corepack install --global pnpm@11.1.3
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-          export PATH="$(go env GOPATH)/bin:$PATH"
-          syft_version=1.51.0
-          archive="syft_${syft_version}_darwin_arm64.tar.gz"
-          curl -fsSLO "https://github.com/anchore/syft/releases/download/v${syft_version}/${archive}"
-          echo "4f37f4c7fefce0a68e4cf71ba3f5f9829a99e65d89b29f7ee41b8c2c10ea8c59  $archive" | shasum -a 256 -c -
-          tar -xzf "$archive" syft
-          install -m 0755 syft "$RUNNER_TEMP/syft"
-          go version
-          pnpm --version
-          wails version
-          xcrun notarytool --version
+          pnpm --dir go-admin-plus-ui install --frozen-lockfile
 
-      - name: Run native desktop source gate
-        working-directory: workspace/go-admin-plus
+      - name: Verify source and release policy
         shell: bash
         run: |
           set -euo pipefail
-          go test -v ./internal/profile ./internal/platform/desktop ./internal/host/desktop ./test/desktop -count=1
-          go test ./... -count=1
+          node --test scripts/release/macos/verify-policy.test.mjs
+          node scripts/release/macos/verify-policy.mjs
+          bash -n scripts/release/macos/*.sh
+          plutil -lint release/macos/entitlements.plist
+          (cd go-admin-plus && go test ./internal/modules/generator ./cmd/desktop-sidecar -count=1)
+          pnpm --dir go-admin-plus-ui --filter @go-admin/admin-desktop typecheck
+          pnpm --dir go-admin-plus-ui --filter @go-admin/admin-desktop exec cargo test --manifest-path src-tauri/Cargo.toml --locked
+          pnpm --dir go-admin-plus-ui --filter @go-admin/admin-desktop exec cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets --all-features -- -D warnings
 
-      - name: Build and run native tracer twice
-        working-directory: workspace/go-admin-plus/cmd/go-admin-desktop
+      - name: Import Developer ID and notarization credentials
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/macos-release-logs"
-          wails build -clean -skipbindings -platform darwin/arm64 -tags sqlite3,desktop_e2e -trimpath -v 2
-          tracer_app=build/bin/go-admin-desktop.app
-          test "$(lipo -archs "$tracer_app/Contents/MacOS/go-admin-desktop")" = arm64
-          data_root="$RUNNER_TEMP/macos-release-data"
-          run_tracer() {
-            name=$1
-            log="$RUNNER_TEMP/macos-release-logs/$name.log"
-            set +e
-            GO_ADMIN_DESKTOP_DATA_ROOT="$data_root" \
-              "$tracer_app/Contents/MacOS/go-admin-desktop" > "$log" 2>&1
-            status=$?
-            set -e
-            cat "$log"
-            test "$status" -eq 0
-            test "$(grep -c '^GO_ADMIN_DESKTOP_E2E_PASS$' "$log")" -eq 1
-            ! grep -q 'GO_ADMIN_DESKTOP_E2E_FAIL' "$log"
-          }
-          run_tracer first-run
-          test -f "$data_root/db/go-admin.sqlite3"
-          run_tracer persisted-restart
-          grep -Eq 'desktop database migration completed: applied=0 skipped=[1-9][0-9]*' \
-            "$RUNNER_TEMP/macos-release-logs/persisted-restart.log"
-
-      - name: Build untagged production app
-        working-directory: workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd go-admin-plus/cmd/go-admin-desktop
-          wails build -clean -skipbindings -platform darwin/arm64 -tags sqlite3 -trimpath -v 2
-          app_path="$PWD/build/bin/go-admin-desktop.app"
-          ../../../release/macos/prepare-app.sh \
-            ../../../release/macos/identity.json \
-            "$app_path" \
-            "$RELEASE_VERSION" \
-            "${{ github.run_number }}" \
-            "$RELEASE_MODE"
-          mkdir -p ../../../release-output
-          ditto "$app_path" "../../../release-output/Go Admin Plus.app"
-
-      - name: Import Developer ID credentials
-        if: inputs.release_mode == 'signed-production'
-        working-directory: workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          keychain="$RUNNER_TEMP/go-admin-signing.keychain-db"
+          keychain="$RUNNER_TEMP/go-admin-plus-signing.keychain-db"
           keychain_password=$(openssl rand -hex 24)
           printf '%s' "$APPLE_DEVELOPER_ID_P12_BASE64" | base64 -D > "$RUNNER_TEMP/developer-id.p12"
           printf '%s' "$APPLE_NOTARY_KEY_P8_BASE64" | base64 -D > "$RUNNER_TEMP/notary-key.p8"
+          chmod 0600 "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/notary-key.p8"
           security create-keychain -p "$keychain_password" "$keychain"
           security set-keychain-settings -lut 21600 "$keychain"
           security unlock-keychain -p "$keychain_password" "$keychain"
           security import "$RUNNER_TEMP/developer-id.p12" -k "$keychain" -P "$APPLE_DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain"
-          security default-keychain -s "$keychain"
+          security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
           security find-identity -v -p codesigning "$keychain" | grep -F "$APPLE_SIGNING_IDENTITY"
+          echo "APPLE_NOTARY_KEY_PATH=$RUNNER_TEMP/notary-key.p8" >> "$GITHUB_ENV"
+          echo "GO_ADMIN_SIGNING_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
 
-      - name: Sign production app
-        if: inputs.release_mode == 'signed-production'
-        working-directory: workspace
+      - name: Install verified SBOM tool
         shell: bash
         run: |
           set -euo pipefail
-          app_path='release-output/Go Admin Plus.app'
-          codesign --force --options runtime --timestamp \
-            --entitlements go-admin-plus/cmd/go-admin-desktop/build/darwin/entitlements.plist \
-            --sign "$APPLE_SIGNING_IDENTITY" "$app_path"
-          release/macos/verify-app.sh release/macos/identity.json "$app_path" signed-production
+          archive=syft_1.51.0_darwin_arm64.tar.gz
+          curl -fsSLO "https://github.com/anchore/syft/releases/download/v1.51.0/$archive"
+          echo "4f37f4c7fefce0a68e4cf71ba3f5f9829a99e65d89b29f7ee41b8c2c10ea8c59  $archive" | shasum -a 256 -c -
+          tar -xzf "$archive" syft
+          install -m 0755 syft "$RUNNER_TEMP/syft"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
-      - name: Ad-hoc sign self-use app
-        if: inputs.release_mode == 'unsigned-self-use'
-        working-directory: workspace
+      - name: Build Universal Tauri app and self-contained Generator runtime
         shell: bash
         run: |
           set -euo pipefail
-          app_path='release-output/Go Admin Plus.app'
-          codesign --force --deep --sign - \
-            --entitlements go-admin-plus/cmd/go-admin-desktop/build/darwin/entitlements.plist \
-            "$app_path"
-          release/macos/verify-app.sh release/macos/identity.json "$app_path" unsigned-self-use
+          mkdir -p release-work
+          scripts/release/macos/build-universal.sh "$RELEASE_VERSION" "${{ github.run_number }}" "release-work/Go Admin Plus.app"
+          scripts/release/macos/verify-app.sh "release-work/Go Admin Plus.app" development
 
-      - name: Notarize and staple production app
-        if: inputs.release_mode == 'signed-production'
-        working-directory: workspace
+      - name: Sign and notarize app
         shell: bash
         run: |
           set -euo pipefail
-          app_path='release-output/Go Admin Plus.app'
-          ditto -c -k --keepParent "$app_path" "$RUNNER_TEMP/go-admin-plus-app.zip"
-          xcrun notarytool submit "$RUNNER_TEMP/go-admin-plus-app.zip" \
-            --key "$RUNNER_TEMP/notary-key.p8" \
-            --key-id "$APPLE_NOTARY_KEY_ID" \
-            --issuer "$APPLE_NOTARY_ISSUER_ID" \
-            --wait --output-format json > release-output/app-notary.json
-          app_submission=$(jq -er 'select(.status == "Accepted") | .id' release-output/app-notary.json)
-          xcrun notarytool log "$app_submission" \
-            --key "$RUNNER_TEMP/notary-key.p8" \
-            --key-id "$APPLE_NOTARY_KEY_ID" \
-            --issuer "$APPLE_NOTARY_ISSUER_ID" \
-            release-output/app-notary-log.json
-          xcrun stapler staple "$app_path"
-          xcrun stapler validate "$app_path"
+          scripts/release/macos/sign-app.sh "release-work/Go Admin Plus.app"
+          scripts/release/macos/verify-app.sh "release-work/Go Admin Plus.app" signed-production
+          scripts/release/macos/notarize.sh app "release-work/Go Admin Plus.app" release-work/app-notary.json
 
-      - name: Create DMG
-        working-directory: workspace
+      - name: Package, notarize, and verify DMG
         shell: bash
         run: |
           set -euo pipefail
-          artifact_basename=$(jq -er '.artifact_basename' release/macos/identity.json)
-          suffix=unsigned-self-use
-          if [ "$RELEASE_MODE" = signed-production ]; then suffix=signed-production; fi
-          dmg="release-output/${artifact_basename}-${RELEASE_VERSION}-${suffix}.dmg"
-          release/macos/package-dmg.sh 'release-output/Go Admin Plus.app' "$dmg" 'Go Admin Plus'
+          basename=$(jq -er '.artifactBasename' release/macos/identity.json)
+          dmg="release-work/$basename-$RELEASE_VERSION.dmg"
+          scripts/release/macos/package-dmg.sh "release-work/Go Admin Plus.app" "$dmg"
+          scripts/release/macos/notarize.sh dmg "$dmg" release-work/dmg-notary.json
+          scripts/release/macos/verify-dmg.sh "$dmg"
+          scripts/release/macos/verify-install.sh "$dmg" release-work/install-evidence
+          jq -s '{schemaVersion:1,app:.[0],dmg:.[1]}' release-work/app-notary.json release-work/dmg-notary.json > release-work/notary.json
           echo "DMG_PATH=$dmg" >> "$GITHUB_ENV"
 
-      - name: Notarize and staple production DMG
-        if: inputs.release_mode == 'signed-production'
-        working-directory: workspace
+      - name: Emit checksums, SBOM, and provenance
         shell: bash
         run: |
-          set -euo pipefail
-          xcrun notarytool submit "$DMG_PATH" \
-            --key "$RUNNER_TEMP/notary-key.p8" \
-            --key-id "$APPLE_NOTARY_KEY_ID" \
-            --issuer "$APPLE_NOTARY_ISSUER_ID" \
-            --wait --output-format json > release-output/dmg-notary.json
-          dmg_submission=$(jq -er 'select(.status == "Accepted") | .id' release-output/dmg-notary.json)
-          xcrun notarytool log "$dmg_submission" \
-            --key "$RUNNER_TEMP/notary-key.p8" \
-            --key-id "$APPLE_NOTARY_KEY_ID" \
-            --issuer "$APPLE_NOTARY_ISSUER_ID" \
-            release-output/dmg-notary-log.json
-          xcrun stapler staple "$DMG_PATH"
+          scripts/release/macos/emit-artifacts.sh \
+            "$RELEASE_VERSION" "$SOURCE_SHA" \
+            "release-work/Go Admin Plus.app" "$DMG_PATH" release-work/notary.json release-output
+          test -f release-output/SHA256SUMS
+          test -f release-output/provenance.json
+          test -f release-output/notary.json
+          echo 'GO_ADMIN_MACOS_SUPPLY_CHAIN_PASS' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify packaged DMG
-        working-directory: workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          release/macos/verify-dmg.sh release/macos/identity.json "$DMG_PATH" "$RELEASE_MODE" | tee release-output/dmg-verification.log
-
-      - name: Verify scoped self-use installation
-        if: inputs.release_mode == 'unsigned-self-use'
-        working-directory: workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          release/macos/verify-self-use-install.sh \
-            release/macos/identity.json \
-            'release-output/Go Admin Plus.app' | tee release-output/self-use-install-verification.log
-
-      - name: Generate manifest, SBOM and checksums
-        working-directory: workspace
-        shell: bash
-        run: |
-          set -euo pipefail
-          "$RUNNER_TEMP/syft" 'dir:release-output/Go Admin Plus.app' -o spdx-json=release-output/go-admin-plus-macos-arm64.spdx.json
-          signing='{"signature":"adhoc","platform_trust":"unidentified-developer","notarization":"not-applicable"}'
-          if [ "$RELEASE_MODE" = signed-production ]; then
-            signing=$(jq -n \
-              --arg app_notary_id "$(jq -er '.id' release-output/app-notary.json)" \
-              --arg dmg_notary_id "$(jq -er '.id' release-output/dmg-notary.json)" \
-              '{signature:"developer-id",notarization:"accepted-and-stapled",app_notary_id:$app_notary_id,dmg_notary_id:$dmg_notary_id}')
-          fi
-          jq -n \
-            --slurpfile identity release/macos/identity.json \
-            --slurpfile provenance provenance.json \
-            --arg release_class "$RELEASE_MODE" \
-            --arg version "$RELEASE_VERSION" \
-            --argjson signing "$signing" \
-            '{schema_version:1,release_class:$release_class,version:$version,platform:"darwin/arm64",identity:$identity[0],provenance:$provenance[0],signing:$signing,sbom_format:"SPDX JSON",user_authorization:(if $release_class == "unsigned-self-use" then {required:true,preferred:"macos-privacy-security-open-anyway",fallback:"scoped-quarantine-removal",global_security_disable:false} else {required:false} end)}' \
-            > release-output/manifest.json
-          if [ "$RELEASE_MODE" = unsigned-self-use ]; then
-            cp release/macos/INSTALL.md release-output/INSTALL.md
-          fi
-          (
-            cd release-output
-            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 shasum -a 256
-          ) > release-output/SHA256SUMS
-          {
-            expected_root_sha=$(printf '%s' "$EXPECTED_ROOT_SHA" | tr '[:upper:]' '[:lower:]')
-            expected_frontend_sha=$(printf '%s' "$EXPECTED_FRONTEND_SHA" | tr '[:upper:]' '[:lower:]')
-            echo '## macOS ARM64 Release Gate'
-            echo
-            echo "- Root: $expected_root_sha"
-            echo "- Backend: ${{ github.sha }}"
-            echo "- Frontend: $expected_frontend_sha"
-            echo "- Mode: $RELEASE_MODE"
-            echo '- Native tracer: GO_ADMIN_DESKTOP_E2E_PASS (first run and persisted restart)'
-            echo '- App: GO_ADMIN_MACOS_APP_VERIFY_PASS'
-            echo '- DMG: GO_ADMIN_MACOS_DMG_VERIFY_PASS'
-            if [ "$RELEASE_MODE" = unsigned-self-use ]; then
-              echo '- Self-use install: GO_ADMIN_MACOS_SELF_USE_INSTALL_PASS'
-              echo '- Trust state: ad-hoc integrity only; unidentified developer; not notarized'
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload macOS release evidence
+      - name: Upload protected release candidate evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: macos-arm64-${{ inputs.release_version }}-${{ inputs.release_mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: go-admin-plus-macos-${{ inputs.release_version }}-${{ inputs.source_ref }}
           path: |
-            workspace/release-output
-            workspace/provenance.json
-            ${{ runner.temp }}/macos-release-logs
+            release-output
+            release-work/install-evidence
           if-no-files-found: error
           retention-days: 14
 
-      - name: Clean signing credentials
+      - name: Remove ephemeral credentials
         if: always()
         shell: bash
         run: |
-          security default-keychain -s login.keychain-db 2>/dev/null || true
-          security delete-keychain "$RUNNER_TEMP/go-admin-signing.keychain-db" 2>/dev/null || true
-          rm -f "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/notary-key.p8" "$RUNNER_TEMP/go-admin-plus-app.zip"
+          rm -f -- "$RUNNER_TEMP/developer-id.p12" "$RUNNER_TEMP/notary-key.p8"
+          if [[ -n "${GO_ADMIN_SIGNING_KEYCHAIN:-}" ]]; then
+            security list-keychains -d user -s "$HOME/Library/Keychains/login.keychain-db" || true
+            security delete-keychain "$GO_ADMIN_SIGNING_KEYCHAIN" || true
+          fi
