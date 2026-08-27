@@ -12,11 +12,11 @@ risk: critical
 blocked_by: [T-07, T-08]
 contract_ids: [AC-017, AC-018, AC-035]
 owner: codex-t12-scheduler
-expected_changes: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/**</Path>", "<Path>go-admin-plus/test/scheduler/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/scheduler/**</Path>"]
+expected_changes: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/scheduler.yaml</Path>", "<Path>go-admin-plus/internal/modules/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/**</Path>", "<Path>go-admin-plus/test/scheduler/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/scheduler/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus/internal/platform/coordination/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/package.json</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.json</Path> => T-12 under T12-D01; package-local exports/dependencies/checks only", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/package.json</Path> => T-12 under T12-D01; package-local exports/dependencies/checks only"]
+shared_paths: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.json</Path> => T-12 under T12-D01; package-local exports/dependencies/checks only", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/package.json</Path> => T-12 under T12-D01; package-local exports/dependencies/checks only", "<Path>go-admin-plus-ui/package.json</Path> => T-12 under T12-D02; Scheduler typecheck only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-12 under T12-D02; Scheduler specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-12 under T12-D02; existing domain-scheduler and web-domain-scheduler importers only"]
 ---
 
 # Ticket T-12: Scheduler 受控任务垂直切片
@@ -86,8 +86,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.
 - **预计修改点：** Scheduler 独占路径。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM、Outbox 和 coordination。
-- **共享路径：** 两个预建 Scheduler package manifest 仅在 `T12-D01` 下由本 Ticket 拥有；根聚合文件仍串行保留。
+- **共享路径：** 两个预建 Scheduler package manifest 由 `T12-D01` 拥有；根 workspace script、shell Vitest include 和 lockfile 仅按 `T12-D02` 串行接入。
 - **批准偏差：** `T12-D01` 只开放两个预建 Scheduler package manifest，用于 package-local exports、直接依赖和检查；根 package、Vitest、lockfile、composition、Outbox 与 coordination 实现仍只读，等待 Lead 串行 amendment。
+- **批准偏差：** `T12-D02` 在 T-10 implementation result 后只开放根 Scheduler 聚合 typecheck、shell Vitest 的两个 Scheduler include，以及 lockfile 现有 `packages/domains/scheduler` / `packages/web-domains/scheduler` importer。只允许反映两个已批准 package manifest 的既有 workspace/catalog 依赖；其他 script、include、importer、catalog、外部版本、composition、Outbox 和 coordination 实现零漂移。
 - **保留或不动：** T-08 executor lease 实现。
 
 ## 8. 验证矩阵
