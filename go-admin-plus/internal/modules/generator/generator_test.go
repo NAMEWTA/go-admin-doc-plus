@@ -62,6 +62,15 @@ func (allowAuthorizer) Require(_ context.Context, actorID, _ string) error {
 	return nil
 }
 
+type permissionAuthorizer map[string]bool
+
+func (permissions permissionAuthorizer) Require(_ context.Context, actorID, permission string) error {
+	if actorID == "" || !permissions[permission] {
+		return ErrDenied
+	}
+	return nil
+}
+
 type mutatingGate struct{}
 
 func (mutatingGate) Check(_ context.Context, root string, preview Preview) error {
@@ -198,6 +207,28 @@ func TestPreviewIsDeterministicAndUsesOneNormalizedModel(t *testing.T) {
 		if readErr != nil || string(content) != file.Content {
 			t.Fatalf("written preview differs for %s: %v", file.Path, readErr)
 		}
+	}
+}
+
+func TestConfigAndPreviewRequireMetadataAndPreviewPermissions(t *testing.T) {
+	writer, err := NewAtomicWriter(t.TempDir(), passingGate{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	permissions := permissionAuthorizer{PermissionPreview: true}
+	generator, err := New(staticMetadata{table: testTable()}, writer, permissions, memoryConfigStore{}, baseRenderer{}, 5*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := generator.Config(context.Background(), "actor-one", "catalog"); !errors.Is(err, ErrDenied) {
+		t.Fatalf("config without metadata permission = %v", err)
+	}
+	if _, err := generator.Preview(context.Background(), "actor-one", testDraft()); !errors.Is(err, ErrDenied) {
+		t.Fatalf("preview without metadata permission = %v", err)
+	}
+	permissions[PermissionMetadataRead] = true
+	if _, err := generator.Preview(context.Background(), "actor-one", testDraft()); err != nil {
+		t.Fatalf("preview with combined permissions = %v", err)
 	}
 }
 

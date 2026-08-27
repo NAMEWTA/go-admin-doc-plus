@@ -55,14 +55,14 @@ func (generator *Generator) Describe(ctx context.Context, actorID string, ref Ta
 }
 
 func (generator *Generator) Config(ctx context.Context, actorID, module string) (Draft, string, error) {
-	if err := generator.authorize(ctx, actorID, PermissionPreview); err != nil {
+	if err := generator.authorizeAll(ctx, actorID, PermissionMetadataRead, PermissionPreview); err != nil {
 		return Draft{}, "", err
 	}
 	return generator.store.Get(ctx, actorID, module)
 }
 
 func (generator *Generator) Preview(ctx context.Context, actorID string, draft Draft) (Preview, error) {
-	if err := generator.authorize(ctx, actorID, PermissionPreview); err != nil {
+	if err := generator.authorizeAll(ctx, actorID, PermissionMetadataRead, PermissionPreview); err != nil {
 		return Preview{}, err
 	}
 	table, err := generator.metadata.Describe(ctx, draft.Table)
@@ -159,6 +159,15 @@ func (generator *Generator) authorize(ctx context.Context, actorID, permission s
 			return context.Cause(ctx)
 		}
 		return ErrDenied
+	}
+	return nil
+}
+
+func (generator *Generator) authorizeAll(ctx context.Context, actorID string, permissions ...string) error {
+	for _, permission := range permissions {
+		if err := generator.authorize(ctx, actorID, permission); err != nil {
+			return err
+		}
 	}
 	return nil
 }
