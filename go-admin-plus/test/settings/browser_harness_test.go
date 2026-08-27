@@ -201,6 +201,24 @@ func TestSettingsBrowserHarnessServer(t *testing.T) {
 		}
 		w.WriteHeader(204)
 	})
+	mux.HandleFunc("/__test/count", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(405)
+			return
+		}
+		liveMu.RLock()
+		value := live
+		liveMu.RUnlock()
+		var count int
+		if err := value.db.Bun().QueryRowContext(r.Context(), "SELECT COUNT(*) FROM settings_values").Scan(&count); err != nil {
+			w.WriteHeader(500)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(struct {
+			Settings int `json:"settings"`
+		}{Settings: count})
+	})
 	shutdown := make(chan struct{})
 	var once sync.Once
 	mux.HandleFunc("/__test/shutdown", func(w http.ResponseWriter, r *http.Request) {
