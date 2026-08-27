@@ -21,4 +21,3 @@ CREATE TABLE settings_dictionary_items (
   UNIQUE(dictionary_id, item_value)
 );
 CREATE INDEX settings_dictionary_items_order_idx ON settings_dictionary_items(dictionary_id, sort_order, label_key COLLATE BINARY, id);
-
