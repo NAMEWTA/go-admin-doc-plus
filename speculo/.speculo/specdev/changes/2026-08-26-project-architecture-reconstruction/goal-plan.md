@@ -397,6 +397,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-17 stage-2 首轮 aggregate test 证明 platform Permission 类型与旧 Web runtime fixture 仍停留在冒号 convention，和 IAM registry、模块合同、数据库能力及 product runtime 的点分格式冲突。Lead 批准 `T17-D04`：只修改 platform PermissionCode 类型和该 fixture 为 `module.resource.action`，禁止双格式兼容与其他 platform/shell 漂移。
 - T-17 完整 TypeScript gate 进一步证明 app-shell fixture 也是该类型的直接消费者；`T17-D05` 只把其中 5 个冒号权限字面量改为点分格式，不改变 Shell 行为、断言或其他 fixture。
 - T-17 最终 clean source checkpoint 为 `e3abed759ac47f8f154c4638aaeab9eac9a41b7d`（tree `77fe889cbc8fb19286200786df9d312fbc708ba6`）：共享 ProductWorkspace、双薄 App、Desktop product sidecar、精确 Rust product/binary bridge 与点分 Permission 迁移已完成；普通 Go/Generator 真实 compile gate、前端/Rust/合同/治理门禁通过，full race 与 parent-candidate pending。
+- T-17 attempt 1 candidate/result 为 `04d7bdfe5aa26583c4101dd4e7dfbe8c67a864e8`（tree `779f538fbae8e983caa2fd67b55821e798ad8f2d`，parent before `ab01846437680619fd55070c52d0bd7d366a582a`）。source/candidate 的完整 Go normal/race/vet/build、25-workspace lint/typecheck/132 tests/7 boundaries、Web/Desktop build、Rust 14 tests/clippy/check、sidecar resource、合同、governance、Task contract、34-path/clean 与 SpecDev Gate 全部通过，`main` 已 `--ff-only` 提升。T-17 为 `implemented-pending-final-e2e`，现解除 T-18/T-19/T-20 的实现依赖。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers

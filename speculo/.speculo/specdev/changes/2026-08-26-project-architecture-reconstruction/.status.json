@@ -1076,36 +1076,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-17",
       "source_checkpoint": "e3abed759ac47f8f154c4638aaeab9eac9a41b7d",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "ab01846437680619fd55070c52d0bd7d366a582a",
+        "source_sha": "e3abed759ac47f8f154c4638aaeab9eac9a41b7d",
+        "candidate_sha": "04d7bdfe5aa26583c4101dd4e7dfbe8c67a864e8",
+        "candidate_tree_sha": "779f538fbae8e983caa2fd67b55821e798ad8f2d",
+        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-17-attempt-1",
+        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-17-attempt-1",
+        "result_sha": "04d7bdfe5aa26583c4101dd4e7dfbe8c67a864e8",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "G5 requires complete product composition, three-profile and two-App static contracts, architecture, cache-disabled, build, contract, and package checks on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Attempt 1 passed full Go normal/race/vet/build including the real Generator compile gate, frozen 25-workspace lint/typecheck/132 tests/7 boundaries/Web and Desktop builds, Rust 14 tests/clippy/check, sidecar resource build, product OpenAPI/contract/generate, governance, Task contract, path, clean-tree, and SpecDev validation gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
           "reason": "Three profiles, Web/Desktop, permissions, filesystem, reliable runtime, and complete business workflows are deferred to the single unified final system E2E after T-21 implementation integration",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T19:25:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T19:41:49+08:00"
     }
   ]
 }
