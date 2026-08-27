@@ -9,17 +9,13 @@ build_server() {
   require_tool go
   validate_profile "$1"
   mkdir -p "$artifacts_root/build"
-  if test "$1" = server-sqlite; then
-    (cd "$backend_root" && go build -tags sqlite3 -o "$artifacts_root/build/go-admin" .)
-  else
-    (cd "$backend_root" && go build -o "$artifacts_root/build/go-admin" .)
-  fi
+  (cd "$backend_root" && go build -trimpath -o "$artifacts_root/build/go-admin-plus" ./cmd/go-admin-plus)
 }
 
 case $target in
   all)
     build_server "$profile"
-    "$repo_root/scripts/go-admin-plus-ui/build.sh" web
+    "$repo_root/scripts/go-admin-plus-ui/build.sh" all
     ;;
   server|server-sqlite|server-postgres)
     test "$target" = server || profile=$target

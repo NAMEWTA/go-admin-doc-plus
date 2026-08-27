@@ -24,24 +24,20 @@ for relative_path in scripts/go-admin-plus scripts/go-admin-plus-ui; do
   test -d "$repo_root/$relative_path" || fail "missing root-owned script directory: $relative_path"
 done
 
-inventory=$script_dir/legacy-governance-t21.txt
-test -f "$inventory" || fail 'missing T-21 legacy governance inventory'
 actual=$(mktemp "${TMPDIR:-/tmp}/go-admin-governance.XXXXXX")
-expected=$(mktemp "${TMPDIR:-/tmp}/go-admin-governance.XXXXXX")
-trap 'rm -f "$actual" "$expected"' EXIT HUP INT TERM
+trap 'rm -f "$actual"' EXIT HUP INT TERM
 
-find "$backend_root" "$repo_root/go-admin-ui-plus" \
-  \( -name node_modules -o -name dist -o -name coverage -o -name .git -o \
+find "$backend_root" "$repo_root/go-admin-plus-ui" \
+  \( -name node_modules -o -name dist -o -name target -o -name coverage -o -name .git -o \
     -path '*/.husky/_' \) -prune -o \
   -type f \( -path '*/.github/*' -o -path '*/.husky/*' -o \
     -name .gitignore -o -name .gitattributes -o -name .editorconfig -o \
     -name .dockerignore -o -name Makefile -o -name 'Dockerfile*' -o \
-    -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' \) -print |
-  sed "s|^$repo_root/||" | sort >"$actual"
-sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "$inventory" | sort >"$expected"
+    -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' \) -print >"$actual"
 
-if ! diff -u "$expected" "$actual"; then
-  fail 'nested governance differs from the explicit T-21 contraction inventory'
+if test -s "$actual"; then
+  sed "s|^$repo_root/||" "$actual" >&2
+  fail 'nested governance assets must be owned by the repository root'
 fi
 
 printf '%s\n' 'GOVERNANCE_CHECK_PASS'

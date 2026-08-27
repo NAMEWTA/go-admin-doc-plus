@@ -11,10 +11,12 @@ case $target in
     test "$target" = server || profile=$target
     config_file=$(profile_config "$profile")
     cd "$backend_root"
+    set -- --profile "$profile" --data-root "$repo_root/.data/server" --repository-root "$repo_root"
+    test -z "$config_file" || set -- "$@" --config "$config_file"
     if test "$profile" = server-sqlite; then
-      exec go run -tags sqlite3 . server --config "$config_file"
+      set -- "$@" --sqlite-path "$(sqlite_path)"
     fi
-    exec go run . server --config "$config_file"
+    exec go run ./cmd/go-admin-plus "$@"
     ;;
   web)
     exec "$repo_root/scripts/go-admin-plus-ui/dev.sh" web

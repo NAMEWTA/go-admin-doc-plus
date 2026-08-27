@@ -6,7 +6,6 @@ specdev-candidate
 specdev-worktree
 speculo
 go-admin-plus
-go-admin-ui-plus
 deploy
 release/macos
 release/windows

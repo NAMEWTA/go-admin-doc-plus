@@ -75,10 +75,30 @@ tasks:
     cmds:
       - '{{.RUN_SCRIPT}} scripts/go-admin-plus/release.sh preflight "{{.VERSION}}"'
 
+  release:verify:
+    desc: Verify all local release policies and manifest contracts
+    cmds:
+      - '{{.RUN_SCRIPT}} scripts/go-admin-plus/release.sh verify'
+
   governance:check:
-    desc: Verify root governance ownership and the T-21 legacy inventory
+    desc: Verify that repository governance is owned only by the root
     cmds:
       - '{{.RUN_SCRIPT}} scripts/go-admin-plus/governance-check.sh'
+
+  architecture:check:
+    desc: Verify canonical backend, frontend, command, and workspace boundaries
+    cmds:
+      - node scripts/quality/architecture-check.mjs
+
+  compatibility:zero:
+    desc: Reject removed paths, dependencies, names, and compatibility modes
+    cmds:
+      - node scripts/quality/compatibility-zero.mjs
+
+  docs:check:
+    desc: Verify current documentation links and repository naming
+    cmds:
+      - node scripts/quality/docs-check.mjs
 
   task:contract:
     desc: Verify the public task and failure-propagation contract

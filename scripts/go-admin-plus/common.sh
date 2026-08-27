@@ -31,16 +31,12 @@ validate_profile() {
 
 profile_config() {
   validate_profile "$1"
-  case $1 in
-    server-sqlite)
-      printf '%s\n' "$backend_root/config/settings.sqlite.yml"
-      ;;
-    server-postgres)
-      test -n "${GO_ADMIN_CONFIG_FILE:-}" ||
-        fail 'server-postgres requires GO_ADMIN_CONFIG_FILE to name an explicit config file'
-      config_file=$(resolve_repo_path "$GO_ADMIN_CONFIG_FILE")
-      test -r "$config_file" || fail 'GO_ADMIN_CONFIG_FILE does not name a readable file'
-      printf '%s\n' "$config_file"
-      ;;
-  esac
+  test -n "${GO_ADMIN_CONFIG_FILE:-}" || return 0
+  config_file=$(resolve_repo_path "$GO_ADMIN_CONFIG_FILE")
+  test -r "$config_file" || fail 'GO_ADMIN_CONFIG_FILE does not name a readable JSON file'
+  printf '%s\n' "$config_file"
+}
+
+sqlite_path() {
+  resolve_repo_path "${GO_ADMIN_SQLITE_PATH:-.data/server/go-admin-plus.sqlite3}"
 }

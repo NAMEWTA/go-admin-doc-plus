@@ -1,40 +1,39 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve, dirname } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const SCRIPT = join(ROOT, 'release/manifest/product-release.mjs')
 const sha = 'a'.repeat(40)
 const digest = `sha256:${'b'.repeat(64)}`
+const signatures = {
+  linux: { type: 'digest-provenance', required: true },
+  macos: { type: 'developer-id', required: true, notarization: 'apple-notary' },
+  windows: { type: 'authenticode', required: true, timestamp: 'required' }
+}
 
 const validManifest = () => ({
-  schema_version: 1,
-  product: {
-    name: 'Go Admin Plus', version: '0.1.0', release_class: 'unsigned-self-use',
-    external_distribution: false, production_deployment: false
-  },
-  provenance: {
-    root_sha: sha, backend_sha: sha, frontend_sha: sha,
-    openapi: { sha256: 'c'.repeat(64) }, migration: { max_version: '1786700004000' }
-  },
+  schema_version: 2,
+  product: { name: 'Go Admin Plus', version: '0.1.0', release_class: 'production-candidate', publication_authorized: false },
+  provenance: { source_sha: sha, openapi: { sha256: 'c'.repeat(64) }, migration: { max_version: '7500000000000' } },
   artifacts: Object.fromEntries([
-    ['linux', 'linux/amd64', 'server-compose'],
-    ['macos', 'darwin/arm64', 'desktop'],
-    ['windows', 'windows/amd64', 'desktop']
-  ].map(([key, platform, host]) => [key, {
-    platform, host,
-    release: { product_version: '0.1.0' },
+    ['linux', ['linux/amd64', 'linux/arm64'], 'server-web', 'oci-compose'],
+    ['macos', ['darwin/amd64', 'darwin/arm64'], 'desktop', 'signed-production'],
+    ['windows', ['windows/amd64'], 'desktop', 'signed-production']
+  ].map(([key, platforms, host, releaseClass]) => [key, {
+    platforms, host,
+    release: { product_version: '0.1.0', class: releaseClass },
     provenance: { head_sha: sha },
     artifact: { archive_sha256: digest },
     checksums: { files: ['SHA256SUMS'] },
     sbom: { files: ['artifact.spdx.json'] },
-    signature: { type: 'none' }
+    signature: signatures[key]
   }])),
-  policy: { global_security_disable: false, external_publish_authorized: false }
+  policy: { protected_platform_gates_required: true, global_security_disable: false, publication_authorized: false }
 })
 
 const verify = manifest => {
@@ -44,24 +43,32 @@ const verify = manifest => {
   return spawnSync(process.execPath, [SCRIPT, 'verify', '--manifest', path], { encoding: 'utf8' })
 }
 
-test('accepts a complete unsigned self-use product manifest', () => {
+test('accepts complete protected production candidate evidence', () => {
   const result = verify(validManifest())
   assert.equal(result.status, 0, result.stderr)
   assert.match(result.stdout, /GO_ADMIN_PRODUCT_MANIFEST_VERIFY_PASS/)
 })
 
-test('rejects platform product version drift', () => {
+test('rejects product version drift', () => {
   const manifest = validManifest()
   manifest.artifacts.windows.release.product_version = '0.2.0'
   const result = verify(manifest)
   assert.notEqual(result.status, 0)
-  assert.match(result.stderr, /windows product version drifted/)
+  assert.match(result.stderr, /windows release identity drifted/)
 })
 
-test('rejects an external publish authorization', () => {
+test('rejects missing platform signing evidence', () => {
   const manifest = validManifest()
-  manifest.policy.external_publish_authorized = true
+  manifest.artifacts.macos.signature.required = false
   const result = verify(manifest)
   assert.notEqual(result.status, 0)
-  assert.match(result.stderr, /must not authorize external publish/)
+  assert.match(result.stderr, /macos signature evidence is invalid/)
+})
+
+test('rejects publication authorization', () => {
+  const manifest = validManifest()
+  manifest.product.publication_authorized = true
+  const result = verify(manifest)
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /must not authorize publication/)
 })

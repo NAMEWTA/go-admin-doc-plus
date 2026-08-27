@@ -1,15 +1,11 @@
 # 文档索引
 
-本目录只描述 Go Admin Plus 的当前状态。历史设计与实施证据由 Speculo change 工件保留，
-不混入当前使用文档。
-
 | 文档 | 内容 |
-| --- | --- |
-| [开发指南](development.md) | 环境、本地配置、启动、验证和常见问题 |
-| [仓库架构](repository-architecture.md) | monorepo 边界、运行形态与共享契约 |
-| [发布说明](release.md) | Linux、macOS、Windows 发布入口和安全边界 |
-| [后端架构](../go-admin-plus/docs/architecture.md) | API 分层、数据权限、迁移与运行时 |
-| [后端 README](../go-admin-plus/README.md) | 后端子系统入口 |
-| [前端 README](../go-admin-ui-plus/README.md) | 前端 workspace 入口 |
-
-工程强约束以各目录 `AGENTS.md` 为准；版本和命令以可执行配置为准。
+|---|---|
+| [开发指南](development.md) | Server、Web、Desktop 的本地开发和验证 |
+| [仓库架构](repository-architecture.md) | 后端分层、前端 workspace 和依赖方向 |
+| [发行指南](release.md) | Linux、macOS、Windows 的候选与保护门禁 |
+| [后端入口](../go-admin-plus/README.md) | Go 命令、profile 和迁移 |
+| [部署入口](../deploy/README.md) | Linux Compose 运行方式 |
+| [数据库入口](../database/README.md) | SQLite 与 PostgreSQL 约束 |
+| [发行资产](../release/README.md) | 平台脚本和产品 manifest |

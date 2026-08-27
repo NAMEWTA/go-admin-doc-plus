@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execFileSync } from 'node:child_process'
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const PRODUCT_REPOSITORY = 'NAMEWTA/go-admin-plus'
 const SHA_PATTERN = /^[0-9a-f]{40}$/
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/
@@ -14,58 +14,52 @@ const VERSION_PATTERN = /^\d+\.\d+\.\d+$/
 
 const platforms = {
   linux: {
-    platform: 'linux/amd64',
-    host: 'server-compose',
     workflow: '.github/workflows/release-linux.yml',
-    artifactPattern: /^linux-amd64-compose-(\d+\.\d+\.\d+)-(\d+)-(\d+)$/,
+    platforms: ['linux/amd64', 'linux/arm64'],
+    host: 'server-web',
+    releaseClass: 'oci-compose',
     checksums: ['SHA256SUMS'],
-    sboms: ['sbom/go-admin-api.spdx.json', 'sbom/go-admin-web.spdx.json'],
-    signature: { type: 'none', trust: 'checksum-and-source-provenance' }
+    sboms: [
+      'sbom/go-admin-plus-server-linux-amd64.spdx.json',
+      'sbom/go-admin-plus-server-linux-arm64.spdx.json',
+      'sbom/go-admin-plus-web-linux-amd64.spdx.json',
+      'sbom/go-admin-plus-web-linux-arm64.spdx.json'
+    ],
+    signature: { type: 'digest-provenance', required: true }
   },
   macos: {
-    platform: 'darwin/arm64',
-    host: 'desktop',
     workflow: '.github/workflows/release-macos.yml',
-    artifactPattern: /^macos-arm64-(\d+\.\d+\.\d+)-unsigned-self-use-(\d+)-(\d+)$/,
+    platforms: ['darwin/amd64', 'darwin/arm64'],
+    host: 'desktop',
+    releaseClass: 'signed-production',
     checksums: ['SHA256SUMS'],
-    sboms: ['go-admin-plus-macos-arm64.spdx.json'],
-    signature: { type: 'adhoc', trust: 'unidentified-developer', notarization: 'not-applicable' }
+    sboms: ['go-admin-plus-macos-universal.spdx.json'],
+    signature: { type: 'developer-id', required: true, notarization: 'apple-notary' }
   },
   windows: {
-    platform: 'windows/amd64',
-    host: 'desktop',
     workflow: '.github/workflows/release-windows.yml',
-    artifactPattern: /^windows-amd64-(\d+\.\d+\.\d+)-unsigned-self-use-(\d+)-(\d+)$/,
+    platforms: ['windows/amd64'],
+    host: 'desktop',
+    releaseClass: 'signed-production',
     checksums: ['SHA256SUMS'],
     sboms: ['go-admin-plus-windows-amd64.spdx.json'],
-    signature: { type: 'none', trust: 'unidentified-publisher' }
+    signature: { type: 'authenticode', required: true, timestamp: 'required' }
   }
 }
 
-const fail = message => {
-  throw new Error(message)
-}
-
-const run = (command, args, cwd = ROOT) => execFileSync(command, args, {
-  cwd,
-  encoding: 'utf8',
-  stdio: ['ignore', 'pipe', 'pipe']
-}).trim()
-
+const fail = message => { throw new Error(message) }
+const run = (command, args) => execFileSync(command, args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 const sha256File = path => createHash('sha256').update(readFileSync(path)).digest('hex')
 
 const parseArgs = values => {
-  const parsed = { _: [] }
+  const parsed = {}
   for (let index = 0; index < values.length; index += 1) {
     const value = values[index]
-    if (!value.startsWith('--')) {
-      parsed._.push(value)
-      continue
-    }
-    const [rawName, inline] = value.slice(2).split('=', 2)
-    if (inline !== undefined) parsed[rawName] = inline
-    else if (values[index + 1] && !values[index + 1].startsWith('--')) parsed[rawName] = values[++index]
-    else parsed[rawName] = true
+    if (!value.startsWith('--')) fail(`unexpected argument: ${value}`)
+    const [name, inline] = value.slice(2).split('=', 2)
+    if (inline !== undefined) parsed[name] = inline
+    else if (values[index + 1] && !values[index + 1].startsWith('--')) parsed[name] = values[++index]
+    else parsed[name] = true
   }
   return parsed
 }
@@ -75,48 +69,46 @@ const requireOption = (options, name) => {
   if (typeof value !== 'string' || value.length === 0) fail(`--${name} is required`)
   return value
 }
-
 const exactSha = (value, name) => {
   const normalized = String(value).toLowerCase()
   if (!SHA_PATTERN.test(normalized)) fail(`${name} must be an exact lowercase 40-character SHA`)
   return normalized
 }
-
 const numericId = (value, name) => {
   if (!/^\d+$/.test(String(value)) || Number(value) <= 0) fail(`${name} must be a positive numeric GitHub ID`)
   return Number(value)
 }
 
-const repositoryState = () => {
-  const rootSha = exactSha(run('git', ['rev-parse', 'HEAD']), 'root SHA')
-  return { rootSha, backendSha: rootSha, frontendSha: rootSha }
-}
+const walk = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+  const path = join(directory, entry.name)
+  return entry.isDirectory() ? walk(path) : [path]
+})
 
 const migrationVersion = () => {
-  const directory = join(ROOT, 'go-admin-plus/cmd/migrate/migration/version')
-  const entries = run('find', [directory, '-maxdepth', '1', '-type', 'f', '-name', '[0-9]*_*.go']).split('\n')
-  const versions = entries
-    .filter(Boolean)
+  const versions = walk(join(ROOT, 'go-admin-plus/internal'))
+    .filter(path => path.endsWith('.sql'))
     .map(path => basename(path).match(/^(\d+)_/)?.[1])
     .filter(Boolean)
     .map(Number)
-  if (versions.length === 0) fail('no numbered migration source files found')
+  if (versions.length === 0) fail('no numbered migration SQL files found')
   return String(Math.max(...versions))
 }
 
 const sourceContract = version => {
   if (!VERSION_PATTERN.test(version)) fail('version must use numeric major.minor.patch format')
-  const identity = JSON.parse(readFileSync(join(ROOT, 'release/windows/identity.json'), 'utf8'))
-  if (identity.product_version !== version) {
-    fail(`version ${version} does not match Windows product identity ${identity.product_version}`)
-  }
-  const openapiPath = 'go-admin-plus/api/openapi/openapi.json'
+  const tauri = JSON.parse(readFileSync(join(ROOT, 'go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json'), 'utf8'))
+  const macos = JSON.parse(readFileSync(join(ROOT, 'release/macos/identity.json'), 'utf8'))
+  const windows = JSON.parse(readFileSync(join(ROOT, 'release/windows/identity.json'), 'utf8'))
+  const linux = JSON.parse(readFileSync(join(ROOT, 'release/linux/identity.json'), 'utf8'))
+  if (tauri.version !== version) fail(`version ${version} does not match Tauri product version ${tauri.version}`)
+  if (macos.releaseClass !== 'signed-production' || !macos.signingRequired || !macos.notarizationRequired) fail('macOS production identity is incomplete')
+  if (windows.releaseClass !== 'signed-production' || !windows.signingRequired) fail('Windows production identity is incomplete')
+  if (JSON.stringify(linux.platforms) !== JSON.stringify(platforms.linux.platforms)) fail('Linux platform identity is incomplete')
+  const rootSha = exactSha(run('git', ['rev-parse', 'HEAD']), 'root SHA')
+  const openapiPath = 'scripts/contracts/generated/openapi.json'
   return {
-    ...repositoryState(),
-    openapi: {
-      path: openapiPath,
-      sha256: sha256File(join(ROOT, openapiPath))
-    },
+    rootSha,
+    openapi: { path: openapiPath, sha256: sha256File(join(ROOT, openapiPath)) },
     migration: { max_version: migrationVersion() }
   }
 }
@@ -124,9 +116,7 @@ const sourceContract = version => {
 const preflight = options => {
   const version = requireOption(options, 'version')
   const contract = sourceContract(version)
-  if (options['root-ref'] && exactSha(options['root-ref'], 'root ref') !== contract.rootSha) {
-    fail(`root ref ${options['root-ref']} does not match checkout ${contract.rootSha}`)
-  }
+  if (options['root-ref'] && exactSha(options['root-ref'], 'root ref') !== contract.rootSha) fail('root ref does not match checkout')
   if (!options['allow-dirty']) {
     const dirty = run('git', ['status', '--porcelain', '--untracked-files=normal'])
     if (dirty) fail(`root workspace is dirty:\n${dirty}`)
@@ -142,16 +132,12 @@ const githubJson = async path => {
   }
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
   if (token) headers.Authorization = `Bearer ${token}`
-  let response = await fetch(`https://api.github.com${path}`, { headers })
-  if (!response.ok && token && (response.status === 403 || response.status === 404)) {
-    delete headers.Authorization
-    response = await fetch(`https://api.github.com${path}`, { headers })
-  }
+  const response = await fetch(`https://api.github.com${path}`, { headers })
   if (!response.ok) fail(`GitHub API ${path} returned ${response.status}`)
   return response.json()
 }
 
-const collectPlatform = async (key, options, expectedBackendSha, version) => {
+const collectPlatform = async (key, options, sourceSha, version) => {
   const definition = platforms[key]
   const runId = numericId(requireOption(options, `${key}-run-id`), `${key} run ID`)
   const artifactId = numericId(requireOption(options, `${key}-artifact-id`), `${key} artifact ID`)
@@ -159,44 +145,23 @@ const collectPlatform = async (key, options, expectedBackendSha, version) => {
     githubJson(`/repos/${PRODUCT_REPOSITORY}/actions/runs/${runId}`),
     githubJson(`/repos/${PRODUCT_REPOSITORY}/actions/artifacts/${artifactId}`)
   ])
-  if (workflowRun.status !== 'completed' || workflowRun.conclusion !== 'success') {
-    fail(`${key} workflow run ${runId} is not a completed success`)
-  }
-  if (workflowRun.event !== 'workflow_dispatch' || workflowRun.path !== definition.workflow) {
-    fail(`${key} run ${runId} is not ${definition.workflow} workflow_dispatch`)
-  }
-  if (exactSha(workflowRun.head_sha, `${key} run head SHA`) !== expectedBackendSha) {
-    fail(`${key} run ${runId} used backend ${workflowRun.head_sha}, expected ${expectedBackendSha}`)
-  }
-  const expectedTitles = {
-    linux: `linux product=${version} root=${options['root-sha']} frontend=${options['frontend-sha']}`,
-    macos: `macos product=${version} root=${options['root-sha']} frontend=${options['frontend-sha']} mode=unsigned-self-use`,
-    windows: `windows product=${version} root=${options['root-sha']} frontend=${options['frontend-sha']} mode=unsigned-self-use`
-  }
-  if (workflowRun.display_title !== expectedTitles[key]) {
-    fail(`${key} run ${runId} provenance title does not bind the requested root/frontend/version`)
-  }
-  if (artifact.expired) fail(`${key} artifact ${artifactId} is expired`)
-  if (artifact.workflow_run?.id !== runId) fail(`${key} artifact ${artifactId} does not belong to run ${runId}`)
-  if (!DIGEST_PATTERN.test(artifact.digest ?? '')) fail(`${key} artifact ${artifactId} has no SHA-256 archive digest`)
-  const nameMatch = artifact.name?.match(definition.artifactPattern)
-  if (!nameMatch || nameMatch[1] !== version || Number(nameMatch[2]) !== runId || Number(nameMatch[3]) !== workflowRun.run_attempt) {
-    fail(`${key} artifact name ${JSON.stringify(artifact.name)} does not bind run and attempt`)
-  }
+  if (workflowRun.status !== 'completed' || workflowRun.conclusion !== 'success') fail(`${key} workflow run is not a completed success`)
+  if (workflowRun.event !== 'workflow_dispatch' || workflowRun.path !== definition.workflow) fail(`${key} workflow identity is invalid`)
+  if (exactSha(workflowRun.head_sha, `${key} head SHA`) !== sourceSha) fail(`${key} source SHA drifted`)
+  if (workflowRun.display_title !== `${key} source=${sourceSha} version=${version}`) fail(`${key} run title does not bind source and version`)
+  if (artifact.expired || artifact.workflow_run?.id !== runId) fail(`${key} artifact does not belong to the active run`)
+  if (artifact.name !== `go-admin-plus-${key}-${version}-${sourceSha}`) fail(`${key} artifact name does not bind source and version`)
+  if (!DIGEST_PATTERN.test(artifact.digest ?? '')) fail(`${key} artifact has no SHA-256 archive digest`)
   return {
-    platform: definition.platform,
+    platforms: definition.platforms,
     host: definition.host,
-    release: {
-      product_version: version,
-      build_version: key === 'linux' ? expectedBackendSha : version,
-      class: key === 'linux' ? 'offline-compose' : 'unsigned-self-use'
-    },
+    release: { product_version: version, class: definition.releaseClass },
     provenance: {
       repository: PRODUCT_REPOSITORY,
       workflow: definition.workflow,
       run_id: runId,
       run_attempt: workflowRun.run_attempt,
-      head_sha: expectedBackendSha,
+      head_sha: sourceSha,
       event: workflowRun.event,
       conclusion: workflowRun.conclusion,
       url: workflowRun.html_url
@@ -207,8 +172,7 @@ const collectPlatform = async (key, options, expectedBackendSha, version) => {
       archive_sha256: artifact.digest,
       size_bytes: artifact.size_in_bytes,
       created_at: artifact.created_at,
-      expires_at: artifact.expires_at,
-      api_url: artifact.url
+      expires_at: artifact.expires_at
     },
     checksums: { algorithm: 'SHA-256', files: definition.checksums },
     sbom: { format: 'SPDX JSON', files: definition.sboms },
@@ -217,30 +181,24 @@ const collectPlatform = async (key, options, expectedBackendSha, version) => {
 }
 
 const validateManifest = manifest => {
-  if (manifest.schema_version !== 1) fail('manifest schema_version must be 1')
+  if (manifest.schema_version !== 2) fail('manifest schema_version must be 2')
   if (manifest.product?.name !== 'Go Admin Plus') fail('manifest product name is invalid')
   if (!VERSION_PATTERN.test(manifest.product?.version ?? '')) fail('manifest product version is invalid')
-  if (manifest.product.release_class !== 'unsigned-self-use') fail('manifest release class must be unsigned-self-use')
-  if (manifest.product.external_distribution !== false || manifest.product.production_deployment !== false) {
-    fail('manifest must not authorize external distribution or production deployment')
-  }
-  for (const key of ['root_sha', 'backend_sha', 'frontend_sha']) {
-    exactSha(manifest.provenance?.[key], `manifest provenance ${key}`)
-  }
-  if (!/^[0-9a-f]{64}$/.test(manifest.provenance?.openapi?.sha256 ?? '')) fail('manifest OpenAPI SHA-256 is invalid')
-  if (!/^\d+$/.test(manifest.provenance?.migration?.max_version ?? '')) fail('manifest migration max version is invalid')
+  if (manifest.product.release_class !== 'production-candidate') fail('manifest release class is invalid')
+  if (manifest.product.publication_authorized !== false) fail('manifest must not authorize publication')
+  exactSha(manifest.provenance?.source_sha, 'manifest source SHA')
+  if (!/^[0-9a-f]{64}$/.test(manifest.provenance?.openapi?.sha256 ?? '')) fail('manifest OpenAPI digest is invalid')
+  if (!/^\d+$/.test(manifest.provenance?.migration?.max_version ?? '')) fail('manifest migration version is invalid')
   for (const [key, definition] of Object.entries(platforms)) {
     const item = manifest.artifacts?.[key]
-    if (!item || item.platform !== definition.platform || item.host !== definition.host) fail(`manifest ${key} platform contract is invalid`)
-    if (item.release?.product_version !== manifest.product.version) fail(`manifest ${key} product version drifted`)
-    if (item.provenance?.head_sha !== manifest.provenance.backend_sha) fail(`manifest ${key} backend provenance drifted`)
-    if (!DIGEST_PATTERN.test(item.artifact?.archive_sha256 ?? '')) fail(`manifest ${key} artifact digest is invalid`)
-    if (!Array.isArray(item.checksums?.files) || item.checksums.files.length === 0) fail(`manifest ${key} has no checksum contract`)
-    if (!Array.isArray(item.sbom?.files) || item.sbom.files.length === 0) fail(`manifest ${key} has no SBOM contract`)
-    if (!item.signature?.type) fail(`manifest ${key} has no explicit signature status`)
+    if (!item || JSON.stringify(item.platforms) !== JSON.stringify(definition.platforms) || item.host !== definition.host) fail(`${key} platform contract is invalid`)
+    if (item.release?.product_version !== manifest.product.version || item.release?.class !== definition.releaseClass) fail(`${key} release identity drifted`)
+    if (item.provenance?.head_sha !== manifest.provenance.source_sha) fail(`${key} source provenance drifted`)
+    if (!DIGEST_PATTERN.test(item.artifact?.archive_sha256 ?? '')) fail(`${key} artifact digest is invalid`)
+    if (!Array.isArray(item.checksums?.files) || item.checksums.files.length === 0) fail(`${key} checksums are missing`)
+    if (!Array.isArray(item.sbom?.files) || item.sbom.files.length === 0) fail(`${key} SBOM is missing`)
+    if (JSON.stringify(item.signature) !== JSON.stringify(definition.signature)) fail(`${key} signature evidence is invalid`)
   }
-  if (manifest.policy?.global_security_disable !== false) fail('manifest must prohibit global security disablement')
-  if (manifest.policy?.external_publish_authorized !== false) fail('manifest must not authorize external publish')
   return manifest
 }
 
@@ -248,37 +206,16 @@ const collect = async options => {
   const version = requireOption(options, 'version')
   const output = resolve(ROOT, requireOption(options, 'output'))
   const contract = sourceContract(version)
-  options['root-sha'] = contract.rootSha
-  options['frontend-sha'] = contract.frontendSha
   const artifacts = Object.fromEntries(await Promise.all(Object.keys(platforms).map(async key => [
-    key,
-    await collectPlatform(key, options, contract.backendSha, version)
+    key, await collectPlatform(key, options, contract.rootSha, version)
   ])))
   const manifest = validateManifest({
-    schema_version: 1,
+    schema_version: 2,
     generated_at: new Date().toISOString(),
-    product: {
-      name: 'Go Admin Plus',
-      version,
-      release_class: 'unsigned-self-use',
-      external_distribution: false,
-      production_deployment: false
-    },
-    provenance: {
-      root_sha: contract.rootSha,
-      backend_sha: contract.backendSha,
-      frontend_sha: contract.frontendSha,
-      openapi: contract.openapi,
-      migration: contract.migration
-    },
+    product: { name: 'Go Admin Plus', version, release_class: 'production-candidate', publication_authorized: false },
+    provenance: { source_sha: contract.rootSha, openapi: contract.openapi, migration: contract.migration },
     artifacts,
-    policy: {
-      intended_use: 'owner-authorized-self-use',
-      global_security_disable: false,
-      external_publish_authorized: false,
-      macos_authorization: 'Privacy & Security Open Anyway or scoped quarantine removal after checksum verification',
-      windows_authorization: 'interactive Run anyway where local policy permits after checksum verification'
-    }
+    policy: { protected_platform_gates_required: true, global_security_disable: false, publication_authorized: false }
   })
   writeFileSync(output, `${JSON.stringify(manifest, null, 2)}\n`)
   process.stdout.write(`GO_ADMIN_PRODUCT_MANIFEST_PASS output=${output}\n`)

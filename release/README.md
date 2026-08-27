@@ -1,13 +1,17 @@
-# Release Engineering
+# 发行资产
 
-`release/` owns product packaging, platform identity, manifests, SBOM and provenance checks.
-The public `task release VERSION=x.y.z` command performs local preflight only. Remote workflow
-dispatch is intentionally absent from the root command plane; the platform release Tickets own
-their idempotent orchestration and approval contracts.
+本目录按平台和生命周期管理产品发行：
 
-Platform-specific scripts must fail when signing, notarization, native packaging or other
-required tools are unavailable. They must never print release credentials or silently replace
-a protected release check with an unsigned success.
+- `linux/`：双架构 OCI、Compose、secret 与安装验证。
+- `macos/`：Universal App、Developer ID 签名、公证、DMG 和安装验证。
+- `windows/`：x64 sidecar、Tauri 2 NSIS、Authenticode 签名和安装验证。
+- `shared/`：Desktop sidecar 与生成器运行时的共享打包逻辑。
+- `manifest/`：跨平台来源、摘要、SBOM 和签名状态聚合。
 
-Release assets below either legacy subproject are frozen migration inputs and are tracked for
-atomic deletion by `scripts/go-admin-plus/legacy-governance-t21.txt`.
+普通 CI 只运行可复现构建和策略测试。签名、公证、原生安装以及最终候选收集必须在受保护平台环境执行；任何缺失证据都使发行失败。
+
+```bash
+task release VERSION=0.1.0
+```
+
+该命令只执行本地预检，不上传制品、不触发远端 workflow。
