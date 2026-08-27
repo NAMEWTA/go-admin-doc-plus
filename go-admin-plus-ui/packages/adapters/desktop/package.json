@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@go-admin/domain-demo": "workspace:*",
+    "@go-admin/domain-iam": "workspace:*",
     "@go-admin/platform": "workspace:*",
     "@tauri-apps/api": "2.11.1"
   }

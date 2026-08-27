@@ -3,7 +3,7 @@
 #[cfg(all(not(debug_assertions), not(feature = "custom-protocol")))]
 compile_error!("release desktop builds must enable the custom-protocol feature");
 
-mod demo_contract;
+mod product_contract;
 mod proxy;
 mod vault;
 

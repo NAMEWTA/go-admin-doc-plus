@@ -13,14 +13,14 @@ describe('web runtime adapter', () => {
     const fetch = vi.fn(async () => response(200, {
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo:read']
+      permissions: ['demo.products.read']
     }))
     const runtime = createWebRuntime(fetch as typeof globalThis.fetch)
 
     await expect(runtime.loadIdentity()).resolves.toEqual({
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo:read']
+      permissions: ['demo.products.read']
     })
     expect(fetch).toHaveBeenCalledWith('/api/runtime/identity', {
       credentials: 'include',
@@ -53,7 +53,7 @@ describe('web runtime adapter', () => {
     const valid = {
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo:read']
+      permissions: ['demo.products.read']
     }
     await expect(createWebRuntime(async () => response(200, valid) as never).loadIdentity())
       .resolves.toEqual(valid)
@@ -72,8 +72,8 @@ describe('web runtime adapter', () => {
     await expect(unsafe.loadNavigation()).rejects.toThrow('invalid navigation entry')
 
     const duplicate = createWebRuntime(async () => response(200, [
-      { path: '/demo', permission: 'demo:read' },
-      { path: '/demo', permission: 'demo:write' }
+      { path: '/demo', permission: 'demo.products.read' },
+      { path: '/demo', permission: 'demo.products.write' }
     ]) as never)
     await expect(duplicate.loadNavigation()).rejects.toThrow('duplicate navigation path')
   })

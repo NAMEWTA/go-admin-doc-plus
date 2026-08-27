@@ -7,3 +7,4 @@ export {
   type ProductModuleId,
   type ProductRoute
 } from './manifest'
+export { default as ProductWorkspace } from './ProductWorkspace.vue'

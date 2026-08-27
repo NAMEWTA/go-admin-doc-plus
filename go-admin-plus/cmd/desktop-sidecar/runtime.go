@@ -2,31 +2,23 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"go-admin/internal/app/kernel"
-	"go-admin/internal/modules/audit"
-	auditmigration "go-admin/internal/modules/audit/migrations/0011-audit"
-	"go-admin/internal/modules/demo"
-	productsmigration "go-admin/internal/modules/demo/migrations/0010-products"
-	"go-admin/internal/modules/iam/administration"
-	"go-admin/internal/modules/iam/authorization"
-	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
-	administrationmigration "go-admin/internal/modules/iam/migrations/0020-administration-schema"
+	"go-admin/internal/app/product"
+	"go-admin/internal/application"
 	"go-admin/internal/modules/iam/session"
 	"go-admin/internal/platform/config"
 	"go-admin/internal/platform/database"
 	desktopplatform "go-admin/internal/platform/desktop"
-	"go-admin/internal/platform/migrations"
-	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
 )
 
 const (
@@ -43,6 +35,7 @@ type sidecarRuntime struct {
 	listener net.Listener
 	server   *http.Server
 	sessions *session.Service
+	app      *application.Application
 	serveErr chan error
 	stopOnce sync.Once
 	stop     context.CancelFunc
@@ -99,23 +92,6 @@ func (runtime *sidecarRuntime) startDatabase(ctx context.Context) error {
 		return databaseStartupFailure(nil, runtime.backup.Restore, "desktop database open failed")
 	}
 	runtime.database = db
-	runner, err := migrations.NewRunner(
-		reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{},
-		productsmigration.Provider{}, auditmigration.Provider{},
-	)
-	if err == nil {
-		_, err = runner.Up(ctx, db)
-	}
-	if err == nil {
-		var registry *authorization.CapabilityRegistry
-		registry, err = authorization.NewCapabilityRegistry(db)
-		if err == nil {
-			err = demo.RegisterCapabilities(ctx, registry)
-		}
-	}
-	if err != nil {
-		return runtime.recoverDatabase()
-	}
 	return nil
 }
 
@@ -160,11 +136,11 @@ func (runtime *sidecarRuntime) startHTTP(ctx context.Context) error {
 	var listenerConfig net.ListenConfig
 	listener, err := listenerConfig.Listen(ctx, "tcp4", "127.0.0.1:0")
 	if err != nil {
-		return errors.New("desktop loopback listener failed")
+		return runtime.abortHTTPStart("desktop loopback listener failed")
 	}
 	if !listener.Addr().(*net.TCPAddr).IP.IsLoopback() {
 		_ = listener.Close()
-		return errors.New("desktop loopback listener is unsafe")
+		return runtime.abortHTTPStart("desktop loopback listener is unsafe")
 	}
 	runtime.listener = listener
 	runtime.server = &http.Server{
@@ -183,49 +159,29 @@ func (runtime *sidecarRuntime) port() uint16 {
 }
 
 func (runtime *sidecarRuntime) buildHandler() (http.Handler, error) {
-	loginFacts, err := audit.NewSessionLoginFactAdapter(runtime.database)
+	repositoryRoot, err := discoverRepositoryRoot()
 	if err != nil {
-		return nil, errors.New("desktop login audit adapter failed")
+		return nil, runtime.recoverDatabase()
 	}
-	sessions, err := session.NewService(runtime.database, config.DefaultSessionPolicy(), session.WithLoginFactPort(loginFacts))
+	built, err := product.Build(context.Background(), runtime.database, product.Options{
+		SessionPolicy:       config.DefaultSessionPolicy(),
+		FilesRoot:           filepath.Join(runtime.material.DataDirectory, "files"),
+		RepositoryRoot:      repositoryRoot,
+		GeneratorOutputRoot: filepath.Join(runtime.material.DataDirectory, "generated"),
+		GeneratorSchema:     "main",
+		GeneratorTables:     []string{"demo_products"},
+		WorkerOwner:         fmt.Sprintf("desktop-%d", os.Getpid()),
+		WorkerInterval:      time.Second,
+		AuditRetentionAge:   30 * 24 * time.Hour,
+	})
 	if err != nil {
-		return nil, errors.New("desktop session service failed")
+		return nil, runtime.recoverDatabase()
 	}
-	runtime.sessions = sessions
-	authorizer, err := demo.NewIAMAuthorizationAdapter(runtime.database)
-	if err != nil {
-		return nil, errors.New("desktop authorization adapter failed")
+	if err := built.Application.Start(context.Background()); err != nil {
+		return nil, runtime.recoverDatabase()
 	}
-	demoService, err := demo.NewService(runtime.database, authorizer)
-	if err != nil {
-		return nil, errors.New("desktop demo service failed")
-	}
-	sessionAdapter, err := demo.NewIAMSessionRequestAdapter(sessions)
-	if err != nil {
-		return nil, errors.New("desktop session adapter failed")
-	}
-	trace := func(*http.Request) string { return newTraceID() }
-	sessionHandler, err := session.NewHTTPHandler(sessions, trace)
-	if err != nil {
-		return nil, errors.New("desktop session transport failed")
-	}
-	demoHandler, err := demo.NewHTTPHandler(demoService, sessionAdapter, trace)
-	if err != nil {
-		return nil, errors.New("desktop demo transport failed")
-	}
-	adminService, err := administration.NewService(runtime.database)
-	if err != nil {
-		return nil, errors.New("desktop administration service failed")
-	}
-	adminHandler, err := administration.NewHTTPHandler(adminService, sessions, trace)
-	if err != nil {
-		return nil, errors.New("desktop administration transport failed")
-	}
-
-	api := http.NewServeMux()
-	api.Handle("/iam/session/", sessionHandler)
-	api.Handle("/iam/administration/", adminHandler)
-	api.Handle("/demo/", demoHandler)
+	runtime.app = built.Application
+	runtime.sessions = built.Sessions
 
 	readiness, err := desktopplatform.NewNonceGate(runtime.material.ReadinessNonce)
 	if err != nil {
@@ -241,7 +197,7 @@ func (runtime *sidecarRuntime) buildHandler() (http.Handler, error) {
 		writer.Header().Set("Content-Type", "application/json")
 		_, _ = writer.Write([]byte(`{"state":"ready"}`))
 	})
-	mux.Handle("/api/", runtime.requireControl(http.StripPrefix("/api", api)))
+	mux.Handle("/api/", runtime.requireControl(built.Application.Handler()))
 	mux.Handle("POST /__desktop/shutdown", runtime.requireControl(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writer.WriteHeader(http.StatusNoContent)
 		runtime.stopOnce.Do(runtime.stop)
@@ -274,10 +230,10 @@ func (runtime *sidecarRuntime) drainHTTP(ctx context.Context) error {
 	return runtime.server.Shutdown(ctx)
 }
 func (runtime *sidecarRuntime) stopHTTP(context.Context) error {
-	if runtime.server == nil {
-		return nil
+	var err error
+	if runtime.server != nil {
+		err = runtime.server.Close()
 	}
-	err := runtime.server.Close()
 	select {
 	case serveErr := <-runtime.serveErr:
 		if !errors.Is(serveErr, http.ErrServerClosed) {
@@ -285,7 +241,25 @@ func (runtime *sidecarRuntime) stopHTTP(context.Context) error {
 		}
 	default:
 	}
+	if runtime.app != nil {
+		stop, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		err = errors.Join(err, runtime.app.Stop(stop))
+		cancel()
+		runtime.app = nil
+	}
 	return err
+}
+
+func (runtime *sidecarRuntime) abortHTTPStart(cause string) error {
+	if runtime.app != nil {
+		stop, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		_ = runtime.app.Stop(stop)
+		cancel()
+		runtime.app = nil
+		runtime.sessions = nil
+	}
+	_ = runtime.recoverDatabase()
+	return errors.New(cause)
 }
 func noopLifecycle(context.Context) error { return nil }
 
@@ -308,10 +282,33 @@ func secureDirectories(dataDirectory, logDirectory string) error {
 	return nil
 }
 
-func newTraceID() string {
-	value := make([]byte, 16)
-	if _, err := rand.Read(value); err != nil {
-		return "0000000000000000"
+func discoverRepositoryRoot() (string, error) {
+	candidates := make([]string, 0, 2)
+	if working, err := os.Getwd(); err == nil {
+		candidates = append(candidates, working)
 	}
-	return hex.EncodeToString(value)
+	if executable, err := os.Executable(); err == nil {
+		candidates = append(candidates, filepath.Dir(executable))
+	}
+	for _, candidate := range candidates {
+		for current := filepath.Clean(candidate); ; current = filepath.Dir(current) {
+			if regularFile(filepath.Join(current, "scripts", "contracts", "cli.mjs")) &&
+				regularFile(filepath.Join(current, "go-admin-plus", "go.mod")) &&
+				regularFile(filepath.Join(current, "go-admin-plus-ui", "pnpm-workspace.yaml")) {
+				if canonical, err := filepath.EvalSymlinks(current); err == nil {
+					return canonical, nil
+				}
+			}
+			parent := filepath.Dir(current)
+			if parent == current {
+				break
+			}
+		}
+	}
+	return "", errors.New("desktop generator repository root unavailable")
+}
+
+func regularFile(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.Mode().IsRegular()
 }

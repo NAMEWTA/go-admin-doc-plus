@@ -43,6 +43,7 @@ type Options struct {
 type Runtime struct {
 	Application *application.Application
 	Readiness   []health.Checker
+	Sessions    *session.Service
 }
 
 type schedulerParameters struct {
@@ -252,6 +253,7 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	storageOwnedByBuild = false
 	return Runtime{
 		Application: app,
+		Sessions:    sessions,
 		Readiness: []health.Checker{
 			{Name: "database", Check: func(ctx context.Context) error { return db.SQL().PingContext(ctx) }},
 			{Name: "workers", Check: workers.Check},

@@ -84,12 +84,6 @@ importers:
       '@go-admin/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
-      '@go-admin/domain-demo':
-        specifier: workspace:*
-        version: link:../../packages/domains/demo
-      '@go-admin/web-domain-demo':
-        specifier: workspace:*
-        version: link:../../packages/web-domains/demo
       '@tauri-apps/api':
         specifier: 2.11.1
         version: 2.11.1
@@ -171,6 +165,9 @@ importers:
       '@go-admin/domain-demo':
         specifier: workspace:*
         version: link:../../domains/demo
+      '@go-admin/domain-iam':
+        specifier: workspace:*
+        version: link:../../domains/iam
       '@go-admin/platform':
         specifier: workspace:*
         version: link:../../platform
@@ -199,9 +196,55 @@ importers:
 
   packages/app-shell:
     dependencies:
+      '@go-admin/adapter-browser':
+        specifier: workspace:*
+        version: link:../adapters/browser
+      '@go-admin/domain-iam':
+        specifier: workspace:*
+        version: link:../domains/iam
       '@go-admin/platform':
         specifier: workspace:*
         version: link:../platform
+      '@go-admin/web-domain-audit':
+        specifier: workspace:*
+        version: link:../web-domains/audit
+      '@go-admin/web-domain-demo':
+        specifier: workspace:*
+        version: link:../web-domains/demo
+      '@go-admin/web-domain-files':
+        specifier: workspace:*
+        version: link:../web-domains/files
+      '@go-admin/web-domain-generator':
+        specifier: workspace:*
+        version: link:../web-domains/generator
+      '@go-admin/web-domain-iam':
+        specifier: workspace:*
+        version: link:../web-domains/iam
+      '@go-admin/web-domain-organization':
+        specifier: workspace:*
+        version: link:../web-domains/organization
+      '@go-admin/web-domain-scheduler':
+        specifier: workspace:*
+        version: link:../web-domains/scheduler
+      '@go-admin/web-domain-settings':
+        specifier: workspace:*
+        version: link:../web-domains/settings
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.41(typescript@6.0.3)
+    devDependencies:
+      '@vue/compiler-sfc':
+        specifier: 'catalog:'
+        version: 3.5.41
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.10(@types/node@26.2.0)(vite@8.2.1(@types/node@26.2.0))
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 3.3.10(typescript@6.0.3)
 
   packages/domains/audit:
     dependencies:

@@ -9,7 +9,7 @@ import type {
 export { createBrowserFilesClient } from './files'
 
 type Fetch = typeof globalThis.fetch
-const permissionPattern = /^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*){1,2}$/
+const permissionPattern = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,2}$/
 
 const hasExactKeys = (record: Record<string, unknown>, expected: ReadonlyArray<string>) => {
   const keys = Object.keys(record).sort()

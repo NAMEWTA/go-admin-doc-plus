@@ -8,5 +8,5 @@
     "strict": true,
     "target": "ES2024"
   },
-  "include": ["./*.ts"]
+  "include": ["./*.ts", "./*.vue"]
 }

@@ -1,4 +1,4 @@
-export type PermissionCode = `${string}:${string}` | `${string}:${string}:${string}`
+export type PermissionCode = `${string}.${string}` | `${string}.${string}.${string}`
 
 export type RuntimeIdentity =
   | { readonly kind: 'unauthenticated' }

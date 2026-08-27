@@ -9,13 +9,26 @@
   },
   "scripts": {
     "test": "vitest run src/product/manifest.spec.ts --environment node",
-    "typecheck": "tsc --noEmit -p src/product/tsconfig.json"
+    "typecheck": "vue-tsc --noEmit -p src/product/tsconfig.json"
   },
   "dependencies": {
-    "@go-admin/platform": "workspace:*"
+    "@go-admin/adapter-browser": "workspace:*",
+    "@go-admin/domain-iam": "workspace:*",
+    "@go-admin/platform": "workspace:*",
+    "@go-admin/web-domain-audit": "workspace:*",
+    "@go-admin/web-domain-demo": "workspace:*",
+    "@go-admin/web-domain-files": "workspace:*",
+    "@go-admin/web-domain-generator": "workspace:*",
+    "@go-admin/web-domain-iam": "workspace:*",
+    "@go-admin/web-domain-organization": "workspace:*",
+    "@go-admin/web-domain-scheduler": "workspace:*",
+    "@go-admin/web-domain-settings": "workspace:*",
+    "vue": "catalog:"
   },
   "devDependencies": {
+    "@vue/compiler-sfc": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "vue-tsc": "catalog:"
   }
 }

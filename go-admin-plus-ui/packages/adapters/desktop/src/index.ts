@@ -1,10 +1,11 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 
 import { DemoRequestError, type DemoClient, type DemoFailure, type Product, type ProductPage } from '@go-admin/domain-demo'
+import { SessionRequestError, type AccountProfile, type SessionClient } from '@go-admin/domain-iam/session'
 import type { NavigationEntry, PermissionCode, RuntimeIdentity, ShellRuntimePort } from '@go-admin/platform'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 interface HostResponse {
   readonly status: number
@@ -140,6 +141,100 @@ export const createDesktopSession = (invoke: Invoke = tauriInvoke): DesktopSessi
     return { localCleared: true, remoteRevoked: value.remoteRevoked }
   }
 })
+
+interface BinaryBody {
+  readonly encoding: 'base64'
+  readonly name: string
+  readonly mediaType: string
+  readonly data: string
+}
+
+const bytesToBase64 = (bytes: Uint8Array): string => {
+  let binary = ''
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000))
+  }
+  return btoa(binary)
+}
+
+const base64ToBytes = (value: string): Uint8Array => {
+  const binary = atob(value)
+  return Uint8Array.from(binary, character => character.charCodeAt(0))
+}
+
+const requestBody = async (request: Request): Promise<unknown> => {
+  if (request.method === 'GET' || request.method === 'HEAD') return undefined
+  const contentType = request.headers.get('content-type') ?? ''
+  if (contentType.startsWith('multipart/form-data')) {
+    const form = await request.clone().formData()
+    const file = form.get('file')
+    if (!(file instanceof File) || [...form.keys()].some(key => key !== 'file')) throw new Error('invalid desktop upload')
+    return {
+      encoding: 'base64',
+      name: file.name,
+      mediaType: file.type,
+      data: bytesToBase64(new Uint8Array(await file.arrayBuffer()))
+    } satisfies BinaryBody
+  }
+  const text = await request.clone().text()
+  if (text === '') return undefined
+  if (!contentType.includes('json')) throw new Error('desktop request content type is not allowed')
+  return JSON.parse(text) as unknown
+}
+
+/** Fetch-compatible product bridge. Cookies, session tokens, and CSRF remain in Rust Stronghold. */
+export const createDesktopFetch = (invoke: Invoke = tauriInvoke): typeof globalThis.fetch => async (input, init) => {
+  const request = input instanceof Request ? new Request(input, init) : new Request(new URL(String(input), window.location.origin), init)
+  const url = new URL(request.url)
+  if (url.origin !== window.location.origin || !url.pathname.startsWith('/api/')) throw new Error('desktop request path is not allowed')
+  const method = request.method.toUpperCase() as Method
+  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) throw new Error('desktop request method is not allowed')
+  const response = await invokeRequest(invoke, `${url.pathname.slice(4)}${url.search}`, method, await requestBody(request), request.signal)
+  const binary = response.body && typeof response.body === 'object' && !Array.isArray(response.body)
+    ? response.body as Record<string, unknown>
+    : null
+  if (binary?.encoding === 'base64' && typeof binary.data === 'string' && typeof binary.mediaType === 'string') {
+    return new Response(base64ToBytes(binary.data).buffer as ArrayBuffer, { status: response.status, headers: { 'content-type': binary.mediaType } })
+  }
+  return new Response(response.body === null ? null : JSON.stringify(response.body), {
+    status: response.status,
+    headers: response.body === null ? undefined : { 'content-type': 'application/json' }
+  })
+}
+
+const sessionFailure = (status: number): SessionRequestError => new SessionRequestError(
+  status === 401 ? 'authentication' : status === 403 ? 'authorization' : status === 400 || status === 422
+    ? 'validation' : status === 409 ? 'conflict' : 'unavailable'
+)
+
+/** Session port backed by native commands and the controlled product bridge. */
+export const createDesktopSessionClient = (invoke: Invoke = tauriInvoke): SessionClient => {
+  const fetcher = createDesktopFetch(invoke)
+  const identityProfile = async (): Promise<AccountProfile> => {
+    const result = asRecord(await invoke<unknown>('desktop_identity'))
+    if (result.kind !== 'authenticated') throw new SessionRequestError('authentication')
+    return parseProfile(result.profile) as AccountProfile
+  }
+  const json = async <T>(path: string, init?: RequestInit): Promise<T> => {
+    const response = await fetcher(`/api${path}`, init)
+    if (!response.ok) throw sessionFailure(response.status)
+    return response.status === 204 ? undefined as T : await response.json() as T
+  }
+  return {
+    login: async credentials => parseProfile(await invoke<unknown>('desktop_login', credentials)) as AccountProfile,
+    current: identityProfile,
+    logout: async () => { await createDesktopSession(invoke).logout() },
+    profile: identityProfile,
+    updateProfile: update => json<AccountProfile>('/iam/account/profile', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(update)
+    }),
+    changePassword: async (currentPassword, newPassword) => {
+      await json<void>('/iam/account/password', {
+        method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword })
+      })
+    }
+  }
+}
 
 const failure = (status: number): DemoFailure => {
   if (status === 401) return 'relogin'

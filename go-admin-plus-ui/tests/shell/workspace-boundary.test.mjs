@@ -152,6 +152,7 @@ test('workspace consumers use package exports rather than source paths', async (
   const activeExports = [
     'packages/adapters/browser/src/index.ts',
     'packages/app-shell/src/core/index.ts',
+    'packages/app-shell/src/product/index.ts',
     'packages/platform/src/index.ts',
     'packages/ui/src/index.ts',
     'apps/admin-web/src/main.ts'
@@ -173,6 +174,16 @@ test('apps select adapters without owning runtime transport', async () => {
 
   const adminDesktop = await readJson(join(workspaceRoot, 'apps/admin-desktop/package.json'))
   assert.equal(adminDesktop.dependencies['@go-admin/adapter-desktop'], 'workspace:*')
+  assert.deepEqual(
+    Object.keys(adminDesktop.dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
+    ['@go-admin/adapter-desktop', '@go-admin/app-shell']
+  )
+
+  const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
+  for (const module of ['iam', 'audit', 'organization', 'settings', 'generator', 'scheduler', 'demo', 'files']) {
+    assert.match(productShell, new RegExp(`@go-admin/web-domain-${module}`), `product shell must compose ${module}`)
+  }
+  assert.match(productShell, /productRoutesFor\(props\.host\)/)
 
   const appSource = (await sourceFiles(join(workspaceRoot, 'apps/admin-web/src')))
   for (const file of appSource) {

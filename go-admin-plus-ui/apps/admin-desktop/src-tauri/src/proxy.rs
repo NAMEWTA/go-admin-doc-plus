@@ -1,16 +1,17 @@
 use std::{collections::BTreeSet, sync::Mutex, time::Duration};
 
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use zeroize::{Zeroize, Zeroizing};
 
-use crate::demo_contract;
+use crate::product_contract;
 use crate::vault::{SessionSecrets, SessionVault};
 
 const SESSION_COOKIE: &str = "__Host-go-admin-session";
 const CONTROL_HEADER: &str = "X-Go-Admin-Desktop-Control";
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
-const MAX_RESPONSE_BYTES: u64 = 2 * 1024 * 1024;
+const MAX_RESPONSE_BYTES: u64 = 11 * 1024 * 1024;
 
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -142,12 +143,7 @@ impl TransportProxy {
             return Err("desktop identity response invalid");
         }
         self.commit_rotation(current.rotation, Some(session.csrf_token))?;
-        let mut manifest = self.manifest()?;
-        if manifest.data_scope != "all" {
-            manifest
-                .permission_codes
-                .retain(|permission| !permission.starts_with("demo."));
-        }
+        let manifest = self.manifest()?;
         Ok(IdentityResult::Authenticated {
             profile: session.profile,
             permissions: manifest.permission_codes,
@@ -157,13 +153,7 @@ impl TransportProxy {
 
     pub fn navigation(&self) -> Result<Vec<PublicMenu>, &'static str> {
         let manifest = self.manifest()?;
-        Ok(manifest
-            .menus
-            .into_iter()
-            .filter(|menu| {
-                manifest.data_scope == "all" || !menu.permission_code.starts_with("demo.")
-            })
-            .collect())
+        Ok(manifest.menus)
     }
 
     pub fn login(
@@ -215,20 +205,16 @@ impl TransportProxy {
         if request.path == "/__desktop/test-control" {
             return self.native_e2e_control(request);
         }
-        let mut request = demo_contract::validate_request(request)?;
-        if request.body.as_ref().is_some_and(|body| {
-            serde_json::to_vec(body).map_or(true, |encoded| encoded.len() > MAX_REQUEST_BYTES)
-                || contains_secret_material(body, &[])
-        }) {
+        let mut request = product_contract::validate_request(request)?;
+        if request.upload.is_none()
+            && request.body.as_ref().is_some_and(|body| {
+                serde_json::to_vec(body).map_or(true, |encoded| encoded.len() > MAX_REQUEST_BYTES)
+                    || contains_secret_material(body, &[])
+            })
+        {
             return Err("desktop request body rejected");
         }
-        if let Some(response) = self.business_authorization(request.required_permission())? {
-            if let Some(body) = request.body.as_mut() {
-                scrub_json(body);
-            }
-            return demo_contract::validate_response(&request, response);
-        }
-        let response = self.send(request.method, &request.path, request.body.as_ref(), true);
+        let response = self.send(&request.method, &request.path, request.body.as_ref(), true);
         if let Some(body) = request.body.as_mut() {
             scrub_json(body);
         }
@@ -236,7 +222,7 @@ impl TransportProxy {
         if contains_secret_material(&response.response.body, &response.protected_values) {
             return Err("desktop response body rejected");
         }
-        let mut public = demo_contract::validate_response(&request, response.response)?;
+        let mut public = product_contract::validate_response(&request, response.response)?;
         self.commit_rotation(response.rotation, None)?;
         if contains_secret_material(&public.body, &[]) {
             scrub_json(&mut public.body);
@@ -280,37 +266,6 @@ impl TransportProxy {
             return Err("desktop test control failed");
         }
         Ok(response.response)
-    }
-
-    fn business_authorization(
-        &self,
-        required_permission: &str,
-    ) -> Result<Option<DesktopResponse>, &'static str> {
-        let response = self.send("GET", "/iam/administration/manifest", None, true)?;
-        if response.response.status == 401 {
-            if contains_secret_material(&response.response.body, &response.protected_values) {
-                return Err("desktop authorization response invalid");
-            }
-            self.commit_rotation(response.rotation, None)?;
-            return Ok(Some(demo_contract::authorization_failure(false)));
-        }
-        if response.response.status != 200 {
-            return Err("desktop authorization request failed");
-        }
-        if contains_secret_material(&response.response.body, &response.protected_values) {
-            return Err("desktop authorization response invalid");
-        }
-        let manifest = decode_manifest(response.response.body)?;
-        self.commit_rotation(response.rotation, None)?;
-        if manifest.data_scope != "all"
-            || !manifest
-                .permission_codes
-                .iter()
-                .any(|permission| permission == required_permission)
-        {
-            return Ok(Some(demo_contract::authorization_failure(true)));
-        }
-        Ok(None)
     }
 
     pub fn shutdown(&self) {
@@ -405,6 +360,13 @@ impl TransportProxy {
         if let Some(value) = cookie.as_ref() {
             protected_values.push(Zeroizing::new(value.to_string()));
         }
+        let mut multipart = if method == "POST" && path == "/files/objects" {
+            Some(multipart_upload(
+                body.ok_or("desktop upload body invalid")?,
+            )?)
+        } else {
+            None
+        };
         let result = match (method, body) {
             ("GET", None) => {
                 let mut builder = self
@@ -429,10 +391,29 @@ impl TransportProxy {
                 if let Some(values) = secrets.as_ref() {
                     builder = builder.header("X-CSRF-Token", &values.csrf);
                 }
-                match value {
-                    Some(value) => builder.send_json(value),
-                    None => builder.send_empty(),
+                match multipart.as_ref() {
+                    Some((content_type, bytes)) => builder
+                        .header("Content-Type", content_type)
+                        .send(bytes.as_slice()),
+                    None => match value {
+                        Some(value) => builder.send_json(value),
+                        None => builder.send_empty(),
+                    },
                 }
+            }
+            ("PUT", Some(value)) => {
+                let mut builder = self
+                    .agent
+                    .put(&url)
+                    .header(CONTROL_HEADER, self.control.as_str())
+                    .header("Accept", "application/json");
+                if let Some(value) = cookie.as_ref() {
+                    builder = builder.header("Cookie", value.as_str());
+                }
+                if let Some(values) = secrets.as_ref() {
+                    builder = builder.header("X-CSRF-Token", &values.csrf);
+                }
+                builder.send_json(value)
             }
             ("PATCH", Some(value)) => {
                 let mut builder = self
@@ -448,8 +429,25 @@ impl TransportProxy {
                 }
                 builder.send_json(value)
             }
+            ("DELETE", None) => {
+                let mut builder = self
+                    .agent
+                    .delete(&url)
+                    .header(CONTROL_HEADER, self.control.as_str())
+                    .header("Accept", "application/json");
+                if let Some(value) = cookie.as_ref() {
+                    builder = builder.header("Cookie", value.as_str());
+                }
+                if let Some(values) = secrets.as_ref() {
+                    builder = builder.header("X-CSRF-Token", &values.csrf);
+                }
+                builder.call()
+            }
             _ => return Err("desktop proxy method invalid"),
         };
+        if let Some((_, bytes)) = multipart.as_mut() {
+            bytes.zeroize();
+        }
         let mut response = result.map_err(|_| "desktop sidecar request failed")?;
         let status = response.status().as_u16();
         let replacement = unique_header(response.headers(), "set-cookie")?;
@@ -473,7 +471,25 @@ impl TransportProxy {
             .limit(MAX_RESPONSE_BYTES)
             .read_to_vec()
             .map_err(|_| "desktop sidecar response invalid")?;
-        let parsed = if bytes.is_empty() {
+        let binary_response =
+            path.starts_with("/files/objects/") && path.ends_with("/content") && status < 300;
+        let parsed = if binary_response {
+            let media_type = unique_header(response.headers(), "content-type")?
+                .ok_or("desktop binary response invalid")?;
+            if !matches!(
+                media_type.as_str(),
+                "image/png"
+                    | "image/jpeg"
+                    | "application/pdf"
+                    | "text/plain; charset=utf-8"
+                    | "text/plain"
+            ) {
+                return Err("desktop binary response invalid");
+            }
+            Ok(
+                serde_json::json!({"encoding":"base64", "mediaType":media_type, "data":STANDARD.encode(&bytes)}),
+            )
+        } else if bytes.is_empty() {
             Ok(Value::Null)
         } else {
             serde_json::from_slice(&bytes).map_err(|_| "desktop sidecar response invalid")
@@ -489,6 +505,23 @@ impl TransportProxy {
             protected_values,
         })
     }
+}
+
+fn multipart_upload(body: &Value) -> Result<(String, Vec<u8>), &'static str> {
+    let upload: crate::product_contract::UploadBody =
+        serde_json::from_value(body.clone()).map_err(|_| "desktop upload body invalid")?;
+    let data = STANDARD
+        .decode(upload.data.as_bytes())
+        .map_err(|_| "desktop upload body invalid")?;
+    if data.is_empty() || data.len() > 10 * 1024 * 1024 {
+        return Err("desktop upload body invalid");
+    }
+    let boundary = "go-admin-plus-desktop-boundary-7f6d8e3a";
+    let mut bytes = Vec::with_capacity(data.len() + 512);
+    bytes.extend_from_slice(format!("--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{}\"\r\nContent-Type: {}\r\n\r\n", upload.name, upload.media_type).as_bytes());
+    bytes.extend_from_slice(&data);
+    bytes.extend_from_slice(format!("\r\n--{boundary}--\r\n").as_bytes());
+    Ok((format!("multipart/form-data; boundary={boundary}"), bytes))
 }
 
 fn decode_manifest(value: Value) -> Result<ManifestWire, &'static str> {

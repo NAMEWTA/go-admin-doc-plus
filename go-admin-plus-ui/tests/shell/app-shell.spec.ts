@@ -13,9 +13,9 @@ const runtime = (overrides: Partial<ShellRuntimePort> = {}): ShellRuntimePort =>
   loadIdentity: async () => ({
     kind: 'authenticated',
     subjectId: 'user-1',
-    permissions: ['demo:read']
+    permissions: ['demo.products.read']
   }),
-  loadNavigation: async () => [{ path: '/demo', permission: 'demo:read' }],
+  loadNavigation: async () => [{ path: '/demo', permission: 'demo.products.read' }],
   ...overrides
 })
 
@@ -83,13 +83,13 @@ describe('app shell state', () => {
     second.resolve({
       kind: 'authenticated',
       subjectId: 'user-2',
-      permissions: ['demo:read']
+      permissions: ['demo.products.read']
     })
     await latestNavigation
     first.resolve({
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo:read']
+      permissions: ['demo.products.read']
     })
     await staleNavigation
 
@@ -116,7 +116,7 @@ describe('app shell state', () => {
     identity.resolve({
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo:read']
+      permissions: ['demo.products.read']
     })
     await navigation
 

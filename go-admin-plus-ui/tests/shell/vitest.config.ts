@@ -5,6 +5,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       'tests/shell/**/*.spec.ts',
+      'packages/app-shell/src/product/**/*.spec.ts',
       'packages/domains/iam/src/session/**/*.spec.ts',
       'packages/web-domains/iam/src/session/**/*.spec.ts',
       'packages/domains/demo/src/**/*.spec.ts',
@@ -20,6 +21,7 @@ export default defineConfig({
       'packages/domains/files/src/**/*.spec.ts',
       'packages/web-domains/files/src/**/*.spec.ts',
       'packages/adapters/browser/src/files.spec.ts',
+      'packages/adapters/browser/src/index.spec.ts',
       'packages/adapters/desktop/src/**/*.spec.ts'
     ]
   }
