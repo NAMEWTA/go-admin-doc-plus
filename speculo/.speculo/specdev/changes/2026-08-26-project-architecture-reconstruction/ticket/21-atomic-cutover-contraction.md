@@ -96,9 +96,9 @@ Lead 先冻结已通过的产品/发行证据，再删除旧目录和所有兼�
 | 回归 | zero scan/full matrix | `task governance:check architecture:check compatibility:zero` | allowlist 外旧模式零命中，三 profile/双 App 仍通过 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>` |
 
 - **Workspace checks：** Goal Plan 在 current-workspace 或 source-worktree 运行非 E2E 全量门禁；删除前后都记录状态。
-- **E2E disposition：** required：最终三 profile、双 App 和原生发行证据必须在集成结果上复核。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不运行或声明 required E2E 通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、删除清单、全量 E2E 与父分支包含关系。
+- **E2E disposition：** deferred/final：T-21 candidate 先完成删除、全量非 E2E Gate 与零兼容扫描；其实现 result 进入 `main` 后，Lead 创建唯一最终系统候选并统一执行三 profile、双 App、原生发行与全模块 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选；source-worktree 与 T-21 实现 candidate 不运行或声明 E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、删除清单、零兼容/全量非 E2E Gate、最终统一 E2E 与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 

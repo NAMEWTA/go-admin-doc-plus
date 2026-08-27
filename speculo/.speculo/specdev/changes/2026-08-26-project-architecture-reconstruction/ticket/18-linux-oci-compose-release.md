@@ -95,9 +95,9 @@ shared_path_owners: []
 | 回归 | compose restart | PostgreSQL/SQLite 重启并检查持久化/ready | 数据保留且运行语义正确 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>` |
 
 - **Workspace checks：** current-workspace 或 source-worktree 运行静态/build/compose 配置检查。
-- **E2E disposition：** required：双架构 OCI 和 Compose 必须在 Lead 集成环境实际运行。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、原生 Gate 与父分支包含关系。
+- **E2E disposition：** deferred：双架构 OCI 与 Compose 运行场景保留到全部 Ticket 实现集成后的统一系统 E2E；本 Ticket 完成本地构建、配置、policy 和供应链非 E2E Gate。
+- **E2E owner/environment：** Lead / 最终系统候选的 Linux/OCI 环境；逐 Ticket source-worktree 与 parent-candidate 不运行或声明 E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、本地非 E2E Gate、统一平台 E2E 引用与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 
@@ -114,5 +114,5 @@ shared_path_owners: []
 - [ ] `AC-033`：Linux required Gate 失败会阻断候选。
 - [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>`。
 - [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] 未执行远端发布，E2E disposition 已执行。
+- [ ] 未执行远端发布，非 E2E 实现 Gate 已执行且平台场景已登记到最终统一矩阵。
 - [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。

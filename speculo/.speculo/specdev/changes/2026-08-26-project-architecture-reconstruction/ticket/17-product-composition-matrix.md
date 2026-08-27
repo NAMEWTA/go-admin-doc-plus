@@ -77,7 +77,7 @@ shared_path_owners: ["<Path>contracts/openapi/product.yaml</Path> => T-17", "<Pa
 2. 聚合模块 OpenAPI、迁移、providers、routes、workers 和 Permission Code。
 3. 生成产品 Go/TS transport 并装配 Server/Web/Desktop manifest。
 4. 运行模块边界、负向错误、缓存禁用和双 App 一致性测试。
-5. 在三 profile 完成全链路 E2E 并形成发行输入。
+5. 形成三 profile/双 App 的完整可构建发行输入，并把全链路场景登记到全部 Ticket 实现集成后的统一系统 E2E。
 
 ## 7. 路径访问契约
 
@@ -96,9 +96,9 @@ shared_path_owners: ["<Path>contracts/openapi/product.yaml</Path> => T-17", "<Pa
 | 回归 | architecture/contract/cache | 生成检查、边界扫描、禁用缓存、双 App E2E | 无 drift/越界，语义等价 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 运行全量非 E2E 门禁。
-- **E2E disposition：** required：三 profile、Web/Desktop、权限和可靠运行时必须在集成候选联合验证。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、完整 E2E 和父分支包含关系。
+- **E2E disposition：** deferred：三 profile、Web/Desktop、权限和可靠运行时场景保留到全部 Ticket 实现集成后的统一系统 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选；逐 Ticket source-worktree 与 parent-candidate 均不运行或声明 E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、完整 composition 非 E2E Gate、统一系统 E2E 引用和父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 

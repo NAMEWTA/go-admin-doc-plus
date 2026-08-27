@@ -38,7 +38,7 @@ status: in_progress
 | T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4 | in_progress |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
 | T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | codex-root | AC-019, AC-023, AC-028, AC-035 | W7 / G4 | in_progress |
-| T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 priority；execution blocked until macOS unlock | in_progress |
+| T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 priority；native E2E deferred to G8 | in_progress |
 | T-17 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/17-product-composition-matrix.md</Path>` | 三 Profile、双 App 完整产品 | T-09, T-10, T-11, T-12, T-13, T-15, T-16 | deep | critical | yes | unassigned | AC-003, AC-004, AC-011, AC-021, AC-022, AC-024, AC-025, AC-028, AC-034, AC-035, AC-036 | W8 / G5 | ready |
 | T-18 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/18-linux-oci-compose-release.md</Path>` | Linux OCI/Compose 候选 | T-17 | deep | high | yes | unassigned | AC-030, AC-033 | W9 / G6 | ready |
 | T-19 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/19-macos-universal-release.md</Path>` | macOS Universal DMG 候选 | T-17 | deep | critical | yes | unassigned | AC-031, AC-033 | W9 / G6 | ready |
@@ -159,10 +159,11 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 - **G-BASELINE：** Lead 审计当前 170 项 tracked 与 6 个 untracked 条目、复核基线门禁并形成获授权 baseline commit；所有 source worktree 基于该结果或后续最新父结果。
 - **G0-G2 Foundations：** W0-W3 的 T-01 至 T-05；证明根任务、共享合同、runtime、database 和 frontend 基座。
 - **G3 Identity/Reliability：** W4-W5 的 T-06 至 T-08；证明登录、授权和无 Redis 正确性。
-- **G4 Modules：** W5-W7 的 T-09 至 T-16；最多 3 个 implementation owner，T-14/T-16 优先解锁关键路径，Lead 串行 candidate integration。
-- **G5 Product Integration：** W8 的 T-17；Lead 在 parent-candidate 运行三 profile、双 App 和全边界 E2E。
-- **G6 Protected Release：** W9 的 T-18/T-19/T-20；平台 runner 独立阻断，正式凭据和远端动作仍需额外批准。
-- **G7 Atomic Contract：** W10 的 T-21；冻结全部 result SHA 后删除旧体系并运行最终零扫描。
+- **G4 Modules：** W5-W7 的 T-09 至 T-16；最多 3 个 implementation owner，T-14/T-16 优先解锁关键路径，Lead 串行运行全部非 E2E candidate Gate 并集成实现 result。
+- **G5 Product Integration：** W8 的 T-17；Lead 在 parent-candidate 验证三 profile、双 App composition 的全部非 E2E 合同、边界与构建门禁。
+- **G6 Protected Release Implementation：** W9 的 T-18/T-19/T-20；完成本地实现、构建、policy 与供应链描述，正式凭据、受保护 runner 和远端动作仍需额外批准。
+- **G7 Atomic Contract Implementation：** W10 的 T-21；冻结全部实现 result SHA 后删除旧体系并运行最终零扫描。
+- **G8 Unified System E2E：** 全部 T-01 至 T-21 实现进入 `main` 后，Lead 基于唯一最终系统候选统一运行一次完整 E2E；通过后才能关闭未完成 Ticket 与 change。
 
 由于 Ticket 数量超过 10、全部为 Deep、包含 migration/shared contract/多平台 Gate，本 change 必须进入 Goal Plan，不能直接无编排实施。
 

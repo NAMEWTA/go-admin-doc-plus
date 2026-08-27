@@ -96,9 +96,9 @@ shared_path_owners: []
 | 回归 | dialect/cache E2E | 双方言并禁用缓存完成 CRUD | 行为等价且 UI 刷新正确 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>` |
 
 - **Workspace checks：** Goal Plan 选定的 current-workspace 或 source-worktree 非 E2E 检查。
-- **E2E disposition：** required：业务设置/字典跨 API/UI 以及 secret 拒绝需要验证。
-- **E2E owner/environment：** Lead / current-workspace 或 parent-candidate；source-worktree 不声明通过。
-- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、E2E 与父分支包含关系。
+- **E2E disposition：** deferred：业务设置/字典跨 API/UI、双方言及 secret 拒绝场景保留到全部 Ticket 实现集成后的统一系统 E2E。
+- **E2E owner/environment：** Lead / 最终系统候选；逐 Ticket source-worktree 与 parent-candidate 均不运行或声明 E2E 通过。
+- **Integration evidence：** implementation/source commit、parent before、candidate/result SHA、完整非 E2E Gate、统一系统 E2E 引用与父分支包含关系。
 
 ## 9. 发布、迁移与恢复
 
@@ -115,5 +115,5 @@ shared_path_owners: []
 - [ ] `AC-035`：管理交互合同完整。
 - [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>`。
 - [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] E2E disposition 已执行且 shared path 无越权写入。
+- [ ] 非 E2E 实现 Gate 已执行、E2E 已登记到最终统一矩阵且 shared path 无越权写入。
 - [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。

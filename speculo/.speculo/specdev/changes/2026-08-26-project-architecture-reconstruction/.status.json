@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T14:24:24+08:00",
+  "updated_at": "2026-08-27T15:40:47+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -809,38 +809,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-16",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-16",
-      "source_checkpoint": "f2d611133a302b912f43cb1d648943e1909762f0",
+    "source_checkpoint": "fdfa4afbe342edbd5b6feb00a8699780dd04caf4",
       "integration": {
-        "status": "failed",
+      "status": "pending",
         "parent_ref": "refs/heads/main",
         "parent_before_sha": "ce21e84a432e5d882634399c4e607c94866442f9",
-        "source_sha": "f2d611133a302b912f43cb1d648943e1909762f0",
-        "candidate_sha": "004bd0d5b936018ffd95c01324423e7feaa7fb0d",
-        "candidate_tree_sha": "36c068722c898aa0e8ad2d31d65dcf58fccaa3d6",
+      "source_sha": "fdfa4afbe342edbd5b6feb00a8699780dd04caf4",
+      "candidate_sha": "61ba3d6a61d2f956505bac405738e22520a30f51",
+      "candidate_tree_sha": "5c6b9f5c45ecc0f80777867fb6e3c1b0d3b91edf",
         "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
         "result_sha": null,
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "failed",
+      "verification": "pending",
         "full_suite": {
           "required": true,
-          "status": "passed",
-          "reason": "G4 requires Tauri 2, sidecar, Stronghold, SQLite migration, Go/Rust/TypeScript, hardening, and package checks on the parent candidate",
+        "status": "pending",
+        "reason": "G4 requires a from-scratch rerun of Tauri 2, sidecar, Stronghold, SQLite migration, Go/Rust/TypeScript, hardening, release build, and package checks after merging the latest source into the retained attempt-4 candidate",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "failed",
-          "reason": "Attempt 4 reached the release native host and sidecar, but the required login-window tracer timed out because the interactive macOS session was locked; rerun the same retained candidate after unlock",
+        "status": "pending",
+        "reason": "Required native scenarios are deferred by the latest user decision and will run once on the unified final system candidate after all T-01 through T-21 implementations are integrated",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
         "attempts": 4,
-        "promotion_status": "failed"
+      "promotion_status": "pending"
       },
-      "status": "blocked",
-      "updated_at": "2026-08-27T14:08:00+08:00"
+    "status": "review",
+    "updated_at": "2026-08-27T15:40:47+08:00"
     },
     {
       "ticket_id": "T-15",
@@ -875,7 +875,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "T-15 must generate a real isolated module from authorized SQLite and PostgreSQL metadata and prove contract, compile, test, atomic output, and Web wizard behavior",
+        "reason": "Web wizard and cross-profile scenarios are deferred to the single unified final system E2E; real isolated generation, contract, compile, test, and atomic output remain required non-E2E candidate gates",
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>",
@@ -918,7 +918,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "T-10 must prove PostgreSQL and SQLite Settings API/UI behavior, authorization, options, reference conflicts, and runtime secret rejection",
+        "reason": "PostgreSQL and SQLite Settings API/UI, authorization, options, reference conflicts, and runtime secret rejection are deferred to the single unified final system E2E after all implementations are integrated",
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>",
@@ -961,7 +961,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "T-12 must prove SQLite and PostgreSQL multi-instance uniqueness, lease-loss rollback, takeover, stop linearization, Outbox coupling, and browser records",
+        "reason": "SQLite and PostgreSQL multi-instance uniqueness, lease-loss rollback, takeover, stop linearization, Outbox coupling, and browser records are deferred to the single unified final system E2E after all implementations are integrated",
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>",
@@ -1004,7 +1004,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "T-13 must prove real filesystem upload/download/restart across supported profiles plus traversal, symlink, TOCTOU, interruption, and authorization failures",
+        "reason": "Real filesystem upload/download/restart across supported profiles plus traversal, symlink, TOCTOU, interruption, and authorization failures are deferred to the single unified final system E2E after all implementations are integrated",
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>",
