@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T13:25:00+08:00",
+  "updated_at": "2026-08-27T14:24:24+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -303,6 +303,16 @@
       "approved_at": "2026-08-27T13:06:00+08:00",
       "reason": "The precreated Files package manifests and Browser runtime adapter lack the exports and streaming transfer implementation required by the approved Web vertical slice",
       "resolution": "Authorize only the two Files package manifests plus Browser Files implementation/test, one export, and package-local dependency/check; keep root checks, Vitest, lockfile, shared UI, Desktop native bridge, typed Server config, and product composition read-only until serialized amendments"
+    },
+    {
+      "id": "T13-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-13",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T14:15:00+08:00",
+      "reason": "The shared workspace boundary test hard-codes the Browser adapter dependency object to platform alone, contradicting T13-D01's approved Browser Files dependency and causing the otherwise clean root verification to fail",
+      "resolution": "Authorize only go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs to require the exact approved Browser adapter internal dependency set of platform plus domain-files and to reject any additional @go-admin dependency; root package, Vitest config, lockfile, shared UI, Desktop adapter, typed config, and composition remain read-only"
     },
     {
       "id": "T11-D04",
@@ -803,12 +813,12 @@
       "integration": {
         "status": "failed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "9b086f025dd31909edea086727e45c7f301c5ccf",
-        "source_sha": "cf4244101da4dd053527150da66ddb02e1f563bc",
-        "candidate_sha": "a142911174d22aebe91bb7aa391fd9e2260e7f57",
-        "candidate_tree_sha": "87c202a4cf9a88e61f619a58a078085c675bfd00",
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
+        "parent_before_sha": "ce21e84a432e5d882634399c4e607c94866442f9",
+        "source_sha": "f2d611133a302b912f43cb1d648943e1909762f0",
+        "candidate_sha": "004bd0d5b936018ffd95c01324423e7feaa7fb0d",
+        "candidate_tree_sha": "36c068722c898aa0e8ad2d31d65dcf58fccaa3d6",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
         "result_sha": null,
         "method": "merge-commit",
         "conflict_paths": [],
@@ -822,15 +832,15 @@
         "e2e": {
           "required": true,
           "status": "failed",
-          "reason": "T-16 must prove a native Tauri host supervises the real SQLite sidecar, keeps Session material out of WebView JavaScript, and persists Demo CRUD across restart",
+          "reason": "Attempt 4 reached the release native host and sidecar, but the required login-window tracer timed out because the interactive macOS session was locked; rerun the same retained candidate after unlock",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
-        "attempts": 3,
+        "attempts": 4,
         "promotion_status": "failed"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:06:00+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-27T14:08:00+08:00"
     },
     {
       "ticket_id": "T-15",
@@ -842,7 +852,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-15",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-15",
-      "source_checkpoint": null,
+      "source_checkpoint": "8458ceac6a5ce05a1eec811374f60b2f33a83729",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -872,8 +882,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T10:14:46+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T14:24:24+08:00"
     },
     {
       "ticket_id": "T-10",
@@ -928,7 +938,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-12",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-12",
-      "source_checkpoint": null,
+      "source_checkpoint": "a9b8a568b17934db78ea2d89d258cf5dfa065fad",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -958,8 +968,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:06:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T14:24:24+08:00"
     },
     {
       "ticket_id": "T-13",
@@ -971,7 +981,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-13",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-13",
-      "source_checkpoint": null,
+      "source_checkpoint": "fd43839c296047ed2e78cc9edb1b106b5b4129ca",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -1001,8 +1011,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:06:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T14:24:24+08:00"
     }
   ]
 }
