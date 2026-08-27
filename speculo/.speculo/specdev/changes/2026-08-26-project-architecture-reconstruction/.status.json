@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T13:25:00+08:00",
+  "updated_at": "2026-08-27T14:24:24+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -852,7 +852,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-15",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-15",
-      "source_checkpoint": null,
+      "source_checkpoint": "8458ceac6a5ce05a1eec811374f60b2f33a83729",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -882,8 +882,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T10:14:46+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T14:24:24+08:00"
     },
     {
       "ticket_id": "T-10",
@@ -938,7 +938,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-12",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-12",
-      "source_checkpoint": null,
+      "source_checkpoint": "a9b8a568b17934db78ea2d89d258cf5dfa065fad",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -968,8 +968,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:06:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T14:24:24+08:00"
     },
     {
       "ticket_id": "T-13",
@@ -981,7 +981,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-13",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-13",
-      "source_checkpoint": null,
+      "source_checkpoint": "fd43839c296047ed2e78cc9edb1b106b5b4129ca",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -1011,8 +1011,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:06:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T14:24:24+08:00"
     }
   ]
 }
