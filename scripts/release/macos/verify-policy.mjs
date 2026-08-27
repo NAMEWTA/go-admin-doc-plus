@@ -35,6 +35,7 @@ export function verifyWorkflow(workflow) {
   assert.match(workflow, /source_ref:/)
   assert.match(workflow, /git rev-parse HEAD/)
   assert.match(workflow, /build-universal\.sh/)
+  assert.match(workflow, /build\.mjs --target aarch64-apple-darwin[\s\S]*cargo test/)
   assert.match(workflow, /APPLE_SIGNING_IDENTITY/)
   assert.match(workflow, /APPLE_NOTARY_KEY_P8_BASE64/)
   assert.match(workflow, /sign-app\.sh/)
