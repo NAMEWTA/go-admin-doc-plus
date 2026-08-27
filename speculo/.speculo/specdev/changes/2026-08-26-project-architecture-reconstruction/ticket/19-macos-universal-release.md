@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-19
 title: macOS Universal DMG 发行切片
-status: in_progress
+status: review
 planning_depth: deep
 planning_depth_reason: Universal 原生制品、签名、公证、安装和本地数据重启需要受保护发行 Gate
 ready: true
@@ -44,7 +44,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/ma
 
 ### 已采用的低影响假设
 
-- 安装 smoke 使用隔离用户数据目录并记录清理边界。
+- 安装 smoke 仅允许在 GitHub 临时 runner 的干净登录用户中执行；签名 Keychain 不替换用户默认 Keychain。验证前证明标准 App Data 与生产 Keyring account 不存在，验证后只清理该精确 App Data、日志目录和 Keyring account。
 
 ### 未决问题
 

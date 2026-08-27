@@ -404,6 +404,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-19 已从 `main@45e37678f695ef9c3b6333738b7cc5eb3f480e86` 激活，source worktree/branch 固定为 `specdev-worktree/2026-08-26-project-architecture-reconstruction/T-19` / `speculo/2026-08-26-project-architecture-reconstruction/T-19`，implementation/integration owner 均为 `codex-root`。只读预检确认旧 workflow 仍构建 Wails ARM64，identity 与 Tauri `com.goadmin.plus` 不一致；同时 T17 sidecar 会查找源码仓库且 Tauri 清空全部环境，安装包既无法启动完整 Generator，也不能解析 Go/Node/pnpm/git。用户 `Q1A/Q2A` 批准 `T19-D01`：除 macOS release/script/workflow 外，只精确开放 Tauri `main.rs`，让开发态白名单传递本机工具链、发布态固定到 App Resources 内的只读离线 skeleton 与双架构工具链；不改变产品 API、sidecar 生命周期或 Generator 验收合同。
 - `T19-D01` 后续只读审计证明 Generator compile gate 会丢弃显式 `GOENV=off`、`GOTOOLCHAIN=local`、`GOPROXY=off` 与 `GOSUMDB=off`，令 macOS/Linux 的离线发布声明失真。该偏差只追加开放 compile gate 实现与既有测试，强制四个固定 policy 值进入子进程；不开放 renderer/writer、公共接口或其他模块路径。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
+- T-19 clean source checkpoint 为 `41515ee3c365e689af7163468e309dcc99ca422d`：Universal Tauri host/sidecar、production-only 签名/公证 Gate、自包含双架构 Generator 工具链、离线 Go/pnpm store、checksums/SBOM/provenance workflow 和失败 policy 已闭合。pnpm 只保留官方 `supportedArchitectures` 的 macOS x64/arm64 原生包，本地 unsigned App 从错误的约 3.5 GB 全平台依赖候选收缩到约 2.2 GB；生产签名、公证、DMG 安装与完整原生 E2E 仍按 G8 pending。
 
 ### Pending Decisions and Blockers
 
