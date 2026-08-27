@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T01:21:58+08:00",
+  "updated_at": "2026-08-28T01:54:42+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -1258,36 +1258,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-21",
       "source_checkpoint": "c6c669b720b6be7448de4a00a82940caf0a1abd0",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "e1b218c6ca517811ce7874b843fce176d0d44443",
+        "source_sha": "c6c669b720b6be7448de4a00a82940caf0a1abd0",
+        "candidate_sha": "abce91f9331340311855c4966063a8529629711d",
+        "candidate_tree_sha": "45e839fa4363d32ea1aaaa8dc7a72f4603dcfaf4",
+        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-21-attempt-1",
+        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-21-attempt-1",
+        "result_sha": "abce91f9331340311855c4966063a8529629711d",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "G7 requires exact legacy inventory contraction, root CI/quality/docs cutover, compatibility-zero and architecture gates, full non-E2E Go/frontend/Rust/contract/release policy suites, path, and clean-tree verification on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Attempt 1 passed exact legacy contraction, root architecture/compatibility/docs/governance/Task and release policy gates, full Go normal/SQLite/race/vet/CGO0/build/tidy, 25-workspace frontend lint/typecheck/132 tests/7 boundaries/builds, OpenAPI 28 tests/generate/API client, Rust 19 tests/clippy/release check, functional migration/build/package/preflight, syntax, path, clean-tree, and Goal Plan verification",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
           "reason": "Three profiles, both Apps, all module/browser/native/reliable-runtime and protected release scenarios are deferred to the single unified final system candidate after T-21 implementation integration",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
       "status": "review",
-      "updated_at": "2026-08-28T01:21:58+08:00"
+      "updated_at": "2026-08-28T01:54:42+08:00"
     }
   ]
 }
