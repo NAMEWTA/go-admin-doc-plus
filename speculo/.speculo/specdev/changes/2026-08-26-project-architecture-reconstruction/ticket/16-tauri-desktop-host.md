@@ -12,11 +12,11 @@ risk: critical
 blocked_by: [T-06, T-08, T-14]
 contract_ids: [AC-006, AC-007, AC-009, AC-021, AC-027, AC-036]
 owner: codex-t16-desktop
-expected_changes: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>go-admin-plus/test/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+expected_changes: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>go-admin-plus/test/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path> => T-16 under T16-D01; desktop runtime adapter reserved by T-05", "<Path>release/shared/sidecar/**</Path> => T-16"]
+shared_paths: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path> => T-16 under T16-D01; desktop runtime adapter reserved by T-05", "<Path>release/shared/sidecar/**</Path> => T-16", "<Path>go-admin-plus-ui/package.json</Path> => T-16 under T16-D02; Desktop aggregate checks only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-16 under T16-D02; Desktop specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-16 under T16-D02; existing admin-desktop and adapter-desktop importers only"]
 ---
 
 # Ticket T-16: Tauri 2 Desktop 安全宿主闭环
@@ -81,11 +81,12 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Desktop App、经 `T16-D01` 开放的 Desktop adapter、sidecar、desktop platform 和共享 sidecar packaging。
+- **预计修改点：** Desktop App、经 `T16-D01` 开放的 Desktop adapter、sidecar、desktop platform、共享 sidecar packaging，以及经 `T16-D02` 精确开放的 Desktop 根 checks/importers。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** kernel、IAM、Demo 和 App Shell。
 - **共享路径：** sidecar 打包布局由 T-16 唯一拥有，平台发行 Ticket 只消费；T-05 预建的 Desktop adapter manifest/source 现由 T-16 唯一实现。
 - **批准偏差：** `T16-D01` 只开放 `<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>`，用于实现 ADR-011 已锁定且 T-05 明确保留给 T-16 的 runtime adapter。第一阶段根 package/Vitest/lock 继续只读，等待 T-09 result 后再由 Lead 精确开放 Desktop aggregate checks/importer；禁止修改 browser adapter、App Shell core 或产品 composition。
+- **批准偏差：** `T16-D02` 在 T-09 result 后只开放根 `package.json` 的 Desktop aggregate checks、shell Vitest 的 Desktop specs，以及 lockfile 现有 `apps/admin-desktop` / `packages/adapters/desktop` 两个 importer。owner 必须先固定 stage-1 commit，再 rebase 到 amendment parent；其他 scripts、includes、importers、catalog、外部版本、共享 UI 与 composition 零漂移。
 - **保留或不动：** macOS/Windows 安装器分别归 T-19/T-20。
 
 ## 8. 验证矩阵

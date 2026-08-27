@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T11:17:00+08:00",
+  "updated_at": "2026-08-27T11:21:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -273,6 +273,16 @@
       "approved_at": "2026-08-27T11:17:00+08:00",
       "reason": "The precreated Settings package manifests are placeholder shells without the direct dependencies, public exports, and package-local checks required by the approved Web vertical slice",
       "resolution": "Authorize only the two Settings package manifests during stage 1 using existing workspace and catalog dependencies; root aggregate checks, Vitest include, lockfile, shared UI, and composition remain read-only until a later Lead-serialized amendment"
+    },
+    {
+      "id": "T16-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-16",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T11:21:00+08:00",
+      "reason": "T-16 stage 1 cannot enter standard pnpm verification and its existing Desktop lock importers do not reflect the completed Tauri App and adapter dependencies after the serialized T-09 root owner finished",
+      "resolution": "After a clean stage-1 commit and rebase to the amendment parent, authorize only Desktop aggregate checks in the root package, Desktop specs in shell Vitest, and the existing admin-desktop and adapter-desktop lock importers; all other root scripts, includes, importers, catalog entries, external versions, shared UI, and composition remain unchanged"
     }
   ],
   "worktrees": [

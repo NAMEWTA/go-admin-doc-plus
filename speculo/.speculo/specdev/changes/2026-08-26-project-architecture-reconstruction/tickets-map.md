@@ -142,7 +142,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | `<Path>contracts/openapi/openapi.yaml</Path>`、公共 components、合同工具与公共 client | T-02 | 模块写自有 fragment |
 | kernel/config/observability | T-03 | 宿主和模块只读依赖 |
 | Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
-| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14/T-09 串行接入已完成；下一共享根 owner 由 Lead 在 T-15/T-16 stage 2 激活时逐一授予 | 模块只写获批 manifest/importer；browser adapter 与 App Shell core 保持只读 |
+| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14/T-09 串行接入已完成；现由 `T16-D02` 只拥有 Desktop checks 与两个既有 importers，T-15/T-10 继续等待串行 amendment | 模块只写获批 manifest/importer；browser adapter 与 App Shell core 保持只读 |
 | Shared list request state | T-05 基座；T-14 under `T14-D04` 精确修改 `<Path>go-admin-plus-ui/packages/ui/src/list.ts</Path>` 与既有回归 | 请求可规范化/校验，最新成功前不提交 query state；模块只配置/包装，不复制列表状态机 |
 | IAM Session request authorization seam | T-06；`T07-D02` 精确追加 `AuthorizeRequest` 与既有测试 | T-07 HTTP 只消费统一 token/CSRF/touch/rotation 结果，不读取 Session 私表或复制 secret/hash 规则 |
 | IAM Session login audit seam | T-06；T-07 result 已完成 `T07-D02`，现由 `T11-D02/T11-D03` 追加 fail-closed 模块无关 Login Fact Port 与精确 test-only 调用点 | T-11 Audit adapter 同步记录成功/失败登录；Session 不导入 Audit且无生产 discard，T-17 composition 必须注入 Port，密码/用户名/token/CSRF 不进入事实 |
