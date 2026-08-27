@@ -7,6 +7,7 @@ import { createConnection } from 'node:net'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { quoteAppleScript, windowContainsScript } from './accessibility.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
@@ -120,7 +121,7 @@ const restoreProductionArtifacts = async () => {
   await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts'], {
     cwd: appRoot, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
   })
-  await execute('cargo', ['build', '--locked', '--quiet', '--release'], { cwd: rustRoot, timeout: 300_000 })
+  await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'custom-protocol'], { cwd: rustRoot, timeout: 300_000 })
   if (await fileContains(sidecarBinary, '/__desktop/test-control') ||
     await fileContains(hostBinary, '/__desktop/test-control') ||
     await directoryContains(join(appRoot, 'dist'), 'E2E scope self')) {
@@ -137,7 +138,6 @@ const assertSafeDiagnostics = (output, protectedRoots) => {
 }
 
 const runAppleScript = script => execute('/usr/bin/osascript', ['-'], { input: script, timeout: 10_000 })
-const quoteAppleScript = value => `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
 
 const windowCount = async pid => {
   const output = await runAppleScript(`tell application "System Events"
@@ -150,13 +150,7 @@ end tell`)
 }
 
 const windowContains = async (pid, value) => {
-  const output = await runAppleScript(`tell application "System Events"
-if not (exists (first process whose unix id is ${pid})) then return "false"
-tell (first process whose unix id is ${pid})
-  if (count of windows) is 0 then return "false"
-  return ((name of every UI element of entire contents of window 1) as text) contains ${quoteAppleScript(value)}
-end tell
-end tell`)
+  const output = await runAppleScript(windowContainsScript(pid, value))
   return output.trim() === 'true'
 }
 

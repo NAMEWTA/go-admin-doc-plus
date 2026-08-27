@@ -6,7 +6,8 @@ edition = "2024"
 rust-version = "1.88"
 
 [features]
-native-e2e = []
+custom-protocol = ["tauri/custom-protocol"]
+native-e2e = ["custom-protocol"]
 
 [build-dependencies]
 tauri-build = "=2.6.3"

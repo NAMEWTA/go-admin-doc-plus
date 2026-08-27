@@ -2,7 +2,19 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { quoteAppleScript, windowContainsScript } from './accessibility.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
+
+test('accessibility query handles nested elements without coercing the collection', () => {
+  assert.equal(quoteAppleScript('a\\"b'), '"a\\\\\\"b"')
+  const script = windowContainsScript(42, 'Products')
+  assert.match(script, /set allElements to entire contents of window 1/)
+  assert.match(script, /repeat with currentElement in allElements/)
+  assert.match(script, /name of currentElement/)
+  assert.match(script, /value of currentElement/)
+  assert.match(script, /description of currentElement/)
+  assert.doesNotMatch(script, /name of every UI element/)
+})
 
 test('native runner is a default skip with no environment prerequisites', () => {
   const result = spawnSync(process.execPath, [fileURLToPath(new URL('./run.mjs', import.meta.url))], {
