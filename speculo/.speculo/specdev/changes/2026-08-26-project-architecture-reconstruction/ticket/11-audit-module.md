@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-11
 title: Audit 登录与操作审计垂直切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 审计跨认证和业务事件且包含隐私、保留与清理安全要求
 ready: true

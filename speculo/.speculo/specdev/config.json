@@ -7,7 +7,7 @@
   },
   "execution": {
     "max_implementation_agents": 3,
-    "max_integration_attempts": 3,
+    "max_integration_attempts": 4,
     "deep_ticket_human_approval": true,
     "shared_path_owner": "explicit"
   },

@@ -670,38 +670,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-11",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-11",
-      "source_checkpoint": null,
+      "source_checkpoint": "772a2c6f7e5023ef26acb2bedf622f3b0e8384ce",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "ef69be849415b43b7a83f8873be5dec8338d381d",
+        "source_sha": "772a2c6f7e5023ef26acb2bedf622f3b0e8384ce",
+        "candidate_sha": "bf5ecdb60f1c861f21110c4ff79467085fd8e39a",
+        "candidate_tree_sha": "80e876d067cb9cde123ec3fa66960b323edc24b0",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-11",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-11",
+        "result_sha": "bf5ecdb60f1c861f21110c4ff79467085fd8e39a",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "G4 requires Audit event, redaction, idempotency, retention, Go/TypeScript, contract, and build checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
+          "status": "passed",
           "reason": "T-11 must prove login and operation events reach authorized Audit UI without sensitive data in PostgreSQL and SQLite",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T13:25:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-08-27T13:45:00+08:00"
     },
     {
       "ticket_id": "T-14",

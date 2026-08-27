@@ -7,7 +7,7 @@ modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root
 implementation_agent_limit: 3
-integration_attempt_limit: 3
+integration_attempt_limit: 4
 ticket_workspace_policy: required
 integration_gate: candidate-merge
 ready_for_execution: true
@@ -178,7 +178,7 @@ Wave 表示依赖满足后的调度池；同一 Wave 最多同时运行 3 个 im
 |---|---|---|
 | Lead | `codex-root` | 唯一 SpecDev 状态、Evidence、E2E 与父分支 owner |
 | Implementation subagents | 最多 `3`，Lead 不计入 | config 上限 3、平台 4 个总槽位、用户选择 Q1A |
-| Integration attempts | 每个候选最多 `3` 次 | config 快照 `max_integration_attempts=3` |
+| Integration attempts | 每个候选最多 `4` 次 | 用户 `Q2A` 批准将 config 与本计划快照从 3 提升到 4 |
 | Read-only agents | 无 SpecDev 数字上限 | review/research/test-observation，只读且不竞争可变环境 |
 | Dispatch | execution-time dynamic | provider、模型、自行实现或派单按 Ticket 事实选择，不静态预分配 |
 | SpecDev writes | 仅 Lead | subagent 不写 Ticket/Map/Goal Plan/Evidence/status |
@@ -364,21 +364,22 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-09 最终 clean source 为 `42df51eff0d21617ecf2cf8075fc06723cf29a08`（tree `d835504067a91fe2598166a51dd45259e4eb247b`），parent-candidate/result 为 `b71fb04b3fa2f87b4d21c7529c589b8c79d9223a`（tree `3612509143c3d5bcdbf0dde1ff6d9148c8aec399`，parent before `5064f44e72cc44efa84fe6d5d3ec2768be3926c5`，merge-commit attempt 1）。Go 普通/SQLite/全 race/vet/build/CGO=0/mod、25-package frozen/77 tests/6 boundary/build、合同 28/28、governance/Task contract/SpecDev/clean 全绿；Chrome for Testing 151 在真实 SQLite 与 PostgreSQL 17.11 完成 IAM Session/CSRF、部门与岗位 CRUD、循环/引用/revision 冲突、Unicode 与字面量搜索、权限撤销和 Session revoke，精确返回 `ORGANIZATION_E2E_PASS profiles=sqlite,postgres`，`public`、`t09_*`、进程、端口与临时目录零残留。候选创建时 Lead 首次误把 merge 落到 clean 根 worktree，立即精确恢复 frozen parent，并在正确独立 candidate 从 frozen install 起重跑全部 Gate 后才正式提升；误提交未进入结果或证据。T-09 状态为 `done`。
 - T-10 已从 clean `main@cc2ae75c0f2374f7b57c171cc1e819955e1da9fd` 激活，source worktree/branch 固定为 `specdev-worktree/2026-08-26-project-architecture-reconstruction/T-10` / `speculo/2026-08-26-project-architecture-reconstruction/T-10`，implementation owner 为 `codex-t10-settings`。`T10-D01` 第一阶段只开放两个 Settings manifests 与原独占路径；根 checks、Vitest include、lockfile 和 required 双 profile E2E 继续由 Lead 串行保留。
 - T-16 stage 2 以 `T16-D02` 获得 T-09 result 后的下一段共享根所有权：原 owner 先固定 stage-1 clean commit，再 rebase 到 amendment parent；只可追加 Desktop aggregate checks/spec includes，并更新 lockfile 现有 `apps/admin-desktop` 与 `packages/adapters/desktop` 两个 importer。T-15/T-10 在 T-16 result 前不得写这些共享根文件。
-- T-16 三次 parent-candidate 均未提升：`bbd9b225` 因无界进程发现输出失败，`7fba6219` 因 migration-failure startup ordering 超时，`a1429111` 的静态门禁通过但 debug 原生宿主 90 秒未开登录窗且异常退出曾留下孤立 sidecar。最终 source `f2d611133a302b912f43cb1d648943e1909762f0`（tree `8e93354e88ae5b1ebbbbdc373252523f509fa4e8`）已改用 release host、父 stdin EOF 自停和精确有界回收并通过全部 source 门禁；当前达到 `integration_attempt_limit=3`，新 candidate 等待用户明确扩容，父分支未移动。
+- T-16 三次 parent-candidate 均未提升：`bbd9b225` 因无界进程发现输出失败，`7fba6219` 因 migration-failure startup ordering 超时，`a1429111` 的静态门禁通过但 debug 原生宿主 90 秒未开登录窗且异常退出曾留下孤立 sidecar。最终 source `f2d611133a302b912f43cb1d648943e1909762f0`（tree `8e93354e88ae5b1ebbbbdc373252523f509fa4e8`）已改用 release host、父 stdin EOF 自停和精确有界回收并通过全部 source 门禁。用户最新 `Q1A/Q2A` 已批准 `T16-D03` 和第 4 次 candidate，并将 config/本计划 `integration_attempt_limit` 同步提升到 4；父分支将在新 candidate 全部门禁通过前保持不含 T-16 source。
 - T-12/T-13 从 `main@9b086f025dd31909edea086727e45c7f301c5ccf` 激活，implementation owner 分别为 `codex-t12-scheduler` 与 `codex-t13-files`。`T12-D01` 只开放两个 Scheduler manifests 并锁定与 Outbox 共用同一全局 lease/事务；`T13-D01` 只开放两个 Files manifests 与 Browser Files adapter 精确接缝。两者根 checks/Vitest/lock、T13 Desktop/config composition 均等待 Lead 后续串行 amendment。
 - T-17 只读 preflight 证明已完成的 T-11 仅声明 Audit permission 常量、未向 IAM Module Capability Registry 注册权限/菜单。Lead 以 `T11-D04` 精确重开 Audit 自有 capability 实现与测试；原登录/操作审计 result 仍保留，补修不得修改 Session、Outbox、前端、root 或 composition。该 preflight 同时确认 IAM Organization consumer Port 只有定义而无实际消费；由于当前 Self/All 数据范围没有可调用组织语义，此项不能以无效 constructor 注入伪闭合，保持为 T-17 前设计 blocker并等待形成真实用例。
+- T-11 `T11-D04` 最终 source `772a2c6f7e5023ef26acb2bedf622f3b0e8384ce` 已在 `main@ef69be849415b43b7a83f8873be5dec8338d381d` 上形成 candidate/result `bf5ecdb60f1c861f21110c4ff79467085fd8e39a`（tree `80e876d067cb9cde123ec3fa66960b323edc24b0`，merge-commit attempt 1）。Audit permissions/menu、真实 SQLite capability registry/system-admin/idempotency/tamper 测试、全量 Go/前端/合同/治理、固定 Go Task `task:contract` 与 SQLite/PostgreSQL 17.11/Chrome 151 required E2E 全部通过；`public` 0 表、非系统 schema、进程和 E2E temp 零残留，T-11 恢复为 done。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
 
 - 无阻止 T-02 开始的产品决定。
-- T-16 已耗尽当前计划允许的 3 次集成尝试；第 4 次 candidate 必须先获得用户明确批准，并同步提升 Speculo config 与本 Goal Plan 的 `integration_attempt_limit`。该批准点不阻止 T-12/T-13 独立 source 阶段。
+- T-16 第 4 次 candidate 已由用户最新 `Q1A/Q2A` 明确批准，Speculo config 与本 Goal Plan 的 `integration_attempt_limit` 已同步提升为 4；它仍必须从当前父提交新建并完整通过 required native E2E，不能复用前三次失败候选的验证结论。
 - G6 的生产签名、公证、受保护 runner、远端制品发布仍需到达该 Gate 后逐项批准；在此之前 T-19/T-20 不能以模拟或未签名制品关闭最终发行验收。
 - source branch/worktree cleanup 未授权，不阻止集成与 change 本地完成，但所有保留 locator 必须写入状态。
 
 ### Resume Protocol
 
-恢复时依次读取本 Goal Plan、当前 Ticket、`<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/.status.json</Path>`、Tickets Map 和最新 Evidence。先核对 `main` 当前 HEAD 是否等于最后通过的 `result_sha`；若存在 active source 或 candidate，从其不可变 checkpoint 继续，不重建已通过工作。若父 HEAD 漂移，暂停派单并重算所有未开始 worktree 的 base；若超过 3 次集成尝试或需要新产品决定，标记 blocked 并返回用户。
+恢复时依次读取本 Goal Plan、当前 Ticket、`<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/.status.json</Path>`、Tickets Map 和最新 Evidence。先核对 `main` 当前 HEAD 是否包含最后通过的 `result_sha`；若存在 active source 或 candidate，从其不可变 checkpoint 继续，不重建已通过工作。若父 HEAD 漂移，暂停派单并重算所有未开始 worktree 的 base；若超过 4 次集成尝试或需要新产品决定，标记 blocked 并返回用户。
 
 ## Assumptions
 
