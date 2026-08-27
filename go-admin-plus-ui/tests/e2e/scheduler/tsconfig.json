@@ -8,6 +8,7 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
+      "@go-admin/adapter-browser": ["../../../packages/adapters/browser/src/index.ts"],
       "@go-admin/domain-scheduler": ["../../../packages/domains/scheduler/src/index.ts"],
       "@go-admin/domain-iam/administration": ["../../../packages/domains/iam/src/administration/index.ts"],
       "@go-admin/domain-iam/session": ["../../../packages/domains/iam/src/session/index.ts"],

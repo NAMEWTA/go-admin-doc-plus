@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,17 +55,46 @@ func TestSchedulerPostgresRuntime(t *testing.T) {
 		_, _ = admin.Exec(context.Background(), `DROP SCHEMA IF EXISTS `+schema+` CASCADE`)
 		_ = admin.Close(context.Background())
 	})
-	parsed, err := pgx.ParseConfig(baseDSN)
+	isolatedDSN, err := isolatedSchedulerRuntimeDSN(baseDSN, schema)
 	if err != nil {
 		t.Fatal("postgres test configuration invalid")
 	}
-	parsed.RuntimeParams["search_path"] = schema
-	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString(), MaxOpenConnections: 5, MaxIdleConnections: 2})
+	db, err := database.NewProcess().Open(ctx, database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: isolatedDSN, MaxOpenConnections: 5, MaxIdleConnections: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
 	testRuntime(t, db)
+}
+
+func isolatedSchedulerRuntimeDSN(dsn, schema string) (string, error) {
+	suffix := strings.TrimPrefix(schema, "scheduler_test_")
+	if len(suffix) != 32 || strings.Trim(suffix, "0123456789abcdef") != "" {
+		return "", fmt.Errorf("invalid Scheduler runtime schema")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || parsed.Host == "" || parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
+		return "", fmt.Errorf("invalid PostgreSQL URL")
+	}
+	query := parsed.Query()
+	query.Set("search_path", schema)
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
+func TestIsolatedSchedulerRuntimeDSNPreservesParameters(t *testing.T) {
+	const schema = "scheduler_test_0123456789abcdef0123456789abcdef"
+	value, err := isolatedSchedulerRuntimeDSN("postgres://localhost/database?application_name=scheduler+runtime&sslmode=disable", schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Query().Get("search_path") != schema || parsed.Query().Get("application_name") != "scheduler runtime" || parsed.Query().Get("sslmode") != "disable" {
+		t.Fatal("isolated Scheduler runtime DSN lost its search path or existing parameters")
+	}
+	if _, err := isolatedSchedulerRuntimeDSN("postgres://localhost/database", "public"); err == nil {
+		t.Fatal("invalid Scheduler runtime schema was accepted")
+	}
 }
 
 func testRuntime(t *testing.T, db *database.Database) {
