@@ -305,6 +305,16 @@
       "resolution": "Authorize only the two Files package manifests plus Browser Files implementation/test, one export, and package-local dependency/check; keep root checks, Vitest, lockfile, shared UI, Desktop native bridge, typed Server config, and product composition read-only until serialized amendments"
     },
     {
+      "id": "T13-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-13",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T14:15:00+08:00",
+      "reason": "The shared workspace boundary test hard-codes the Browser adapter dependency object to platform alone, contradicting T13-D01's approved Browser Files dependency and causing the otherwise clean root verification to fail",
+      "resolution": "Authorize only go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs to require the exact approved Browser adapter internal dependency set of platform plus domain-files and to reject any additional @go-admin dependency; root package, Vitest config, lockfile, shared UI, Desktop adapter, typed config, and composition remain read-only"
+    },
+    {
       "id": "T11-D04",
       "level": "ticket",
       "status": "approved",
