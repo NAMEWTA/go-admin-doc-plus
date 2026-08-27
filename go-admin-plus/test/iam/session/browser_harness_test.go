@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/jackc/pgx/v5"
 
 	"go-admin/internal/modules/iam/account"
 	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
@@ -224,17 +224,13 @@ func openBrowserHarnessDatabase(t *testing.T, ctx context.Context, profile strin
 			}
 			t.Fatal("create PostgreSQL browser harness schema failed")
 		}
-		parsed, err := pgx.ParseConfig(dsn)
+		isolatedDSN, err := isolatedIAMBrowserDSN(dsn, schema)
 		if err != nil {
 			cleanupPostgresBrowserHarness(t, admin, schema)
 			t.Fatal("parse PostgreSQL browser harness connection failed")
 		}
-		if parsed.RuntimeParams == nil {
-			parsed.RuntimeParams = make(map[string]string)
-		}
-		parsed.RuntimeParams["search_path"] = schema
 		db, err := database.NewProcess().Open(ctx, database.Config{
-			Profile: config.ProfileServerPostgres, PostgresDSN: parsed.ConnString(), MaxOpenConnections: 4, MaxIdleConnections: 4,
+			Profile: config.ProfileServerPostgres, PostgresDSN: isolatedDSN, MaxOpenConnections: 4, MaxIdleConnections: 4,
 		})
 		if err != nil {
 			cleanupPostgresBrowserHarness(t, admin, schema)
@@ -250,6 +246,41 @@ func openBrowserHarnessDatabase(t *testing.T, ctx context.Context, profile strin
 	default:
 		t.Fatal("browser harness profile is invalid")
 		return nil
+	}
+}
+
+func isolatedIAMBrowserDSN(dsn, schema string) (string, error) {
+	suffix := strings.TrimPrefix(schema, "iam_browser_")
+	if suffix == "" || strings.Trim(suffix, "0123456789") != "" {
+		return "", fmt.Errorf("invalid IAM browser schema")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || parsed.Host == "" || parsed.Scheme != "postgres" && parsed.Scheme != "postgresql" {
+		return "", fmt.Errorf("invalid PostgreSQL URL")
+	}
+	query := parsed.Query()
+	query.Set("search_path", schema)
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
+func TestIsolatedIAMBrowserDSNPreservesParameters(t *testing.T) {
+	value, err := isolatedIAMBrowserDSN("postgres://localhost/database?host=%2Ftmp%2Fpostgres&port=5432&sslmode=disable", "iam_browser_1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Query().Get("search_path") != "iam_browser_1234" || parsed.Query().Get("host") != "/tmp/postgres" || parsed.Query().Get("sslmode") != "disable" {
+		t.Fatal("isolated IAM browser DSN lost its search path or existing parameters")
+	}
+	for _, invalid := range []struct{ dsn, schema string }{
+		{"host=localhost dbname=database", "iam_browser_1234"},
+		{"postgres://localhost/database", "public"},
+		{"https://localhost/database", "iam_browser_1234"},
+	} {
+		if _, err := isolatedIAMBrowserDSN(invalid.dsn, invalid.schema); err == nil {
+			t.Fatal("invalid IAM browser isolation input was accepted")
+		}
 	}
 }
 

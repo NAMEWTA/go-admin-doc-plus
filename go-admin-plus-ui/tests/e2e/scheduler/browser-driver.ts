@@ -5,6 +5,7 @@ import { SchedulerRequestError, type DefinitionInput } from '@go-admin/domain-sc
 import { createSchedulerController, createWebSchedulerClient, SchedulerPage } from '@go-admin/web-domain-scheduler'
 import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
+import { createBrowserSessionFetch } from '@go-admin/adapter-browser'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
 const waitUntil = async (condition: () => boolean, message: string, timeout = 10_000) => { const deadline = Date.now() + timeout; while (Date.now() < deadline) { if (condition()) return; await new Promise(resolve => setTimeout(resolve, 25)) }; throw new Error(message) }
@@ -16,12 +17,13 @@ const action = (name: string, actionName: string) => { const button = definition
 const expectFailure = async (operation: () => Promise<unknown>, category: string) => { try { await operation() } catch (error) { assert(error instanceof SchedulerRequestError && error.category === category, `expected ${category}`); return }; throw new Error(`expected ${category}`) }
 
 const scenario = async () => {
-  const session = createSessionController(createWebSessionClient(fetch, '/api'))
+  const sessionFetch = createBrowserSessionFetch(fetch)
+  const session = createSessionController(createWebSessionClient(sessionFetch, '/api'))
   await session.login({ username: 'scheduler-admin', password: 'scheduler administrator password' })
   assert(session.state().status === 'authenticated' && !document.cookie.includes('__Host-go-admin-session'), 'scheduler login or HttpOnly boundary failed')
-  const capability = createCapabilityController(createWebAdministrationClient(fetch, '/api'))
+  const capability = createCapabilityController(createWebAdministrationClient(sessionFetch, '/api'))
   await capability.refresh()
-  const api = createWebSchedulerClient(fetch, '/api')
+  const api = createWebSchedulerClient(sessionFetch, '/api')
   assert(capability.can('scheduler.definitions.read') && capability.can('scheduler.executions.read'), 'scheduler manifest incomplete')
   await control('scope', 'POST', { scope: 'self' }); await capability.refresh()
   await expectFailure(() => api.taskTypes(), 'forbidden')
