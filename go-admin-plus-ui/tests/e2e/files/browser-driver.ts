@@ -2,7 +2,7 @@ import { createApp, h, type Component } from 'vue'
 import { createCapabilityController } from '@go-admin/domain-iam/administration'
 import { createSessionController } from '@go-admin/domain-iam/session'
 import { FilesRequestError, filesPermissions } from '@go-admin/domain-files'
-import { createBrowserFilesClient } from '@go-admin/adapter-browser'
+import { createBrowserFilesClient, createBrowserSessionFetch } from '@go-admin/adapter-browser'
 import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
 import { createFilesController, FilesPage } from '@go-admin/web-domain-files'
@@ -45,15 +45,16 @@ const expectFailure = async (operation: () => Promise<unknown>, category: 'forbi
 }
 
 const scenario = async () => {
-  const session = createSessionController(createWebSessionClient(fetch, '/api'))
+  const sessionFetch = createBrowserSessionFetch(fetch)
+  const session = createSessionController(createWebSessionClient(sessionFetch, '/api'))
   await session.login({ username: 'files-admin', password: 'files contract password' })
   assert(session.state().status === 'authenticated', 'administrator login failed')
   assert(!document.cookie.includes('__Host-go-admin-session'), 'HttpOnly cookie became script readable')
 
-  const capabilities = createCapabilityController(createWebAdministrationClient(fetch, '/api'))
+  const capabilities = createCapabilityController(createWebAdministrationClient(sessionFetch, '/api'))
   await capabilities.refresh()
   assert(capabilities.can(filesPermissions.read) && capabilities.can(filesPermissions.write) && capabilities.can(filesPermissions.delete), 'files capability manifest incomplete')
-  const client = createBrowserFilesClient(fetch, '/api')
+  const client = createBrowserFilesClient(sessionFetch, '/api')
 
   await control('scope', { scope: 'self' })
   await capabilities.refresh()
@@ -102,7 +103,8 @@ const scenario = async () => {
   assert(afterCSRF.metadata === beforeRestart.metadata, 'CSRF rejection changed metadata')
 
   const owned = controller.list.snapshot().rows.filter(row => row.originalName !== 'foreign.txt')
-  controller.list.select(owned)
+  for (const row of owned) element<HTMLInputElement>(`tr[data-file-id="${row.id}"] input[type="checkbox"]`).click()
+  await waitUntil(() => !element<HTMLButtonElement>('[data-testid="files-delete-selected"]').disabled, 'batch selection did not render')
   element<HTMLButtonElement>('[data-testid="files-delete-selected"]').click()
   await waitUntil(() => controller.list.snapshot().total === 1, 'batch delete did not complete')
   assert(controller.list.snapshot().rows[0]?.id === foreign.id, 'batch delete removed foreign object')
@@ -118,13 +120,13 @@ const scenario = async () => {
 
   await control('permissions', { enabled: false })
   await capabilities.refresh()
-  await controller.list.refresh()
+  await setSearch('')
   assert(!capabilities.can(filesPermissions.write) && !capabilities.can(filesPermissions.delete), 'revoked capabilities remained')
-  assert(document.querySelector('[data-testid="files-upload"]') === null && document.querySelector('[data-testid="files-delete-selected"]') === null, 'revoked mutation UI remained')
+  await waitUntil(() => document.querySelector('[data-testid="files-upload"]') === null && document.querySelector('[data-testid="files-delete-selected"]') === null, 'revoked mutation UI remained')
   await expectFailure(() => client.upload({ name: 'revoked.txt', type: 'text/plain', size: 7, body: new Blob(['revoked'], { type: 'text/plain' }) }), 'forbidden')
 
   await control('revoke-session', {})
-  await controller.list.refresh().catch(() => undefined)
+  await setSearch('')
   await waitUntil(() => sessionRequired && controller.failure() === 'relogin', 'revoked session did not request relogin')
   assert(controller.list.snapshot().rows.length === 0 && document.querySelector('tbody tr') === null, 'revoked session retained projection')
   app.unmount()

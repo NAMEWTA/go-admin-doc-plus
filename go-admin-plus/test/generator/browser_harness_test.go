@@ -311,7 +311,7 @@ func TestGeneratorBrowserHarnessServer(t *testing.T) {
 }
 
 func createGeneratorSourceTable(t *testing.T, ctx context.Context, db *database.Database) {
-	statement := `CREATE TABLE products (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE, enabled INTEGER NOT NULL, revision INTEGER NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)`
+	statement := `CREATE TABLE products (id UUID PRIMARY KEY, name TEXT NOT NULL UNIQUE, enabled BOOLEAN NOT NULL, revision INTEGER NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)`
 	if db.Dialect() == database.DialectPostgres {
 		statement = `CREATE TABLE products (id UUID PRIMARY KEY, name TEXT COLLATE "C" NOT NULL UNIQUE, enabled BOOLEAN NOT NULL, revision BIGINT NOT NULL, created_at TIMESTAMPTZ NOT NULL, updated_at TIMESTAMPTZ NOT NULL)`
 	}

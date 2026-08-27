@@ -192,7 +192,9 @@ func generatedService(model Model) string {
 	assignments := strings.Builder{}
 	validation := strings.Builder{}
 	sortCases := strings.Builder{}
-	fmt.Fprintf(&sortCases, "case %q:\n", lowerFirst(model.PrimaryKey.Field))
+	primarySortKey := lowerFirst(model.PrimaryKey.Field)
+	fmt.Fprintf(&sortCases, "case %q:\n", primarySortKey)
+	seenSortKeys := map[string]struct{}{primarySortKey: {}}
 	for _, column := range model.Columns {
 		if !standardColumn(column.Name) {
 			fmt.Fprintf(&assignments, "\t\t%s: input.%s,\n", column.Field, column.Field)
@@ -208,7 +210,11 @@ func generatedService(model Model) string {
 			}
 		}
 		if column.Sortable {
-			fmt.Fprintf(&sortCases, "case %q:\n", lowerFirst(column.Field))
+			key := lowerFirst(column.Field)
+			if _, exists := seenSortKeys[key]; !exists {
+				fmt.Fprintf(&sortCases, "case %q:\n", key)
+				seenSortKeys[key] = struct{}{}
+			}
 		}
 	}
 	return fmt.Sprintf(`package %s
@@ -493,6 +499,10 @@ func generatedServiceTest(model Model) string {
 		}
 	}
 	fixtures, assertions := generatedRuntimeSearchTest(model, searchField, sortKey, "")
+	searchImports := ""
+	if fixtures != "" {
+		searchImports = "\t\"fmt\"\n\t\"sort\"\n"
+	}
 	up := strings.Split(generatedMigration(model, false), "-- +goose Down")[0]
 	up = strings.TrimSpace(strings.TrimPrefix(up, "-- +goose Up"))
 	template := `package {{MODULE}}
@@ -501,9 +511,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
-	"sort"
-	"testing"
+{{SEARCH_IMPORTS}}	"testing"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -546,7 +554,7 @@ func TestServiceFailsClosedWithoutDependencies(t *testing.T) {
 	if _, err := NewService(nil, nil); err != ErrInvalid { t.Fatalf("expected invalid dependencies, got %v", err) }
 }
 `
-	return strings.NewReplacer("{{MODULE}}", model.Module, "{{ENTITY}}", model.Entity, "{{INPUT}}", inputValues.String(), "{{MIGRATION}}", fmt.Sprintf("%q", up), "{{SEARCH}}", fmt.Sprintf("%q", search), "{{SORT}}", fmt.Sprintf("%q", sortKey), "{{FIXTURES}}", fixtures, "{{ASSERTIONS}}", assertions).Replace(template)
+	return strings.NewReplacer("{{MODULE}}", model.Module, "{{ENTITY}}", model.Entity, "{{INPUT}}", inputValues.String(), "{{MIGRATION}}", fmt.Sprintf("%q", up), "{{SEARCH}}", fmt.Sprintf("%q", search), "{{SORT}}", fmt.Sprintf("%q", sortKey), "{{FIXTURES}}", fixtures, "{{ASSERTIONS}}", assertions, "{{SEARCH_IMPORTS}}", searchImports).Replace(template)
 }
 
 func generatedPostgresServiceTest(model Model) string {
@@ -589,6 +597,10 @@ func generatedPostgresServiceTest(model Model) string {
 		}
 	}
 	fixtures, assertions := generatedRuntimeSearchTest(model, searchField, sortKey, "postgres ")
+	searchImports := ""
+	if fixtures != "" {
+		searchImports = "  \"sort\"\n"
+	}
 	up := strings.Split(generatedMigration(model, true), "-- +goose Down")[0]
 	up = strings.TrimSpace(strings.TrimPrefix(up, "-- +goose Up"))
 	template := `package {{MODULE}}
@@ -599,8 +611,7 @@ import (
   "errors"
   "fmt"
   "os"
-  "sort"
-  "testing"
+{{SEARCH_IMPORTS}}  "testing"
   "time"
   "github.com/uptrace/bun"
   "github.com/uptrace/bun/dialect/pgdialect"
@@ -635,7 +646,7 @@ func TestGeneratedPostgresAuthorizedCRUDSearchSortRevisionAndRevoke(t *testing.T
 	if marker := os.Getenv("GO_ADMIN_GENERATOR_POSTGRES_MARKER"); marker != "" { if err := os.WriteFile(marker, []byte("pass"), 0600); err != nil { t.Fatal("postgres marker failed") } }
 }
 `
-	return strings.NewReplacer("{{MODULE}}", model.Module, "{{ENTITY}}", model.Entity, "{{INPUT}}", inputValues.String(), "{{MIGRATION}}", fmt.Sprintf("%q", up), "{{SEARCH}}", fmt.Sprintf("%q", search), "{{SORT}}", fmt.Sprintf("%q", sortKey), "{{FIXTURES}}", fixtures, "{{ASSERTIONS}}", assertions).Replace(template)
+	return strings.NewReplacer("{{MODULE}}", model.Module, "{{ENTITY}}", model.Entity, "{{INPUT}}", inputValues.String(), "{{MIGRATION}}", fmt.Sprintf("%q", up), "{{SEARCH}}", fmt.Sprintf("%q", search), "{{SORT}}", fmt.Sprintf("%q", sortKey), "{{FIXTURES}}", fixtures, "{{ASSERTIONS}}", assertions, "{{SEARCH_IMPORTS}}", searchImports).Replace(template)
 }
 
 func generatedRuntimeSearchTest(model Model, searchField, sortKey, label string) (string, string) {
