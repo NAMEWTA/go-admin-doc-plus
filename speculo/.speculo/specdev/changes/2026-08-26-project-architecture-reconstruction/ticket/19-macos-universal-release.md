@@ -4,19 +4,19 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-19
 title: macOS Universal DMG 发行切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: Universal 原生制品、签名、公证、安装和本地数据重启需要受保护发行 Gate
 ready: true
 risk: critical
 blocked_by: [T-17]
 contract_ids: [AC-031, AC-033]
-owner: unassigned
-expected_changes: ["<Path>release/macos/**</Path>", "<Path>scripts/release/macos/**</Path>", "<Path>.github/workflows/release-macos.yml</Path>"]
-writable_paths: ["<Path>release/macos/**</Path>", "<Path>scripts/release/macos/**</Path>", "<Path>.github/workflows/release-macos.yml</Path>"]
+owner: codex-root
+expected_changes: ["<Path>release/macos/**</Path>", "<Path>scripts/release/macos/**</Path>", "<Path>.github/workflows/release-macos.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>"]
+writable_paths: ["<Path>release/macos/**</Path>", "<Path>scripts/release/macos/**</Path>", "<Path>.github/workflows/release-macos.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-shared_paths: []
-shared_path_owners: []
+shared_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path> => T-19 under T19-D01; select the packaged Generator repository/toolchain without changing product transport or lifecycle"]
 ---
 
 # Ticket T-19: macOS Universal DMG 发行切片
@@ -40,6 +40,7 @@ shared_path_owners: []
 
 - 仅受保护 macOS runner 使用生产签名/公证凭据；制品为 Universal DMG。
 - 未签名本地构建只用于开发，不可标记 publishable。
+- `T19-D01`：正式 App 必须携带 Generator 的只读 tracked skeleton、离线依赖与双架构 Go/Node/pnpm 工具链；Tauri 只向 sidecar 传递精确白名单环境并把其工作目录固定到发布骨架。开发态继续使用当前源码根和本机工具链，但不继承无关环境变量。
 
 ### 已采用的低影响假设
 
@@ -80,10 +81,10 @@ shared_path_owners: []
 
 ## 7. 路径访问契约
 
-- **预计修改点：** macOS 专属 release/script/workflow。
+- **预计修改点：** macOS 专属 release/script/workflow，以及 `T19-D01` 精确开放的 Tauri sidecar 启动配置。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** Tauri App 和 sidecar layout。
-- **共享路径：** 无；根 CI 归 T-21。
+- **共享路径：** Tauri `main.rs` 仅由 T-19 修改 Generator 资源/工具链选择；根 CI 归 T-21。
 - **保留或不动：** Windows/Linux 资产。
 
 ## 8. 验证矩阵
