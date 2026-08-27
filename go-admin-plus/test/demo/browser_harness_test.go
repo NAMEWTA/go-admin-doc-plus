@@ -2,7 +2,6 @@ package demo_test
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -288,10 +287,18 @@ func seedForeignDemoProduct(t *testing.T, ctx context.Context, db *database.Data
 	t.Helper()
 	now := time.Now().UTC()
 	name := "Foreign product"
-	nameKey := hex.EncodeToString([]byte(strings.ToLower(name)))
+	nameKey := demoFixtureNameKey(name)
 	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO demo_products(id, owner_account_id, sku, name, name_key, description, price_cents, status, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`, "00000000-0000-4000-8000-000000000099", demoForeignID, "FOREIGN-01", name, nameKey, "scope probe", 1, "active", 1, now, now); err != nil {
 		t.Fatal("foreign demo seed failed")
 	}
+}
+
+func demoFixtureNameKey(value string) string {
+	var result strings.Builder
+	for _, value := range []byte(strings.ToLower(value)) {
+		_, _ = fmt.Fprintf(&result, "%02x.", value)
+	}
+	return result.String()
 }
 
 func demoDatabaseOpener(t *testing.T, ctx context.Context, profile string) (func() *database.Database, func(), string) {

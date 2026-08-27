@@ -11,5 +11,6 @@
     "target": "ES2024",
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["./**/*.ts", "./**/*.vue"]
+  "include": ["./**/*.ts", "./**/*.vue"],
+  "exclude": ["./raw.d.ts"]
 }

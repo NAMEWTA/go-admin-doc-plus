@@ -171,6 +171,33 @@ func runDialectCRUDContract(t *testing.T, db *database.Database) {
 	if err != nil || ordered.Total != 2 || len(ordered.Rows) != 2 || ordered.Rows[0].SKU != "UNICODE-01" || ordered.Rows[1].SKU != "UNICODE-02" {
 		t.Fatalf("Unicode name ordering = %#v err=%v", ordered, err)
 	}
+	keyFixtures := []demo.ProductInput{
+		{SKU: "KEY-PERCENT", Name: "% literal", Status: "active"},
+		{SKU: "KEY-ASCII", Name: "<:@ collision", Status: "active"},
+		{SKU: "KEY-UNDER", Name: "_ literal", Status: "active"},
+		{SKU: "KEY-UNICODE", Name: "ä collision", Status: "active"},
+	}
+	for _, fixture := range keyFixtures {
+		if _, err := all.Create(context.Background(), "contract-owner-a", fixture); err != nil {
+			t.Fatalf("name-key fixture create = %v", err)
+		}
+	}
+	for search, expectedSKU := range map[string]string{"ä": "KEY-UNICODE", "<:@": "KEY-ASCII", "%": "KEY-PERCENT", "_": "KEY-UNDER"} {
+		found, err := all.List(context.Background(), "contract-owner-a", demo.ListQuery{Search: search, Page: 1, PageSize: 20, Sort: "name", Direction: "ascending"})
+		if err != nil || found.Total != 1 || len(found.Rows) != 1 || found.Rows[0].SKU != expectedSKU {
+			t.Fatalf("literal search %q = %#v err=%v", search, found, err)
+		}
+	}
+	keyOrder, err := all.List(context.Background(), "contract-owner-a", demo.ListQuery{Search: "key-", Page: 1, PageSize: 20, Sort: "name", Direction: "ascending"})
+	wantOrder := []string{"KEY-PERCENT", "KEY-ASCII", "KEY-UNDER", "KEY-UNICODE"}
+	if err != nil || keyOrder.Total != len(wantOrder) || len(keyOrder.Rows) != len(wantOrder) {
+		t.Fatalf("literal key ordering = %#v err=%v", keyOrder, err)
+	}
+	for index, want := range wantOrder {
+		if keyOrder.Rows[index].SKU != want {
+			t.Fatalf("literal key ordering[%d]=%q want=%q", index, keyOrder.Rows[index].SKU, want)
+		}
+	}
 }
 
 func TestUnknownScopeFailsClosedBeforeMutation(t *testing.T) {

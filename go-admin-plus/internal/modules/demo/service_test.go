@@ -150,3 +150,10 @@ func TestNormalizePreservesContextSentinels(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizedNameKeyUsesExplicitByteBoundaries(t *testing.T) {
+	ascii, unicode := normalizedNameKey("<:@"), normalizedNameKey("ä")
+	if ascii != "3c.3a.40." || unicode != "c3.a4." || strings.Contains(ascii, unicode) {
+		t.Fatalf("ambiguous normalized keys ascii=%q unicode=%q", ascii, unicode)
+	}
+}

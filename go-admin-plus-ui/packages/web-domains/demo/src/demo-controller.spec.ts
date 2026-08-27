@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DemoRequestError, demoPermissions, type DemoClient, type Product, type ProductInput, type ProductQuery } from '@go-admin/domain-demo'
 import { createDemoController } from './demo-controller'
+import pageSource from './DemoProductsPage.vue?raw'
 
 const product = (id = '00000000-0000-4000-8000-000000000001', revision = 1): Product => ({ id, sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 10, status: 'active', revision, createdAt: '2026-08-27T00:00:00Z', updatedAt: '2026-08-27T00:00:00Z' })
 const input: ProductInput = { sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 10, status: 'active' }
@@ -25,6 +26,11 @@ const fixture = () => {
 }
 
 describe('demo controller', () => {
+  it('binds the page data and action regions to the fail-closed projection', () => {
+    expect(pageSource).toContain('v-if="projectionVisible && canRead" class="demo-products__search"')
+    expect(pageSource).toContain('v-if="projectionVisible && canRead" class="demo-products__grid"')
+  })
+
   it('searches, resets, pages, sorts and selects through the shared list state', async () => {
     const { client, controller } = fixture()
     await controller.list.search({ search: 'demo' })
@@ -162,5 +168,63 @@ describe('demo controller', () => {
     expect(controller.projectionVisible).toBe(false)
     expect(controller.can(demoPermissions.read)).toBe(false)
     expect(controller.list.snapshot().rows).toEqual([])
+  })
+
+  for (const test of [
+    { name: 'save forbidden', category: 'forbidden' as const, run: async (client: DemoClient, controller: ReturnType<typeof createDemoController>) => {
+      vi.mocked(client.create).mockRejectedValueOnce(new DemoRequestError('forbidden'))
+      return controller.save(input)
+    } },
+    { name: 'remove relogin', category: 'relogin' as const, run: async (client: DemoClient, controller: ReturnType<typeof createDemoController>) => {
+      vi.mocked(client.delete).mockRejectedValueOnce(new DemoRequestError('relogin'))
+      return controller.remove([product()])
+    } },
+  ]) {
+    it(`fails the existing projection closed after a DB-final ${test.name}`, async () => {
+      const { client, controller } = fixture()
+      await controller.list.refresh()
+      controller.list.select(controller.list.snapshot().rows)
+      expect(controller.list.snapshot().selectedKeys).toHaveLength(1)
+      expect(await test.run(client, controller)).toBe('failed')
+      expect(controller.failure()).toBe(test.category)
+      expect(controller.projectionVisible).toBe(false)
+      expect(controller.can(demoPermissions.read)).toBe(false)
+      expect(controller.can(demoPermissions.write)).toBe(false)
+      expect(controller.list.snapshot()).toMatchObject({ rows: [], total: 0, selectedKeys: [] })
+      await controller.list.refresh()
+      expect(controller.projectionVisible).toBe(true)
+      expect(controller.list.snapshot().selectedKeys).toEqual([])
+    })
+  }
+
+  it('normalizes search and keeps the stable projection when a local invalid request stales remote work', async () => {
+    const { client, controller } = fixture()
+    await controller.list.refresh()
+    controller.list.select(controller.list.snapshot().rows)
+    vi.mocked(client.list).mockClear()
+
+    await expect(controller.list.search({ search: '😀'.repeat(101) })).rejects.toMatchObject({ category: 'validation' })
+    expect(client.list).not.toHaveBeenCalled()
+    expect(controller.projectionVisible).toBe(true)
+    expect(controller.list.snapshot()).toMatchObject({ filters: { search: '' }, total: 1, selectedKeys: [product().id] })
+
+    await controller.list.search({ search: '   ' })
+    expect(client.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: '' }))
+    await controller.list.search({ search: ' demo ' })
+    expect(client.list).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'demo' }))
+    expect(controller.list.snapshot().filters.search).toBe('demo')
+
+    controller.list.select(controller.list.snapshot().rows)
+    const stale = deferred<{ rows: Product[]; total: number }>()
+    vi.mocked(client.list).mockImplementationOnce(() => stale.promise)
+    const remote = controller.list.search({ search: 'future' })
+    const calls = vi.mocked(client.list).mock.calls.length
+    await expect(controller.list.search({ search: '😀'.repeat(101) })).rejects.toMatchObject({ category: 'validation' })
+    expect(client.list).toHaveBeenCalledTimes(calls)
+    expect(controller.list.snapshot()).toMatchObject({ filters: { search: 'demo' }, total: 1, selectedKeys: [product().id], loading: false })
+    stale.resolve({ rows: [product('00000000-0000-4000-8000-000000000099')], total: 1 })
+    await remote
+    expect(controller.failure()).toBe('validation')
+    expect(controller.list.snapshot()).toMatchObject({ filters: { search: 'demo' }, selectedKeys: [product().id] })
   })
 })

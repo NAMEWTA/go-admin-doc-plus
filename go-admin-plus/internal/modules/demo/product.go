@@ -3,7 +3,6 @@ package demo
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"regexp"
 	"strings"
@@ -114,5 +113,14 @@ func runeLength(value string) int {
 
 // normalizedNameKey makes Unicode search and ordering independent of database collation.
 func normalizedNameKey(value string) string {
-	return hex.EncodeToString([]byte(strings.ToLower(value)))
+	const hexadecimal = "0123456789abcdef"
+	bytes := []byte(strings.ToLower(value))
+	var result strings.Builder
+	result.Grow(len(bytes) * 3)
+	for _, value := range bytes {
+		result.WriteByte(hexadecimal[value>>4])
+		result.WriteByte(hexadecimal[value&0x0f])
+		result.WriteByte('.')
+	}
+	return result.String()
 }

@@ -52,9 +52,11 @@ func (r repository) list(ctx context.Context, tx database.Tx, actorID string, sc
 		clauses, args = append(clauses, "owner_account_id = ?"), append(args, actorID)
 	}
 	if query.Search != "" {
-		skuValue := "%" + query.Search + "%"
-		nameValue := "%" + normalizedNameKey(query.Search) + "%"
-		clauses, args = append(clauses, "(lower(sku) LIKE ? OR name_key LIKE ?)"), append(args, skuValue, nameValue)
+		searchClause := "(instr(lower(sku), ?) > 0 OR instr(name_key, ?) > 0)"
+		if r.dialect == database.DialectPostgres {
+			searchClause = "(strpos(lower(sku), ?) > 0 OR strpos(name_key, ?) > 0)"
+		}
+		clauses, args = append(clauses, searchClause), append(args, query.Search, normalizedNameKey(query.Search))
 	}
 	where := " WHERE " + strings.Join(clauses, " AND ")
 	var result Page
