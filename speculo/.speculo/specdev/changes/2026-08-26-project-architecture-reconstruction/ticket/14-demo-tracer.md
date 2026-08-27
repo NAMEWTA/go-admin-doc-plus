@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-14
 title: Demo 双方言业务曳光弹
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 参考模块同时验证公共 API、双方言 schema、权限、Web 交互与重启持久化
 ready: true
@@ -115,9 +115,9 @@ shared_path_owners: ["<Path>go-admin-plus/internal/modules/iam/authorization/cap
 
 ## 10. 验收标准
 
-- [ ] `AC-021`：Demo 在正式 profile 上完成 CRUD 与重启持久化。
-- [ ] `AC-024`：Demo migration 双方言确定、幂等且行为等价。
-- [ ] `AC-035`：标准列表/表单/删除交互完整。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-021`：Demo 在正式 profile 上完成 CRUD 与重启持久化。
+- [x] `AC-024`：Demo migration 双方言确定、幂等且行为等价。
+- [x] `AC-035`：标准列表/表单/删除交互完整。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-14.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
