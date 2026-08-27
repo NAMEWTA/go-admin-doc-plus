@@ -4,19 +4,19 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-16
 title: Tauri 2 Desktop 安全宿主闭环
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 原生宿主、sidecar、Stronghold、随机 loopback、SQLite 迁移与进程监督构成关键桌面安全边界
 ready: true
 risk: critical
 blocked_by: [T-06, T-08, T-14]
 contract_ids: [AC-006, AC-007, AC-009, AC-021, AC-027, AC-036]
-owner: unassigned
-expected_changes: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>go-admin-plus/test/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+owner: codex-t16-desktop
+expected_changes: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>", "<Path>go-admin-plus/internal/platform/desktop/**</Path>", "<Path>go-admin-plus/test/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/app/kernel/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/core/**</Path>"]
-shared_paths: ["<Path>release/shared/sidecar/**</Path>"]
-shared_path_owners: ["<Path>release/shared/sidecar/**</Path> => T-16"]
+shared_paths: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path> => T-16 under T16-D01; desktop runtime adapter reserved by T-05", "<Path>release/shared/sidecar/**</Path> => T-16"]
 ---
 
 # Ticket T-16: Tauri 2 Desktop 安全宿主闭环
@@ -81,10 +81,11 @@ shared_path_owners: ["<Path>release/shared/sidecar/**</Path> => T-16"]
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Desktop App、sidecar、desktop platform 和共享 sidecar packaging。
+- **预计修改点：** Desktop App、经 `T16-D01` 开放的 Desktop adapter、sidecar、desktop platform 和共享 sidecar packaging。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** kernel、IAM、Demo 和 App Shell。
-- **共享路径：** sidecar 打包布局由 T-16 唯一拥有，平台发行 Ticket 只消费。
+- **共享路径：** sidecar 打包布局由 T-16 唯一拥有，平台发行 Ticket 只消费；T-05 预建的 Desktop adapter manifest/source 现由 T-16 唯一实现。
+- **批准偏差：** `T16-D01` 只开放 `<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>`，用于实现 ADR-011 已锁定且 T-05 明确保留给 T-16 的 runtime adapter。第一阶段根 package/Vitest/lock 继续只读，等待 T-09 result 后再由 Lead 精确开放 Desktop aggregate checks/importer；禁止修改 browser adapter、App Shell core 或产品 composition。
 - **保留或不动：** macOS/Windows 安装器分别归 T-19/T-20。
 
 ## 8. 验证矩阵

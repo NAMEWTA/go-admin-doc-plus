@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T10:01:51+08:00",
+  "updated_at": "2026-08-27T10:08:38+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -233,6 +233,26 @@
       "approved_at": "2026-08-27T09:07:00+08:00",
       "reason": "Independent review proved Demo duplicated the shared list request state machine, while the shared controller committed query state before request success and could not preserve the last successful projection after local validation",
       "resolution": "Authorize only go-admin-plus-ui/packages/ui/src/list.ts and tests/shell/list-form.spec.ts for synchronous normalization and validation plus latest-success atomic query/projection commits; Demo must configure and wrap the shared controller and may not retain a second list state machine"
+    },
+    {
+      "id": "T09-D02",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-09",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T10:08:38+08:00",
+      "reason": "T-09 stage 1 package-local checks cannot enter standard pnpm verification and its importers remain absent after the serialized T-14 lock owner completed",
+      "resolution": "After rebasing to the T-14 result, authorize only Organization aggregate checks in the root package, Organization specs in shell Vitest, and the two Organization lock importers using existing catalog versions; all other root scripts, includes, importers, shared UI, IAM capability registry, and composition remain unchanged"
+    },
+    {
+      "id": "T16-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-16",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T10:08:38+08:00",
+      "reason": "ADR-011 and T-16 require a Desktop runtime adapter, but T-05 only precreated its manifest and the T-16 writable paths omitted the reserved adapter package",
+      "resolution": "Authorize only go-admin-plus-ui/packages/adapters/desktop/** for the Desktop runtime adapter; root aggregate checks and lock remain read-only during stage 1 and will be considered only after the T-09 serialized root owner completes"
     }
   ],
   "worktrees": [
@@ -707,7 +727,50 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T07:33:15+08:00"
+      "updated_at": "2026-08-27T10:08:38+08:00"
+    },
+    {
+      "ticket_id": "T-16",
+      "owner": "codex-t16-desktop",
+      "implementation_owner": "codex-t16-desktop",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "ffc53bda0691fa5c64a7400bd17634e9dc28ea4d",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-16",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-16",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G4 requires Tauri 2, sidecar, Stronghold, SQLite migration, Go/Rust/TypeScript, hardening, and package checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-16 must prove a native Tauri host supervises the real SQLite sidecar, keeps Session material out of WebView JavaScript, and persists Demo CRUD across restart",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T10:08:38+08:00"
     }
   ]
 }

@@ -12,11 +12,11 @@ risk: high
 blocked_by: [T-07]
 contract_ids: [AC-014, AC-035]
 owner: codex-t09-organization
-expected_changes: ["<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/organization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/package.json</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/organization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/package.json</Path>", "<Path>go-admin-plus/test/organization/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/organization/**</Path>"]
-read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-shared_paths: ["<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>"]
-shared_path_owners: ["<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path> => T-09 under T09-D01; consumer-defined projection Port only"]
+expected_changes: ["<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/organization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/organization/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/organization/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/organization/**</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
+shared_paths: ["<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus/internal/modules/iam/administration/organization_port.go</Path> => T-09 under T09-D01; consumer-defined projection Port only", "<Path>go-admin-plus-ui/package.json</Path> => T-09 under T09-D02; Organization aggregate checks only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-09 under T09-D02; Organization specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-09 under T09-D02; two Organization importers only"]
 ---
 
 # Ticket T-09: Organization 部门与岗位垂直切片
@@ -80,11 +80,12 @@ shared_path_owners: ["<Path>go-admin-plus/internal/modules/iam/administration/or
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Organization 独占路径、两个 Organization package manifest，以及经 `T09-D01` 批准的 IAM consumer Port 精确文件。
+- **预计修改点：** Organization 独占路径、两个 Organization package manifest、经 `T09-D01` 批准的 IAM consumer Port 精确文件，以及经 `T09-D02` 批准的 Organization 根门禁与两个 lock importer。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM 授权、Database、共享 UI。
-- **共享路径：** `iam/administration/organization_port.go` 只定义 IAM 消费所需的最小组织投影 Port；不得导入 Organization。根 verify 配置和 lockfile 当前继续只读，等待 T-14/T-11 result 后由 Lead 另行 amendment。
+- **共享路径：** `iam/administration/organization_port.go` 只定义 IAM 消费所需的最小组织投影 Port；不得导入 Organization。T-14/T-11 result 均已完成，现由 T-09 串行拥有 Organization 根 verify、Vitest include 与两个 lock importer；T-16 stage 1 不写这些路径。
 - **批准偏差：** `T09-D01` 允许两个 Organization package manifest 补齐 canonical API client、`@go-admin/ui`、Vue 直接依赖、公开 export 与标准 package-local checks，并允许精确 consumer Port 文件。只可复用既有 catalog 版本；禁止修改其他 IAM 文件、其他 importer、共享 UI 或 composition。
+- **批准偏差：** `T09-D02` 在 T-14 result 后只开放根 `package.json` 的 Organization 聚合 checks、shell Vitest 的 Organization specs 和 lockfile 的两个 Organization importer。必须 rebase 到最新 parent 并证明其他 scripts、includes、importers、catalog 与外部版本零漂移；禁止修改共享 list 或 IAM capability registry。
 - **保留或不动：** IAM 私有 schema 和产品注册点。
 
 ## 8. 验证矩阵

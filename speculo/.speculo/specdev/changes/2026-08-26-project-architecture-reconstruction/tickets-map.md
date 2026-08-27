@@ -38,7 +38,7 @@ status: in_progress
 | T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | unassigned | AC-020, AC-035 | W6 / G4 | ready |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
 | T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | unassigned | AC-019, AC-023, AC-028, AC-035 | W7 / G4 | ready |
-| T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | unassigned | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 priority | ready |
+| T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 priority | in_progress |
 | T-17 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/17-product-composition-matrix.md</Path>` | 三 Profile、双 App 完整产品 | T-09, T-10, T-11, T-12, T-13, T-15, T-16 | deep | critical | yes | unassigned | AC-003, AC-004, AC-011, AC-021, AC-022, AC-024, AC-025, AC-028, AC-034, AC-035, AC-036 | W8 / G5 | ready |
 | T-18 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/18-linux-oci-compose-release.md</Path>` | Linux OCI/Compose 候选 | T-17 | deep | high | yes | unassigned | AC-030, AC-033 | W9 / G6 | ready |
 | T-19 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/19-macos-universal-release.md</Path>` | macOS Universal DMG 候选 | T-17 | deep | critical | yes | unassigned | AC-031, AC-033 | W9 / G6 | ready |
@@ -133,7 +133,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
 | P5 | T-07, T-11 | Session service/test 与 workspace lock 已按 result 串行移交 | T-07 已 done；T-11 写 `T11-D01` Audit importer、`T11-D02` 登录事实接缝与 `T11-D03` 四个 test-only 显式 Port 调用点，其他共享路径仍只读 |
 | P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行分配；T-14 另按 `T14-D02/T14-D03` 精确拥有 IAM Module Capability Registry，并按 `T14-D04` 精确扩展共享 list 的成功原子状态接缝 | 各模块独占合同/schema/backend/frontend；顺序为 T-11 lock -> T-14 verify/lock -> T-09 verify/lock |
-| P7 | T-15, T-16 | 无 | Generator 与 Desktop 分离，共同只读 Demo |
+| P7 | T-15, T-16 | `T16-D01` 仅把 T-05 已预留的 Desktop adapter 移交 T-16；T-16 根 verify/lock stage 2 等待 T-09 result | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
 
 | 共享路径 | 唯一 owner | 消费方式 |
@@ -142,7 +142,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | `<Path>contracts/openapi/openapi.yaml</Path>`、公共 components、合同工具与公共 client | T-02 | 模块写自有 fragment |
 | kernel/config/observability | T-03 | 宿主和模块只读依赖 |
 | Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
-| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02 先串行拥有合同工具/client lock 变更；`T07-D01` 已完成，现由 `T11-D01` 仅拥有 Audit importer；其 result 后由 `T14-D01` 仅拥有 Demo importer 与 Demo verify 接入 | 模块只写预建包的 `src` 和获批 manifest/importer；Desktop adapter 源码归 T-16 |
+| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14 串行接入已完成；现由 `T09-D02` 仅拥有 Organization 根 checks/importers，T-16 先按 `T16-D01` 独占 Desktop adapter，待 T-09 result 后再接管 Desktop 根 checks/importer | 模块只写获批 manifest/importer；browser adapter 与 App Shell core 保持只读 |
 | Shared list request state | T-05 基座；T-14 under `T14-D04` 精确修改 `<Path>go-admin-plus-ui/packages/ui/src/list.ts</Path>` 与既有回归 | 请求可规范化/校验，最新成功前不提交 query state；模块只配置/包装，不复制列表状态机 |
 | IAM Session request authorization seam | T-06；`T07-D02` 精确追加 `AuthorizeRequest` 与既有测试 | T-07 HTTP 只消费统一 token/CSRF/touch/rotation 结果，不读取 Session 私表或复制 secret/hash 规则 |
 | IAM Session login audit seam | T-06；T-07 result 已完成 `T07-D02`，现由 `T11-D02/T11-D03` 追加 fail-closed 模块无关 Login Fact Port 与精确 test-only 调用点 | T-11 Audit adapter 同步记录成功/失败登录；Session 不导入 Audit且无生产 discard，T-17 composition 必须注入 Port，密码/用户名/token/CSRF 不进入事实 |
