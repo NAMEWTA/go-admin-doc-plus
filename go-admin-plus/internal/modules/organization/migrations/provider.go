@@ -1,0 +1,27 @@
+package organizationmigration
+
+import (
+	"embed"
+	"errors"
+	"io/fs"
+
+	"go-admin/internal/platform/database"
+)
+
+//go:embed postgres/*.sql sqlite/*.sql
+var files embed.FS
+
+type Provider struct{}
+
+func (Provider) Module() string { return "organization" }
+
+func (Provider) Migrations(dialect database.Dialect) (fs.FS, error) {
+	switch dialect {
+	case database.DialectPostgres:
+		return fs.Sub(files, "postgres")
+	case database.DialectSQLite:
+		return fs.Sub(files, "sqlite")
+	default:
+		return nil, errors.New("organization migration dialect is unsupported")
+	}
+}

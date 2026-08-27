@@ -1,0 +1,160 @@
+package organization
+
+import (
+	"context"
+	_ "embed"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"regexp"
+	"strings"
+
+	"github.com/getkin/kin-openapi/openapi3filter"
+
+	"go-admin/internal/contracts"
+	"go-admin/internal/modules/iam/session"
+	transport "go-admin/internal/modules/organization/transport"
+)
+
+//go:embed transport/openapi.json
+var openAPIDocument []byte
+
+var tracePattern = regexp.MustCompile(`^[a-f0-9]{16,64}$`)
+
+type SessionAuthorizer interface {
+	AuthorizeRequest(context.Context, string, string, bool) (session.Issued, error)
+}
+
+type httpContextKey struct{}
+
+type httpContext struct {
+	actorID string
+	csrf    string
+	trace   string
+	cookie  *string
+}
+
+type HTTPServer struct{ service *Service }
+
+func NewHTTPHandler(service *Service, sessions SessionAuthorizer, traceID contracts.TraceIDProvider) (http.Handler, error) {
+	if service == nil || sessions == nil || traceID == nil {
+		return nil, errors.New("organization HTTP dependencies are required")
+	}
+	server := &HTTPServer{service: service}
+	strict := transport.NewStrictHandlerWithOptions(server, nil, transport.StrictHTTPServerOptions{
+		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, _ error) {
+			writeProblem(w, problem(transport.Validation, "REQUEST_INVALID", "Request validation failed", traceID(r), http.StatusBadRequest))
+		},
+		ResponseErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, _ error) {
+			writeProblem(w, problem(transport.Internal, "INTERNAL_ERROR", "Internal server error", traceID(r), http.StatusInternalServerError))
+		},
+	})
+	router := transport.HandlerWithOptions(strict, transport.ChiServerOptions{ErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, _ error) {
+		writeProblem(w, problem(transport.Validation, "REQUEST_INVALID", "Request validation failed", traceID(r), http.StatusBadRequest))
+	}})
+	validated, err := contracts.NewRequestValidator(openAPIDocument, router, traceID, contracts.RequestValidatorOptions{
+		MaxBodyBytes:       contracts.DefaultMaxRequestBodyBytes,
+		AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		cookie, _ := r.Cookie(session.CookieName)
+		token := ""
+		if cookie != nil {
+			token = cookie.Value
+		}
+		issued, authErr := sessions.AuthorizeRequest(r.Context(), token, r.Header.Get("X-CSRF-Token"), r.Method != http.MethodGet && r.Method != http.MethodHead)
+		if authErr != nil {
+			switch {
+			case errors.Is(authErr, session.ErrCSRF):
+				writeProblem(w, problem(transport.Authorization, "CSRF_REJECTED", "Request authorization failed", traceID(r), http.StatusForbidden))
+			case errors.Is(authErr, session.ErrAuthentication):
+				writeProblem(w, problem(transport.Authentication, "SESSION_REQUIRED", "Authentication required", traceID(r), http.StatusUnauthorized))
+			default:
+				writeProblem(w, problem(transport.Internal, "INTERNAL_ERROR", "Internal server error", traceID(r), http.StatusInternalServerError))
+			}
+			return
+		}
+		value := httpContext{actorID: issued.Profile.ID, csrf: issued.CSRF, trace: traceID(r), cookie: replacementCookie(issued)}
+		w.Header().Set("X-CSRF-Token", value.csrf)
+		if value.cookie != nil {
+			w.Header().Set("Set-Cookie", *value.cookie)
+		}
+		validated.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), httpContextKey{}, value)))
+	}), nil
+}
+
+func replacementCookie(issued session.Issued) *string {
+	if !issued.Rotated {
+		return nil
+	}
+	value := (&http.Cookie{Name: session.CookieName, Value: issued.Token, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode}).String()
+	return &value
+}
+
+func requestHTTP(ctx context.Context) httpContext {
+	value, _ := ctx.Value(httpContextKey{}).(httpContext)
+	return value
+}
+
+func problem(category transport.ProblemCategory, code, title, trace string, status int) transport.Problem {
+	if !tracePattern.MatchString(trace) {
+		trace = "0000000000000000"
+	}
+	return transport.Problem{
+		Type:     "urn:go-admin-plus:problem:" + strings.ToLower(strings.ReplaceAll(code, "_", "-")),
+		Title:    title,
+		Status:   status,
+		Category: category,
+		Code:     code,
+		TraceId:  trace,
+	}
+}
+
+func writeProblem(w http.ResponseWriter, value transport.Problem) {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(value.Status)
+	_ = json.NewEncoder(w).Encode(value)
+}
+
+func responseHeaders(ctx context.Context) (*string, *string) {
+	value := requestHTTP(ctx)
+	csrf := value.csrf
+	return &csrf, value.cookie
+}
+
+func validationProblem(ctx context.Context) transport.ValidationProblemApplicationProblemPlusJSONResponse {
+	csrf, cookie := responseHeaders(ctx)
+	return transport.ValidationProblemApplicationProblemPlusJSONResponse{Body: problem(transport.Validation, "REQUEST_INVALID", "Request validation failed", requestHTTP(ctx).trace, 400), Headers: transport.ValidationProblemResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}
+}
+
+func authorizationProblem(ctx context.Context) transport.AuthorizationProblemApplicationProblemPlusJSONResponse {
+	csrf, cookie := responseHeaders(ctx)
+	return transport.AuthorizationProblemApplicationProblemPlusJSONResponse{Body: problem(transport.Authorization, "PERMISSION_DENIED", "Request authorization failed", requestHTTP(ctx).trace, 403), Headers: transport.AuthorizationProblemResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}
+}
+
+func notFoundProblem(ctx context.Context) transport.NotFoundProblemApplicationProblemPlusJSONResponse {
+	csrf, cookie := responseHeaders(ctx)
+	return transport.NotFoundProblemApplicationProblemPlusJSONResponse{Body: problem(transport.NotFound, "RESOURCE_NOT_FOUND", "Resource not found", requestHTTP(ctx).trace, 404), Headers: transport.NotFoundProblemResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}
+}
+
+func conflictProblem(ctx context.Context) transport.ConflictProblemApplicationProblemPlusJSONResponse {
+	csrf, cookie := responseHeaders(ctx)
+	return transport.ConflictProblemApplicationProblemPlusJSONResponse{Body: problem(transport.Conflict, "RESOURCE_CONFLICT", "Resource conflict", requestHTTP(ctx).trace, 409), Headers: transport.ConflictProblemResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}
+}
+
+func internalProblem(ctx context.Context) transport.InternalProblemApplicationProblemPlusJSONResponse {
+	csrf, cookie := responseHeaders(ctx)
+	return transport.InternalProblemApplicationProblemPlusJSONResponse{Body: problem(transport.Internal, "INTERNAL_ERROR", "Internal server error", requestHTTP(ctx).trace, 500), Headers: transport.InternalProblemResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}
+}
+
+func transportDepartment(value Department) transport.Department {
+	return transport.Department{Id: value.ID, Key: value.Key, Name: value.Name, ParentId: value.ParentID, SortOrder: value.SortOrder, Protected: value.Protected}
+}
+
+func transportPosition(value Position) transport.Position {
+	return transport.Position{Id: value.ID, Key: value.Key, Name: value.Name, DepartmentId: value.DepartmentID, Enabled: value.Enabled, Protected: value.Protected}
+}

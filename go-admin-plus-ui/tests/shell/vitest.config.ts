@@ -8,7 +8,9 @@ export default defineConfig({
       'packages/domains/iam/src/session/**/*.spec.ts',
       'packages/web-domains/iam/src/session/**/*.spec.ts',
       'packages/domains/demo/src/**/*.spec.ts',
-      'packages/web-domains/demo/src/**/*.spec.ts'
+      'packages/web-domains/demo/src/**/*.spec.ts',
+      'packages/domains/organization/src/**/*.spec.ts',
+      'packages/web-domains/organization/src/**/*.spec.ts'
     ]
   }
 })
