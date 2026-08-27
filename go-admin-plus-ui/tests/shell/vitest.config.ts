@@ -11,6 +11,8 @@ export default defineConfig({
       'packages/web-domains/demo/src/**/*.spec.ts',
       'packages/domains/organization/src/**/*.spec.ts',
       'packages/web-domains/organization/src/**/*.spec.ts',
+      'packages/domains/generator/src/**/*.spec.ts',
+      'packages/web-domains/generator/src/**/*.spec.ts',
       'packages/adapters/desktop/src/**/*.spec.ts'
     ]
   }
