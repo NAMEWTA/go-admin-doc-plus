@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-20
 title: Windows x64 NSIS 发行切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: Windows 原生签名、安装、首次启动、重启和卸载边界需要受保护发行 Gate
 ready: true
 risk: critical
 blocked_by: [T-17]
 contract_ids: [AC-032, AC-033]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>release/windows/**</Path>", "<Path>scripts/release/windows/**</Path>", "<Path>.github/workflows/release-windows.yml</Path>"]
 writable_paths: ["<Path>release/windows/**</Path>", "<Path>scripts/release/windows/**</Path>", "<Path>.github/workflows/release-windows.yml</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/**</Path>", "<Path>release/shared/sidecar/**</Path>"]

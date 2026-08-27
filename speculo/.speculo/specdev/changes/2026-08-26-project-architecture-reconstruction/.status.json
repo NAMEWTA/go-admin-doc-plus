@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T22:58:30+08:00",
+  "updated_at": "2026-08-27T23:01:54+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -1162,36 +1162,79 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-19",
       "source_checkpoint": "6c97064f78719b6a9ceaa91d8a6fed5d92b5695d",
       "integration": {
-      "status": "passed",
-      "parent_ref": "refs/heads/main",
-      "parent_before_sha": "53d3d6cba17d3e33c983a6218ad0dc51c5371668",
-      "source_sha": "6c97064f78719b6a9ceaa91d8a6fed5d92b5695d",
-      "candidate_sha": "f18d765246aad076f92c5ae8fda2732283a4186a",
-      "candidate_tree_sha": "70dfb8f37d17314fd19932b93f11ab3953722a3b",
-      "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-19-attempt-2",
-      "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-19-attempt-2",
-      "result_sha": "f18d765246aad076f92c5ae8fda2732283a4186a",
-      "method": "merge-commit",
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "53d3d6cba17d3e33c983a6218ad0dc51c5371668",
+        "source_sha": "6c97064f78719b6a9ceaa91d8a6fed5d92b5695d",
+        "candidate_sha": "f18d765246aad076f92c5ae8fda2732283a4186a",
+        "candidate_tree_sha": "70dfb8f37d17314fd19932b93f11ab3953722a3b",
+        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-19-attempt-2",
+        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-19-attempt-2",
+        "result_sha": "f18d765246aad076f92c5ae8fda2732283a4186a",
+        "method": "merge-commit",
         "conflict_paths": [],
-      "verification": "passed",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-        "status": "passed",
-        "reason": "Attempt 2 passed full Go normal/SQLite/race/vet/build/module, frozen 25-workspace lint/typecheck/132 tests/7 boundaries/Web and Desktop builds, Rust 19 tests/clippy/release check, 28 contract tests/generate/API client, governance, Task contract, macOS policy/parse, Universal app/resource verification, path, clean-tree, and Goal Plan gates",
-        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>"
+          "status": "passed",
+          "reason": "Attempt 2 passed full Go normal/SQLite/race/vet/build/module, frozen 25-workspace lint/typecheck/132 tests/7 boundaries/Web and Desktop builds, Rust 19 tests/clippy/release check, 28 contract tests/generate/API client, governance, Task contract, macOS policy/parse, Universal app/resource verification, path, clean-tree, and Goal Plan gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
           "reason": "Native installed launch, login, Demo CRUD, Generator, persistence, restart, signing, notarization, and Gatekeeper scenarios are deferred to the single unified final system E2E on the protected macOS runner",
-        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>"
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>",
-      "attempts": 2,
-      "promotion_status": "applied"
+        "attempts": 2,
+        "promotion_status": "applied"
       },
       "status": "review",
-    "updated_at": "2026-08-27T22:58:30+08:00"
+      "updated_at": "2026-08-27T22:58:30+08:00"
+    },
+    {
+      "ticket_id": "T-20",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "af22c2cf3d721937a4c1d8236776b47a309d4a8c",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-20",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-20",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G6 requires Windows x64 Tauri/sidecar build, production-only Authenticode and NSIS policy, install/restart/uninstall boundary scripts, checksums, SBOM, provenance, workflow failure, path, and clean-tree checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "Native signed install, login, Demo CRUD, Generator, persistence, restart, uninstall data boundary, and Windows trust scenarios are deferred to the single unified final system E2E on the protected Windows runner",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-20.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T23:01:54+08:00"
     }
   ]
 }
