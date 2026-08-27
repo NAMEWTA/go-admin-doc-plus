@@ -1,0 +1,65 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)] [string] $Version,
+    [Parameter(Mandatory = $true)] [string] $OutputDirectory
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+if (-not $IsWindows -or $env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'Windows x64 build host required.' }
+if ($Version -notmatch '^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$') { throw 'Invalid release version.' }
+if (Test-Path -LiteralPath $OutputDirectory) { throw 'Release output already exists.' }
+foreach ($name in @('AZURE_ARTIFACT_SIGNING_ENDPOINT', 'AZURE_ARTIFACT_SIGNING_ACCOUNT', 'AZURE_ARTIFACT_SIGNING_PROFILE')) {
+    if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) { throw "Missing protected signing input: $name" }
+}
+
+$repository = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
+$identity = Get-Content -LiteralPath (Join-Path $repository 'release/windows/identity.json') -Raw | ConvertFrom-Json
+if ($identity.releaseClass -ne 'signed-production' -or -not $identity.signingRequired -or $identity.targetTriple -ne 'x86_64-pc-windows-msvc') {
+    throw 'Windows release identity is not production-ready.'
+}
+$work = Join-Path $env:RUNNER_TEMP "go-admin-windows-release-$([guid]::NewGuid().ToString('N'))"
+$runtime = Join-Path $work 'generator'
+New-Item -ItemType Directory -Path $work | Out-Null
+try {
+    & (Join-Path $PSScriptRoot 'prepare-generator-runtime.ps1') -OutputDirectory $runtime
+    if ($LASTEXITCODE -ne 0) { throw 'Generator runtime preparation failed.' }
+    node (Join-Path $repository 'release/shared/sidecar/build.mjs') --target $identity.targetTriple
+    if ($LASTEXITCODE -ne 0) { throw 'Windows sidecar build failed.' }
+    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin/admin-desktop' build
+    if ($LASTEXITCODE -ne 0) { throw 'Desktop frontend build failed.' }
+
+    $signCommand = (Resolve-Path (Join-Path $PSScriptRoot 'sign.cmd')).Path
+    $resourceMap = [ordered]@{}
+    $resourceMap[$runtime] = 'generator'
+    $config = [ordered]@{
+        version = $Version
+        bundle = [ordered]@{
+            publisher = $identity.publisher
+            targets = @('nsis')
+            resources = $resourceMap
+            windows = [ordered]@{
+                signCommand = "`"$signCommand`" %1"
+                digestAlgorithm = 'sha256'
+                webviewInstallMode = [ordered]@{ type = 'offlineInstaller' }
+                nsis = [ordered]@{ installMode = 'currentUser'; displayLanguageSelector = $false }
+            }
+        }
+    } | ConvertTo-Json -Depth 12 -Compress
+    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin/admin-desktop' exec tauri build `
+        --target $identity.targetTriple --features custom-protocol --bundles nsis --config $config
+    if ($LASTEXITCODE -ne 0) { throw 'Signed Tauri NSIS build failed.' }
+
+    $target = Join-Path $repository "go-admin-plus-ui/apps/admin-desktop/src-tauri/target/$($identity.targetTriple)/release"
+    $application = Join-Path $target 'go-admin-plus-desktop.exe'
+    $installer = Get-ChildItem -LiteralPath (Join-Path $target 'bundle/nsis') -Filter '*-setup.exe' -File
+    if (-not (Test-Path -LiteralPath $application) -or $installer.Count -ne 1) { throw 'Expected Tauri outputs are incomplete.' }
+    New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
+    $canonicalInstaller = Join-Path $OutputDirectory "$($identity.artifactBasename)-$Version-windows-x64-setup.exe"
+    Copy-Item -LiteralPath $application -Destination (Join-Path $OutputDirectory 'go-admin-plus-desktop.exe')
+    Copy-Item -LiteralPath $installer[0].FullName -Destination $canonicalInstaller
+    & (Join-Path $PSScriptRoot 'verify-artifacts.ps1') -Version $Version -InstallerFile $canonicalInstaller -ApplicationFile (Join-Path $OutputDirectory 'go-admin-plus-desktop.exe')
+    Write-Host 'GO_ADMIN_WINDOWS_NSIS_BUILD_PASS'
+} finally {
+    Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+}
