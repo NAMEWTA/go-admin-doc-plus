@@ -51,6 +51,8 @@ func TestBuildAssemblesEveryHTTPModuleAndWorkerLifecycle(t *testing.T) {
 	}
 
 	paths := []string{
+		"/api/runtime/identity",
+		"/api/runtime/navigation",
 		"/api/iam/session/current",
 		"/api/iam/administration/manifest",
 		"/api/audit/records?page=1&pageSize=20",

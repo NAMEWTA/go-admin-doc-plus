@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"os"
@@ -98,6 +99,7 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	if err != nil {
 		return Runtime{}, errors.New("product administration transport failed")
 	}
+	shellHandler := newShellRuntimeHandler(sessions, authorization.NewService(db))
 
 	auditAuthorizer, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
 	if err != nil {
@@ -233,7 +235,7 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 
 	root := http.NewServeMux()
 	modules := []application.Module{
-		newRouteModule(ModuleIAM, nil, route{"/api/iam/session/", sessionHandler}, route{"/api/iam/administration/", adminHandler}),
+		newRouteModule(ModuleIAM, nil, route{"/api/iam/session/", sessionHandler}, route{"/api/iam/administration/", adminHandler}, route{"/api/runtime/", shellHandler}),
 		newRouteModule(ModuleAudit, nil, route{"/api/audit/", auditHandler}),
 		newRouteModule(ModuleOrganization, nil, route{"/api/organization/", organizationHandler}),
 		newRouteModule(ModuleSettings, nil, route{"/api/settings/", settingsHandler}),
@@ -307,6 +309,72 @@ func secureTraceID(*http.Request) string {
 		return "0000000000000000"
 	}
 	return hex.EncodeToString(value[:])
+}
+
+type shellRuntimeHandler struct {
+	sessions      *session.Service
+	authorization *authorization.Service
+}
+
+func newShellRuntimeHandler(sessions *session.Service, service *authorization.Service) http.Handler {
+	return &shellRuntimeHandler{sessions: sessions, authorization: service}
+}
+
+func (handler *shellRuntimeHandler) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Cache-Control", "no-store")
+	if request.Method != http.MethodGet {
+		response.Header().Set("Allow", http.MethodGet)
+		response.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	cookie, _ := request.Cookie(session.CookieName)
+	if cookie == nil {
+		response.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	issued, err := handler.sessions.Current(request.Context(), cookie.Value)
+	if errors.Is(err, session.ErrAuthentication) {
+		response.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	manifest, err := handler.authorization.Manifest(request.Context(), issued.Profile.ID)
+	if errors.Is(err, authorization.ErrDenied) {
+		response.WriteHeader(http.StatusForbidden)
+		return
+	}
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("X-CSRF-Token", issued.CSRF)
+	if issued.Rotated {
+		http.SetCookie(response, &http.Cookie{Name: session.CookieName, Value: issued.Token, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+	}
+	switch request.URL.Path {
+	case "/runtime/identity":
+		_ = json.NewEncoder(response).Encode(struct {
+			Kind        string   `json:"kind"`
+			SubjectID   string   `json:"subjectId"`
+			Permissions []string `json:"permissions"`
+		}{Kind: "authenticated", SubjectID: issued.Profile.ID, Permissions: manifest.Permissions})
+	case "/runtime/navigation":
+		type navigation struct {
+			Path       string `json:"path"`
+			Permission string `json:"permission"`
+		}
+		entries := make([]navigation, len(manifest.Menus))
+		for index, menu := range manifest.Menus {
+			entries[index] = navigation{Path: menu.Path, Permission: menu.PermissionCode}
+		}
+		_ = json.NewEncoder(response).Encode(entries)
+	default:
+		response.WriteHeader(http.StatusNotFound)
+	}
 }
 
 type route struct {
