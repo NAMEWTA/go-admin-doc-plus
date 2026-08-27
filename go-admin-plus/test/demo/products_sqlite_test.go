@@ -83,6 +83,7 @@ func TestSQLiteCRUDConflictScopeAtomicDeleteAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer rows.Close()
+	foundNameKey := false
 	for rows.Next() {
 		var position, notNull, primaryKey int
 		var name, dataType string
@@ -93,6 +94,15 @@ func TestSQLiteCRUDConflictScopeAtomicDeleteAndRestart(t *testing.T) {
 		if strings.Contains(strings.ToLower(name), "tenant") {
 			t.Fatalf("forbidden tenant column %q", name)
 		}
+		if name == "name_key" {
+			foundNameKey = true
+			if notNull != 1 {
+				t.Fatal("name_key must be private and non-null")
+			}
+		}
+	}
+	if !foundNameKey {
+		t.Fatal("deterministic name_key column is missing")
 	}
 }
 
@@ -143,6 +153,23 @@ func runDialectCRUDContract(t *testing.T, db *database.Database) {
 	}
 	if _, err := all.Get(context.Background(), "contract-owner-a", first.ID); err != nil {
 		t.Fatalf("batch delete was not atomic: %v", err)
+	}
+	unicodeFixtures := []demo.ProductInput{
+		{SKU: "UNICODE-01", Name: "界界界", Description: "Unicode fixture", PriceCents: 30, Status: "active"},
+		{SKU: "UNICODE-02", Name: "😀Alpha", Description: "Astral fixture", PriceCents: 40, Status: "active"},
+	}
+	for _, fixture := range unicodeFixtures {
+		if _, err := all.Create(context.Background(), "contract-owner-a", fixture); err != nil {
+			t.Fatalf("Unicode fixture create = %v", err)
+		}
+	}
+	searched, err := all.List(context.Background(), "contract-owner-a", demo.ListQuery{Search: "😀a", Page: 1, PageSize: 20, Sort: "name", Direction: "ascending"})
+	if err != nil || searched.Total != 1 || len(searched.Rows) != 1 || searched.Rows[0].SKU != "UNICODE-02" {
+		t.Fatalf("Unicode search = %#v err=%v", searched, err)
+	}
+	ordered, err := all.List(context.Background(), "contract-owner-a", demo.ListQuery{Search: "unicode-", Page: 1, PageSize: 20, Sort: "name", Direction: "ascending"})
+	if err != nil || ordered.Total != 2 || len(ordered.Rows) != 2 || ordered.Rows[0].SKU != "UNICODE-01" || ordered.Rows[1].SKU != "UNICODE-02" {
+		t.Fatalf("Unicode name ordering = %#v err=%v", ordered, err)
 	}
 }
 

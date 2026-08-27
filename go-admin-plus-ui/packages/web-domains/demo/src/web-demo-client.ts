@@ -1,6 +1,7 @@
 import { createContractClient, DemoRequestError, type DemoClient, type DemoFailure } from '@go-admin/domain-demo'
 
 interface Problem { category?: string; code?: string }
+const csrfPattern = /^[A-Za-z0-9_-]{43}$/
 
 export const createWebDemoClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): DemoClient => {
   let csrf = ''
@@ -16,6 +17,7 @@ export const createWebDemoClient = (fetcher: typeof fetch = fetch, baseUrl = '/a
     if (csrf && input.method !== 'GET') headers.set('X-CSRF-Token', csrf)
     const response = await fetcher(new Request(input, { credentials: 'include', headers }))
     const next = response.headers.get('X-CSRF-Token')
+    if (next !== null && !csrfPattern.test(next)) { csrf = ''; classified = 'relogin'; throw new DemoRequestError('relogin') }
     const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
     classified = classify(response.status, body)
     if (next) csrf = next

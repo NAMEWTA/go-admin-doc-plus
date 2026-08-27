@@ -3,10 +3,12 @@ package demo
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"go-admin/internal/platform/database"
 )
@@ -82,8 +84,9 @@ func normalizeInput(input ProductInput) (ProductInput, bool) {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Description = strings.TrimSpace(input.Description)
 	input.Status = strings.ToLower(strings.TrimSpace(input.Status))
-	valid := skuPattern.MatchString(input.SKU) && len(input.Name) >= 3 && len(input.Name) <= 120 &&
-		len(input.Description) <= 500 && input.PriceCents >= 0 && input.PriceCents <= 100_000_000 &&
+	nameLength, descriptionLength := runeLength(input.Name), runeLength(input.Description)
+	valid := skuPattern.MatchString(input.SKU) && nameLength >= 3 && nameLength <= 120 &&
+		descriptionLength >= 0 && descriptionLength <= 500 && input.PriceCents >= 0 && input.PriceCents <= 100_000_000 &&
 		(input.Status == "active" || input.Status == "inactive")
 	return input, valid
 }
@@ -97,7 +100,19 @@ func normalizeQuery(query ListQuery) (ListQuery, bool) {
 		query.Direction = "descending"
 	}
 	validSort := query.Sort == "sku" || query.Sort == "name" || query.Sort == "priceCents" || query.Sort == "updatedAt"
-	return query, len(query.Search) <= 100 && query.Page >= 1 && query.Page <= MaximumPage &&
+	return query, runeLength(query.Search) >= 0 && runeLength(query.Search) <= 100 && query.Page >= 1 && query.Page <= MaximumPage &&
 		query.PageSize >= 1 && query.PageSize <= 100 && validSort &&
 		(query.Direction == "ascending" || query.Direction == "descending")
+}
+
+func runeLength(value string) int {
+	if !utf8.ValidString(value) {
+		return -1
+	}
+	return utf8.RuneCountInString(value)
+}
+
+// normalizedNameKey makes Unicode search and ordering independent of database collation.
+func normalizedNameKey(value string) string {
+	return hex.EncodeToString([]byte(strings.ToLower(value)))
 }

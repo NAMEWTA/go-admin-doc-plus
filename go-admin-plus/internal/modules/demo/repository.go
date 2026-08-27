@@ -12,17 +12,17 @@ import (
 
 // productRecord is private persistence state; transport/domain types never reach SQL directly.
 type productRecord struct {
-	ID, OwnerAccountID, SKU, Name, Description, Status string
-	PriceCents, Revision                               int64
-	CreatedAt, UpdatedAt                               time.Time
+	ID, OwnerAccountID, SKU, Name, NameKey, Description, Status string
+	PriceCents, Revision                                        int64
+	CreatedAt, UpdatedAt                                        time.Time
 }
 
 type repository struct{ dialect database.Dialect }
 
 func (r repository) create(ctx context.Context, tx database.Tx, record productRecord) error {
 	_, err := tx.ExecContext(ctx, `INSERT INTO demo_products
-		(id, owner_account_id, sku, name, description, price_cents, status, revision, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, record.ID, record.OwnerAccountID, record.SKU, record.Name,
+		(id, owner_account_id, sku, name, name_key, description, price_cents, status, revision, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, record.ID, record.OwnerAccountID, record.SKU, record.Name, record.NameKey,
 		record.Description, record.PriceCents, record.Status, record.Revision, record.CreatedAt, record.UpdatedAt)
 	return err
 }
@@ -52,15 +52,23 @@ func (r repository) list(ctx context.Context, tx database.Tx, actorID string, sc
 		clauses, args = append(clauses, "owner_account_id = ?"), append(args, actorID)
 	}
 	if query.Search != "" {
-		value := "%" + query.Search + "%"
-		clauses, args = append(clauses, "(lower(sku) LIKE ? OR lower(name) LIKE ?)"), append(args, value, value)
+		skuValue := "%" + query.Search + "%"
+		nameValue := "%" + normalizedNameKey(query.Search) + "%"
+		clauses, args = append(clauses, "(lower(sku) LIKE ? OR name_key LIKE ?)"), append(args, skuValue, nameValue)
 	}
 	where := " WHERE " + strings.Join(clauses, " AND ")
 	var result Page
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM demo_products`+where, args...).Scan(&result.Total); err != nil {
 		return Page{}, err
 	}
-	columns := map[string]string{"sku": "sku", "name": "name", "priceCents": "price_cents", "updatedAt": "updated_at"}
+	columns := map[string]string{"sku": "sku", "name": "name_key", "priceCents": "price_cents", "updatedAt": "updated_at"}
+	if query.Sort == "name" {
+		if r.dialect == database.DialectPostgres {
+			columns["name"] = `name_key COLLATE "C"`
+		} else {
+			columns["name"] = "name_key COLLATE BINARY"
+		}
+	}
 	directions := map[string]string{"ascending": "ASC", "descending": "DESC"}
 	statement := `SELECT id, owner_account_id, sku, name, description, price_cents, status, revision, created_at, updated_at FROM demo_products` + where +
 		` ORDER BY ` + columns[query.Sort] + ` ` + directions[query.Direction] + `, id ASC LIMIT ? OFFSET ?`
@@ -86,8 +94,8 @@ func (r repository) update(ctx context.Context, tx database.Tx, record productRe
 	if !validScope(scope) {
 		return ErrDenied
 	}
-	query := `UPDATE demo_products SET sku = ?, name = ?, description = ?, price_cents = ?, status = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?`
-	args := []any{record.SKU, record.Name, record.Description, record.PriceCents, record.Status, record.UpdatedAt, record.ID, expectedRevision}
+	query := `UPDATE demo_products SET sku = ?, name = ?, name_key = ?, description = ?, price_cents = ?, status = ?, revision = revision + 1, updated_at = ? WHERE id = ? AND revision = ?`
+	args := []any{record.SKU, record.Name, record.NameKey, record.Description, record.PriceCents, record.Status, record.UpdatedAt, record.ID, expectedRevision}
 	if scope == ScopeSelf {
 		query, args = query+` AND owner_account_id = ?`, append(args, actorID)
 	}

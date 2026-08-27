@@ -2,6 +2,7 @@ package demo_test
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -51,7 +52,7 @@ func TestDemoBrowserHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	profile := os.Getenv(demoProfile)
-	opener, cleanup := demoDatabaseOpener(t, ctx, profile)
+	opener, cleanup, expectedSchema := demoDatabaseOpener(t, ctx, profile)
 	defer cleanup()
 	current := &switchingHandler{}
 	type liveRuntime struct {
@@ -64,7 +65,7 @@ func TestDemoBrowserHarnessServer(t *testing.T) {
 		db := opener()
 		if profile == "postgres" {
 			var schema string
-			if err := db.Bun().QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err != nil || !strings.HasPrefix(schema, "t14_demo_") {
+			if err := db.Bun().QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err != nil || schema != expectedSchema {
 				t.Fatalf("demo harness PostgreSQL schema is not isolated current=%q err=%v", schema, err)
 			}
 		}
@@ -286,12 +287,14 @@ func seedDemoBrowserAccounts(t *testing.T, ctx context.Context, db *database.Dat
 func seedForeignDemoProduct(t *testing.T, ctx context.Context, db *database.Database) {
 	t.Helper()
 	now := time.Now().UTC()
-	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO demo_products(id, owner_account_id, sku, name, description, price_cents, status, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`, "00000000-0000-4000-8000-000000000099", demoForeignID, "FOREIGN-01", "Foreign product", "scope probe", 1, "active", 1, now, now); err != nil {
+	name := "Foreign product"
+	nameKey := hex.EncodeToString([]byte(strings.ToLower(name)))
+	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO demo_products(id, owner_account_id, sku, name, name_key, description, price_cents, status, revision, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING`, "00000000-0000-4000-8000-000000000099", demoForeignID, "FOREIGN-01", name, nameKey, "scope probe", 1, "active", 1, now, now); err != nil {
 		t.Fatal("foreign demo seed failed")
 	}
 }
 
-func demoDatabaseOpener(t *testing.T, ctx context.Context, profile string) (func() *database.Database, func()) {
+func demoDatabaseOpener(t *testing.T, ctx context.Context, profile string) (func() *database.Database, func(), string) {
 	t.Helper()
 	if profile == "sqlite" {
 		if os.Getenv(postgresEnvironment) != "" {
@@ -304,7 +307,7 @@ func demoDatabaseOpener(t *testing.T, ctx context.Context, profile string) (func
 				t.Fatal("SQLite demo harness open failed")
 			}
 			return db
-		}, func() {}
+		}, func() {}, ""
 	}
 	if profile != "postgres" {
 		t.Fatal("demo harness profile is invalid")
@@ -338,7 +341,7 @@ func demoDatabaseOpener(t *testing.T, ctx context.Context, profile string) (func
 		}
 		_ = admin.Close()
 	}
-	return open, cleanup
+	return open, cleanup, schema
 }
 
 func demoSearchPath(t *testing.T, dsn, schema string) string {

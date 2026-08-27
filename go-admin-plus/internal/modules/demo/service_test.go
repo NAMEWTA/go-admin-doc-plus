@@ -120,6 +120,26 @@ func TestInputAndQueryValidation(t *testing.T) {
 	if _, ok := normalizeQuery(ListQuery{Page: 1, PageSize: 20, Sort: "price_cents desc; drop table"}); ok {
 		t.Fatal("accepted unlisted sort")
 	}
+	for _, value := range []ProductInput{
+		{SKU: "RUNE-003", Name: strings.Repeat("😀", 3), Description: strings.Repeat("界", 500), Status: "active"},
+		{SKU: "RUNE-120", Name: strings.Repeat("😀", 120), Status: "active"},
+	} {
+		if _, ok := normalizeInput(value); !ok {
+			t.Fatalf("rejected rune boundary name=%d description=%d", runeLength(value.Name), runeLength(value.Description))
+		}
+	}
+	if _, ok := normalizeInput(ProductInput{SKU: "RUNE-121", Name: strings.Repeat("😀", 121), Status: "active"}); ok {
+		t.Fatal("accepted 121-rune name")
+	}
+	if _, ok := normalizeInput(ProductInput{SKU: "RUNE-501", Name: "Valid name", Description: strings.Repeat("😀", 501), Status: "active"}); ok {
+		t.Fatal("accepted 501-rune description")
+	}
+	if _, ok := normalizeQuery(ListQuery{Search: strings.Repeat("😀", 100), Page: 1, PageSize: 20}); !ok {
+		t.Fatal("rejected 100-rune search")
+	}
+	if _, ok := normalizeQuery(ListQuery{Search: strings.Repeat("😀", 101), Page: 1, PageSize: 20}); ok {
+		t.Fatal("accepted 101-rune search")
+	}
 }
 
 func TestNormalizePreservesContextSentinels(t *testing.T) {

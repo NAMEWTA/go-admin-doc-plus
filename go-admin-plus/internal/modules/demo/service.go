@@ -81,7 +81,7 @@ func (s *Service) Create(ctx context.Context, actorID string, input ProductInput
 	}
 	now := s.now().UTC()
 	record := productRecord{ID: uuid.NewString(), OwnerAccountID: actorID, SKU: input.SKU, Name: input.Name,
-		Description: input.Description, PriceCents: input.PriceCents, Status: input.Status, Revision: 1, CreatedAt: now, UpdatedAt: now}
+		NameKey: normalizedNameKey(input.Name), Description: input.Description, PriceCents: input.PriceCents, Status: input.Status, Revision: 1, CreatedAt: now, UpdatedAt: now}
 	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		if scope, err := s.auth.RequireInTx(ctx, tx, actorID, PermissionProductsWrite); err != nil {
 			return err
@@ -107,7 +107,7 @@ func (s *Service) Update(ctx context.Context, actorID, id string, revision int64
 		if !validScope(scope) {
 			return ErrDenied
 		}
-		result = productRecord{ID: id, SKU: input.SKU, Name: input.Name, Description: input.Description, PriceCents: input.PriceCents, Status: input.Status, UpdatedAt: s.now().UTC()}
+		result = productRecord{ID: id, SKU: input.SKU, Name: input.Name, NameKey: normalizedNameKey(input.Name), Description: input.Description, PriceCents: input.PriceCents, Status: input.Status, UpdatedAt: s.now().UTC()}
 		if err := s.repo.update(ctx, tx, result, revision, actorID, scope); err != nil {
 			return err
 		}

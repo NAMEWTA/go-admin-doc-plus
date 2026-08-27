@@ -13,6 +13,7 @@ const form = reactive<ProductInput & { id?: string; revision?: number }>(props.c
 const snapshot = computed(() => { void revision.value; return props.controller.list.snapshot() })
 const failure = computed(() => { void revision.value; return props.controller.failure() })
 const blocked = computed(() => { void revision.value; return props.controller.busy || props.controller.pendingRepair })
+const projectionVisible = computed(() => { void revision.value; return props.controller.projectionVisible })
 const canRead = computed(() => { void revision.value; return props.controller.can(demoPermissions.read) })
 const canWrite = computed(() => { void revision.value; return props.controller.can(demoPermissions.write) })
 const canDelete = computed(() => { void revision.value; return props.controller.can(demoPermissions.delete) })
@@ -41,7 +42,7 @@ const toggle = (product: Product, checked: boolean) => {
   else ids.delete(product.id)
   props.controller.list.select(snapshot.value.rows.filter(row => ids.has(row.id))); revision.value += 1
 }
-onMounted(() => { if (props.controller.can(demoPermissions.read)) void settle(() => props.controller.list.refresh()) })
+onMounted(() => { void settle(() => props.controller.list.refresh()) })
 </script>
 
 <template>
@@ -49,14 +50,15 @@ onMounted(() => { if (props.controller.can(demoPermissions.read)) void settle(()
     <header class="demo-products__header">
       <div><h1 id="demo-products-title">Products</h1><p>{{ canRead ? snapshot.total : 0 }} records</p></div>
       <button v-if="controller.pendingRepair" type="button" :disabled="controller.busy" data-testid="repair" @click="settle(() => controller.repairProjection())">Refresh results</button>
+      <button v-else-if="failure === 'unavailable'" type="button" :disabled="controller.busy" data-testid="retry" @click="settle(() => controller.list.refresh())">Retry</button>
     </header>
     <p v-if="failure" role="alert" :data-failure="failure">{{ failure }}</p>
-    <form v-if="canRead" class="demo-products__search" @submit.prevent="settle(() => controller.list.search({ search }))">
-      <label>Search <input v-model="search" name="search" maxlength="100"></label>
+    <form v-if="projectionVisible && canRead" class="demo-products__search" @submit.prevent="settle(() => controller.list.search({ search }))">
+      <label>Search <input v-model="search" name="search"></label>
       <button type="submit" :disabled="blocked">Search</button>
       <button type="button" :disabled="blocked" @click="search = ''; settle(() => controller.list.reset())">Reset</button>
     </form>
-    <div v-if="canRead" class="demo-products__grid">
+    <div v-if="projectionVisible && canRead" class="demo-products__grid">
       <div class="demo-products__table">
         <div v-if="canDelete" class="demo-products__actions"><button type="button" :disabled="blocked || selected.length === 0" @click="remove(selected)">Delete selected</button></div>
         <table><thead><tr><th aria-label="Select"></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'sku', direction: 'ascending' }))">SKU</button></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'name', direction: 'ascending' }))">Name</button></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'priceCents', direction: 'ascending' }))">Price</button></th><th>Status</th><th>Actions</th></tr></thead>
@@ -72,8 +74,8 @@ onMounted(() => { if (props.controller.can(demoPermissions.read)) void settle(()
         <h2>{{ editing ? 'Edit product' : 'Create product' }}</h2>
         <p v-if="formError" role="alert">{{ formError }}</p>
         <label>SKU <input v-model="form.sku" name="sku" maxlength="32" required></label>
-        <label>Name <input v-model="form.name" name="name" maxlength="120" required></label>
-        <label>Description <textarea v-model="form.description" name="description" maxlength="500"></textarea></label>
+        <label>Name <input v-model="form.name" name="name" required></label>
+        <label>Description <textarea v-model="form.description" name="description"></textarea></label>
         <label>Price <input v-model.number="form.priceCents" name="priceCents" type="number" min="0" max="100000000" required></label>
         <label>Status <select v-model="form.status" name="status"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
         <div><button type="submit" :disabled="blocked">Save</button><button type="button" :disabled="controller.busy" @click="resetForm">Cancel</button></div>

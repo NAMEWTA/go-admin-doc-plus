@@ -3,7 +3,6 @@ package demo_test
 import (
 	"context"
 	"os"
-	"strings"
 	"testing"
 
 	productsmigration "go-admin/internal/modules/demo/migrations/0010-products"
@@ -16,20 +15,20 @@ func TestPostgresCRUDContract(t *testing.T) {
 	if os.Getenv(postgresEnvironment) == "" {
 		t.Skip(postgresEnvironment + " is not configured")
 	}
-	opener, cleanup := demoDatabaseOpener(t, context.Background(), "postgres")
+	opener, cleanup, expectedSchema := demoDatabaseOpener(t, context.Background(), "postgres")
 	defer cleanup()
 	db := opener()
 	defer func() { _ = db.Close() }()
+	var schema string
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT current_schema()`).Scan(&schema); err != nil || schema != expectedSchema {
+		t.Fatalf("PostgreSQL contract is not isolated schema=%q err=%v", schema, err)
+	}
 	runner, err := migrations.NewRunner(productsmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := runner.Up(context.Background(), db); err != nil {
 		t.Fatal(err)
-	}
-	var schema string
-	if err := db.Bun().QueryRowContext(context.Background(), `SELECT current_schema()`).Scan(&schema); err != nil || !strings.HasPrefix(schema, "t14_demo_") {
-		t.Fatalf("PostgreSQL contract is not isolated schema=%q err=%v", schema, err)
 	}
 	runDialectCRUDContract(t, db)
 }

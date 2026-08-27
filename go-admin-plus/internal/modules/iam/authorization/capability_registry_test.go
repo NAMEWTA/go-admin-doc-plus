@@ -63,11 +63,11 @@ func TestCapabilityRegistryPostgresContract(t *testing.T) {
 		t.Fatal("isolated PostgreSQL registry open failed")
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	migrateRegistry(t, db)
 	var currentSchema string
 	if err := db.Bun().QueryRowContext(ctx, `SELECT current_schema()`).Scan(&currentSchema); err != nil || currentSchema != schema {
 		t.Fatalf("isolated schema mismatch: current=%q err=%v", currentSchema, err)
 	}
+	migrateRegistry(t, db)
 	runCapabilityRegistryContract(t, db)
 }
 

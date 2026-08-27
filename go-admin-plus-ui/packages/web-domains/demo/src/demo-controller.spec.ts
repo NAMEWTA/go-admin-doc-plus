@@ -5,6 +5,12 @@ import { createDemoController } from './demo-controller'
 const product = (id = '00000000-0000-4000-8000-000000000001', revision = 1): Product => ({ id, sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 10, status: 'active', revision, createdAt: '2026-08-27T00:00:00Z', updatedAt: '2026-08-27T00:00:00Z' })
 const input: ProductInput = { sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 10, status: 'active' }
 const allowAll = { can: () => true }
+const deferred = <T>() => {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((success, failure) => { resolve = success; reject = failure })
+  return { promise, resolve, reject }
+}
 
 const fixture = () => {
   let rows = [product()]
@@ -33,6 +39,7 @@ describe('demo controller', () => {
 
   it('fences new writes and repairs repeated refresh failures without duplicating create', async () => {
     const { client, controller } = fixture()
+    await controller.list.refresh()
     vi.mocked(client.list).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockResolvedValue({ rows: [product()], total: 1 })
     expect(await controller.save(input)).toBe('refresh-failed')
     expect(controller.pendingRepair).toBe(true)
@@ -49,6 +56,7 @@ describe('demo controller', () => {
     const { client } = fixture()
     const confirm = vi.fn(async () => true)
     const managed = createDemoController(client, confirm, allowAll)
+    await managed.list.refresh()
     vi.mocked(client.list).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockResolvedValue({ rows: [], total: 0 })
     expect(await managed.remove([product()])).toBe('refresh-failed')
     expect(await managed.remove([product('00000000-0000-4000-8000-000000000002')])).toBe('refresh-failed')
@@ -59,6 +67,7 @@ describe('demo controller', () => {
 
   it('repairs an edited projection without repeating update and exposes one completion', async () => {
     const { client, controller } = fixture()
+    await controller.list.refresh()
     vi.mocked(client.list).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockRejectedValueOnce(new DemoRequestError('unavailable')).mockResolvedValue({ rows: [product(undefined, 2)], total: 1 })
     expect(await controller.save({ ...input, id: product().id, revision: 1 })).toBe('refresh-failed')
     expect(await controller.repairProjection()).toBe('refresh-failed')
@@ -83,6 +92,8 @@ describe('demo controller', () => {
     expect(client.create).not.toHaveBeenCalled()
     expect(client.delete).not.toHaveBeenCalled()
     expect(controller.failure()).toBe('forbidden')
+    expect(controller.projectionVisible).toBe(false)
+    expect(controller.list.snapshot()).toMatchObject({ rows: [], total: 0, selectedKeys: [] })
   })
 
   it('classifies list failures and returns stable state', async () => {
@@ -90,5 +101,66 @@ describe('demo controller', () => {
     vi.mocked(client.list).mockRejectedValue(new DemoRequestError('forbidden'))
     await expect(controller.list.refresh()).rejects.toMatchObject({ category: 'forbidden' })
     expect(controller.failure()).toBe('forbidden')
+  })
+
+  for (const category of ['forbidden', 'relogin', 'unavailable'] as const) {
+    it(`hides a previously successful projection after a current ${category} failure and recovers`, async () => {
+      const { client, controller } = fixture()
+      await controller.list.refresh()
+      controller.list.select(controller.list.snapshot().rows)
+      expect(controller.projectionVisible).toBe(true)
+      vi.mocked(client.list).mockRejectedValueOnce(new DemoRequestError(category))
+      await expect(controller.list.refresh()).rejects.toMatchObject({ category })
+      expect(controller.failure()).toBe(category)
+      expect(controller.projectionVisible).toBe(false)
+      expect(controller.can(demoPermissions.write)).toBe(false)
+      expect(controller.list.snapshot()).toMatchObject({ rows: [], total: 0, selectedKeys: [] })
+      await controller.list.refresh()
+      expect(controller.failure()).toBeNull()
+      expect(controller.projectionVisible).toBe(true)
+      expect(controller.list.snapshot().rows).toHaveLength(1)
+    })
+  }
+
+  it('does not let stale success overwrite a current failure', async () => {
+    const { client, controller } = fixture()
+    const stale = deferred<{ rows: Product[]; total: number }>()
+    const current = deferred<{ rows: Product[]; total: number }>()
+    vi.mocked(client.list).mockImplementationOnce(() => stale.promise).mockImplementationOnce(() => current.promise)
+    const first = controller.list.refresh()
+    const second = controller.list.refresh()
+    current.reject(new DemoRequestError('unavailable'))
+    await expect(second).rejects.toMatchObject({ category: 'unavailable' })
+    stale.resolve({ rows: [product()], total: 1 })
+    await first
+    expect(controller.failure()).toBe('unavailable')
+    expect(controller.projectionVisible).toBe(false)
+    expect(controller.list.snapshot().rows).toEqual([])
+  })
+
+  it('does not let stale failure overwrite a current success', async () => {
+    const { client, controller } = fixture()
+    const stale = deferred<{ rows: Product[]; total: number }>()
+    const current = deferred<{ rows: Product[]; total: number }>()
+    vi.mocked(client.list).mockImplementationOnce(() => stale.promise).mockImplementationOnce(() => current.promise)
+    const first = controller.list.refresh()
+    const second = controller.list.refresh()
+    current.resolve({ rows: [product()], total: 1 })
+    await second
+    stale.reject(new DemoRequestError('forbidden'))
+    await first
+    expect(controller.failure()).toBeNull()
+    expect(controller.projectionVisible).toBe(true)
+    expect(controller.list.snapshot().rows).toHaveLength(1)
+  })
+
+  it('fails closed before the first projection when read permission is absent', async () => {
+    const { client } = fixture()
+    const controller = createDemoController(client, vi.fn(async () => true), { can: () => false })
+    await expect(controller.list.refresh()).rejects.toMatchObject({ category: 'forbidden' })
+    expect(client.list).not.toHaveBeenCalled()
+    expect(controller.projectionVisible).toBe(false)
+    expect(controller.can(demoPermissions.read)).toBe(false)
+    expect(controller.list.snapshot().rows).toEqual([])
   })
 })
