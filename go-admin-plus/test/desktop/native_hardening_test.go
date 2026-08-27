@@ -34,7 +34,11 @@ func TestNativeSingleInstanceLockAcrossProcesses(t *testing.T) {
 		return
 	}
 
-	root := filepath.Join(t.TempDir(), "app-data")
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(base, "app-data")
 	command := exec.Command(os.Args[0], "-test.run=^TestNativeSingleInstanceLockAcrossProcesses$")
 	command.Env = append(os.Environ(), lockHelperEnvironment+"=1", lockRootEnvironment+"="+root)
 	stdout, err := command.StdoutPipe()
@@ -54,7 +58,7 @@ func TestNativeSingleInstanceLockAcrossProcesses(t *testing.T) {
 		_ = command.Process.Kill()
 		t.Fatalf("helper readiness = %q, %v", ready, err)
 	}
-	if lock, err := desktopplatform.AcquireInstanceLock(root); !errors.Is(err, desktopplatform.ErrInstanceLocked) || lock != nil {
+	if lock, err := desktopplatform.AcquireSecureInstanceLock(root); !errors.Is(err, desktopplatform.ErrInstanceLocked) || lock != nil {
 		_ = command.Process.Kill()
 		t.Fatalf("second process lock = %#v, %v; want ErrInstanceLocked", lock, err)
 	}
@@ -65,7 +69,7 @@ func TestNativeSingleInstanceLockAcrossProcesses(t *testing.T) {
 		t.Fatalf("wait helper: %v", err)
 	}
 
-	lock, err := desktopplatform.AcquireInstanceLock(root)
+	lock, err := desktopplatform.AcquireSecureInstanceLock(root)
 	if err != nil {
 		t.Fatalf("reacquire after helper exit: %v", err)
 	}
@@ -75,7 +79,7 @@ func TestNativeSingleInstanceLockAcrossProcesses(t *testing.T) {
 }
 
 func runInstanceLockHelper() {
-	lock, err := desktopplatform.AcquireInstanceLock(os.Getenv(lockRootEnvironment))
+	lock, err := desktopplatform.AcquireSecureInstanceLock(os.Getenv(lockRootEnvironment))
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "acquire helper lock: %v\n", err)
 		os.Exit(2)

@@ -7,6 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@go-admin/platform": "workspace:*"
+    "@go-admin/domain-demo": "workspace:*",
+    "@go-admin/platform": "workspace:*",
+    "@tauri-apps/api": "2.11.1"
   }
 }

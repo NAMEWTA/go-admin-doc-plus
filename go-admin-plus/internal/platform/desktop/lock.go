@@ -41,9 +41,50 @@ func AcquireInstanceLock(dataRoot string) (*InstanceLock, error) {
 	if err := os.Chmod(realRoot, 0o700); err != nil {
 		return nil, fmt.Errorf("secure desktop lock root: %w", err)
 	}
-	file, err := os.OpenFile(filepath.Join(realRoot, instanceLockName), os.O_CREATE|os.O_RDWR, 0o600)
+	return acquireInstanceLock(realRoot, false)
+}
+
+// AcquireSecureInstanceLock is the Tauri sidecar lock boundary. The caller
+// must provide a canonical host-owned root with no symbolic-link ancestors.
+func AcquireSecureInstanceLock(dataRoot string) (*InstanceLock, error) {
+	dataRoot = strings.TrimSpace(dataRoot)
+	if dataRoot == "" {
+		return nil, errors.New("desktop data root is required for instance lock")
+	}
+	absolute, err := filepath.Abs(dataRoot)
+	if err != nil {
+		return nil, errors.New("desktop lock root is invalid")
+	}
+	realRoot, err := EnsurePrivateDirectory(absolute)
+	if err != nil {
+		return nil, errors.New("desktop lock root is unsafe")
+	}
+	return acquireInstanceLock(realRoot, true)
+}
+
+func acquireInstanceLock(realRoot string, secure bool) (*InstanceLock, error) {
+	lockPath := filepath.Join(realRoot, instanceLockName)
+	linkedInfo, statErr := os.Lstat(lockPath)
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("inspect desktop instance lock: %w", statErr)
+	}
+	if secure && statErr == nil && (!linkedInfo.Mode().IsRegular() || linkedInfo.Mode()&os.ModeSymlink != 0) {
+		return nil, errors.New("desktop instance lock is unsafe")
+	}
+	file, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("open desktop instance lock: %w", err)
+	}
+	if secure {
+		openedInfo, openStatErr := file.Stat()
+		pathInfo, pathStatErr := os.Lstat(lockPath)
+		if openStatErr != nil || pathStatErr != nil || !openedInfo.Mode().IsRegular() ||
+			!pathInfo.Mode().IsRegular() || pathInfo.Mode()&os.ModeSymlink != 0 ||
+			!os.SameFile(openedInfo, pathInfo) || (statErr == nil && !os.SameFile(linkedInfo, openedInfo)) ||
+			!privateSingleLink(file, openedInfo) {
+			_ = file.Close()
+			return nil, errors.New("desktop instance lock changed during open")
+		}
 	}
 	locked, err := tryLockFile(file)
 	if err != nil {

@@ -9,7 +9,11 @@ import (
 )
 
 func TestInstanceLockAllowsOnlyOneWriterAndCanBeReacquired(t *testing.T) {
-	root := filepath.Join(t.TempDir(), "app-data")
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(base, "app-data")
 	first, err := AcquireInstanceLock(root)
 	if err != nil {
 		t.Fatalf("Acquire first lock: %v", err)
@@ -42,5 +46,42 @@ func TestInstanceLockAllowsOnlyOneWriterAndCanBeReacquired(t *testing.T) {
 	}
 	if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		t.Fatalf("lock permissions = %o, want private", info.Mode().Perm())
+	}
+}
+
+func TestInstanceLockRejectsSymlinkAndHardlinkFiles(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows link creation needs elevated privileges")
+	}
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(base, "app-data")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(base, "outside")
+	if err := os.WriteFile(target, []byte("keep"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(root, instanceLockName)
+	if err := os.Symlink(target, lockPath); err != nil {
+		t.Fatal(err)
+	}
+	if lock, err := AcquireSecureInstanceLock(root); err == nil || lock != nil {
+		t.Fatal("symlink lock was accepted")
+	}
+	if bytes, _ := os.ReadFile(target); string(bytes) != "keep" {
+		t.Fatalf("symlink target changed: %q", bytes)
+	}
+	if err := os.Remove(lockPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(target, lockPath); err != nil {
+		t.Fatal(err)
+	}
+	if lock, err := AcquireSecureInstanceLock(root); err == nil || lock != nil {
+		t.Fatal("hardlinked lock was accepted")
 	}
 }
