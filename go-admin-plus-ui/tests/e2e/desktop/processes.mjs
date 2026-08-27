@@ -62,3 +62,40 @@ export const sidecarProcesses = async (run = execute) => {
   const output = await run('/usr/bin/pgrep', ['-lf', 'go-admin-sidecar'], { allowedExitCodes: [0, 1] })
   return parseSidecarProcesses(output)
 }
+
+const waitForSidecarsToExit = async (pids, query, pause, timeout = 5_000) => {
+  const deadline = Date.now() + timeout
+  let remaining = new Set(pids)
+  while (remaining.size !== 0) {
+    const current = await query()
+    remaining = new Set([...remaining].filter(pid => current.has(pid)))
+    if (remaining.size === 0 || Date.now() >= deadline) break
+    await pause(50)
+  }
+  return remaining
+}
+
+/** Reaps only exact approved sidecar processes absent from the pre-run baseline. */
+export const reapNewSidecars = async (baseline, {
+  query = sidecarProcesses,
+  signal = process.kill,
+  pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+  timeout = 5_000
+} = {}) => {
+  const current = await query()
+  const leaked = new Set([...current].filter(pid => !baseline.has(pid)))
+  const send = async (pid, name) => {
+    if (!(await query()).has(pid)) return
+    try {
+      signal(pid, name)
+    } catch (error) {
+      if (error?.code !== 'ESRCH') throw error
+    }
+  }
+  for (const pid of leaked) await send(pid, 'SIGTERM')
+  let remaining = await waitForSidecarsToExit(leaked, query, pause, timeout)
+  for (const pid of remaining) await send(pid, 'SIGKILL')
+  remaining = await waitForSidecarsToExit(remaining, query, pause, timeout)
+  if (remaining.size !== 0) throw new Error('desktop sidecar cleanup failed')
+  return leaked
+}

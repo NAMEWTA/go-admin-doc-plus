@@ -7,7 +7,7 @@ import { createConnection } from 'node:net'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execute, sidecarProcesses } from './processes.mjs'
+import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
 const maxOutput = 16 * 1024
@@ -21,7 +21,7 @@ const uiRoot = join(root, 'go-admin-plus-ui')
 const appRoot = join(uiRoot, 'apps/admin-desktop')
 const rustRoot = join(appRoot, 'src-tauri')
 const sidecarBinary = join(rustRoot, 'binaries/go-admin-sidecar-aarch64-apple-darwin')
-const hostBinary = join(rustRoot, 'target/debug/go-admin-plus-desktop')
+const hostBinary = join(rustRoot, 'target/release/go-admin-plus-desktop')
 
 if (process.env[enabled] !== '1') {
   process.stdout.write(`${JSON.stringify({ state: 'skipped', reason: `${enabled} is not enabled` })}\n`)
@@ -120,7 +120,7 @@ const restoreProductionArtifacts = async () => {
   await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts'], {
     cwd: appRoot, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
   })
-  await execute('cargo', ['build'], { cwd: rustRoot, timeout: 300_000 })
+  await execute('cargo', ['build', '--locked', '--quiet', '--release'], { cwd: rustRoot, timeout: 300_000 })
   if (await fileContains(sidecarBinary, '/__desktop/test-control') ||
     await fileContains(hostBinary, '/__desktop/test-control') ||
     await directoryContains(join(appRoot, 'dist'), 'E2E scope self')) {
@@ -292,7 +292,7 @@ const main = async () => {
       cwd: appRoot,
       env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', VITE_GO_ADMIN_NATIVE_E2E: '1' }
     })
-    await execute('cargo', ['build', '--features', 'native-e2e'], { cwd: rustRoot, timeout: 300_000 })
+    await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'native-e2e'], { cwd: rustRoot, timeout: 600_000 })
     const binary = hostBinary
 
     const failedRoot = join(workspace, 'failed')
@@ -406,8 +406,17 @@ const main = async () => {
       },
       () => deleteTestKeyring(failedKeyring),
       () => deleteTestKeyring(liveKeyring),
-      () => assertNoNewSidecars(sidecarBaseline),
+      async () => {
+        const leaked = await reapNewSidecars(sidecarBaseline)
+        if (leaked.size !== 0) throw new Error('desktop sidecar leak was recovered')
+      },
       () => restoreProductionArtifacts(),
+      async () => {
+        await assertNoNewSidecars(sidecarBaseline)
+        if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
+          throw new Error('native E2E left a test credential')
+        }
+      },
       () => rm(workspace, { recursive: true, force: true })
     ]
     for (const cleanup of cleanups) {
@@ -416,13 +425,6 @@ const main = async () => {
       } catch (error) {
         failure ??= error
       }
-    }
-    try {
-      if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
-        failure ??= new Error('native E2E left a test credential')
-      }
-    } catch (error) {
-      failure ??= error
     }
   }
   if (failure) throw failure

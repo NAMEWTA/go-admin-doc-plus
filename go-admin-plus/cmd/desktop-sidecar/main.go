@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,13 +22,15 @@ func main() {
 }
 
 func run() error {
-	material, err := desktopplatform.ReadLaunchMaterial(os.Stdin)
+	parentPipe := bufio.NewReader(os.Stdin)
+	material, err := desktopplatform.ReadLaunchMaterial(parentPipe)
 	if err != nil {
 		return err
 	}
 	parent, cancelSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancelSignals()
 	runCtx, stop := context.WithCancel(parent)
+	go cancelWhenParentPipeCloses(parentPipe, stop)
 	runtime, err := newSidecarRuntime(material, stop)
 	if err != nil {
 		return err
@@ -53,4 +57,13 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	return errors.Join(err, runtime.kernel.Drain(shutdownCtx))
+}
+
+func cancelWhenParentPipeCloses(reader io.Reader, stop context.CancelFunc) {
+	if reader == nil || stop == nil {
+		return
+	}
+	var unexpected [1]byte
+	_, _ = reader.Read(unexpected[:])
+	stop()
 }

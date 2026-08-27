@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { execute, parseSidecarProcesses, sidecarProcesses } from './processes.mjs'
+import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 test('native runner is a default skip with no environment prerequisites', () => {
   const result = spawnSync(process.execPath, [fileURLToPath(new URL('./run.mjs', import.meta.url))], {
@@ -52,4 +52,23 @@ test('bounded command failures wait for killed process pipes to close', async ()
     execute(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { timeout: 10 }),
     /timed out/
   )
+})
+
+test('cleanup signals only exact sidecars outside the baseline and verifies reaping', async () => {
+  const baseline = new Set([100])
+  let current = new Set([100, 200, 300])
+  const signals = []
+  const leaked = await reapNewSidecars(baseline, {
+    query: async () => new Set(current),
+    signal(pid, name) {
+      signals.push([pid, name])
+      if (pid === 200 && name === 'SIGTERM') current.delete(pid)
+      if (pid === 300 && name === 'SIGKILL') current.delete(pid)
+    },
+    pause: async () => {},
+    timeout: 0
+  })
+  assert.deepEqual([...leaked], [200, 300])
+  assert.deepEqual(signals, [[200, 'SIGTERM'], [300, 'SIGTERM'], [300, 'SIGKILL']])
+  assert.deepEqual([...current], [100])
 })
