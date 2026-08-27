@@ -52,7 +52,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 
 ## 当前执行环境
 
-- 用户最新决定把 native E2E 延后到全部 Ticket 实现集成后的统一系统 E2E，当前 macOS 锁屏不再阻塞 T-16 实现集成。此前原生诊断发现的 release asset、Accessibility 查询、宿主退出竞态和窗口显示顺序问题已经在 source `fdfa4afbe342edbd5b6feb00a8699780dd04caf4` 闭合；第 4 次 retained candidate 合入该 checkpoint 后只需从头通过全部非 E2E Gate。
+- 用户最新决定把 native E2E 延后到全部 Ticket 实现集成后的统一系统 E2E。source `fdfa4afbe342edbd5b6feb00a8699780dd04caf4` 已闭合 release asset、Accessibility 查询、宿主退出竞态和窗口显示顺序问题；第 4 次 retained candidate/result `cd50bfdbd24517c8b3e8f3565d75fae8c3f6a22a` 已从头通过全部非 E2E Gate并进入 `main`。T-16 当前为 `implemented-pending-final-e2e`，可解除 T-17 实现依赖但不能标记 done。
 
 ## 3. 范围边界
 
@@ -81,7 +81,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 2. 创建 Tauri 2 App、capabilities/CSP 和 target triple sidecar 配置。
 3. 实现 Go sidecar launch protocol、SQLite backup/migration/readiness。
 4. 实现 Stronghold transport proxy、Demo tracer 和有序 shutdown。
-5. 在 macOS/Windows 开发 runner 验证构建与原生行为。
+5. 已完成 macOS 开发环境的正式构建、静态安全和资源 Gate；macOS/Windows 原生行为登记到最终统一系统 E2E。
 
 ## 7. 路径访问契约
 

@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T15:40:47+08:00",
+  "updated_at": "2026-08-27T16:00:53+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -811,22 +811,22 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-16",
     "source_checkpoint": "fdfa4afbe342edbd5b6feb00a8699780dd04caf4",
       "integration": {
-      "status": "pending",
+      "status": "passed",
         "parent_ref": "refs/heads/main",
         "parent_before_sha": "ce21e84a432e5d882634399c4e607c94866442f9",
       "source_sha": "fdfa4afbe342edbd5b6feb00a8699780dd04caf4",
-      "candidate_sha": "61ba3d6a61d2f956505bac405738e22520a30f51",
-      "candidate_tree_sha": "5c6b9f5c45ecc0f80777867fb6e3c1b0d3b91edf",
+      "candidate_sha": "cd50bfdbd24517c8b3e8f3565d75fae8c3f6a22a",
+      "candidate_tree_sha": "901fdbb2d967164178da02faabba7e1811af6caf",
         "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
-        "result_sha": null,
+      "result_sha": "cd50bfdbd24517c8b3e8f3565d75fae8c3f6a22a",
         "method": "merge-commit",
         "conflict_paths": [],
-      "verification": "pending",
+      "verification": "passed",
         "full_suite": {
           "required": true,
-        "status": "pending",
-        "reason": "G4 requires a from-scratch rerun of Tauri 2, sidecar, Stronghold, SQLite migration, Go/Rust/TypeScript, hardening, release build, and package checks after merging the latest source into the retained attempt-4 candidate",
+        "status": "passed",
+        "reason": "Retained attempt 4 passed from-scratch Go normal/SQLite/tag/race/vet/CGO0/module, frozen pnpm verify/build, Rust default/native tests/clippy/custom-protocol release, compile guard, contract, governance, Task contract, path, artifact, resource, and SpecDev gates",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "e2e": {
@@ -837,10 +837,10 @@
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
         "attempts": 4,
-      "promotion_status": "pending"
+      "promotion_status": "applied"
       },
     "status": "review",
-    "updated_at": "2026-08-27T15:40:47+08:00"
+    "updated_at": "2026-08-27T16:00:53+08:00"
     },
     {
       "ticket_id": "T-15",
