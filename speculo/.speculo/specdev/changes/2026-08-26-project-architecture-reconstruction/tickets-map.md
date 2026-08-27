@@ -33,7 +33,7 @@ status: in_progress
 | T-08 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/08-reliable-runtime-no-redis.md</Path>` | 无 Redis Outbox 与唯一 executor | T-03, T-04 | deep | critical | yes | codex-t08-reliability | AC-018, AC-034 | W4 / G3 | done |
 | T-09 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/09-organization-module.md</Path>` | Organization 完整管理闭环 | T-07 | deep | high | yes | codex-t09-organization | AC-014, AC-035 | W6 / G4 | done |
 | T-10 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>` | Settings 完整管理闭环 | T-07 | deep | high | yes | codex-t10-settings | AC-015, AC-035 | W6 / G4 | in_progress |
-| T-11 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/11-audit-module.md</Path>` | Audit 可靠脱敏闭环 | T-06, T-08 | deep | high | yes | codex-t11-audit | AC-016, AC-035 | W5 / G4 | done |
+| T-11 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/11-audit-module.md</Path>` | Audit 可靠脱敏闭环 | T-06, T-08 | deep | high | yes | codex-t11-audit | AC-016, AC-035 | W5 / G4 | in_progress |
 | T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | codex-t12-scheduler | AC-017, AC-018, AC-035 | W6 / G4 | in_progress |
 | T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4 | in_progress |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
@@ -131,7 +131,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 |---|---|---|---|
 | P2 | T-03, T-05 | 无 | 后端 runtime 与前端 workspace 分离 |
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
-| P5 | T-07, T-11 | Session service/test 与 workspace lock 已按 result 串行移交 | T-07 已 done；T-11 写 `T11-D01` Audit importer、`T11-D02` 登录事实接缝与 `T11-D03` 四个 test-only 显式 Port 调用点，其他共享路径仍只读 |
+| P5 | T-07, T-11 | Session service/test 与 workspace lock 已按原 result 串行移交；`T11-D04` 仅重开 Audit 自有 capability 文件/测试 | T-07 已 done；T-11 原 result 保留，当前只补 IAM registry 所需 Audit permissions/menu，其他共享路径仍只读 |
 | P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行完成；T-12/T-13 现分别以 `T12-D01`/`T13-D01` 只拥有 package-local manifests，T-13 另精确拥有 Browser Files adapter export/manifest；后续根 verify/lock 继续由 Lead 串行分配 | 各模块独占合同/schema/backend/frontend；Scheduler 只读消费 T-08 同一全局 lease，Files 的 Desktop/config composition 延后 |
 | P7 | T-15, T-16 | `T15-D01` 只开放 Generator 自有 manifests；`T16-D01` 只把 T-05 已预留的 Desktop adapter 移交 T-16；两者根 verify/lock stage 2 均等待 T-09 result | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |

@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-11
 title: Audit 登录与操作审计垂直切片
-status: done
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 审计跨认证和业务事件且包含隐私、保留与清理安全要求
 ready: true
@@ -12,11 +12,11 @@ risk: high
 blocked_by: [T-06, T-08]
 contract_ids: [AC-016, AC-035]
 owner: codex-t11-audit
-expected_changes: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/postgres_concurrency_test.go</Path>", "<Path>go-admin-plus/test/iam/session/session_test.go</Path>", "<Path>go-admin-plus/test/iam/session/browser_harness_test.go</Path>", "<Path>go-admin-plus/test/iam/authorization/browser_harness_test.go</Path>", "<Path>go-admin-plus/test/iam/authorization/http_test.go</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/audit.yaml</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/postgres_concurrency_test.go</Path>", "<Path>go-admin-plus/test/iam/session/session_test.go</Path>", "<Path>go-admin-plus/test/iam/session/browser_harness_test.go</Path>", "<Path>go-admin-plus/test/iam/authorization/browser_harness_test.go</Path>", "<Path>go-admin-plus/test/iam/authorization/http_test.go</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/audit/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/test/audit/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/audit/**</Path>"]
-read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/session/http.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/transport/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0010-session-*</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/postgres_concurrency_test.go</Path>", "<Path>go-admin-plus/test/iam/session/session_test.go</Path>", "<Path>go-admin-plus/test/iam/session/browser_harness_test.go</Path>", "<Path>go-admin-plus/test/iam/authorization/browser_harness_test.go</Path>", "<Path>go-admin-plus/test/iam/authorization/http_test.go</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-11 under T11-D01 after T-07 result; Audit importers only", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path> => T-11 under T11-D02/T11-D03 after T-07 result", "<Path>go-admin-plus/internal/modules/iam/session/postgres_concurrency_test.go</Path> => T-11 under T11-D03; explicit test Login Fact Port only", "<Path>go-admin-plus/test/iam/session/session_test.go</Path> => T-11 under T11-D02/T11-D03 after T-07 result", "<Path>go-admin-plus/test/iam/session/browser_harness_test.go</Path> => T-11 under T11-D03; explicit test Login Fact Port only", "<Path>go-admin-plus/test/iam/authorization/browser_harness_test.go</Path> => T-11 under T11-D03; explicit test Login Fact Port only", "<Path>go-admin-plus/test/iam/authorization/http_test.go</Path> => T-11 under T11-D03; explicit test Login Fact Port only"]
+expected_changes: ["<Path>go-admin-plus/internal/modules/audit/capabilities.go</Path>", "<Path>go-admin-plus/internal/modules/audit/capabilities_test.go</Path>"]
+writable_paths: ["<Path>go-admin-plus/internal/modules/audit/capabilities.go</Path>", "<Path>go-admin-plus/internal/modules/audit/capabilities_test.go</Path>"]
+read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/**</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>go-admin-plus-ui/**</Path>", "<Path>contracts/openapi/**</Path>", "<Path>go-admin-plus/test/**</Path>"]
+shared_paths: []
+shared_path_owners: []
 ---
 
 # Ticket T-11: Audit 登录与操作审计垂直切片
@@ -87,6 +87,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-11 under
 - **批准偏差：** `T11-D01` 允许两个 Audit package manifest 补齐 public export、canonical API client、`@go-admin/ui`、Vue 直接依赖与标准 test/typecheck 入口；第二阶段仅增加匹配的两个 Audit lock importer，禁止外部版本或其他 importer 漂移。
 - **批准偏差：** `T11-D02` 已激活，允许在精确 Session service/test 路径增加模块无关的登录事实 Port。既有 Session 测试必须证明成功登录与 Session 创建同事务、失败登录同步记录、审计失败不产生已签发 Session、attempt ID 不含用户名且密码/token/CSRF 零泄露。Audit 通过结构化适配器消费该 Port；禁止 Session 导入 Audit、读取 Audit 私表、修改 Session schema/HTTP/Cookie/policy，或把未来业务模块事件硬编码为 Demo 私有 topic。
 - **批准偏差：** `T11-D03` 要求删除默认 discard Login Fact Port，使缺失显式 Port 的 constructor 失败；只开放四个精确测试调用点注入本地 test noop。required browser fixture 必须修正 actor/count 断言，并通过可推进时钟触发真实 IAM rotation，验证 replacement Cookie/CSRF 可继续请求。生产 composition 继续归 T-17，不在本 Ticket 新增。
+- **批准偏差：** `T11-D04` 在产品组合预检发现 capability 注册缺口后重开本 Ticket；只新增 Audit 自有 `capabilities.go` 与聚焦测试，通过现有 IAM Module Capability Registry 注册 read/cleanup 权限和 read-gated 菜单。Session、Outbox、数据行为、前端、根 manifest/lock 和 composition 均不改。
 - **保留或不动：** 事件生产者实现和全局产品注册。
 
 ## 8. 验证矩阵

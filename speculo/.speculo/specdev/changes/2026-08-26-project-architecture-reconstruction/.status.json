@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T13:06:00+08:00",
+  "updated_at": "2026-08-27T13:25:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -303,6 +303,16 @@
       "approved_at": "2026-08-27T13:06:00+08:00",
       "reason": "The precreated Files package manifests and Browser runtime adapter lack the exports and streaming transfer implementation required by the approved Web vertical slice",
       "resolution": "Authorize only the two Files package manifests plus Browser Files implementation/test, one export, and package-local dependency/check; keep root checks, Vitest, lockfile, shared UI, Desktop native bridge, typed Server config, and product composition read-only until serialized amendments"
+    },
+    {
+      "id": "T11-D04",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-11",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T13:25:00+08:00",
+      "reason": "T-17 product preflight proved Audit declares permission constants but never registers permissions or a menu with the IAM-owned Module Capability Registry, so the protected system administrator cannot receive the completed Audit capability",
+      "resolution": "Reopen T-11 only for Audit-owned capabilities.go and focused tests that register read/cleanup permissions plus the read-gated Audit menu through the existing registry; Session, Outbox, Audit data behavior, frontend, root manifests, lockfile, and composition remain unchanged"
     }
   ],
   "worktrees": [
@@ -656,42 +666,42 @@
       "implementation_owner": "codex-t11-audit",
       "integration_owner": "codex-root",
       "provider": "git",
-      "base_sha": "c108f8bff07b386cd83356236dc79cd11c301813",
+      "base_sha": "69cbf4e2281b84fab96cd9f09305cba2e78de8d6",
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-11",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-11",
-      "source_checkpoint": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
+      "source_checkpoint": null,
       "integration": {
-        "status": "passed",
-        "parent_ref": "refs/heads/main",
-        "parent_before_sha": "70d277364915f12d757b83b1085c328bc12a1442",
-        "source_sha": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
-        "candidate_sha": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
-        "candidate_tree_sha": "c054434e79ec4b52d33759ffb79d7abbb0d3309c",
-        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-11",
-        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-11",
-        "result_sha": "ebb8bac4a16b09301593b508549f6bac71f6dba0",
-        "method": "fast-forward",
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
         "conflict_paths": [],
-        "verification": "passed",
+        "verification": "pending",
         "full_suite": {
           "required": true,
-          "status": "passed",
+          "status": "pending",
           "reason": "G4 requires Audit event, redaction, idempotency, retention, Go/TypeScript, contract, and build checks on the parent candidate",
-          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>"
+          "evidence": null
         },
         "e2e": {
           "required": true,
-          "status": "passed",
+          "status": "pending",
           "reason": "T-11 must prove login and operation events reach authorized Audit UI without sensitive data in PostgreSQL and SQLite",
-          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>"
+          "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-11.md</Path>",
-        "attempts": 2,
-        "promotion_status": "applied"
+        "attempts": 0,
+        "promotion_status": "pending"
       },
-      "status": "integrated",
-      "updated_at": "2026-08-27T06:56:25+08:00"
+      "status": "active",
+      "updated_at": "2026-08-27T13:25:00+08:00"
     },
     {
       "ticket_id": "T-14",

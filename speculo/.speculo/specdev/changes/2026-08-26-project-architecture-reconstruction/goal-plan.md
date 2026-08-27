@@ -366,6 +366,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-16 stage 2 以 `T16-D02` 获得 T-09 result 后的下一段共享根所有权：原 owner 先固定 stage-1 clean commit，再 rebase 到 amendment parent；只可追加 Desktop aggregate checks/spec includes，并更新 lockfile 现有 `apps/admin-desktop` 与 `packages/adapters/desktop` 两个 importer。T-15/T-10 在 T-16 result 前不得写这些共享根文件。
 - T-16 三次 parent-candidate 均未提升：`bbd9b225` 因无界进程发现输出失败，`7fba6219` 因 migration-failure startup ordering 超时，`a1429111` 的静态门禁通过但 debug 原生宿主 90 秒未开登录窗且异常退出曾留下孤立 sidecar。最终 source `f2d611133a302b912f43cb1d648943e1909762f0`（tree `8e93354e88ae5b1ebbbbdc373252523f509fa4e8`）已改用 release host、父 stdin EOF 自停和精确有界回收并通过全部 source 门禁；当前达到 `integration_attempt_limit=3`，新 candidate 等待用户明确扩容，父分支未移动。
 - T-12/T-13 从 `main@9b086f025dd31909edea086727e45c7f301c5ccf` 激活，implementation owner 分别为 `codex-t12-scheduler` 与 `codex-t13-files`。`T12-D01` 只开放两个 Scheduler manifests 并锁定与 Outbox 共用同一全局 lease/事务；`T13-D01` 只开放两个 Files manifests 与 Browser Files adapter 精确接缝。两者根 checks/Vitest/lock、T13 Desktop/config composition 均等待 Lead 后续串行 amendment。
+- T-17 只读 preflight 证明已完成的 T-11 仅声明 Audit permission 常量、未向 IAM Module Capability Registry 注册权限/菜单。Lead 以 `T11-D04` 精确重开 Audit 自有 capability 实现与测试；原登录/操作审计 result 仍保留，补修不得修改 Session、Outbox、前端、root 或 composition。该 preflight 同时确认 IAM Organization consumer Port 只有定义而无实际消费；由于当前 Self/All 数据范围没有可调用组织语义，此项不能以无效 constructor 注入伪闭合，保持为 T-17 前设计 blocker并等待形成真实用例。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers
