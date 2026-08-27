@@ -1,5 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[cfg(all(not(debug_assertions), not(feature = "custom-protocol")))]
+compile_error!("release desktop builds must enable the custom-protocol feature");
+
 mod demo_contract;
 mod proxy;
 mod vault;
