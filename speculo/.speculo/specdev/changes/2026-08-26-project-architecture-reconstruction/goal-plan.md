@@ -395,6 +395,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - T-17 首次双方言 product migration Compose 均被平台 forward-only validator 拒绝；只读定位到 Generator 的 SQLite/PostgreSQL `6400000000000_generator_configs.sql` 仍含 `+goose Down` 与 DROP。Lead 批准 `T17-D02`，只开放两份同版本 SQL 删除 Down 段；Up schema、版本、provider、其余 Generator 实现、根配置、Apps/adapters/Rust 均零漂移，修复后须重跑双方言 Compose、真实 SQLite 全迁移/能力注册及 Generator 聚焦门禁。
 - T-17 stage-1 checkpoint 为 `92a0ff8a56226fd317c20e71e1665822c9226595`（tree `50965ffd689dfe1a3e79bd3468ff07af8d1ca4a5`）。只读 App/native preflight 证明 Web 仍占位且 Browser Permission parser 使用冒号，Desktop App/adapter/Rust/sidecar 仅 Demo，双 App 未消费 product manifest。Lead 批准 `T17-D03`：只开放 app-shell 产品工作区、双 App 入口、Browser parser、Desktop transport/Rust allowlist/proxy、sidecar product runtime，以及精确 manifest/Vitest/boundary/lock importer；模块业务实现和最终 E2E 不重开。
 - T-17 stage-2 首轮 aggregate test 证明 platform Permission 类型与旧 Web runtime fixture 仍停留在冒号 convention，和 IAM registry、模块合同、数据库能力及 product runtime 的点分格式冲突。Lead 批准 `T17-D04`：只修改 platform PermissionCode 类型和该 fixture 为 `module.resource.action`，禁止双格式兼容与其他 platform/shell 漂移。
+- T-17 完整 TypeScript gate 进一步证明 app-shell fixture 也是该类型的直接消费者；`T17-D05` 只把其中 5 个冒号权限字面量改为点分格式，不改变 Shell 行为、断言或其他 fixture。
 - implementation commit 和 Local candidate integration and parent update 已由用户 `Q2A` 授权；source cleanup、远端和生产动作未授权。
 
 ### Pending Decisions and Blockers

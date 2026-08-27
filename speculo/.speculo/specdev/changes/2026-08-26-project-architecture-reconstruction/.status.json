@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T19:05:00+08:00",
+  "updated_at": "2026-08-27T19:10:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -363,6 +363,16 @@
       "approved_at": "2026-08-27T19:05:00+08:00",
       "reason": "The stage-2 aggregate test proves the platform PermissionCode type and its Web runtime fixture still encode the removed colon convention while the IAM registry, module contracts, database capabilities, product OpenAPI, and both runtime adapters use canonical dot-separated codes",
       "resolution": "Authorize only packages/platform/src/index.ts and tests/shell/web-runtime.spec.ts to replace colon Permission Codes with canonical dot-separated module.resource.action values; dual-format parsing, compatibility aliases, unrelated platform contracts, and other shell tests remain forbidden"
+    },
+    {
+      "id": "T17-D05",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-17",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T19:10:00+08:00",
+      "reason": "The full TypeScript aggregate gate proves tests/shell/app-shell.spec.ts is a second direct compile-time consumer of PermissionCode and its five legacy colon literals no longer typecheck after T17-D04",
+      "resolution": "Authorize only tests/shell/app-shell.spec.ts to replace its five colon Permission literals with canonical dot-separated values; shell behavior, assertions, runtime implementation, and all other fixtures remain unchanged"
     }
   ],
   "worktrees": [
@@ -1095,7 +1105,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-08-27T19:05:00+08:00"
+      "updated_at": "2026-08-27T19:10:00+08:00"
     }
   ]
 }
