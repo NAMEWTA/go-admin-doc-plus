@@ -43,7 +43,7 @@ status: in_progress
 | T-18 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/18-linux-oci-compose-release.md</Path>` | Linux OCI/Compose 候选 | T-17 | deep | high | yes | codex-root | AC-030, AC-033 | W9 / G6 implementation integrated；Linux E2E deferred to G8 | in_progress |
 | T-19 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/19-macos-universal-release.md</Path>` | macOS Universal DMG 候选 | T-17 | deep | critical | yes | codex-root | AC-031, AC-033 | W9 / G6 implementation integrated；macOS E2E deferred to G8 | in_progress |
 | T-20 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/20-windows-nsis-release.md</Path>` | Windows x64 NSIS 候选 | T-17 | deep | critical | yes | codex-root | AC-032, AC-033 | W9 / G6 implementation integrated；Windows E2E deferred to G8 | in_progress |
-| T-21 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/21-atomic-cutover-contraction.md</Path>` | 原子切换与旧体系归零 | T-18, T-19, T-20 | deep | critical | yes | unassigned | AC-001, AC-002, AC-023, AC-028, AC-029, AC-033 | W10 / G7 | ready |
+| T-21 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/21-atomic-cutover-contraction.md</Path>` | 原子切换与旧体系归零 | T-18, T-19, T-20 | deep | critical | yes | codex-root | AC-001, AC-002, AC-023, AC-028, AC-029, AC-033 | W10 / G7 active source at main@5fb6f86 | in_progress |
 
 Ticket frontmatter 是状态、依赖、深度和路径访问契约的权威；本表是同步投影。
 

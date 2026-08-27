@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-21
 title: 原子切换、质量门禁与旧体系归零
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 全仓不可逆删除、目录改名、根 CI 与兼容归零是最终高风险收缩操作
 ready: true
 risk: critical
 blocked_by: [T-18, T-19, T-20]
 contract_ids: [AC-001, AC-002, AC-023, AC-028, AC-029, AC-033]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/quality/**</Path>", "<Path>README.md</Path>", "<Path>docs/**</Path>", "<Path>go-admin-ui-plus/**</Path>", "<Path>go-admin-plus/app/**</Path>", "<Path>go-admin-plus/common/**</Path>", "<Path>go-admin-plus/internal/tenant/**</Path>", "<Path>go-admin-plus/cmd/go-admin-desktop/**</Path>"]
 writable_paths: ["<Path>.github/workflows/ci.yml</Path>", "<Path>.github/workflows/codeql.yml</Path>", "<Path>scripts/quality/**</Path>", "<Path>README.md</Path>", "<Path>docs/**</Path>", "<Path>go-admin-ui-plus/**</Path>", "<Path>go-admin-plus/.github/**</Path>", "<Path>go-admin-plus/.gitignore</Path>", "<Path>go-admin-plus/app/**</Path>", "<Path>go-admin-plus/common/**</Path>", "<Path>go-admin-plus/api/**</Path>", "<Path>go-admin-plus/internal/tenant/**</Path>", "<Path>go-admin-plus/cmd/go-admin-desktop/**</Path>", "<Path>go-admin-plus/config/db*</Path>", "<Path>go-admin-plus/docker-compose.yml</Path>", "<Path>go-admin-plus/scripts/**</Path>", "<Path>go-admin-plus/docs/**</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus/internal/app/product/**</Path>", "<Path>go-admin-plus-ui/**</Path>", "<Path>release/**</Path>", "<Path>deploy/**</Path>"]

@@ -1245,6 +1245,49 @@
       },
       "status": "review",
       "updated_at": "2026-08-28T00:19:44+08:00"
+    },
+    {
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "5fb6f86dfd52dcd7aad93ab7380b9089e14c02b9",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-21",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-21",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G7 requires exact legacy inventory contraction, root CI/quality/docs cutover, compatibility-zero and architecture gates, full non-E2E Go/frontend/Rust/contract/release policy suites, path, and clean-tree verification on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "Three profiles, both Apps, all module/browser/native/reliable-runtime and protected release scenarios are deferred to the single unified final system candidate after T-21 implementation integration",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-28T00:24:00+08:00"
     }
   ]
 }
