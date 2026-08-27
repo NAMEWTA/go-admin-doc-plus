@@ -209,7 +209,7 @@ impl TransportProxy {
         if request.upload.is_none()
             && request.body.as_ref().is_some_and(|body| {
                 serde_json::to_vec(body).map_or(true, |encoded| encoded.len() > MAX_REQUEST_BYTES)
-                    || contains_secret_material(body, &[])
+                    || !request.allows_sensitive_input && contains_secret_material(body, &[])
             })
         {
             return Err("desktop request body rejected");

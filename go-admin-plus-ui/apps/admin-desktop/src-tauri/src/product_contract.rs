@@ -26,6 +26,7 @@ pub struct ValidatedRequest {
     pub body: Option<Value>,
     pub upload: Option<UploadBody>,
     pub binary_response: bool,
+    pub allows_sensitive_input: bool,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -71,6 +72,7 @@ pub fn validate_request(request: DesktopRequest) -> Result<ValidatedRequest, &'s
     } else {
         None
     };
+    let allows_sensitive_input = sensitive_input_path(path_only, &method);
     Ok(ValidatedRequest {
         binary_response: path_only.starts_with("/files/objects/")
             && path_only.ends_with("/content")
@@ -79,7 +81,18 @@ pub fn validate_request(request: DesktopRequest) -> Result<ValidatedRequest, &'s
         method,
         body,
         upload,
+        allows_sensitive_input,
     })
+}
+
+fn sensitive_input_path(path: &str, method: &str) -> bool {
+    if path == "/iam/account/password" && method == "PUT"
+        || path == "/iam/administration/users" && method == "POST"
+    {
+        return true;
+    }
+    let segments: Vec<_> = path.trim_start_matches('/').split('/').collect();
+    matches!(segments.as_slice(), ["iam", "administration", "users", id, "password"] if valid_id(id) && method == "PUT")
 }
 
 pub fn validate_response(
@@ -211,7 +224,7 @@ fn valid_setting_key(value: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::allowed;
+    use super::{allowed, sensitive_input_path};
 
     #[test]
     fn product_allowlist_is_exact() {
@@ -232,5 +245,11 @@ mod tests {
         assert!(!allowed("/iam/session/current", "GET"));
         assert!(!allowed("/settings/values/../../secrets", "GET"));
         assert!(!allowed("/demo/products", "DELETE"));
+        assert!(sensitive_input_path("/iam/account/password", "PUT"));
+        assert!(sensitive_input_path(
+            "/iam/administration/users/account-system-admin/password",
+            "PUT"
+        ));
+        assert!(!sensitive_input_path("/settings/values", "POST"));
     }
 }
