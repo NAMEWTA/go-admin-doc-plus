@@ -1,0 +1,123 @@
+import {
+  createContractClient,
+  FilesRequestError,
+  fileMediaTypes,
+  validFileName,
+  type DeleteFileTarget,
+  type FileMetadata,
+  type FilePage,
+  type FileQuery,
+  type FilesClient,
+  type FilesFailure,
+  type UploadCandidate,
+} from '@go-admin/domain-files'
+
+interface Problem { category?: string; code?: string }
+const csrfPattern = /^[A-Za-z0-9_-]{43}$/
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+export const createBrowserFilesClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): FilesClient => {
+  let csrf = ''
+  let classified: FilesFailure | null = null
+  let tail: Promise<void> = Promise.resolve()
+  const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
+    const result = tail.then(operation, operation)
+    tail = result.then(() => undefined, () => undefined)
+    return result
+  }
+  const guardedFetch = async (input: Request): Promise<Response> => {
+    const headers = new Headers(input.headers)
+    if (csrf && input.method !== 'GET' && input.method !== 'HEAD') headers.set('X-CSRF-Token', csrf)
+    const response = await fetcher(new Request(input, { credentials: 'include', headers }))
+    const next = response.headers.get('X-CSRF-Token')
+    if (next !== null && !csrfPattern.test(next)) {
+      csrf = ''
+      classified = 'relogin'
+      throw new FilesRequestError('relogin')
+    }
+    const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
+    classified = classify(response.status, body)
+    if (next) csrf = next
+    else if (classified === 'relogin') csrf = ''
+    return response
+  }
+  const contract = createContractClient({ baseUrl, fetch: guardedFetch })
+  const failure = (error: unknown): never => {
+    const category = classified ?? problemCategory(error)
+    classified = null
+    throw new FilesRequestError(category)
+  }
+  const responseData = <T>(data: T | undefined, error: unknown): T => error === undefined && data !== undefined ? data : failure(error)
+  const direct = async (path: string, init: RequestInit): Promise<Response> => {
+    const response = await guardedFetch(new Request(`${baseUrl}${path}`, init))
+    if (!response.ok) failure(new Error('files request failed'))
+    return response
+  }
+  return {
+    list: query => serialized(async () => {
+      const result = await contract.GET('/files/objects', { params: { query } })
+      return parsePage(responseData(result.data, result.error))
+    }),
+    upload: candidate => serialized(async () => {
+      const form = new FormData()
+      form.append('file', candidate.body, candidate.name)
+      const response = await direct('/files/objects', { method: 'POST', body: form })
+      return parseMetadata(await response.json())
+    }),
+    download: id => serialized(async () => {
+      if (!uuidPattern.test(id)) throw new FilesRequestError('validation')
+      const response = await direct(`/files/objects/${encodeURIComponent(id)}/content`, { method: 'GET', headers: { accept: 'application/octet-stream' } })
+      return response.blob()
+    }),
+    delete: targets => serialized(async () => {
+      const result = await contract.POST('/files/objects/batch-delete', { body: { files: [...targets] } })
+      if (result.error !== undefined) failure(result.error)
+    }),
+  }
+}
+
+const exactKeys = (record: Record<string, unknown>, expected: ReadonlyArray<string>) => {
+  const actual = Object.keys(record).sort()
+  const wanted = [...expected].sort()
+  return actual.length === wanted.length && actual.every((key, index) => key === wanted[index])
+}
+
+const parseMetadata = (value: unknown): FileMetadata => {
+  if (!value || typeof value !== 'object') throw new FilesRequestError('unavailable')
+  const record = value as Record<string, unknown>
+  if (!exactKeys(record, ['id', 'originalName', 'mediaType', 'sizeBytes', 'sha256', 'revision', 'createdAt', 'updatedAt'])
+    || typeof record.id !== 'string' || !uuidPattern.test(record.id)
+    || typeof record.originalName !== 'string' || !validFileName(record.originalName)
+    || typeof record.mediaType !== 'string' || !fileMediaTypes.includes(record.mediaType as typeof fileMediaTypes[number])
+    || !Number.isSafeInteger(record.sizeBytes) || Number(record.sizeBytes) < 0 || Number(record.sizeBytes) > 10 * 1024 * 1024
+    || typeof record.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(record.sha256)
+    || !Number.isSafeInteger(record.revision) || Number(record.revision) < 1
+    || typeof record.createdAt !== 'string' || !validDate(record.createdAt)
+    || typeof record.updatedAt !== 'string' || !validDate(record.updatedAt)) {
+    throw new FilesRequestError('unavailable')
+  }
+  return record as unknown as FileMetadata
+}
+
+const parsePage = (value: unknown): FilePage => {
+  if (!value || typeof value !== 'object') throw new FilesRequestError('unavailable')
+  const record = value as Record<string, unknown>
+  if (!exactKeys(record, ['rows', 'total']) || !Array.isArray(record.rows) || record.rows.length > 100 || !Number.isSafeInteger(record.total) || Number(record.total) < 0) {
+    throw new FilesRequestError('unavailable')
+  }
+  return { rows: record.rows.map(parseMetadata), total: Number(record.total) }
+}
+
+const validDate = (value: string) => Number.isFinite(Date.parse(value)) && value.includes('T')
+const classify = (status: number, value: Problem | null): FilesFailure | null => {
+  if (status === 401 || value?.code === 'CSRF_REJECTED') return 'relogin'
+  if (status === 403) return 'forbidden'
+  if (status === 400 || status === 413 || status === 415 || status === 422) return 'validation'
+  if (status === 404) return 'not-found'
+  if (status === 409) return 'conflict'
+  if (status >= 500) return 'unavailable'
+  return null
+}
+const problemCategory = (value: unknown): FilesFailure => value instanceof FilesRequestError ? value.category : 'unavailable'
+
+export type { DeleteFileTarget, FileQuery, UploadCandidate }

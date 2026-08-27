@@ -6,6 +6,8 @@ import type {
   ShellRuntimePort
 } from '@go-admin/platform'
 
+export { createBrowserFilesClient } from './files'
+
 type Fetch = typeof globalThis.fetch
 const permissionPattern = /^[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*){1,2}$/
 
