@@ -1106,6 +1106,49 @@
       },
       "status": "review",
       "updated_at": "2026-08-27T19:41:49+08:00"
+    },
+    {
+      "ticket_id": "T-18",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "479fcc9190d38d14a185847d132f41b972c830a0",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-18",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-18",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G6 requires Linux multi-architecture OCI, PostgreSQL and SQLite Compose policy, non-root runtime, checksums, SBOM, provenance, workflow failure, path, and clean-tree checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "Real linux/amd64 and linux/arm64 image, migration, readiness, persistence, restart, and worker scenarios are deferred to the single unified final system E2E on a Docker-capable Linux runner",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T19:41:49+08:00"
     }
   ]
 }

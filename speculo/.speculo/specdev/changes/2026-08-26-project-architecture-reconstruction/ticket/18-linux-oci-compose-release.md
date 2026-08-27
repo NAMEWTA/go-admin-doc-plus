@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-18
 title: Linux OCI 与 Compose 发行切片
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 双架构生产镜像、迁移、secret reference、持久化和供应链证据影响正式部署
 ready: true
 risk: high
 blocked_by: [T-17]
 contract_ids: [AC-030, AC-033]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>deploy/compose/**</Path>", "<Path>release/linux/**</Path>", "<Path>scripts/release/linux/**</Path>", "<Path>.github/workflows/release-linux.yml</Path>"]
 writable_paths: ["<Path>deploy/compose/**</Path>", "<Path>release/linux/**</Path>", "<Path>scripts/release/linux/**</Path>", "<Path>.github/workflows/release-linux.yml</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus/cmd/go-admin-plus/**</Path>", "<Path>contracts/openapi/product.yaml</Path>", "<Path>release/shared/sidecar/**</Path>"]
