@@ -19,24 +19,64 @@ var (
 	highEntropySecret = regexp.MustCompile(`^[A-Za-z0-9_-]{43,}$`)
 )
 
-func sensitive(value string) bool {
-	trimmed := strings.TrimSpace(value)
-	canonical := strings.Map(func(current rune) rune {
-		if unicode.IsLetter(current) || unicode.IsDigit(current) {
-			return unicode.ToLower(current)
+var reservedKeyNamespaces = map[string]struct{}{
+	"auth": {}, "authentication": {}, "database": {}, "logging": {}, "observability": {},
+	"runtime": {}, "security": {}, "server": {}, "session": {}, "telemetry": {},
+}
+
+var reservedKeyParts = map[string]struct{}{
+	"credential": {}, "credentials": {}, "dsn": {}, "password": {}, "passwd": {},
+	"secret": {}, "token": {},
+}
+
+var reservedCanonicalKeys = []string{
+	"absolutetimeout", "accesskey", "apikey", "clientsecret", "connectionstring",
+	"databaseurl", "datasourcename", "encryptionkey", "idletimeout", "listenaddress",
+	"loglevel", "privatekey", "rotationseconds", "runtimeprofile", "secretkey",
+	"sessionpolicy", "signingkey",
+}
+
+func sensitiveKey(value string) bool {
+	trimmed := strings.ToLower(strings.TrimSpace(value))
+	parts := strings.FieldsFunc(trimmed, func(current rune) bool {
+		return current == '.' || current == '-' || current == '_'
+	})
+	if len(parts) == 0 {
+		return false
+	}
+	if _, reserved := reservedKeyNamespaces[parts[0]]; reserved {
+		return true
+	}
+	for _, part := range parts {
+		if _, reserved := reservedKeyParts[part]; reserved {
+			return true
 		}
-		return -1
-	}, trimmed)
-	for _, marker := range forbiddenMaterial {
-		marker = strings.Map(func(current rune) rune {
-			if unicode.IsLetter(current) || unicode.IsDigit(current) {
-				return unicode.ToLower(current)
-			}
-			return -1
-		}, marker)
+	}
+	canonical := canonicalMaterial(trimmed)
+	for _, marker := range reservedCanonicalKeys {
 		if strings.Contains(canonical, marker) {
 			return true
 		}
 	}
+	return false
+}
+
+func sensitive(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	canonical := canonicalMaterial(trimmed)
+	for _, marker := range forbiddenMaterial {
+		if strings.Contains(canonical, canonicalMaterial(marker)) {
+			return true
+		}
+	}
 	return jwtMaterial.MatchString(trimmed) || bearerMaterial.MatchString(trimmed) || userinfoMaterial.MatchString(trimmed) || highEntropySecret.MatchString(trimmed)
+}
+
+func canonicalMaterial(value string) string {
+	return strings.Map(func(current rune) rune {
+		if unicode.IsLetter(current) || unicode.IsDigit(current) {
+			return unicode.ToLower(current)
+		}
+		return -1
+	}, value)
 }

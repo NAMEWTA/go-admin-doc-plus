@@ -125,7 +125,7 @@ func normalizeSetting(value SettingInput) (SettingInput, error) {
 		(value.Category != CategoryBusiness && value.Category != CategoryUI) {
 		return SettingInput{}, ErrValidation
 	}
-	if sensitive(value.Key) || sensitive(value.Label) || sensitive(value.Value) || sensitive(value.Description) {
+	if sensitiveKey(value.Key) || sensitive(value.Label) || sensitive(value.Value) || sensitive(value.Description) {
 		return SettingInput{}, ErrSensitive
 	}
 	return value, nil
@@ -138,7 +138,7 @@ func normalizeDictionary(value DictionaryInput) (DictionaryInput, error) {
 	if !validKey(value.Key) || !validText(value.Name, 1, 120) || !validText(value.Description, 0, 500) {
 		return DictionaryInput{}, ErrValidation
 	}
-	if sensitive(value.Key) || sensitive(value.Name) || sensitive(value.Description) {
+	if sensitiveKey(value.Key) || sensitive(value.Name) || sensitive(value.Description) {
 		return DictionaryInput{}, ErrSensitive
 	}
 	return value, nil

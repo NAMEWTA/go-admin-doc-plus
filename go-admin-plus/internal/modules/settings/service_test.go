@@ -159,6 +159,27 @@ func TestSettingsRejectsSensitiveMaterialAndScopesBeforeMutation(t *testing.T) {
 	}
 }
 
+func TestSettingsRejectsReservedRuntimeAndSecretKeysWithoutBroadTextFalsePositives(t *testing.T) {
+	rejected := []string{
+		"api_key", "database.dsn", "client.credential", "runtime.log_level",
+		"server.listen_address", "checkout.secret", "session.timeout",
+	}
+	for _, key := range rejected {
+		if _, err := normalizeSetting(SettingInput{Category: CategoryBusiness, Key: key, Label: "Public label", Value: "visible"}); !errors.Is(err, ErrSensitive) {
+			t.Fatalf("accepted reserved key %q: %v", key, err)
+		}
+	}
+	allowed := []SettingInput{
+		{Category: CategoryBusiness, Key: "shipping.tokenized_label", Label: "Tokenized label", Value: "visible"},
+		{Category: CategoryBusiness, Key: "business.logistics_level", Label: "Credential-free checkout", Value: "visible"},
+	}
+	for _, input := range allowed {
+		if _, err := normalizeSetting(input); err != nil {
+			t.Fatalf("rejected ordinary business setting %#v: %v", input, err)
+		}
+	}
+}
+
 func TestSettingsUnicodeBoundariesAndCapabilities(t *testing.T) {
 	for _, count := range []int{1, 120} {
 		if _, err := normalizeDictionary(DictionaryInput{Key: "unicode.key", Name: strings.Repeat("😀", count)}); err != nil {

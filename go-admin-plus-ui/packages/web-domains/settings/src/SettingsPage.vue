@@ -7,10 +7,10 @@ const settingForm=reactive<SettingInput&{id?:string;revision?:number}>(props.con
 const settings=computed(()=>{void revision.value;return props.controller.settings.snapshot()}),dictionaries=computed(()=>{void revision.value;return props.controller.dictionaries.snapshot()}),items=computed(()=>{void revision.value;return props.controller.items.snapshot()}),failure=computed(()=>{void revision.value;return props.controller.failure()}),blocked=computed(()=>{void revision.value;return props.controller.busy||props.controller.pendingRepair})
 const can=(code:Parameters<SettingsController['can']>[0])=>{void revision.value;return props.controller.can(code)}
 const settle=async(operation:()=>Promise<unknown>)=>{try{await operation()}catch{}finally{revision.value+=1;if(props.controller.failure()==='relogin')emit('sessionRequired');if(props.controller.failure()==='forbidden')emit('forbidden')}}
-const switchTab=(value:typeof tab.value)=>settle(async()=>{tab.value=value;search.value='';if(value==='business'||value==='ui')await props.controller.selectCategory(value);else await props.controller.dictionaries.refresh()})
+const switchTab=(value:typeof tab.value)=>settle(async()=>{if(value==='business'||value==='ui')await props.controller.selectCategory(value);else await props.controller.dictionaries.refresh();tab.value=value;search.value=''})
 const editSetting=(row:Setting)=>Object.assign(settingForm,{category:row.category,key:row.key,label:row.label,value:row.value,description:row.description,enabled:row.enabled,id:row.id,revision:row.revision})
 const resetSetting=()=>{Object.assign(settingForm,props.controller.emptySetting());delete settingForm.id;delete settingForm.revision}
-const saveSetting=()=>settle(async()=>{const result=await props.controller.saveSetting({...settingForm});if(result==='completed'||result==='failed')resetSetting()})
+const saveSetting=()=>settle(async()=>{if(await props.controller.saveSetting({...settingForm})==='completed')resetSetting()})
 const editDictionary=(row:Dictionary)=>Object.assign(dictionaryForm,{key:row.key,name:row.name,description:row.description,enabled:row.enabled,id:row.id,revision:row.revision})
 const resetDictionary=()=>{Object.assign(dictionaryForm,props.controller.emptyDictionary());delete dictionaryForm.id;delete dictionaryForm.revision}
 const selectDictionary=(row:Dictionary)=>settle(async()=>{await props.controller.selectDictionary(row);options.value=await props.controller.options(row.key)})
