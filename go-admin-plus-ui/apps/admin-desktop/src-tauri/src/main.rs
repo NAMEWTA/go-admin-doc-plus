@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         Arc, Mutex, RwLock,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicI32, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -36,6 +36,7 @@ struct HostState {
     child: Mutex<Option<CommandChild>>,
     child_exited: Arc<AtomicBool>,
     shutting_down: Arc<AtomicBool>,
+    requested_exit_code: AtomicI32,
     requests: Arc<tokio::sync::Semaphore>,
 }
 
@@ -44,9 +45,10 @@ impl HostState {
         Self {
             proxy: RwLock::new(None),
             child: Mutex::new(None),
-            child_exited: Arc::new(AtomicBool::new(false)),
+            child_exited: Arc::new(AtomicBool::new(true)),
             shutting_down: Arc::new(AtomicBool::new(false)),
-            requests: Arc::new(tokio::sync::Semaphore::new(8)),
+            requested_exit_code: AtomicI32::new(0),
+            requests: Arc::new(tokio::sync::Semaphore::new(1)),
         }
     }
 
@@ -56,6 +58,19 @@ impl HostState {
             .map_err(|_| "desktop runtime unavailable")?
             .clone()
             .ok_or("desktop runtime unavailable")
+    }
+
+    fn child_spawned(&self) {
+        self.child_exited.store(false, Ordering::Release);
+    }
+
+    fn child_terminated(&self) {
+        self.child_exited.store(true, Ordering::Release);
+    }
+
+    fn fail_and_exit(&self, app: &tauri::AppHandle) {
+        self.requested_exit_code.store(1, Ordering::Release);
+        app.exit(1);
     }
 
     fn shutdown(&self) {
@@ -72,6 +87,10 @@ impl HostState {
             && let Some(child) = owner.take()
         {
             let _ = child.kill();
+            let kill_deadline = Instant::now() + SHUTDOWN_TIMEOUT;
+            while !self.child_exited.load(Ordering::Acquire) && Instant::now() < kill_deadline {
+                std::thread::sleep(Duration::from_millis(25));
+            }
         }
         if let Ok(mut owner) = self.child.lock() {
             owner.take();
@@ -91,8 +110,9 @@ async fn desktop_request(
     let permit = state
         .requests
         .clone()
-        .try_acquire_owned()
-        .map_err(|_| "desktop request busy")?;
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
     tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.business(request)
@@ -109,8 +129,9 @@ async fn desktop_identity(
     let permit = state
         .requests
         .clone()
-        .try_acquire_owned()
-        .map_err(|_| "desktop request busy")?;
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
     tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.identity()
@@ -127,8 +148,9 @@ async fn desktop_navigation(
     let permit = state
         .requests
         .clone()
-        .try_acquire_owned()
-        .map_err(|_| "desktop request busy")?;
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
     tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.navigation()
@@ -147,8 +169,9 @@ async fn desktop_login(
     let permit = state
         .requests
         .clone()
-        .try_acquire_owned()
-        .map_err(|_| "desktop request busy")?;
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
     let username = Zeroizing::new(username);
     let password = Zeroizing::new(password);
     tauri::async_runtime::spawn_blocking(move || {
@@ -165,8 +188,9 @@ async fn desktop_logout(state: State<'_, Arc<HostState>>) -> Result<LogoutResult
     let permit = state
         .requests
         .clone()
-        .try_acquire_owned()
-        .map_err(|_| "desktop request busy")?;
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
     tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.logout()
@@ -190,7 +214,6 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
     let data_root = prepare_root(data_path)?;
     let log_root = prepare_root(log_path)?;
     reject_overlap(&data_root, &log_root)?;
-    let vault = vault::SessionVault::open(&data_root)?;
     let readiness_nonce = Zeroizing::new(random_secret()?);
     let control_token = Zeroizing::new(random_secret()?);
     let mut launch = serde_json::to_vec(&LaunchWire {
@@ -211,27 +234,51 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
     let (mut events, mut child) = command
         .spawn()
         .map_err(|_| "desktop sidecar spawn failed")?;
-    child
-        .write(&launch)
-        .map_err(|_| "desktop sidecar input failed")?;
+    state.child_spawned();
+    if child.write(&launch).is_err() {
+        launch.fill(0);
+        stop_startup_child(&state, child, &mut events).await?;
+        return Err("desktop sidecar input failed");
+    }
     launch.fill(0);
 
-    let port = match wait_for_listening(&mut events).await {
-        Ok(port) => port,
-        Err(error) => {
-            let _ = child.kill();
+    let (port, observed) = match wait_for_listening(&mut events).await {
+        Ok(value) => value,
+        Err(StartupFailure::Terminated) => {
+            state.child_terminated();
+            return Err("desktop sidecar stopped during startup");
+        }
+        Err(StartupFailure::Active(error)) => {
+            stop_startup_child(&state, child, &mut events).await?;
             return Err(error);
         }
     };
     let origin = format!("http://127.0.0.1:{port}");
-    if let Err(error) = readiness_handshake(&origin, readiness_nonce).await {
-        let _ = child.kill();
-        return Err(error);
-    }
+    let observed = match readiness_handshake_with_events(
+        &origin,
+        readiness_nonce,
+        &mut events,
+        observed,
+    )
+    .await
+    {
+        Ok(observed) => observed,
+        Err(error) => {
+            stop_startup_child(&state, child, &mut events).await?;
+            return Err(error);
+        }
+    };
+    let vault = match vault::SessionVault::open(&data_root) {
+        Ok(vault) => vault,
+        Err(error) => {
+            stop_startup_child(&state, child, &mut events).await?;
+            return Err(error);
+        }
+    };
     let proxy = match TransportProxy::new(origin, control_token, vault) {
         Ok(proxy) => Arc::new(proxy),
         Err(error) => {
-            let _ = child.kill();
+            stop_startup_child(&state, child, &mut events).await?;
             return Err(error);
         }
     };
@@ -249,7 +296,7 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
     let monitor_state = Arc::clone(&state);
     let monitor_app = app.clone();
     tauri::async_runtime::spawn(async move {
-        let mut observed = 0usize;
+        let mut observed = observed;
         let mut output_failed = false;
         while let Some(event) = events.recv().await {
             match event {
@@ -269,7 +316,7 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
                 CommandEvent::Terminated(_) => {
                     exited.store(true, Ordering::Release);
                     if !shutting_down.load(Ordering::Acquire) {
-                        monitor_app.exit(1);
+                        monitor_state.fail_and_exit(&monitor_app);
                     }
                     return;
                 }
@@ -283,7 +330,7 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
         }
         exited.store(true, Ordering::Release);
         if output_failed || !shutting_down.load(Ordering::Acquire) {
-            monitor_app.exit(1);
+            monitor_state.fail_and_exit(&monitor_app);
         }
     });
 
@@ -313,20 +360,28 @@ fn runtime_paths(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), &'static 
     ))
 }
 
+enum StartupFailure {
+    Active(&'static str),
+    Terminated,
+}
+
 async fn wait_for_listening(
     events: &mut tokio::sync::mpsc::Receiver<CommandEvent>,
-) -> Result<u16, &'static str> {
+) -> Result<(u16, usize), StartupFailure> {
     let deadline = tokio::time::Instant::now() + STARTUP_TIMEOUT;
     let mut stdout = Vec::new();
+    let mut observed = 0usize;
     loop {
         let event = tokio::time::timeout_at(deadline, events.recv())
             .await
-            .map_err(|_| "desktop sidecar startup timed out")?
-            .ok_or("desktop sidecar stopped during startup")?;
+            .map_err(|_| StartupFailure::Active("desktop sidecar startup timed out"))?
+            .ok_or(StartupFailure::Terminated)?;
         match event {
             CommandEvent::Stdout(bytes) => {
-                if stdout.len().saturating_add(bytes.len()) > MAX_DIAGNOSTIC_BYTES {
-                    return Err("desktop sidecar startup output rejected");
+                if count_startup_output(&mut observed, bytes.len()).is_err() {
+                    return Err(StartupFailure::Active(
+                        "desktop sidecar startup output rejected",
+                    ));
                 }
                 stdout.extend_from_slice(&bytes);
                 if let Some(position) = stdout.iter().position(|byte| *byte == b'\n') {
@@ -336,20 +391,83 @@ async fn wait_for_listening(
                         state: String,
                         port: u16,
                     }
-                    let value: Listening = serde_json::from_slice(&stdout[..position])
-                        .map_err(|_| "desktop sidecar startup response invalid")?;
+                    let value: Listening =
+                        serde_json::from_slice(&stdout[..position]).map_err(|_| {
+                            StartupFailure::Active("desktop sidecar startup response invalid")
+                        })?;
                     stdout.fill(0);
                     if value.state == "listening" && value.port > 0 {
-                        return Ok(value.port);
+                        return Ok((value.port, observed));
                     }
-                    return Err("desktop sidecar startup response invalid");
+                    return Err(StartupFailure::Active(
+                        "desktop sidecar startup response invalid",
+                    ));
                 }
             }
-            CommandEvent::Stderr(bytes) if bytes.len() > MAX_DIAGNOSTIC_BYTES => {
-                return Err("desktop sidecar startup output rejected");
+            CommandEvent::Stderr(bytes) => {
+                if count_startup_output(&mut observed, bytes.len()).is_err() {
+                    return Err(StartupFailure::Active(
+                        "desktop sidecar startup output rejected",
+                    ));
+                }
             }
-            CommandEvent::Terminated(_) => return Err("desktop sidecar stopped during startup"),
+            CommandEvent::Terminated(_) => return Err(StartupFailure::Terminated),
+            CommandEvent::Error(_) => {
+                return Err(StartupFailure::Active(
+                    "desktop sidecar startup output rejected",
+                ));
+            }
             _ => {}
+        }
+    }
+}
+
+fn count_startup_output(observed: &mut usize, bytes: usize) -> Result<(), &'static str> {
+    *observed = observed.saturating_add(bytes);
+    if *observed > MAX_DIAGNOSTIC_BYTES {
+        return Err("desktop sidecar startup output rejected");
+    }
+    Ok(())
+}
+
+async fn readiness_handshake_with_events(
+    origin: &str,
+    nonce: Zeroizing<String>,
+    events: &mut tokio::sync::mpsc::Receiver<CommandEvent>,
+    mut observed: usize,
+) -> Result<usize, &'static str> {
+    let handshake = readiness_handshake(origin, nonce);
+    tokio::pin!(handshake);
+    loop {
+        tokio::select! {
+            result = &mut handshake => return result.map(|_| observed),
+            event = events.recv() => match event {
+                Some(CommandEvent::Stdout(bytes)) | Some(CommandEvent::Stderr(bytes)) => {
+                    count_startup_output(&mut observed, bytes.len())?;
+                }
+                Some(CommandEvent::Terminated(_)) | None => return Err("desktop sidecar stopped during startup"),
+                Some(CommandEvent::Error(_)) => return Err("desktop sidecar startup output rejected"),
+                Some(_) => {}
+            }
+        }
+    }
+}
+
+async fn stop_startup_child(
+    state: &HostState,
+    child: CommandChild,
+    events: &mut tokio::sync::mpsc::Receiver<CommandEvent>,
+) -> Result<(), &'static str> {
+    let _ = child.kill();
+    let deadline = tokio::time::Instant::now() + SHUTDOWN_TIMEOUT;
+    loop {
+        match tokio::time::timeout_at(deadline, events.recv()).await {
+            Ok(Some(CommandEvent::Terminated(_))) | Ok(None) => {
+                state.child_terminated();
+                return Ok(());
+            }
+            Ok(Some(_)) => {}
+            Err(_) => return Err("desktop sidecar startup cleanup failed"),
         }
     }
 }
@@ -446,9 +564,14 @@ fn random_secret() -> Result<String, &'static str> {
     Ok(encoded)
 }
 
+fn host_exit_code(runtime: i32, requested: i32) -> i32 {
+    if requested == 0 { runtime } else { requested }
+}
+
 fn main() {
     let state = Arc::new(HostState::new());
     let managed = Arc::clone(&state);
+    let exit_state = Arc::clone(&state);
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             if let Some(window) = app.get_webview_window("main") {
@@ -469,8 +592,11 @@ fn main() {
             move |app| {
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    if start_runtime(handle.clone(), state).await.is_err() {
-                        handle.exit(1);
+                    if start_runtime(handle.clone(), Arc::clone(&state))
+                        .await
+                        .is_err()
+                    {
+                        state.fail_and_exit(&handle);
                     }
                 });
                 Ok(())
@@ -479,11 +605,15 @@ fn main() {
     let app = builder
         .build(tauri::generate_context!())
         .expect("desktop host initialization failed");
-    app.run(move |_handle, event| {
+    let exit_code = app.run_return(move |_handle, event| {
         if let RunEvent::Exit = event {
             state.shutdown();
         }
     });
+    std::process::exit(host_exit_code(
+        exit_code,
+        exit_state.requested_exit_code.load(Ordering::Acquire),
+    ));
 }
 
 #[cfg(test)]
@@ -507,6 +637,48 @@ mod tests {
     fn nested_runtime_roots_are_rejected() {
         assert!(reject_overlap(Path::new("/data"), Path::new("/data/logs")).is_err());
         assert!(reject_overlap(Path::new("/data"), Path::new("/logs")).is_ok());
+    }
+
+    #[test]
+    fn host_without_a_spawned_child_is_already_reaped() {
+        let state = HostState::new();
+        assert!(state.child_exited.load(Ordering::Acquire));
+        let started = Instant::now();
+        state.shutdown();
+        assert!(started.elapsed() < Duration::from_secs(1));
+    }
+
+    #[test]
+    fn child_lifecycle_and_nonzero_host_exit_are_preserved() {
+        let state = HostState::new();
+        state.child_spawned();
+        assert!(!state.child_exited.load(Ordering::Acquire));
+        state.child_terminated();
+        assert!(state.child_exited.load(Ordering::Acquire));
+        assert_eq!(host_exit_code(0, 1), 1);
+        assert_eq!(host_exit_code(7, 0), 7);
+        assert_eq!(state.requests.available_permits(), 1);
+        let permit = state.requests.try_acquire().unwrap();
+        assert!(state.requests.try_acquire().is_err());
+        drop(permit);
+        assert!(state.requests.try_acquire().is_ok());
+    }
+
+    #[tokio::test]
+    async fn concurrent_host_exchanges_wait_for_the_singleflight_permit() {
+        let requests = Arc::new(tokio::sync::Semaphore::new(1));
+        let first = Arc::clone(&requests).acquire_owned().await.unwrap();
+        let queued_requests = Arc::clone(&requests);
+        let queued = tokio::spawn(async move { queued_requests.acquire_owned().await.unwrap() });
+        tokio::task::yield_now().await;
+        assert!(!queued.is_finished());
+        drop(first);
+        let second = tokio::time::timeout(Duration::from_secs(1), queued)
+            .await
+            .unwrap()
+            .unwrap();
+        drop(second);
+        assert_eq!(requests.available_permits(), 1);
     }
 
     #[cfg(unix)]

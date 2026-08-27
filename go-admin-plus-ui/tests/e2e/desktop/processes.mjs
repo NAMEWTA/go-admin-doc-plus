@@ -11,22 +11,30 @@ export const execute = (command, args, {
   const chunks = []
   let size = 0
   let settled = false
+  let pendingError
+  let reapTimer
   const timer = setTimeout(() => {
-    child.kill('SIGKILL')
-    finish(new Error('desktop native command timed out'))
+    killAndReap(new Error('desktop native command timed out'))
   }, timeout)
   const finish = error => {
     if (settled) return
     settled = true
     clearTimeout(timer)
+    clearTimeout(reapTimer)
     if (error) rejectRun(error)
     else resolveRun(Buffer.concat(chunks).toString('utf8'))
   }
+  const killAndReap = error => {
+    if (pendingError || settled) return
+    pendingError = error
+    child.kill('SIGKILL')
+    reapTimer = setTimeout(() => finish(new Error('desktop native command cleanup failed')), 5_000)
+  }
   const collect = chunk => {
+    if (pendingError) return
     size += chunk.length
     if (size > maxOutput) {
-      child.kill('SIGKILL')
-      finish(new Error('desktop native command output exceeded the limit'))
+      killAndReap(new Error('desktop native command output exceeded the limit'))
       return
     }
     chunks.push(chunk)
@@ -34,10 +42,10 @@ export const execute = (command, args, {
   child.stdout.on('data', collect)
   child.stderr.on('data', collect)
   child.once('error', () => finish(new Error('desktop native command unavailable')))
-  child.once('exit', (code, signal) => finish(
-    signal === null && code !== null && allowedExitCodes.includes(code)
+  child.once('close', (code, signal) => finish(
+    pendingError ?? (signal === null && code !== null && allowedExitCodes.includes(code)
       ? undefined
-      : new Error('desktop native command failed')
+      : new Error('desktop native command failed'))
   ))
   if (input !== undefined) child.stdin.end(input)
   else child.stdin.end()

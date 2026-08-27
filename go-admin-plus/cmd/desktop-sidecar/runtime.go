@@ -42,6 +42,7 @@ type sidecarRuntime struct {
 	instance *desktopplatform.InstanceLock
 	listener net.Listener
 	server   *http.Server
+	sessions *session.Service
 	serveErr chan error
 	stopOnce sync.Once
 	stop     context.CancelFunc
@@ -190,6 +191,7 @@ func (runtime *sidecarRuntime) buildHandler() (http.Handler, error) {
 	if err != nil {
 		return nil, errors.New("desktop session service failed")
 	}
+	runtime.sessions = sessions
 	authorizer, err := demo.NewIAMAuthorizationAdapter(runtime.database)
 	if err != nil {
 		return nil, errors.New("desktop authorization adapter failed")
@@ -244,6 +246,7 @@ func (runtime *sidecarRuntime) buildHandler() (http.Handler, error) {
 		writer.WriteHeader(http.StatusNoContent)
 		runtime.stopOnce.Do(runtime.stop)
 	})))
+	runtime.registerNativeE2EControl(mux)
 	return mux, nil
 }
 

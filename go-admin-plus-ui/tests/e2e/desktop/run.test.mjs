@@ -42,3 +42,14 @@ test('process parser accepts only an exact approved sidecar executable', () => {
   ].join('\n'))
   assert.deepEqual([...processes], [101, 102, 103])
 })
+
+test('bounded command failures wait for killed process pipes to close', async () => {
+  await assert.rejects(
+    execute(process.execPath, ['-e', 'process.stdout.write("x".repeat(32768));setInterval(()=>{},1000)']),
+    /output exceeded/
+  )
+  await assert.rejects(
+    execute(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { timeout: 10 }),
+    /timed out/
+  )
+})

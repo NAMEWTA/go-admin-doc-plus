@@ -126,7 +126,7 @@ impl TransportProxy {
     pub fn identity(&self) -> Result<IdentityResult, &'static str> {
         let current = self.send("GET", "/iam/session/current", None, true)?;
         if current.response.status == 401 {
-            if contains_secret_key(&current.response.body) {
+            if contains_secret_material(&current.response.body, &current.protected_values) {
                 return Err("desktop identity response invalid");
             }
             self.commit_rotation(current.rotation, None)?;
@@ -138,7 +138,7 @@ impl TransportProxy {
         let session: SessionWire = serde_json::from_value(current.response.body)
             .map_err(|_| "desktop identity response invalid")?;
         validate_profile(&session.profile)?;
-        if profile_contains_protected(&session.profile, &current.protected_values) {
+        if profile_contains_secret(&session.profile, &current.protected_values) {
             return Err("desktop identity response invalid");
         }
         self.commit_rotation(current.rotation, Some(session.csrf_token))?;
@@ -188,7 +188,7 @@ impl TransportProxy {
         let session: SessionWire = serde_json::from_value(response.response.body)
             .map_err(|_| "desktop login response invalid")?;
         validate_profile(&session.profile)?;
-        if profile_contains_protected(&session.profile, &response.protected_values) {
+        if profile_contains_secret(&session.profile, &response.protected_values) {
             return Err("desktop login response invalid");
         }
         self.commit_rotation(response.rotation, Some(session.csrf_token))?;
@@ -196,20 +196,29 @@ impl TransportProxy {
     }
 
     pub fn logout(&self) -> Result<LogoutResult, &'static str> {
-        let response = self.send("POST", "/iam/session/logout", None, true);
-        let clear = self
-            .vault
-            .lock()
-            .map_err(|_| "desktop vault unavailable")?
-            .clear();
-        logout_result(response.map(|value| value.response.status), clear)
+        let response = self.send("POST", "/iam/session/logout", None, true)?;
+        if !logout_status_allows_clear(response.response.status)
+            || contains_secret_material(&response.response.body, &response.protected_values)
+        {
+            return Err("desktop logout request failed");
+        }
+        finish_logout(response.response.status, || {
+            self.vault
+                .lock()
+                .map_err(|_| "desktop vault unavailable")?
+                .clear()
+        })
     }
 
     pub fn business(&self, request: DesktopRequest) -> Result<DesktopResponse, &'static str> {
+        #[cfg(feature = "native-e2e")]
+        if request.path == "/__desktop/test-control" {
+            return self.native_e2e_control(request);
+        }
         let mut request = demo_contract::validate_request(request)?;
         if request.body.as_ref().is_some_and(|body| {
             serde_json::to_vec(body).map_or(true, |encoded| encoded.len() > MAX_REQUEST_BYTES)
-                || contains_secret_key(body)
+                || contains_secret_material(body, &[])
         }) {
             return Err("desktop request body rejected");
         }
@@ -224,16 +233,53 @@ impl TransportProxy {
             scrub_json(body);
         }
         let response = response?;
-        if contains_protected_string(&response.response.body, &response.protected_values) {
+        if contains_secret_material(&response.response.body, &response.protected_values) {
             return Err("desktop response body rejected");
         }
         let mut public = demo_contract::validate_response(&request, response.response)?;
         self.commit_rotation(response.rotation, None)?;
-        if contains_secret_key(&public.body) {
+        if contains_secret_material(&public.body, &[]) {
             scrub_json(&mut public.body);
             return Err("desktop response body rejected");
         }
         Ok(public)
+    }
+
+    #[cfg(feature = "native-e2e")]
+    fn native_e2e_control(&self, request: DesktopRequest) -> Result<DesktopResponse, &'static str> {
+        if request.method != "POST" {
+            return Err("desktop test control rejected");
+        }
+        let body = request.body.ok_or("desktop test control rejected")?;
+        let values = body
+            .as_object()
+            .filter(|values| values.len() == 1)
+            .ok_or("desktop test control rejected")?;
+        let action = values
+            .get("action")
+            .and_then(Value::as_str)
+            .filter(|value| {
+                matches!(
+                    *value,
+                    "scope-self"
+                        | "scope-all"
+                        | "permissions-off"
+                        | "permissions-on"
+                        | "session-revoke"
+                )
+            })
+            .ok_or("desktop test control rejected")?;
+        let body = serde_json::json!({"action": action});
+        let response = self.send("POST", "/__desktop/test-control", Some(&body), false)?;
+        if response.response.status != 204
+            || response.response.body != Value::Null
+            || response.rotation.cookie.is_some()
+            || response.rotation.csrf.is_some()
+            || contains_secret_material(&response.response.body, &response.protected_values)
+        {
+            return Err("desktop test control failed");
+        }
+        Ok(response.response)
     }
 
     fn business_authorization(
@@ -242,9 +288,7 @@ impl TransportProxy {
     ) -> Result<Option<DesktopResponse>, &'static str> {
         let response = self.send("GET", "/iam/administration/manifest", None, true)?;
         if response.response.status == 401 {
-            if contains_secret_key(&response.response.body)
-                || contains_protected_string(&response.response.body, &response.protected_values)
-            {
+            if contains_secret_material(&response.response.body, &response.protected_values) {
                 return Err("desktop authorization response invalid");
             }
             self.commit_rotation(response.rotation, None)?;
@@ -253,7 +297,7 @@ impl TransportProxy {
         if response.response.status != 200 {
             return Err("desktop authorization request failed");
         }
-        if contains_protected_string(&response.response.body, &response.protected_values) {
+        if contains_secret_material(&response.response.body, &response.protected_values) {
             return Err("desktop authorization response invalid");
         }
         let manifest = decode_manifest(response.response.body)?;
@@ -278,7 +322,7 @@ impl TransportProxy {
         if response.response.status != 200 {
             return Err("desktop navigation request failed");
         }
-        if contains_protected_string(&response.response.body, &response.protected_values) {
+        if contains_secret_material(&response.response.body, &response.protected_values) {
             return Err("desktop navigation response invalid");
         }
         let manifest = decode_manifest(response.response.body)?;
@@ -590,12 +634,36 @@ fn valid_path(path: &str) -> bool {
 }
 
 fn sensitive_key(key: &str) -> bool {
+    let normalized: String = key
+        .chars()
+        .filter(|value| value.is_ascii_alphanumeric())
+        .map(|value| value.to_ascii_lowercase())
+        .collect();
     matches!(
-        key.to_ascii_lowercase().as_str(),
-        "csrftoken" | "csrf" | "token" | "password" | "cookie" | "authorization" | "session"
+        normalized.as_str(),
+        "csrftoken"
+            | "csrf"
+            | "token"
+            | "accesstoken"
+            | "refreshtoken"
+            | "sessiontoken"
+            | "password"
+            | "passwordhash"
+            | "cookie"
+            | "authorization"
+            | "session"
+            | "credential"
+            | "credentials"
+            | "secret"
+            | "secretkey"
+            | "privatekey"
+            | "clientsecret"
+            | "dsn"
+            | "databaseurl"
     )
 }
 
+#[cfg(test)]
 fn contains_secret_key(value: &Value) -> bool {
     match value {
         Value::Object(values) => values
@@ -606,22 +674,91 @@ fn contains_secret_key(value: &Value) -> bool {
     }
 }
 
-fn contains_protected_string(value: &Value, protected: &[Zeroizing<String>]) -> bool {
+fn secret_like_text(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    if lower.contains("bearer ")
+        || lower.contains("-----begin private key-----")
+        || lower.contains("-----begin ec private key-----")
+        || lower.contains("postgres://")
+        || lower.contains("postgresql://")
+        || lower.contains("mysql://")
+        || lower.contains("jdbc:")
+        || lower.contains("$argon2")
+        || lower.contains("$2a$")
+        || lower.contains("$2b$")
+        || lower.contains("$2y$")
+    {
+        return true;
+    }
+    if let Some(scheme) = lower.find("://") {
+        let authority = &value[scheme + 3..];
+        let end = authority.find('/').unwrap_or(authority.len());
+        let user_info = &authority[..end];
+        if user_info.contains('@')
+            && user_info
+                .split('@')
+                .next()
+                .is_some_and(|part| part.contains(':'))
+        {
+            return true;
+        }
+    }
+    if value
+        .split(|character: char| {
+            !(character.is_ascii_alphanumeric() || character == '_' || character == '-')
+        })
+        .any(looks_like_opaque_secret)
+    {
+        return true;
+    }
+    value.split_whitespace().any(|part| {
+        let segments: Vec<_> = part.split('.').collect();
+        segments.len() == 3
+            && segments.iter().all(|segment| {
+                segment.len() >= 8
+                    && segment
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+            })
+    })
+}
+
+fn looks_like_opaque_secret(value: &str) -> bool {
+    if value.len() != 43 {
+        return false;
+    }
+    let classes = [
+        value.bytes().any(|byte| byte.is_ascii_lowercase()),
+        value.bytes().any(|byte| byte.is_ascii_uppercase()),
+        value.bytes().any(|byte| byte.is_ascii_digit()),
+        value.bytes().any(|byte| matches!(byte, b'-' | b'_')),
+    ]
+    .into_iter()
+    .filter(|present| *present)
+    .count();
+    let distinct: BTreeSet<_> = value.bytes().collect();
+    classes >= 2 && distinct.len() >= 12
+}
+
+fn contains_secret_material(value: &Value, protected: &[Zeroizing<String>]) -> bool {
     match value {
-        Value::String(value) => protected
-            .iter()
-            .any(|secret| !secret.is_empty() && value.contains(secret.as_str())),
+        Value::String(value) => {
+            secret_like_text(value)
+                || protected
+                    .iter()
+                    .any(|secret| !secret.is_empty() && value.contains(secret.as_str()))
+        }
         Value::Object(values) => values
-            .values()
-            .any(|value| contains_protected_string(value, protected)),
+            .iter()
+            .any(|(key, value)| sensitive_key(key) || contains_secret_material(value, protected)),
         Value::Array(values) => values
             .iter()
-            .any(|value| contains_protected_string(value, protected)),
+            .any(|value| contains_secret_material(value, protected)),
         _ => false,
     }
 }
 
-fn profile_contains_protected(profile: &PublicProfile, protected: &[Zeroizing<String>]) -> bool {
+fn profile_contains_secret(profile: &PublicProfile, protected: &[Zeroizing<String>]) -> bool {
     [
         Some(profile.id.as_str()),
         Some(profile.username.as_str()),
@@ -632,9 +769,10 @@ fn profile_contains_protected(profile: &PublicProfile, protected: &[Zeroizing<St
     .into_iter()
     .flatten()
     .any(|value| {
-        protected
-            .iter()
-            .any(|secret| !secret.is_empty() && value.contains(secret.as_str()))
+        secret_like_text(value)
+            || protected
+                .iter()
+                .any(|secret| !secret.is_empty() && value.contains(secret.as_str()))
     })
 }
 
@@ -657,14 +795,21 @@ fn scrub_json(value: &mut Value) {
     }
 }
 
-fn logout_result(
-    response: Result<u16, &'static str>,
-    clear: Result<(), &'static str>,
+fn logout_status_allows_clear(status: u16) -> bool {
+    matches!(status, 204 | 401)
+}
+
+fn finish_logout(
+    status: u16,
+    clear: impl FnOnce() -> Result<(), &'static str>,
 ) -> Result<LogoutResult, &'static str> {
-    clear?;
+    if !logout_status_allows_clear(status) {
+        return Err("desktop logout request failed");
+    }
+    clear()?;
     Ok(LogoutResult {
         local_cleared: true,
-        remote_revoked: response.is_ok_and(|status| matches!(status, 204 | 401)),
+        remote_revoked: true,
     })
 }
 
@@ -687,26 +832,55 @@ mod tests {
 
     #[test]
     fn detects_nested_credential_keys() {
-        assert!(contains_secret_key(
-            &serde_json::json!({"items":[{"csrfToken":"hidden"}]})
-        ));
+        for key in [
+            "csrfToken",
+            "session_token",
+            "access-token",
+            "password_hash",
+        ] {
+            let mut nested = serde_json::Map::new();
+            nested.insert(key.to_owned(), Value::String("hidden".to_owned()));
+            assert!(contains_secret_key(&serde_json::json!({"items":[nested]})));
+        }
         assert!(!contains_secret_key(
             &serde_json::json!({"sessionTimeout":60,"tokenCount":2})
         ));
     }
 
     #[test]
-    fn rejects_protected_values_in_nested_public_strings() {
+    fn rejects_sensitive_material_in_nested_public_strings() {
         let secret = Zeroizing::new("abcdefghijklmnopqrstuvwxyzABCDEFGH123456789".to_owned());
-        assert!(contains_protected_string(
+        assert!(contains_secret_material(
             &serde_json::json!({"detail": ["prefix-abcdefghijklmnopqrstuvwxyzABCDEFGH123456789-suffix"]}),
             &[secret]
         ));
-        assert!(!contains_protected_string(
+        assert!(!contains_secret_material(
             &serde_json::json!({"sessionTimeout": "tokenized-mode", "tokenCount": 2}),
             &[Zeroizing::new(
                 "abcdefghijklmnopqrstuvwxyzABCDEFGH123456789".to_owned()
             )]
+        ));
+        for value in [
+            "aaaaaaaa.bbbbbbbb.cccccccc",
+            "-----BEGIN PRIVATE KEY-----",
+            "postgresql://user:password@example.test/db",
+            "$argon2id$v=19$m=65536,t=3,p=1$hash",
+        ] {
+            assert!(contains_secret_material(
+                &serde_json::json!({"violations":[{"detail":value}]}),
+                &[]
+            ));
+        }
+        assert!(!contains_secret_material(
+            &serde_json::json!({
+                "name": "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq",
+                "description": "a".repeat(120)
+            }),
+            &[]
+        ));
+        assert!(contains_secret_material(
+            &serde_json::json!({"detail":"abcdefghijklmnopqrstuvwxyzABCDEFGH123456789"}),
+            &[]
         ));
     }
 
@@ -729,11 +903,23 @@ mod tests {
     }
 
     #[test]
-    fn logout_never_claims_local_clear_when_vault_fails() {
-        assert!(logout_result(Ok(204), Err("injected vault fault")).is_err());
-        let partial = logout_result(Err("injected sidecar fault"), Ok(())).unwrap();
-        assert!(partial.local_cleared);
-        assert!(!partial.remote_revoked);
+    fn logout_only_clears_after_a_terminal_remote_status() {
+        use std::cell::Cell;
+
+        assert!(logout_status_allows_clear(204));
+        assert!(logout_status_allows_clear(401));
+        assert!(!logout_status_allows_clear(403));
+        assert!(!logout_status_allows_clear(500));
+        let cleared = Cell::new(false);
+        assert!(
+            finish_logout(500, || {
+                cleared.set(true);
+                Ok(())
+            })
+            .is_err()
+        );
+        assert!(!cleared.get());
+        assert!(finish_logout(204, || Err("injected vault fault")).is_err());
     }
 
     #[test]

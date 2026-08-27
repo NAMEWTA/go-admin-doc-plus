@@ -116,6 +116,13 @@ export const parseTargets = args => {
   throw new Error('usage: build.mjs --host | --target <supported-triple> | --all')
 }
 
+export const parseBuildRequest = args => {
+  const nativeE2E = args[0] === '--native-e2e'
+  const selected = parseTargets(nativeE2E ? args.slice(1) : args)
+  if (nativeE2E && selected.length !== 1) throw new Error('native E2E sidecar requires one target')
+  return { selected, nativeE2E }
+}
+
 export const hostTriple = (platform = process.platform, architecture = process.arch) => {
   if (platform === 'darwin' && architecture === 'arm64') return 'aarch64-apple-darwin'
   if (platform === 'darwin' && architecture === 'x64') return 'x86_64-apple-darwin'
@@ -129,7 +136,7 @@ export const outputName = triple => {
   return `go-admin-sidecar-${triple}${target.extension}`
 }
 
-export const buildTarget = async triple => {
+export const buildTarget = async (triple, { nativeE2E = false } = {}) => {
   const target = targets[triple]
   if (!target) throw new Error('unsupported sidecar target')
   await mkdir(outputRoot, { recursive: true, mode: 0o700 })
@@ -144,7 +151,8 @@ export const buildTarget = async triple => {
       mkdir(path.join(sandbox, 'go-build'), { mode: 0o700 })
     ])
     const { goExecutable, moduleCache } = await resolveToolchain()
-    await run(goExecutable, ['build', '-trimpath', '-buildvcs=false', '-ldflags=-s -w', '-o', staging, './cmd/desktop-sidecar'], {
+    const tags = nativeE2E ? ['-tags=desktop_native_e2e'] : []
+    await run(goExecutable, ['build', '-trimpath', '-buildvcs=false', '-ldflags=-s -w', ...tags, '-o', staging, './cmd/desktop-sidecar'], {
       cwd: goRoot,
       env: buildEnvironment(target, sandbox, goExecutable, moduleCache)
     })
@@ -161,9 +169,9 @@ export const buildTarget = async triple => {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const selected = parseTargets(process.argv.slice(2))
-    for (const triple of selected) await buildTarget(triple)
-    process.stdout.write(`${JSON.stringify({ built: selected })}\n`)
+    const request = parseBuildRequest(process.argv.slice(2))
+    for (const triple of request.selected) await buildTarget(triple, { nativeE2E: request.nativeE2E })
+    process.stdout.write(`${JSON.stringify({ built: request.selected, nativeE2E: request.nativeE2E })}\n`)
   } catch {
     process.stderr.write('sidecar packaging failed\n')
     process.exitCode = 1
