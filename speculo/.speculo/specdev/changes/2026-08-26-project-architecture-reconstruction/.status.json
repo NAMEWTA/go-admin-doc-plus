@@ -983,36 +983,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-13",
       "source_checkpoint": "fd43839c296047ed2e78cc9edb1b106b5b4129ca",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "595fc61463cafa30cd34df23992576c4cc02adc2",
+        "source_sha": "fd43839c296047ed2e78cc9edb1b106b5b4129ca",
+        "candidate_sha": "0f903d89f0e96f2afa0bd67348da3c7698407292",
+        "candidate_tree_sha": "d575fe1445f117e69d69eab00b6ab8e80e85ab24",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-13",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-13",
+        "result_sha": "0f903d89f0e96f2afa0bd67348da3c7698407292",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "G4 requires Files metadata state, anchored local storage, streaming transport, authorization, Go/TypeScript, contract, and package checks on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Attempt 1 passed frozen pnpm verify/build, Go normal/SQLite full, Files race, vet, CGO0 build, module verify, contract, API client, governance, Task contract, path, clean-tree, and Goal Plan validation gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-        "reason": "Real filesystem upload/download/restart across supported profiles plus traversal, symlink, TOCTOU, interruption, and authorization failures are deferred to the single unified final system E2E after all implementations are integrated",
-          "evidence": null
+          "reason": "Real filesystem upload/download/restart across supported profiles plus traversal, symlink, TOCTOU, interruption, and authorization failures are deferred to the single unified final system E2E after all implementations are integrated",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
       "status": "review",
-      "updated_at": "2026-08-27T14:24:24+08:00"
+      "updated_at": "2026-08-27T18:04:06+08:00"
     }
   ]
 }

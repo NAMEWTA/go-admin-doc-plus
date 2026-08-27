@@ -35,7 +35,7 @@ status: in_progress
 | T-10 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>` | Settings 完整管理闭环 | T-07 | deep | high | yes | codex-t10-settings | AC-015, AC-035 | W6 / G4 implementation integrated；Web E2E deferred to G8 | in_progress |
 | T-11 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/11-audit-module.md</Path>` | Audit 可靠脱敏闭环 | T-06, T-08 | deep | high | yes | codex-t11-audit | AC-016, AC-035 | W5 / G4 | done |
 | T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | codex-t12-scheduler | AC-017, AC-018, AC-035 | W6 / G4 implementation integrated；multi-instance E2E deferred to G8 | in_progress |
-| T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4 | in_progress |
+| T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4 implementation integrated；filesystem/browser E2E deferred to G8 | in_progress |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
 | T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | codex-root | AC-019, AC-023, AC-028, AC-035 | W7 / G4 implementation integrated；Web E2E deferred to G8 | in_progress |
 | T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 implementation integrated；native E2E deferred to G8 | in_progress |
@@ -132,7 +132,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | P2 | T-03, T-05 | 无 | 后端 runtime 与前端 workspace 分离 |
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
 | P5 | T-07, T-11 | Session service/test 与 workspace lock 已按原 result 串行移交；`T11-D04` 仅重开 Audit 自有 capability 文件/测试 | T-07 已 done；T-11 原 result 保留，当前只补 IAM registry 所需 Audit permissions/menu，其他共享路径仍只读 |
-| P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09/T-10/T-12 根接入已完成；现由 `T13-D03` 串行拥有 Files/Browser adapter typecheck、Vitest 与三个 lock importer | 各模块独占合同/schema/backend/frontend；Scheduler 只读消费 T-08 同一全局 lease，Files 的 Desktop/config composition 延后到 T-17 |
+| P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09/T-10/T-12/T-13 根接入已全部串行完成；后续共享路径等待 T-17 激活 | 各模块独占合同/schema/backend/frontend；Scheduler 只读消费 T-08 同一全局 lease，Files 的 Desktop/config composition 延后到 T-17 |
 | P7 | T-15, T-16 | `T16-D02` 先完成 Desktop 根接入，随后 `T15-D02` 串行完成 Generator 根接入；无并发写入 | Generator 与 Desktop 分离，共同只读 Demo；两项实现 result 均已提升 |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
 
@@ -142,7 +142,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | `<Path>contracts/openapi/openapi.yaml</Path>`、公共 components、合同工具与公共 client | T-02 | 模块写自有 fragment |
 | kernel/config/observability | T-03 | 宿主和模块只读依赖 |
 | Database/migration API、`<Path>go-admin-plus/go.mod</Path>`、`<Path>go-admin-plus/go.sum</Path>` | T-04；T-02 先串行拥有合同生成器/transport 依赖 | 模块实现自有 Provider，不改依赖清单 |
-| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14/T-09/T-16/T-15/T-10/T-12 串行接入已完成；现由 `T13-D03` 只拥有 Files/Browser adapter checks 与三个既有 importers | 模块只写获批 manifest/importer；App Shell core、Desktop/config bridge 保持只读 |
+| Workspace/lock/adapters/app-shell manifest+core/platform/ui | T-05（含 T05-D01、T05-D02）；T-02/T-07/T-11/T-14/T-09/T-16/T-15/T-10/T-12/T-13 串行根接入已完成；下一 owner 由 T-17 激活 amendment 指定 | 模块只写获批 manifest/importer；T-17 前 App Shell core、Desktop/config bridge 保持只读 |
 | Shared list request state | T-05 基座；T-14 under `T14-D04` 精确修改 `<Path>go-admin-plus-ui/packages/ui/src/list.ts</Path>` 与既有回归 | 请求可规范化/校验，最新成功前不提交 query state；模块只配置/包装，不复制列表状态机 |
 | IAM Session request authorization seam | T-06；`T07-D02` 精确追加 `AuthorizeRequest` 与既有测试 | T-07 HTTP 只消费统一 token/CSRF/touch/rotation 结果，不读取 Session 私表或复制 secret/hash 规则 |
 | IAM Session login audit seam | T-06；T-07 result 已完成 `T07-D02`，现由 `T11-D02/T11-D03` 追加 fail-closed 模块无关 Login Fact Port 与精确 test-only 调用点 | T-11 Audit adapter 同步记录成功/失败登录；Session 不导入 Audit且无生产 discard，T-17 composition 必须注入 Port，密码/用户名/token/CSRF 不进入事实 |
