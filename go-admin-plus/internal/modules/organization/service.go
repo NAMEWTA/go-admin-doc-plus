@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -54,7 +55,14 @@ type Option func(*Service)
 
 func WithClock(clock func() time.Time) Option { return func(service *Service) { service.now = clock } }
 
-func NewService(db Database, authorizer Authorizer, options ...Option) (*Service, error) {
+func NewService(db Database, options ...Option) (*Service, error) {
+	if db == nil {
+		return nil, errors.New("organization database is required")
+	}
+	return newServiceWithAuthorizer(db, authorization.NewService(db), options...)
+}
+
+func newServiceWithAuthorizer(db Database, authorizer Authorizer, options ...Option) (*Service, error) {
 	if db == nil || authorizer == nil {
 		return nil, errors.New("organization database and authorizer are required")
 	}
@@ -156,10 +164,10 @@ func (s *Service) DeleteDepartment(ctx context.Context, actorID, id string) erro
 }
 
 func (s *Service) ListPositions(ctx context.Context, actorID, search string, page, pageSize int) (PositionPage, error) {
-	if page < 1 || page > maximumPositionPage || pageSize < 1 || pageSize > 100 || len(search) > 100 {
+	search = strings.TrimSpace(search)
+	if page < 1 || page > maximumPositionPage || pageSize < 1 || pageSize > 100 || runeLength(search) < 0 || runeLength(search) > 100 {
 		return PositionPage{}, ErrValidation
 	}
-	search = strings.TrimSpace(search)
 	var result PositionPage
 	err := s.read(ctx, actorID, PermissionPositionsRead, func(ctx context.Context, tx database.Tx) error {
 		var err error
@@ -303,11 +311,31 @@ func normalizePositionInput(input PositionInput) PositionInput {
 }
 
 func validDepartmentInput(input DepartmentInput) bool {
-	return validKey(input.Key) && input.Name != "" && len(input.Name) <= 100 && input.ParentID != "" && input.SortOrder >= -1_000_000 && input.SortOrder <= 1_000_000
+	return validKey(input.Key) && runeLength(input.Name) >= 1 && runeLength(input.Name) <= 100 && input.ParentID != "" && input.SortOrder >= -1_000_000 && input.SortOrder <= 1_000_000
 }
 
 func validPositionInput(input PositionInput) bool {
-	return validKey(input.Key) && input.Name != "" && len(input.Name) <= 100 && input.DepartmentID != ""
+	return validKey(input.Key) && runeLength(input.Name) >= 1 && runeLength(input.Name) <= 100 && input.DepartmentID != ""
+}
+
+func runeLength(value string) int {
+	if !utf8.ValidString(value) {
+		return -1
+	}
+	return utf8.RuneCountInString(value)
+}
+
+func normalizedNameKey(value string) string {
+	const hexadecimal = "0123456789abcdef"
+	bytes := []byte(strings.ToLower(value))
+	var result strings.Builder
+	result.Grow(len(bytes) * 3)
+	for _, value := range bytes {
+		result.WriteByte(hexadecimal[value>>4])
+		result.WriteByte(hexadecimal[value&0x0f])
+		result.WriteByte('.')
+	}
+	return result.String()
 }
 
 func validKey(value string) bool {

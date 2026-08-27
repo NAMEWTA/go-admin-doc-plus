@@ -29,7 +29,7 @@ func (stub *sessionAuthorizerStub) AuthorizeRequest(_ context.Context, token, cs
 func TestOrganizationHTTPStrictBoundaryAndStableProblems(t *testing.T) {
 	db := organizationDatabase(t)
 	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := NewService(db, authorizer)
+	service, err := newServiceWithAuthorizer(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestOrganizationHTTPStrictBoundaryAndStableProblems(t *testing.T) {
 func TestOrganizationHTTPAuthenticationFailsBeforeService(t *testing.T) {
 	db := organizationDatabase(t)
 	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := NewService(db, authorizer)
+	service, err := newServiceWithAuthorizer(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}

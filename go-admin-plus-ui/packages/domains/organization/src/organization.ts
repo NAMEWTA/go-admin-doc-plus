@@ -31,6 +31,10 @@ export class OrganizationRequestError extends Error {
   }
 }
 
+export const codePointLength = (value: string): number => Array.from(value).length
+export const validOrganizationName = (value: string): boolean => codePointLength(value.trim()) >= 1 && codePointLength(value.trim()) <= 100
+export const validOrganizationSearch = (value: string): boolean => codePointLength(value.trim()) <= 100
+
 /** Builds a defensive tree projection without mutating generated transport rows. */
 export const buildDepartmentTree = (departments: ReadonlyArray<Department>): ReadonlyArray<DepartmentTreeNode> => {
   const rows = new Map<string, Department>()

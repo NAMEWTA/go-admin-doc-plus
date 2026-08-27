@@ -23,6 +23,60 @@ type authorizerStub struct {
 	permissions []string
 }
 
+type captureCapabilityRegistrar struct {
+	capabilities authorization.ModuleCapabilities
+}
+
+func (registrar *captureCapabilityRegistrar) Register(_ context.Context, capabilities authorization.ModuleCapabilities) error {
+	registrar.capabilities = capabilities
+	return nil
+}
+
+func TestOrganizationDeclaresStableCapabilitiesThroughIAMRegistry(t *testing.T) {
+	registrar := &captureCapabilityRegistrar{}
+	if err := RegisterCapabilities(context.Background(), registrar); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		PermissionDepartmentsRead,
+		PermissionDepartmentsWrite,
+		PermissionDepartmentsDelete,
+		PermissionPositionsRead,
+		PermissionPositionsWrite,
+		PermissionPositionsDelete,
+	}
+	if len(registrar.capabilities.Permissions) != len(want) {
+		t.Fatalf("permissions=%#v", registrar.capabilities.Permissions)
+	}
+	for index, code := range want {
+		definition := registrar.capabilities.Permissions[index]
+		if definition.Code != code || definition.Name == "" {
+			t.Fatalf("permission[%d]=%#v", index, definition)
+		}
+	}
+	if len(registrar.capabilities.Menus) != 2 ||
+		registrar.capabilities.Menus[0].Key != "organization-departments" ||
+		registrar.capabilities.Menus[0].PermissionCode != PermissionDepartmentsRead ||
+		registrar.capabilities.Menus[1].Key != "organization-positions" ||
+		registrar.capabilities.Menus[1].PermissionCode != PermissionPositionsRead {
+		t.Fatalf("menus=%#v", registrar.capabilities.Menus)
+	}
+}
+
+func TestOrganizationProductionConstructorOwnsAuthorizationForItsDatabase(t *testing.T) {
+	db := organizationDatabase(t)
+	service, err := NewService(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if service.db != db {
+		t.Fatal("service lost its database owner")
+	}
+	if _, ok := service.authorizer.(*authorization.Service); !ok {
+		t.Fatalf("production authorizer=%T", service.authorizer)
+	}
+}
+
 func (stub *authorizerStub) RequireInTx(_ context.Context, _ database.Tx, _, permission string) (authorization.Decision, error) {
 	stub.permissions = append(stub.permissions, permission)
 	return authorization.Decision{Scope: stub.scope}, stub.err
@@ -31,7 +85,7 @@ func (stub *authorizerStub) RequireInTx(_ context.Context, _ database.Tx, _, per
 func TestOrganizationTreePositionAndProjectionLifecycle(t *testing.T) {
 	db := organizationDatabase(t)
 	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := NewService(db, authorizer, WithClock(func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) }))
+	service, err := newServiceWithAuthorizer(db, authorizer, WithClock(func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) }))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +169,7 @@ func TestOrganizationTreePositionAndProjectionLifecycle(t *testing.T) {
 func TestOrganizationRejectsDuplicateInvalidAndUnauthorizedCommandsWithoutStateChange(t *testing.T) {
 	db := organizationDatabase(t)
 	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := NewService(db, authorizer)
+	service, err := newServiceWithAuthorizer(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +216,7 @@ func TestOrganizationRejectsDuplicateInvalidAndUnauthorizedCommandsWithoutStateC
 func TestOrganizationContextAndProjectionFailuresStayStable(t *testing.T) {
 	db := organizationDatabase(t)
 	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := NewService(db, authorizer)
+	service, err := newServiceWithAuthorizer(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}

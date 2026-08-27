@@ -16,6 +16,7 @@ CREATE TABLE organization_positions (
   id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 16 AND 64),
   position_key TEXT NOT NULL UNIQUE CHECK (length(position_key) BETWEEN 3 AND 64 AND position_key ~ '^[a-z0-9][a-z0-9_-]*$'),
   name TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 100),
+  name_key TEXT NOT NULL CHECK (length(name_key) BETWEEN 3 AND 1200 AND name_key ~ '^([0-9a-f]{2}\.)+$'),
   department_id TEXT NOT NULL REFERENCES organization_departments(id) ON DELETE RESTRICT,
   enabled BOOLEAN NOT NULL DEFAULT TRUE,
   protected BOOLEAN NOT NULL DEFAULT FALSE,
@@ -23,6 +24,7 @@ CREATE TABLE organization_positions (
   updated_at TIMESTAMPTZ NOT NULL
 );
 CREATE INDEX organization_positions_department_idx ON organization_positions(department_id, position_key);
+CREATE INDEX organization_positions_name_key_idx ON organization_positions(name_key, position_key);
 
 INSERT INTO organization_departments(id, department_key, name, parent_id, sort_order, protected, created_at, updated_at)
 VALUES ('department-root-001', 'root', 'Organization', NULL, 0, TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

@@ -79,19 +79,25 @@ func (repository) deleteDepartment(ctx context.Context, tx database.Tx, id strin
 	return nil
 }
 
-func (repository) positions(ctx context.Context, tx database.Tx, search string, page, pageSize int) (PositionPage, error) {
+func (r repository) positions(ctx context.Context, tx database.Tx, search string, page, pageSize int) (PositionPage, error) {
 	where, arguments := ``, []any{}
 	if search != "" {
-		where = ` WHERE lower(position_key) LIKE ? OR lower(name) LIKE ?`
-		value := "%" + strings.ToLower(search) + "%"
-		arguments = append(arguments, value, value)
+		where = ` WHERE instr(lower(position_key), ?) > 0 OR instr(name_key, ?) > 0`
+		if r.dialect == database.DialectPostgres {
+			where = ` WHERE strpos(lower(position_key), ?) > 0 OR strpos(name_key, ?) > 0`
+		}
+		arguments = append(arguments, strings.ToLower(search), normalizedNameKey(search))
 	}
 	var result PositionPage
 	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM organization_positions`+where, arguments...).Scan(&result.Total); err != nil {
 		return PositionPage{}, err
 	}
 	arguments = append(arguments, pageSize, (page-1)*pageSize)
-	rows, err := tx.QueryContext(ctx, `SELECT id, position_key, name, department_id, enabled, protected FROM organization_positions`+where+` ORDER BY position_key LIMIT ? OFFSET ?`, arguments...)
+	order := `position_key COLLATE BINARY`
+	if r.dialect == database.DialectPostgres {
+		order = `position_key COLLATE "C"`
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT id, position_key, name, department_id, enabled, protected FROM organization_positions`+where+` ORDER BY `+order+` LIMIT ? OFFSET ?`, arguments...)
 	if err != nil {
 		return PositionPage{}, err
 	}
@@ -118,12 +124,12 @@ func (r repository) position(ctx context.Context, tx database.Tx, id string, loc
 }
 
 func (repository) insertPosition(ctx context.Context, tx database.Tx, value Position, now time.Time) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO organization_positions(id, position_key, name, department_id, enabled, protected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, value.ID, value.Key, value.Name, value.DepartmentID, value.Enabled, false, now, now)
+	_, err := tx.ExecContext(ctx, `INSERT INTO organization_positions(id, position_key, name, name_key, department_id, enabled, protected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, value.ID, value.Key, value.Name, normalizedNameKey(value.Name), value.DepartmentID, value.Enabled, false, now, now)
 	return err
 }
 
 func (repository) updatePosition(ctx context.Context, tx database.Tx, value Position, now time.Time) error {
-	result, err := tx.ExecContext(ctx, `UPDATE organization_positions SET position_key = ?, name = ?, department_id = ?, enabled = ?, updated_at = ? WHERE id = ?`, value.Key, value.Name, value.DepartmentID, value.Enabled, now, value.ID)
+	result, err := tx.ExecContext(ctx, `UPDATE organization_positions SET position_key = ?, name = ?, name_key = ?, department_id = ?, enabled = ?, updated_at = ? WHERE id = ?`, value.Key, value.Name, normalizedNameKey(value.Name), value.DepartmentID, value.Enabled, now, value.ID)
 	if err != nil {
 		return err
 	}

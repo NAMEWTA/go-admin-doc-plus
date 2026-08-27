@@ -46,7 +46,13 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
-	db := openOrganizationBrowserDB(t, ctx, os.Getenv(organizationHarnessProfile))
+	db, expectedSchema := openOrganizationBrowserDB(t, ctx, os.Getenv(organizationHarnessProfile))
+	if expectedSchema != "" {
+		var currentSchema string
+		if err := db.Bun().QueryRowContext(ctx, `SELECT current_schema()`).Scan(&currentSchema); err != nil || currentSchema != expectedSchema {
+			t.Fatalf("organization PostgreSQL schema mismatch current=%q err=%v", currentSchema, err)
+		}
+	}
 	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, organizationmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
@@ -55,15 +61,19 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 		t.Fatal("organization browser migrations failed")
 	}
 	seedOrganizationBrowserIdentity(t, ctx, db)
+	registry, err := authorization.NewCapabilityRegistry(db)
+	if err != nil || organization.RegisterCapabilities(ctx, registry) != nil {
+		t.Fatal("organization capability registration failed")
+	}
 	policy, err := config.NewSessionPolicy(2*time.Minute, 8*time.Minute, time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := session.NewService(db, policy)
+	sessions, err := session.NewService(db, policy, session.WithLoginFactPort(organizationLoginFactNoop{}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := organization.NewService(db, authorization.NewService(db))
+	service, err := organization.NewService(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +142,36 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		if _, err := db.Bun().ExecContext(r.Context(), `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code = ?`, "role-organization-admin", organization.PermissionPositionsRead); err != nil {
+		if _, err := db.Bun().ExecContext(r.Context(), `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code = ?`, "role-system-admin", organization.PermissionPositionsRead); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/__test/scope", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var body struct {
+			Scope string `json:"scope"`
+		}
+		if json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&body) != nil || (body.Scope != "self" && body.Scope != "all") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if _, err := db.Bun().ExecContext(r.Context(), `UPDATE iam_roles SET data_scope = ? WHERE id = ?`, body.Scope, "role-system-admin"); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("/__test/revoke-session", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		if err := sessions.RevokeAccount(r.Context(), organizationAdminID); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -169,7 +208,13 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 
 type headerCapture struct{ http.ResponseWriter }
 
-func openOrganizationBrowserDB(t *testing.T, ctx context.Context, profile string) *database.Database {
+type organizationLoginFactNoop struct{}
+
+func (organizationLoginFactNoop) RecordLoginFact(context.Context, database.Tx, session.LoginFact) error {
+	return nil
+}
+
+func openOrganizationBrowserDB(t *testing.T, ctx context.Context, profile string) (*database.Database, string) {
 	t.Helper()
 	if profile == "sqlite" {
 		if os.Getenv(postgresDSNEnvironment) != "" {
@@ -180,7 +225,7 @@ func openOrganizationBrowserDB(t *testing.T, ctx context.Context, profile string
 			t.Fatal("SQLite harness open failed")
 		}
 		t.Cleanup(func() { _ = db.Close() })
-		return db
+		return db, ""
 	}
 	if profile != "postgres" {
 		t.Fatal("organization browser harness profile is invalid")
@@ -207,6 +252,11 @@ func openOrganizationBrowserDB(t *testing.T, ctx context.Context, profile string
 		defer cleanupCancel()
 		if _, err := admin.SQL().ExecContext(cleanup, `DROP SCHEMA IF EXISTS `+schema+` CASCADE`); err != nil {
 			t.Error("PostgreSQL harness cleanup failed")
+		} else {
+			var exists bool
+			if err := admin.Bun().QueryRowContext(cleanup, `SELECT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = ?)`, schema).Scan(&exists); err != nil || exists {
+				t.Error("PostgreSQL harness schema residue detected")
+			}
 		}
 		_ = admin.Close()
 	})
@@ -214,7 +264,7 @@ func openOrganizationBrowserDB(t *testing.T, ctx context.Context, profile string
 	if err != nil {
 		t.Fatal("isolated PostgreSQL harness failed")
 	}
-	return db
+	return db, schema
 }
 
 func organizationPostgresDSN(t *testing.T, dsn, schema string) string {
@@ -243,34 +293,7 @@ func seedOrganizationBrowserIdentity(t *testing.T, ctx context.Context, db *data
 	}); err != nil {
 		t.Fatal("organization account seed failed")
 	}
-	now := time.Now().UTC()
-	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_roles(id, role_key, name, data_scope, enabled, protected, created_at, updated_at) VALUES (?, ?, ?, 'all', TRUE, FALSE, ?, ?)`, "role-organization-admin", "organization-admin", "Organization Administrator", now, now); err != nil {
-		t.Fatal("organization role seed failed")
-	}
-	permissions := []string{organization.PermissionDepartmentsRead, organization.PermissionDepartmentsWrite, organization.PermissionDepartmentsDelete, organization.PermissionPositionsRead, organization.PermissionPositionsWrite, organization.PermissionPositionsDelete}
-	for _, permission := range permissions {
-		if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_permissions(code, name) VALUES (?, ?)`, permission, permission); err != nil {
-			t.Fatal("organization permission seed failed")
-		}
-		if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-organization-admin", permission); err != nil {
-			t.Fatal("organization role permission seed failed")
-		}
-	}
-	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-organization-admin", authorization.PermissionManifestRead); err != nil {
-		t.Fatal("organization manifest permission seed failed")
-	}
-	for _, menu := range []struct{ id, key, label, path, permission string }{
-		{"menu-organization-departments", "organization-departments", "Departments", "/organization/departments", organization.PermissionDepartmentsRead},
-		{"menu-organization-positions", "organization-positions", "Positions", "/organization/positions", organization.PermissionPositionsRead},
-	} {
-		if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_menus(id, menu_key, label, path, permission_code, sort_order, protected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 100, FALSE, ?, ?)`, menu.id, menu.key, menu.label, menu.path, menu.permission, now, now); err != nil {
-			t.Fatal("organization menu seed failed")
-		}
-		if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_role_menus(role_id, menu_id) VALUES (?, ?)`, "role-organization-admin", menu.id); err != nil {
-			t.Fatal("organization role menu seed failed")
-		}
-	}
-	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, organizationAdminID, "role-organization-admin"); err != nil {
+	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, organizationAdminID, "role-system-admin"); err != nil {
 		t.Fatal("organization account role seed failed")
 	}
 }

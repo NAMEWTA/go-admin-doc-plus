@@ -1,9 +1,10 @@
-import { buildDepartmentTree, OrganizationRequestError, type Department, type DepartmentInput, type DepartmentTreeNode, type OrganizationClient, type Position, type PositionInput } from '@go-admin/domain-organization'
+import { buildDepartmentTree, OrganizationRequestError, validOrganizationName, validOrganizationSearch, type Department, type DepartmentInput, type DepartmentTreeNode, type OrganizationClient, type Position, type PositionInput } from '@go-admin/domain-organization'
 import { createListController, type ListController } from '@go-admin/ui'
 
 export interface PositionFilters { search: string }
 export type OrganizationFailure = 'relogin' | 'forbidden' | 'validation' | 'not-found' | 'conflict' | 'unavailable'
 export type OrganizationCommandResult = 'completed' | 'cancelled' | 'busy' | 'invalid' | 'failed' | 'refresh-failed'
+export interface OrganizationCapabilityPort { can(permission: string): boolean; scope(): 'self' | 'all' | null }
 
 export interface OrganizationController {
   positions: ListController<PositionFilters, Position, string>
@@ -26,7 +27,7 @@ export interface OrganizationController {
 
 export const createOrganizationController = (
   client: OrganizationClient,
-  can: (permission: string) => boolean,
+  capabilities: OrganizationCapabilityPort,
   confirm: (count: number) => Promise<boolean>,
 ): OrganizationController => {
   let departments: ReadonlyArray<Department> = []
@@ -35,6 +36,8 @@ export const createOrganizationController = (
   let failure: OrganizationFailure | null = null
   let mutationBusy = false
   let repairBusy = false
+  let departmentRequestSequence = 0
+  let positionRequestSequence = 0
   const pendingRepairs = new Map<string, () => Promise<void>>()
   const clearFailure = () => { failure = null }
   const recordFailure = (error: unknown) => {
@@ -42,40 +45,70 @@ export const createOrganizationController = (
     failure = isFailure(category) ? category : 'unavailable'
   }
   const hideDepartments = () => { departmentProjectionVisible = false; departments = [] }
-  const rawPositions = createListController<PositionFilters, Position, string>({
-    initialFilters: () => ({ search: '' }),
-    rowKey: (row) => row.id,
-    load: ({ filters, page, pageSize }) => client.listPositions(filters.search, page, pageSize),
-  })
-  const observePositionList = async (operation: () => Promise<void>) => {
-    clearFailure()
-    try { await operation(); positionProjectionVisible = true }
-    catch (error) { positionProjectionVisible = false; rawPositions.clearSelection(); recordFailure(error); throw error }
+  let rawPositions!: ListController<PositionFilters, Position, string>
+  const hidePositions = () => { positionProjectionVisible = false; rawPositions.clearSelection() }
+  const hideAll = () => { hideDepartments(); hidePositions() }
+  const canManage = (permission: string) => {
+    if (capabilities.scope() !== 'all') {
+      hideAll()
+      return false
+    }
+    const allowed = capabilities.can(permission)
+    if (!allowed && permission === 'organization.departments.read') hideDepartments()
+    if (!allowed && permission === 'organization.positions.read') hidePositions()
+    return allowed
   }
+  rawPositions = createListController<PositionFilters, Position, string>({
+    initialFilters: () => ({ search: '' }),
+    normalizeFilters: filters => ({ search: filters.search.trim() }),
+    validate: request => {
+      if (!validOrganizationSearch(request.filters.search)) {
+        positionRequestSequence += 1
+        failure = 'validation'
+        throw new OrganizationRequestError('validation')
+      }
+    },
+    rowKey: (row) => row.id,
+    load: async ({ filters, page, pageSize }) => {
+      const sequence = ++positionRequestSequence
+      failure = null
+      try {
+        if (!canManage('organization.positions.read')) throw new OrganizationRequestError('forbidden')
+        const result = await client.listPositions(filters.search, page, pageSize)
+        if (sequence === positionRequestSequence) positionProjectionVisible = true
+        return result
+      } catch (error) {
+        if (sequence === positionRequestSequence) { hidePositions(); recordFailure(error) }
+        throw error
+      }
+    },
+  })
   const positions: ListController<PositionFilters, Position, string> = {
     snapshot: () => {
       const snapshot = rawPositions.snapshot()
-      return positionProjectionVisible ? snapshot : { ...snapshot, rows: [], total: 0, selectedKeys: [] }
+      return positionProjectionVisible && canManage('organization.positions.read') ? snapshot : { ...snapshot, rows: [], total: 0, selectedKeys: [] }
     },
-    refresh: () => observePositionList(() => rawPositions.refresh()),
-    search: (filters) => observePositionList(() => rawPositions.search(filters)),
-    reset: () => observePositionList(() => rawPositions.reset()),
-    setPage: (page) => observePositionList(() => rawPositions.setPage(page)),
-    setPageSize: (pageSize) => observePositionList(() => rawPositions.setPageSize(pageSize)),
-    setSort: (sort) => observePositionList(() => rawPositions.setSort(sort)),
-    select: (rows) => rawPositions.select(rows),
+    refresh: () => rawPositions.refresh(),
+    search: (filters) => rawPositions.search(filters),
+    reset: () => rawPositions.reset(),
+    setPage: (page) => rawPositions.setPage(page),
+    setPageSize: (pageSize) => rawPositions.setPageSize(pageSize),
+    setSort: (sort) => rawPositions.setSort(sort),
+    select: (rows) => { if (positionProjectionVisible && canManage('organization.positions.read')) rawPositions.select(rows) },
     clearSelection: () => rawPositions.clearSelection(),
   }
   const refreshDepartments = async () => {
+    const sequence = ++departmentRequestSequence
     clearFailure()
     try {
+      if (!canManage('organization.departments.read')) throw new OrganizationRequestError('forbidden')
       const next = await client.listDepartments()
       buildDepartmentTree(next)
+      if (sequence !== departmentRequestSequence) return
       departments = [...next]
       departmentProjectionVisible = true
     } catch (error) {
-      hideDepartments()
-      recordFailure(error)
+      if (sequence === departmentRequestSequence) { hideDepartments(); recordFailure(error) }
       throw error
     }
   }
@@ -96,20 +129,26 @@ export const createOrganizationController = (
     clearFailure()
     try {
       if (options.destructive && !await confirm(1)) return 'cancelled'
-      try { await operation() } catch (error) { recordFailure(error); return 'failed' }
+      try { await operation() } catch (error) {
+        recordFailure(error)
+        if (failure === 'relogin' || failure === 'forbidden' || failure === 'unavailable') {
+          departmentRequestSequence += 1; positionRequestSequence += 1; hideAll()
+        }
+        return 'failed'
+      }
       pendingRepairs.set(key, refresh)
       try { await refresh(); pendingRepairs.delete(key); return 'completed' }
       catch (error) { recordFailure(error); return 'refresh-failed' }
     } finally { mutationBusy = false }
   }
-  const validDepartment = (input: DepartmentInput) => validStableKey(input.key) && validName(input.name) && input.parentId.length > 0 && Number.isSafeInteger(input.sortOrder) && input.sortOrder >= -1_000_000 && input.sortOrder <= 1_000_000
-  const validPosition = (input: PositionInput) => validStableKey(input.key) && validName(input.name) && input.departmentId.length > 0
+  const validDepartment = (input: DepartmentInput) => validStableKey(input.key) && validOrganizationName(input.name) && input.parentId.length > 0 && Number.isSafeInteger(input.sortOrder) && input.sortOrder >= -1_000_000 && input.sortOrder <= 1_000_000
+  const validPosition = (input: PositionInput) => validStableKey(input.key) && validOrganizationName(input.name) && input.departmentId.length > 0
   return {
     positions,
-    departments: () => departmentProjectionVisible ? [...departments] : [],
-    departmentTree: () => departmentProjectionVisible ? buildDepartmentTree(departments) : [],
+    departments: () => departmentProjectionVisible && canManage('organization.departments.read') ? [...departments] : [],
+    departmentTree: () => departmentProjectionVisible && canManage('organization.departments.read') ? buildDepartmentTree(departments) : [],
     refreshDepartments,
-    can,
+    can: canManage,
     failure: () => failure,
     clearFailure,
     hasPendingRepair: () => pendingRepairs.size > 0,
@@ -141,5 +180,4 @@ export const settleOrganizationPageOperation = async (operation: () => Promise<u
 }
 
 const validStableKey = (value: string) => value.length >= 3 && value.length <= 64 && /^[a-z0-9][a-z0-9_-]*$/.test(value)
-const validName = (value: string) => value.trim().length >= 1 && value.length <= 100
 const isFailure = (value: string): value is OrganizationFailure => ['relogin', 'forbidden', 'validation', 'not-found', 'conflict', 'unavailable'].includes(value)
