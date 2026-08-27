@@ -1,0 +1,327 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Settings API
+  version: 1.0.0
+  description: Business settings and dictionary reference data.
+  license: {name: MIT, identifier: MIT}
+servers: [{url: /api}]
+x-go-admin-module: settings
+x-go-admin-codegen:
+  owner: settings
+  goPackage: settingstransport
+  goOutput: go-admin-plus/internal/modules/settings/transport/openapi.gen.go
+  typescriptOutput: go-admin-plus-ui/packages/domains/settings/src/generated
+security: [{SessionCookie: []}]
+paths:
+  /settings/values:
+    get:
+      operationId: listSettingValues
+      summary: List business or interface settings
+      parameters:
+        - {name: category, in: query, required: true, schema: {$ref: '#/components/schemas/SettingCategory'}}
+        - {name: search, in: query, schema: {type: string, maxLength: 100}}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+      responses:
+        '200': {description: Settings page., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/SettingValuePage'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    post:
+      operationId: createSettingValue
+      summary: Create a business setting
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SettingValueInput'}}}}
+      responses:
+        '201': {description: Created setting., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/SettingValue'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /settings/values/{settingId}:
+    parameters: [{$ref: '#/components/parameters/SettingId'}]
+    patch:
+      operationId: updateSettingValue
+      summary: Update a business setting with optimistic concurrency
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateSettingValueRequest'}}}}
+      responses:
+        '200': {description: Updated setting., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/SettingValue'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    delete:
+      operationId: deleteSettingValue
+      summary: Delete a business setting with optimistic concurrency
+      security: [{SessionCookie: [], CsrfToken: []}]
+      parameters: [{$ref: '#/components/parameters/Revision'}]
+      responses:
+        '204': {description: Setting deleted., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /settings/dictionaries:
+    get:
+      operationId: listDictionaryTypes
+      summary: List dictionary types
+      parameters:
+        - {name: search, in: query, schema: {type: string, maxLength: 100}}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+      responses:
+        '200': {description: Dictionary types page., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryTypePage'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    post:
+      operationId: createDictionaryType
+      summary: Create a dictionary type
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryTypeInput'}}}}
+      responses:
+        '201': {description: Created dictionary type., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryType'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /settings/dictionaries/{dictionaryId}:
+    parameters: [{$ref: '#/components/parameters/DictionaryId'}]
+    patch:
+      operationId: updateDictionaryType
+      summary: Update a dictionary type
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateDictionaryTypeRequest'}}}}
+      responses:
+        '200': {description: Updated dictionary type., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryType'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    delete:
+      operationId: deleteDictionaryType
+      summary: Delete an unreferenced dictionary type
+      security: [{SessionCookie: [], CsrfToken: []}]
+      parameters: [{$ref: '#/components/parameters/Revision'}]
+      responses:
+        '204': {description: Dictionary type deleted., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /settings/dictionaries/{dictionaryId}/items:
+    parameters: [{$ref: '#/components/parameters/DictionaryId'}]
+    get:
+      operationId: listDictionaryItems
+      summary: List dictionary items including disabled rows
+      parameters:
+        - {name: search, in: query, schema: {type: string, maxLength: 100}}
+        - {$ref: '#/components/parameters/Page'}
+        - {$ref: '#/components/parameters/PageSize'}
+      responses:
+        '200': {description: Dictionary items page., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryItemPage'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    post:
+      operationId: createDictionaryItem
+      summary: Create a dictionary item
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryItemInput'}}}}
+      responses:
+        '201': {description: Created dictionary item., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryItem'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /settings/dictionary-items/{itemId}:
+    parameters: [{$ref: '#/components/parameters/ItemId'}]
+    patch:
+      operationId: updateDictionaryItem
+      summary: Update a dictionary item
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/UpdateDictionaryItemRequest'}}}}
+      responses:
+        '200': {description: Updated dictionary item., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/DictionaryItem'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    delete:
+      operationId: deleteDictionaryItem
+      summary: Delete a dictionary item
+      security: [{SessionCookie: [], CsrfToken: []}]
+      parameters: [{$ref: '#/components/parameters/Revision'}]
+      responses:
+        '204': {description: Dictionary item deleted., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /settings/options/{dictionaryKey}:
+    get:
+      operationId: listDictionaryOptions
+      summary: List enabled options for an enabled dictionary type
+      parameters: [{$ref: '#/components/parameters/DictionaryKey'}]
+      responses:
+        '200': {description: Enabled dictionary options., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {type: array, items: {$ref: '#/components/schemas/DictionaryOption'}}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+components:
+  securitySchemes:
+    SessionCookie: {$ref: ../components/security-schemes.yaml#/SessionCookie}
+    CsrfToken: {$ref: ../components/security-schemes.yaml#/CsrfToken}
+  parameters:
+    Page: {name: page, in: query, schema: {type: integer, minimum: 1, maximum: 1000000, default: 1}}
+    PageSize: {name: pageSize, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+    Revision: {name: revision, in: query, required: true, schema: {type: integer, minimum: 1}}
+    SettingId: {name: settingId, in: path, required: true, schema: {type: string, format: uuid}}
+    DictionaryId: {name: dictionaryId, in: path, required: true, schema: {type: string, format: uuid}}
+    ItemId: {name: itemId, in: path, required: true, schema: {type: string, format: uuid}}
+    DictionaryKey: {name: dictionaryKey, in: path, required: true, schema: {$ref: '#/components/schemas/StableKey'}}
+  headers:
+    CsrfToken: {required: true, schema: {type: string, minLength: 43, maxLength: 43}}
+    SetCookie: {required: false, schema: {type: string, maxLength: 4096}}
+  schemas:
+    StableKey: {type: string, minLength: 3, maxLength: 80, pattern: '^[a-z0-9][a-z0-9_.-]*$'}
+    SettingCategory: {type: string, enum: [business, ui]}
+    SettingValue:
+      type: object
+      additionalProperties: false
+      required: [id, category, key, label, value, description, enabled, revision]
+      properties:
+        id: {type: string, format: uuid}
+        category: {$ref: '#/components/schemas/SettingCategory'}
+        key: {$ref: '#/components/schemas/StableKey'}
+        label: {type: string, minLength: 1, maxLength: 120}
+        value: {type: string, minLength: 1, maxLength: 500}
+        description: {type: string, maxLength: 500}
+        enabled: {type: boolean}
+        revision: {type: integer, minimum: 1}
+    SettingValueInput:
+      type: object
+      additionalProperties: false
+      required: [category, key, label, value, description, enabled]
+      properties:
+        category: {$ref: '#/components/schemas/SettingCategory'}
+        key: {$ref: '#/components/schemas/StableKey'}
+        label: {type: string, minLength: 1, maxLength: 120}
+        value: {type: string, minLength: 1, maxLength: 500}
+        description: {type: string, maxLength: 500}
+        enabled: {type: boolean}
+    UpdateSettingValueRequest:
+      type: object
+      additionalProperties: false
+      required: [category, key, label, value, description, enabled, revision]
+      properties:
+        category: {$ref: '#/components/schemas/SettingCategory'}
+        key: {$ref: '#/components/schemas/StableKey'}
+        label: {type: string, minLength: 1, maxLength: 120}
+        value: {type: string, minLength: 1, maxLength: 500}
+        description: {type: string, maxLength: 500}
+        enabled: {type: boolean}
+        revision: {type: integer, minimum: 1}
+    DictionaryType:
+      type: object
+      additionalProperties: false
+      required: [id, key, name, description, enabled, revision]
+      properties:
+        id: {type: string, format: uuid}
+        key: {$ref: '#/components/schemas/StableKey'}
+        name: {type: string, minLength: 1, maxLength: 120}
+        description: {type: string, maxLength: 500}
+        enabled: {type: boolean}
+        revision: {type: integer, minimum: 1}
+    DictionaryTypeInput:
+      type: object
+      additionalProperties: false
+      required: [key, name, description, enabled]
+      properties:
+        key: {$ref: '#/components/schemas/StableKey'}
+        name: {type: string, minLength: 1, maxLength: 120}
+        description: {type: string, maxLength: 500}
+        enabled: {type: boolean}
+    UpdateDictionaryTypeRequest:
+      type: object
+      additionalProperties: false
+      required: [key, name, description, enabled, revision]
+      properties:
+        key: {$ref: '#/components/schemas/StableKey'}
+        name: {type: string, minLength: 1, maxLength: 120}
+        description: {type: string, maxLength: 500}
+        enabled: {type: boolean}
+        revision: {type: integer, minimum: 1}
+    DictionaryItem:
+      type: object
+      additionalProperties: false
+      required: [id, dictionaryId, value, label, sortOrder, enabled, revision]
+      properties:
+        id: {type: string, format: uuid}
+        dictionaryId: {type: string, format: uuid}
+        value: {type: string, minLength: 1, maxLength: 120}
+        label: {type: string, minLength: 1, maxLength: 120}
+        sortOrder: {type: integer, minimum: 0, maximum: 100000}
+        enabled: {type: boolean}
+        revision: {type: integer, minimum: 1}
+    DictionaryItemInput:
+      type: object
+      additionalProperties: false
+      required: [value, label, sortOrder, enabled]
+      properties:
+        value: {type: string, minLength: 1, maxLength: 120}
+        label: {type: string, minLength: 1, maxLength: 120}
+        sortOrder: {type: integer, minimum: 0, maximum: 100000}
+        enabled: {type: boolean}
+    UpdateDictionaryItemRequest:
+      type: object
+      additionalProperties: false
+      required: [value, label, sortOrder, enabled, revision]
+      properties:
+        value: {type: string, minLength: 1, maxLength: 120}
+        label: {type: string, minLength: 1, maxLength: 120}
+        sortOrder: {type: integer, minimum: 0, maximum: 100000}
+        enabled: {type: boolean}
+        revision: {type: integer, minimum: 1}
+    DictionaryOption:
+      type: object
+      additionalProperties: false
+      required: [value, label]
+      properties:
+        value: {type: string}
+        label: {type: string}
+    SettingValuePage: {type: object, additionalProperties: false, required: [rows, total], properties: {rows: {type: array, items: {$ref: '#/components/schemas/SettingValue'}}, total: {type: integer, minimum: 0}}}
+    DictionaryTypePage: {type: object, additionalProperties: false, required: [rows, total], properties: {rows: {type: array, items: {$ref: '#/components/schemas/DictionaryType'}}, total: {type: integer, minimum: 0}}}
+    DictionaryItemPage: {type: object, additionalProperties: false, required: [rows, total], properties: {rows: {type: array, items: {$ref: '#/components/schemas/DictionaryItem'}}, total: {type: integer, minimum: 0}}}
+    Problem: {$ref: ../components/schemas.yaml#/Problem}
+  responses:
+    AuthenticationProblem: {description: Authentication required., content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+    AuthorizationProblem: {description: Authorization failed., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+    ValidationProblem: {description: Request invalid., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+    NotFoundProblem: {description: Resource not found., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+    ConflictProblem: {description: Resource conflict., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+    InternalProblem: {description: Internal failure., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
