@@ -4,17 +4,17 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-15
 title: Generator 新架构代码生成闭环
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 生成器读取数据库元数据并产出公共合同、后端模块和前端包，影响共享架构边界
 ready: true
 risk: high
 blocked_by: [T-14]
 contract_ids: [AC-019, AC-023, AC-028, AC-035]
-owner: unassigned
-expected_changes: ["<Path>contracts/openapi/modules/generator.yaml</Path>", "<Path>go-admin-plus/internal/modules/generator/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/src/**</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/generator.yaml</Path>", "<Path>go-admin-plus/internal/modules/generator/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/src/**</Path>", "<Path>go-admin-plus/test/generator/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/generator/**</Path>"]
-read_only_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/**</Path>"]
+owner: codex-root
+expected_changes: ["<Path>contracts/openapi/modules/generator.yaml</Path>", "<Path>go-admin-plus/internal/modules/generator/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/package.json</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/generator.yaml</Path>", "<Path>go-admin-plus/internal/modules/generator/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/package.json</Path>", "<Path>go-admin-plus/test/generator/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/generator/**</Path>"]
+read_only_paths: ["<Path>contracts/openapi/modules/demo.yaml</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 shared_paths: []
 shared_path_owners: []
 ---
@@ -80,10 +80,11 @@ shared_path_owners: []
 
 ## 7. 路径访问契约
 
-- **预计修改点：** Generator 独占路径和模板。
+- **预计修改点：** Generator 独占路径、模板和经 `T15-D01` 精确开放的两个 Generator package manifest。
 - **可写范围：** 仅 frontmatter `writable_paths`；测试生成输出使用临时目录。
 - **只读上下文：** Demo 四层参考实现。
 - **共享路径：** 无；公共生成器只读调用 T-02。
+- **批准偏差：** `T15-D01` 只开放两个 Generator package manifest，用既有 workspace/catalog 依赖补齐 canonical API client、`@go-admin/ui`、Vue、公开 exports 与 package-local test/typecheck。第一阶段根 package/Vitest/lock 继续只读并等待 T-09 result；禁止新增外部版本、修改其他 importer、共享 UI、公共合同工具或产品 composition。
 - **保留或不动：** 产品聚合和真实模块路径。
 
 ## 8. 验证矩阵

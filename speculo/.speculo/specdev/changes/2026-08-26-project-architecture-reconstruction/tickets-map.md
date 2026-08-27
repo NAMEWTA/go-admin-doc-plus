@@ -37,7 +37,7 @@ status: in_progress
 | T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | unassigned | AC-017, AC-018, AC-035 | W6 / G4 | ready |
 | T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | unassigned | AC-020, AC-035 | W6 / G4 | ready |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
-| T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | unassigned | AC-019, AC-023, AC-028, AC-035 | W7 / G4 | ready |
+| T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | codex-root | AC-019, AC-023, AC-028, AC-035 | W7 / G4 | in_progress |
 | T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 priority | in_progress |
 | T-17 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/17-product-composition-matrix.md</Path>` | 三 Profile、双 App 完整产品 | T-09, T-10, T-11, T-12, T-13, T-15, T-16 | deep | critical | yes | unassigned | AC-003, AC-004, AC-011, AC-021, AC-022, AC-024, AC-025, AC-028, AC-034, AC-035, AC-036 | W8 / G5 | ready |
 | T-18 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/18-linux-oci-compose-release.md</Path>` | Linux OCI/Compose 候选 | T-17 | deep | high | yes | unassigned | AC-030, AC-033 | W9 / G6 | ready |
@@ -133,7 +133,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | P4 | T-06, T-08 | 无 | IAM 与 reliable-runtime 分离 |
 | P5 | T-07, T-11 | Session service/test 与 workspace lock 已按 result 串行移交 | T-07 已 done；T-11 写 `T11-D01` Audit importer、`T11-D02` 登录事实接缝与 `T11-D03` 四个 test-only 显式 Port 调用点，其他共享路径仍只读 |
 | P6 | T-09, T-10, T-12, T-13, T-14 | T-14/T-09 根 verify/lock 接入按 `T14-D01`、`T09-D01` 串行分配；T-14 另按 `T14-D02/T14-D03` 精确拥有 IAM Module Capability Registry，并按 `T14-D04` 精确扩展共享 list 的成功原子状态接缝 | 各模块独占合同/schema/backend/frontend；顺序为 T-11 lock -> T-14 verify/lock -> T-09 verify/lock |
-| P7 | T-15, T-16 | `T16-D01` 仅把 T-05 已预留的 Desktop adapter 移交 T-16；T-16 根 verify/lock stage 2 等待 T-09 result | Generator 与 Desktop 分离，共同只读 Demo |
+| P7 | T-15, T-16 | `T15-D01` 只开放 Generator 自有 manifests；`T16-D01` 只把 T-05 已预留的 Desktop adapter 移交 T-16；两者根 verify/lock stage 2 均等待 T-09 result | Generator 与 Desktop 分离，共同只读 Demo |
 | P9 | T-18, T-19, T-20 | 无 | 各平台独占 release/script/workflow |
 
 | 共享路径 | 唯一 owner | 消费方式 |

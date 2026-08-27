@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-27T10:08:38+08:00",
+  "updated_at": "2026-08-27T10:14:46+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -253,6 +253,16 @@
       "approved_at": "2026-08-27T10:08:38+08:00",
       "reason": "ADR-011 and T-16 require a Desktop runtime adapter, but T-05 only precreated its manifest and the T-16 writable paths omitted the reserved adapter package",
       "resolution": "Authorize only go-admin-plus-ui/packages/adapters/desktop/** for the Desktop runtime adapter; root aggregate checks and lock remain read-only during stage 1 and will be considered only after the T-09 serialized root owner completes"
+    },
+    {
+      "id": "T15-D01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-15",
+      "owner": "codex-root",
+      "approved_at": "2026-08-27T10:14:46+08:00",
+      "reason": "The precreated Generator package manifests are placeholder shells without the direct dependencies, public exports, and package-local checks required by the approved Web wizard slice",
+      "resolution": "Authorize only the two Generator package manifests using existing workspace and catalog dependencies; root aggregate checks and lock remain read-only during stage 1 and will be serialized after the T-09 root owner completes"
     }
   ],
   "worktrees": [
@@ -771,6 +781,49 @@
       },
       "status": "active",
       "updated_at": "2026-08-27T10:08:38+08:00"
+    },
+    {
+      "ticket_id": "T-15",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "c832ca4a4c1b087aaee9fcc2f9e671d7d7e487d3",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-15",
+      "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-15",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": null,
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "G4 requires Generator metadata, deterministic preview/write, security, Go/TypeScript, contract, generated compile, and boundary checks on the parent candidate",
+          "evidence": null
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-15 must generate a real isolated module from authorized SQLite and PostgreSQL metadata and prove contract, compile, test, atomic output, and Web wizard behavior",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-08-27T10:14:46+08:00"
     }
   ]
 }
