@@ -1119,36 +1119,36 @@
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-18",
       "source_checkpoint": "e815b16ae8ac7ca73a72f99200ef004ad9b187e4",
       "integration": {
-        "status": "pending",
-        "parent_ref": null,
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "status": "passed",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "39f2efe4ce8701165e07a86adb3322c8673459c1",
+        "source_sha": "e815b16ae8ac7ca73a72f99200ef004ad9b187e4",
+        "candidate_sha": "37f989c7c64afb17c05bdeb35818c34416e753ca",
+        "candidate_tree_sha": "855de1252161a78f933d9df98787815d55008646",
+        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-18-attempt-1",
+        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-18-attempt-1",
+        "result_sha": "37f989c7c64afb17c05bdeb35818c34416e753ca",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "G6 requires Linux multi-architecture OCI, PostgreSQL and SQLite Compose policy, non-root runtime, checksums, SBOM, provenance, workflow failure, path, and clean-tree checks on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Attempt 1 passed full Go normal/race/vet/build/module, frozen 25-workspace lint/typecheck/132 tests/7 boundaries/Web and Desktop builds, Rust 14 tests/clippy/check, 28 contract tests/generate/API client, governance, Task contract, Linux policy/parse/secret/base-manifest/cross-build, path, clean-tree, and SpecDev gates",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
           "reason": "Real linux/amd64 and linux/arm64 image, migration, readiness, persistence, restart, and worker scenarios are deferred to the single unified final system E2E on a Docker-capable Linux runner",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T20:04:30+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T20:21:51+08:00"
     }
   ]
 }

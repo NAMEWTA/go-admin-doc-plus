@@ -116,3 +116,5 @@ shared_path_owners: []
 - [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
 - [ ] 未执行远端发布，非 E2E 实现 Gate 已执行且平台场景已登记到最终统一矩阵。
 - [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+
+`main` 已包含 implementation result `37f989c7c64afb17c05bdeb35818c34416e753ca`（tree `855de1252161a78f933d9df98787815d55008646`）。全部本地非 E2E candidate Gate 已通过，T-18 进入 `implemented-pending-final-e2e`；上述验收框继续保持未勾选，直到唯一最终 Linux 候选完成真实双架构 OCI/Compose 与供应链联合验证。
