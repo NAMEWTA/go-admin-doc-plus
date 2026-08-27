@@ -390,7 +390,7 @@ fn sidecar_environment(app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'s
         .path()
         .resource_dir()
         .map_err(|_| "desktop generator resources unavailable")?;
-    release_sidecar_environment(&resources, env::consts::ARCH)
+    release_sidecar_environment(&resources, env::consts::OS, env::consts::ARCH)
 }
 
 #[cfg(any(debug_assertions, test))]
@@ -421,11 +421,13 @@ fn discover_development_repository(start: PathBuf) -> Result<PathBuf, &'static s
 #[cfg(any(not(debug_assertions), test))]
 fn release_sidecar_environment(
     resources: &Path,
+    operating_system: &str,
     architecture: &str,
 ) -> Result<SidecarEnvironment, &'static str> {
-    let architecture = match architecture {
-        "aarch64" => "darwin-arm64",
-        "x86_64" => "darwin-amd64",
+    let (layout, go_name, node_name, pnpm_name) = match (operating_system, architecture) {
+        ("macos", "aarch64") => ("darwin-arm64", "go", "bin/node", "pnpm"),
+        ("macos", "x86_64") => ("darwin-amd64", "go", "bin/node", "pnpm"),
+        ("windows", "x86_64") => ("windows-amd64", "go.exe", "node.exe", "pnpm.cmd"),
         _ => return Err("desktop generator architecture unsupported"),
     };
     let generator = canonical_release_directory(&resources.join("generator"))?;
@@ -433,36 +435,53 @@ fn release_sidecar_environment(
     if !generator_repository_is_complete(&repository) {
         return Err("desktop generator repository incomplete");
     }
-    let toolchain = canonical_release_directory(&generator.join("toolchains").join(architecture))?;
+    let toolchain = canonical_release_directory(&generator.join("toolchains").join(layout))?;
     let go_root = canonical_release_directory(&toolchain.join("go"))?;
     let node_root = canonical_release_directory(&toolchain.join("node"))?;
     let executable_root = canonical_release_directory(&toolchain.join("bin"))?;
     let module_cache = canonical_release_directory(&generator.join("go-mod"))?;
     canonical_release_directory(&generator.join("pnpm-store"))?;
     for executable in [
-        go_root.join("bin/go"),
-        node_root.join("bin/node"),
-        executable_root.join("pnpm"),
+        go_root.join("bin").join(go_name),
+        node_root.join(node_name),
+        executable_root.join(pnpm_name),
     ] {
         if !executable.is_file() {
             return Err("desktop generator toolchain incomplete");
         }
     }
-    let path = env::join_paths([
-        go_root.join("bin"),
-        node_root.join("bin"),
-        executable_root,
-        PathBuf::from("/usr/bin"),
-        PathBuf::from("/bin"),
-    ])
-    .map_err(|_| "desktop generator toolchain invalid")?;
+    let node_commands = if operating_system == "windows" {
+        node_root.clone()
+    } else {
+        node_root.join("bin")
+    };
+    let mut path_entries = vec![go_root.join("bin"), node_commands, executable_root];
+    if operating_system == "windows" {
+        let git_root = canonical_release_directory(&toolchain.join("git"))?;
+        let git_commands = canonical_release_directory(&git_root.join("cmd"))?;
+        if !git_commands.join("git.exe").is_file() {
+            return Err("desktop generator toolchain incomplete");
+        }
+        path_entries.push(git_commands);
+    } else {
+        path_entries.extend([PathBuf::from("/usr/bin"), PathBuf::from("/bin")]);
+    }
+    let path = env::join_paths(path_entries).map_err(|_| "desktop generator toolchain invalid")?;
+    let mut variables = vec![
+        (OsString::from("PATH"), path),
+        (OsString::from("GOROOT"), go_root.into_os_string()),
+        (OsString::from("GOMODCACHE"), module_cache.into_os_string()),
+    ];
+    if operating_system == "windows" {
+        for key in ["SYSTEMROOT", "WINDIR", "COMSPEC", "TEMP", "TMP"] {
+            if let Some(value) = env::var_os(key) {
+                variables.push((OsString::from(key), value));
+            }
+        }
+    }
     Ok(SidecarEnvironment {
         repository,
-        variables: vec![
-            (OsString::from("PATH"), path),
-            (OsString::from("GOROOT"), go_root.into_os_string()),
-            (OsString::from("GOMODCACHE"), module_cache.into_os_string()),
-        ],
+        variables,
     })
 }
 
@@ -834,13 +853,13 @@ mod tests {
             random_secret().unwrap()
         ));
         fs::create_dir_all(temporary.join("generator/repository/.git")).unwrap();
-        assert!(release_sidecar_environment(&temporary, "aarch64").is_err());
+        assert!(release_sidecar_environment(&temporary, "macos", "aarch64").is_err());
         fs::remove_dir_all(temporary).unwrap();
     }
 
     #[test]
     fn release_sidecar_environment_rejects_unknown_architecture() {
-        assert!(release_sidecar_environment(Path::new("/unused"), "riscv64").is_err());
+        assert!(release_sidecar_environment(Path::new("/unused"), "windows", "aarch64").is_err());
     }
 
     #[test]
@@ -878,11 +897,59 @@ mod tests {
             fs::write(file, []).unwrap();
         }
 
-        let environment = release_sidecar_environment(&temporary, "aarch64").unwrap();
+        let environment = release_sidecar_environment(&temporary, "macos", "aarch64").unwrap();
         assert_eq!(environment.repository, repository);
         assert!(environment.variables.iter().any(|(key, value)| {
             key == "GOMODCACHE" && Path::new(value) == generator.join("go-mod")
         }));
+        fs::remove_dir_all(temporary).unwrap();
+    }
+
+    #[test]
+    fn release_sidecar_environment_uses_packaged_windows_tools() {
+        let temporary = fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "go-admin-desktop-windows-environment-{}",
+                random_secret().unwrap()
+            ));
+        let generator = temporary.join("generator");
+        let repository = generator.join("repository");
+        let toolchain = generator.join("toolchains/windows-amd64");
+        for directory in [
+            repository.join(".git"),
+            repository.join("scripts/contracts"),
+            repository.join("go-admin-plus"),
+            repository.join("go-admin-plus-ui"),
+            toolchain.join("go/bin"),
+            toolchain.join("node"),
+            toolchain.join("bin"),
+            toolchain.join("git/cmd"),
+            generator.join("go-mod"),
+            generator.join("pnpm-store"),
+        ] {
+            fs::create_dir_all(directory).unwrap();
+        }
+        for file in [
+            repository.join("scripts/contracts/cli.mjs"),
+            repository.join("go-admin-plus/go.mod"),
+            repository.join("go-admin-plus-ui/pnpm-workspace.yaml"),
+            toolchain.join("go/bin/go.exe"),
+            toolchain.join("node/node.exe"),
+            toolchain.join("bin/pnpm.cmd"),
+            toolchain.join("git/cmd/git.exe"),
+        ] {
+            fs::write(file, []).unwrap();
+        }
+        let environment = release_sidecar_environment(&temporary, "windows", "x86_64").unwrap();
+        let path = environment
+            .variables
+            .iter()
+            .find(|(key, _)| key == "PATH")
+            .unwrap()
+            .1
+            .clone();
+        assert!(env::split_paths(&path).any(|entry| entry == toolchain.join("git/cmd")));
         fs::remove_dir_all(temporary).unwrap();
     }
 

@@ -1,0 +1,7 @@
+@echo off
+setlocal
+if "%AZURE_ARTIFACT_SIGNING_ENDPOINT%"=="" exit /b 2
+if "%AZURE_ARTIFACT_SIGNING_ACCOUNT%"=="" exit /b 2
+if "%AZURE_ARTIFACT_SIGNING_PROFILE%"=="" exit /b 2
+artifact-signing-cli -e "%AZURE_ARTIFACT_SIGNING_ENDPOINT%" -a "%AZURE_ARTIFACT_SIGNING_ACCOUNT%" -c "%AZURE_ARTIFACT_SIGNING_PROFILE%" -d "Go Admin Plus" "%~1"
+exit /b %ERRORLEVEL%

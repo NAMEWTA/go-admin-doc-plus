@@ -1,312 +1,166 @@
-name: Windows AMD64 Self-Use Release Gate
-run-name: windows product=${{ inputs.release_version }} root=${{ inputs.orchestration_ref }} frontend=${{ inputs.frontend_ref }} mode=${{ inputs.release_mode }}
+name: Windows x64 Release Gate
+run-name: windows source=${{ inputs.source_ref }} version=${{ inputs.release_version }}
 
 on:
   workflow_dispatch:
     inputs:
-      orchestration_ref:
-        description: Exact go-admin-plus monorepo commit to build
-        required: true
-        type: string
-      frontend_ref:
-        description: Exact monorepo commit containing the frontend to embed
+      source_ref:
+        description: Exact lowercase 40-character product source SHA
         required: true
         type: string
       release_version:
-        description: Exact three-part product version
+        description: Product version
         required: true
         default: 0.1.0
         type: string
-      release_mode:
-        description: Phase 1 unsigned self-use installer
-        required: true
-        default: unsigned-self-use
-        type: choice
-        options:
-          - unsigned-self-use
 
 permissions:
   contents: read
 
 concurrency:
-  group: windows-amd64-release-${{ github.ref }}
+  group: windows-release-${{ inputs.source_ref }}
   cancel-in-progress: false
 
 jobs:
-  native-release:
-    name: Windows AMD64 native build and release gate
+  release-gate:
+    name: Windows x64 signed Tauri NSIS candidate
     runs-on: windows-2025
-    timeout-minutes: 50
+    environment: windows-production
+    timeout-minutes: 180
     env:
-      EXPECTED_ROOT_SHA: ${{ inputs.orchestration_ref }}
-      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_ref }}
+      SOURCE_SHA: ${{ inputs.source_ref }}
       RELEASE_VERSION: ${{ inputs.release_version }}
-      RELEASE_MODE: ${{ inputs.release_mode }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_ARTIFACT_SIGNING_ENDPOINT: ${{ secrets.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+      AZURE_ARTIFACT_SIGNING_ACCOUNT: ${{ secrets.AZURE_ARTIFACT_SIGNING_ACCOUNT }}
+      AZURE_ARTIFACT_SIGNING_PROFILE: ${{ secrets.AZURE_ARTIFACT_SIGNING_PROFILE }}
+      AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT: ${{ secrets.AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT }}
+      GOENV: "off"
       GOTOOLCHAIN: local
 
     steps:
-      - name: Configure byte-exact Git checkouts
+      - name: Configure byte-exact checkout
         shell: pwsh
         run: |
           git config --global core.autocrlf false
           git config --global core.eol lf
 
-      - name: Check out exact monorepo
+      - name: Check out exact source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.sha }}
-          path: workspace
+          ref: ${{ inputs.source_ref }}
           persist-credentials: false
 
-      - name: Verify provenance and release identity
-        working-directory: workspace
+      - name: Verify immutable source and protected inputs
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          if ($env:EXPECTED_ROOT_SHA -notmatch '^[0-9a-fA-F]{40}$' -or
-              $env:EXPECTED_FRONTEND_SHA -notmatch '^[0-9a-fA-F]{40}$' -or
-              $env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+$') {
-            throw 'Release refs and version must be exact.'
+          if ($env:SOURCE_SHA -notmatch '^[0-9a-f]{40}$' -or
+              $env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$') {
+            throw 'Source SHA or release version is invalid.'
           }
-          $rootSHA = git rev-parse HEAD
-          $backendSHA = git -C go-admin-plus rev-parse HEAD
-          $frontendSHA = git -C go-admin-ui-plus rev-parse HEAD
-          if ($rootSHA -ne $env:EXPECTED_ROOT_SHA.ToLowerInvariant() -or
-              $backendSHA -ne '${{ github.sha }}' -or
-              $frontendSHA -ne $env:EXPECTED_FRONTEND_SHA.ToLowerInvariant() -or
-              $rootSHA -ne $backendSHA -or
-              $rootSHA -ne $frontendSHA) {
-            throw 'The checked-out monorepo does not match the requested provenance.'
+          if ((git rev-parse HEAD) -ne $env:SOURCE_SHA -or (git status --porcelain)) {
+            throw 'The checkout does not match the immutable source.'
           }
-          if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') {
-            throw "Expected AMD64 runner, got $env:PROCESSOR_ARCHITECTURE."
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw 'An AMD64 runner is required.' }
+          foreach ($name in @(
+            'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_TENANT_ID',
+            'AZURE_ARTIFACT_SIGNING_ENDPOINT', 'AZURE_ARTIFACT_SIGNING_ACCOUNT',
+            'AZURE_ARTIFACT_SIGNING_PROFILE', 'AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT'
+          )) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Missing protected input: $name"
+            }
           }
-          $identity = Get-Content release/windows/identity.json -Raw | ConvertFrom-Json
-          if ($identity.release_status -ne 'approved' -or
-              $identity.release_class -ne $env:RELEASE_MODE -or
-              $identity.product_version -ne $env:RELEASE_VERSION -or
-              $identity.webview2.architecture -ne 'x64') {
-            throw 'Release inputs do not match the approved Windows identity.'
+          if ($env:AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT -notmatch '^[0-9A-Fa-f]{40}$') {
+            throw 'Expected signing certificate thumbprint is invalid.'
           }
-          [ordered]@{
-            root_sha = $rootSHA
-            backend_sha = $backendSHA
-            frontend_sha = $frontendSHA
-            runner_os = $env:RUNNER_OS
-            runner_arch = $env:RUNNER_ARCH
-            windows = [System.Environment]::OSVersion.VersionString
-            platform = 'windows/amd64'
-          } | ConvertTo-Json | Set-Content provenance.json -Encoding utf8NoBOM
 
       - name: Set up Go 1.26.5
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.26.5
-          cache-dependency-path: workspace/go-admin-plus/go.sum
+          cache-dependency-path: go-admin-plus/go.sum
 
       - name: Set up Node 22.22.3
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.3
 
-      - name: Install pinned build tools
-        working-directory: workspace
+      - name: Set up pinned Rust, pnpm, signing, and SBOM tools
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          rustup toolchain install 1.96.0 --profile minimal --target x86_64-pc-windows-msvc
+          rustup default 1.96.0
           corepack enable
           corepack install --global pnpm@11.1.3
-          go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0
-          (Join-Path (go env GOPATH) 'bin') | Out-File -FilePath $env:GITHUB_PATH -Append
-          choco install nsis --version=3.11 -y --no-progress
-          'C:\Program Files (x86)\NSIS' | Out-File -FilePath $env:GITHUB_PATH -Append
-
-          $syftVersion = '1.51.0'
-          $syftArchive = Join-Path $env:RUNNER_TEMP "syft_$($syftVersion)_windows_amd64.zip"
-          curl.exe --fail --location --retry 3 --output $syftArchive "https://github.com/anchore/syft/releases/download/v$syftVersion/syft_$($syftVersion)_windows_amd64.zip"
-          if ((Get-FileHash $syftArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'fc5ffaeffb993576ece9c791da5a688fb2c8969a1479bbfe58583672c64da336') {
+          pnpm --dir go-admin-plus-ui install --frozen-lockfile
+          cargo install artifact-signing-cli --version 0.11.0 --locked
+          cargo install tauri-driver --version 2.0.6 --locked
+          'C:\Program Files\7-Zip' | Out-File -FilePath $env:GITHUB_PATH -Append
+          $archive = Join-Path $env:RUNNER_TEMP 'syft_1.51.0_windows_amd64.zip'
+          curl.exe --fail --location --retry 3 --output $archive 'https://github.com/anchore/syft/releases/download/v1.51.0/syft_1.51.0_windows_amd64.zip'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'fc5ffaeffb993576ece9c791da5a688fb2c8969a1479bbfe58583672c64da336') {
             throw 'Syft archive checksum mismatch.'
           }
-          Expand-Archive -LiteralPath $syftArchive -DestinationPath (Join-Path $env:RUNNER_TEMP 'syft')
-          (Join-Path $env:RUNNER_TEMP 'syft') | Out-File -FilePath $env:GITHUB_PATH -Append
-
-      - name: Download and verify standalone WebView2 payload
-        working-directory: workspace
+          $syft = Join-Path $env:RUNNER_TEMP 'syft'
+          Expand-Archive -LiteralPath $archive -DestinationPath $syft
+          $syft | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Verify source and Windows release policy
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $identity = Get-Content release/windows/identity.json -Raw | ConvertFrom-Json
-          $payloadDirectory = 'go-admin-plus/cmd/go-admin-desktop/build/windows/installer/tmp'
-          New-Item -ItemType Directory -Force -Path $payloadDirectory | Out-Null
-          $payload = Join-Path $payloadDirectory $identity.webview2.filename
-          curl.exe --fail --location --retry 3 --output $payload $identity.webview2.source_url
-          New-Item -ItemType Directory -Force -Path release-output | Out-Null
-          $verifyPayload = @{
-            IdentityFile = 'release/windows/identity.json'
-            PayloadFile = $payload
-            MetadataFile = 'release-output/webview2-payload.json'
+          node --test scripts/release/windows/verify-policy.test.mjs
+          node scripts/release/windows/verify-policy.mjs
+          Get-ChildItem scripts/release/windows -Filter '*.ps1' | ForEach-Object {
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) | Out-Null
+            if ($errors.Count -ne 0) { throw "PowerShell parse failed: $($_.Name)" }
           }
-          ./release/windows/verify-payload.ps1 @verifyPayload | Tee-Object release-output/webview2-verification.log
+          Get-Content release/windows/identity.json -Raw | ConvertFrom-Json | Out-Null
+          go -C go-admin-plus test ./internal/modules/generator ./cmd/desktop-sidecar -count=1
+          pnpm --dir go-admin-plus-ui --filter '@go-admin/admin-desktop' typecheck
+          node release/shared/sidecar/build.mjs --target x86_64-pc-windows-msvc
+          pnpm --dir go-admin-plus-ui --filter '@go-admin/admin-desktop' exec cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
+          pnpm --dir go-admin-plus-ui --filter '@go-admin/admin-desktop' exec cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets --all-features -- -D warnings
 
-      - name: Prepare versioned Wails project metadata
-        working-directory: workspace
-        shell: pwsh
-        run: |
-          $prepareProject = @{
-            IdentityFile = 'release/windows/identity.json'
-            ProjectFile = 'go-admin-plus/cmd/go-admin-desktop/wails.json'
-            Version = $env:RELEASE_VERSION
-          }
-          ./release/windows/prepare-project.ps1 @prepareProject
-
-      - name: Run Windows release source gate
-        working-directory: workspace/go-admin-plus
+      - name: Build signed x64 Tauri NSIS candidate
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          go test -v ./internal/profile ./internal/platform/desktop ./internal/host/desktop ./test/desktop -count=1
-          go test ./... -count=1
-
-      - name: Build and run native tracer twice
-        working-directory: workspace/go-admin-plus/cmd/go-admin-desktop
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $arguments = @(
-            'build', '-clean', '-skipbindings',
-            '-platform', 'windows/amd64',
-            '-tags', 'sqlite3,desktop_e2e',
-            '-webview2', 'error',
-            '-windowsconsole', '-trimpath', '-v', '2'
-          )
-          & wails @arguments
-          $executable = (Resolve-Path 'build/bin/go-admin-plus.exe').Path
-          $dataRoot = Join-Path $env:RUNNER_TEMP 'windows-release-data'
-          $firstLogs = Join-Path $env:RUNNER_TEMP 'windows-release-logs/first-run'
-          $restartLogs = Join-Path $env:RUNNER_TEMP 'windows-release-logs/persisted-restart'
-          ./scripts/run-native-tracer.ps1 -Executable $executable -DataRoot $dataRoot -LogDirectory $firstLogs -TimeoutSeconds 180
-          if (-not (Test-Path (Join-Path $dataRoot 'db/go-admin.sqlite3'))) {
-            throw 'First tracer run did not create the SQLite database.'
-          }
-          ./scripts/run-native-tracer.ps1 -Executable $executable -DataRoot $dataRoot -LogDirectory $restartLogs -TimeoutSeconds 180
-          if (-not (Select-String -Path (Join-Path $restartLogs 'desktop.stderr.log') -Pattern 'desktop database migration completed: applied=0 skipped=[1-9][0-9]*')) {
-            throw 'Persisted restart did not report an idempotent migration.'
-          }
-
-      - name: Build production application and NSIS installer
-        working-directory: workspace/go-admin-plus/cmd/go-admin-desktop
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $arguments = @(
-            'build', '-clean', '-skipbindings',
-            '-platform', 'windows/amd64',
-            '-tags', 'sqlite3',
-            '-webview2', 'error',
-            '-installscope', 'user',
-            '-nsis', '-trimpath', '-v', '2'
-          )
-          & wails @arguments
-          $application = (Resolve-Path 'build/bin/go-admin-plus.exe').Path
-          $installer = (Resolve-Path "build/bin/go-admin-plus-$env:RELEASE_VERSION-windows-amd64-$env:RELEASE_MODE-setup.exe").Path
-          "APPLICATION_PATH=$application" | Out-File -FilePath $env:GITHUB_ENV -Append
+          ./scripts/release/windows/build-nsis.ps1 -Version $env:RELEASE_VERSION -OutputDirectory release-work
+          $installer = (Resolve-Path "release-work/go-admin-plus-$env:RELEASE_VERSION-windows-x64-setup.exe").Path
+          $application = (Resolve-Path 'release-work/go-admin-plus-desktop.exe').Path
           "INSTALLER_PATH=$installer" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "APPLICATION_PATH=$application" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Verify unsigned installer contents
-        working-directory: workspace
-        shell: pwsh
-        run: |
-          $verifyInstaller = @{
-            IdentityFile = 'release/windows/identity.json'
-            InstallerFile = $env:INSTALLER_PATH
-            ApplicationFile = $env:APPLICATION_PATH
-          }
-          ./release/windows/verify-installer.ps1 @verifyInstaller | Tee-Object release-output/installer-verification.log
-
-      - name: Verify standalone payload installs with outbound network blocked
-        working-directory: workspace
-        shell: pwsh
-        run: |
-          $identity = Get-Content release/windows/identity.json -Raw | ConvertFrom-Json
-          $payload = Join-Path 'go-admin-plus/cmd/go-admin-desktop/build/windows/installer/tmp' $identity.webview2.filename
-          ./release/windows/verify-payload-offline-install.ps1 -PayloadFile $payload | Tee-Object release-output/webview2-offline-install.log
-
-      - name: Verify self-use install upgrade and data preservation
-        working-directory: workspace
-        shell: pwsh
-        run: |
-          $verifySelfUse = @{
-            IdentityFile = 'release/windows/identity.json'
-            InstallerFile = $env:INSTALLER_PATH
-            ApplicationFile = $env:APPLICATION_PATH
-          }
-          ./release/windows/verify-self-use-install.ps1 @verifySelfUse | Tee-Object release-output/self-use-install-verification.log
-
-      - name: Generate manifest SBOM and checksums
-        working-directory: workspace
+      - name: Verify install, restart, and uninstall data boundary
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $identity = Get-Content release/windows/identity.json -Raw | ConvertFrom-Json
-          Copy-Item -LiteralPath $env:INSTALLER_PATH -Destination release-output
-          Copy-Item -LiteralPath $env:APPLICATION_PATH -Destination release-output
-          Copy-Item -LiteralPath release/windows/INSTALL.md -Destination release-output/INSTALL.md
-          syft.exe 'dir:release-output' -o spdx-json=release-output/go-admin-plus-windows-amd64.spdx.json
-          $payload = Get-Content release-output/webview2-payload.json -Raw | ConvertFrom-Json
-          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
-          [ordered]@{
-            schema_version = 1
-            release_class = $env:RELEASE_MODE
-            version = $env:RELEASE_VERSION
-            platform = 'windows/amd64'
-            identity = $identity
-            provenance = $provenance
-            webview2_payload = $payload
-            signing = [ordered]@{
-              signature = 'none'
-              platform_trust = 'unsigned'
-              authenticode = 'not-signed'
-            }
-            user_authorization = [ordered]@{
-              required = $true
-              preferred = 'smartscreen-more-info-run-anyway'
-              managed_policy_bypass = $false
-              global_security_disable = $false
-            }
-            sbom_format = 'SPDX JSON'
-          } | ConvertTo-Json -Depth 12 | Set-Content release-output/manifest.json -Encoding utf8NoBOM
+          ./scripts/release/windows/verify-artifacts.ps1 -Version $env:RELEASE_VERSION -InstallerFile $env:INSTALLER_PATH -ApplicationFile $env:APPLICATION_PATH
+          ./scripts/release/windows/verify-install.ps1 -InstallerFile $env:INSTALLER_PATH -EvidenceFile release-work/install-evidence.json
 
-          $releaseOutput = (Resolve-Path release-output).Path
-          Get-ChildItem -LiteralPath $releaseOutput -File -Recurse |
-            Where-Object Name -ne 'SHA256SUMS' |
-            Sort-Object FullName |
-            ForEach-Object {
-              $relative = [System.IO.Path]::GetRelativePath($releaseOutput, $_.FullName).Replace('\', '/')
-              $hash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-              "$hash  ./$relative"
-            } | Set-Content release-output/SHA256SUMS -Encoding ascii
+      - name: Emit checksums, SBOM, and provenance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./scripts/release/windows/emit-artifacts.ps1 `
+            -Version $env:RELEASE_VERSION -SourceSha $env:SOURCE_SHA `
+            -InstallerFile $env:INSTALLER_PATH -ApplicationFile $env:APPLICATION_PATH `
+            -InstallEvidenceFile release-work/install-evidence.json -OutputDirectory release-output
+          foreach ($required in @('SHA256SUMS', 'provenance.json', 'install-evidence.json')) {
+            if (-not (Test-Path -LiteralPath (Join-Path 'release-output' $required))) { throw "Missing evidence: $required" }
+          }
+          'GO_ADMIN_WINDOWS_SUPPLY_CHAIN_PASS' | Add-Content $env:GITHUB_STEP_SUMMARY
 
-          @(
-            '## Windows AMD64 Self-Use Release Gate'
-            ''
-            "- Root: $env:EXPECTED_ROOT_SHA"
-            "- Backend: ${{ github.sha }}"
-            "- Frontend: $env:EXPECTED_FRONTEND_SHA"
-            '- Native tracer: GO_ADMIN_DESKTOP_E2E_PASS (first run and persisted restart)'
-            '- WebView2 payload: GO_ADMIN_WINDOWS_WEBVIEW2_PAYLOAD_PASS'
-            '- WebView2 offline install: GO_ADMIN_WINDOWS_WEBVIEW2_OFFLINE_INSTALL_PASS'
-            '- Installer: GO_ADMIN_WINDOWS_INSTALLER_VERIFY_PASS'
-            '- Self-use install: GO_ADMIN_WINDOWS_SELF_USE_INSTALL_PASS'
-            '- Trust state: unsigned; no Authenticode; SmartScreen user authorization may be required'
-          ) | Add-Content $env:GITHUB_STEP_SUMMARY
-
-      - name: Upload Windows release evidence
+      - name: Upload protected Windows candidate evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: windows-amd64-${{ inputs.release_version }}-unsigned-self-use-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            workspace/release-output
-            workspace/provenance.json
-            ${{ runner.temp }}/windows-release-logs
+          name: go-admin-plus-windows-${{ inputs.release_version }}-${{ inputs.source_ref }}
+          path: release-output
           if-no-files-found: error
           retention-days: 14
