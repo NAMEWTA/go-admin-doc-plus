@@ -895,7 +895,7 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-26-project-architecture-reconstruction/T-10",
       "workspace_ref": "specdev-worktree/2026-08-26-project-architecture-reconstruction/T-10",
-      "source_checkpoint": null,
+      "source_checkpoint": "a630c50fd0f8f22208564a807accfb325ca34f6a",
       "integration": {
         "status": "pending",
         "parent_ref": null,
@@ -925,8 +925,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-27T11:17:00+08:00"
+      "status": "review",
+      "updated_at": "2026-08-27T16:55:00+08:00"
     },
     {
       "ticket_id": "T-12",

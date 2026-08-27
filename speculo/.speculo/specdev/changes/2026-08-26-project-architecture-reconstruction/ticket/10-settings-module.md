@@ -12,11 +12,11 @@ risk: high
 blocked_by: [T-07]
 contract_ids: [AC-015, AC-035]
 owner: codex-t10-settings
-expected_changes: ["<Path>contracts/openapi/modules/settings.yaml</Path>", "<Path>go-admin-plus/internal/modules/settings/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/package.json</Path>"]
-writable_paths: ["<Path>contracts/openapi/modules/settings.yaml</Path>", "<Path>go-admin-plus/internal/modules/settings/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/package.json</Path>", "<Path>go-admin-plus/test/settings/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/settings/**</Path>"]
+expected_changes: ["<Path>contracts/openapi/modules/settings.yaml</Path>", "<Path>go-admin-plus/internal/modules/settings/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/package.json</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>contracts/openapi/modules/settings.yaml</Path>", "<Path>go-admin-plus/internal/modules/settings/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/package.json</Path>", "<Path>go-admin-plus/test/settings/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/settings/**</Path>", "<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
-shared_paths: []
-shared_path_owners: []
+shared_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-10 under T10-D02; Settings typecheck only", "<Path>go-admin-plus-ui/tests/shell/vitest.config.ts</Path> => T-10 under T10-D02; Settings specs only", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-10 under T10-D02; existing domain-settings and web-domain-settings importers only"]
 ---
 
 # Ticket T-10: Settings 参数与字典垂直切片
@@ -83,8 +83,9 @@ shared_path_owners: []
 - **预计修改点：** Settings 独占合同、后端、前端、测试路径与两个 Settings package manifest。
 - **可写范围：** 仅 frontmatter `writable_paths`。
 - **只读上下文：** IAM、T-03 config 和共享 UI。
-- **共享路径：** 无。
+- **共享路径：** 根 workspace script、shell Vitest include 和 lockfile 仅按串行 deviation 接入。
 - **批准偏差：** `T10-D01` 第一阶段只开放两个 Settings package manifest，用既有 workspace/catalog 依赖补齐公开 export 与 package-local checks；根 aggregate checks、Vitest include、lockfile、共享 UI 和 composition 保持只读，后续必须由 Lead 串行 amendment。
+- **批准偏差：** `T10-D02` 在 T-15 implementation result 后只开放根 Settings 聚合 typecheck、shell Vitest 的两个 Settings include，以及 lockfile 现有 `packages/domains/settings` / `packages/web-domains/settings` importer。只允许反映两个已批准 package manifest 的既有 workspace/catalog 依赖；其他 script、include、importer、catalog、外部版本、共享 UI 和 composition 零漂移。
 - **保留或不动：** runtime 配置和产品注册点。
 
 ## 8. 验证矩阵
