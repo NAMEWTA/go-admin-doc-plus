@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T21:31:28+08:00",
+  "updated_at": "2026-08-28T22:15:21+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -533,6 +533,16 @@
       "approved_at": "2026-08-28T21:31:28+08:00",
       "reason": "The completion audit proved the current SpecDev runtime verification config still invoked the removed frontend directory and legacy Make build, while the D09/D10 repository-root package and command assertions were placed in a workspace suite that the Generator intentionally copies without root Task or scripts, causing the canonical real-generation test to fail after 190.97 seconds",
       "resolution": "Point SpecDev verification at the canonical root Task command plane and current pnpm workspace; make architecture-check enforce those exact commands, all workspace filters, and local packaging contracts; keep the independently copied workspace suite self-contained, with negative root regressions and full normal/SQLite Generator verification, without skipping checks or changing UI, CSS, product behavior, or deferred E2E"
+    },
+    {
+      "id": "T21-D12",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T22:15:21+08:00",
+      "reason": "The final verification-coverage audit proved the root frontend typecheck manually omitted three packages that declared typecheck and six of ten test projects, while the central Vitest allowlist omitted eight unit spec files and the standard task test command omitted 29 Node unit tests for browser/native harness diagnostics and lifecycle helpers",
+      "resolution": "Run every declared workspace typecheck recursively, compile every discovered test tsconfig, discover every package and harness unit spec, add a self-contained Node unit-test runner under the Generator-copied shell skeleton, and enforce all four coverage contracts in the root architecture gate without running E2E or changing UI, CSS, product behavior, contracts, schema, or release behavior"
     }
   ],
   "worktrees": [
