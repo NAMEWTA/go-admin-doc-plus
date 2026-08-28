@@ -213,6 +213,27 @@ test('apps select adapters without owning runtime transport', async () => {
   }
 })
 
+test('dual Apps inject one Platform Port and Desktop host commands remain explicitly allowlisted', async () => {
+  const webApp = await readFile(join(workspaceRoot, 'apps/admin-web/src/App.vue'), 'utf8')
+  assert.match(webApp, /createWebPlatform\(\)/)
+  assert.match(webApp, /:platform="platform"/)
+  const desktopApp = await readFile(join(workspaceRoot, 'apps/admin-desktop/src/App.vue'), 'utf8')
+  assert.match(desktopApp, /createDesktopPlatform\(\)/)
+  assert.match(desktopApp, /:platform="platform"/)
+
+  const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
+  assert.match(productShell, /platform:\s*PlatformPort/)
+  assert.match(productShell, /<FilesPage[^>]*:platform="platform"/)
+
+  const host = await readFile(join(workspaceRoot, 'apps/admin-desktop/src-tauri/src/main.rs'), 'utf8')
+  const capability = await readJson(join(workspaceRoot, 'apps/admin-desktop/src-tauri/capabilities/main.json'))
+  for (const command of ['desktop_pick_file', 'desktop_save_file', 'desktop_notify', 'desktop_write_clipboard']) {
+    assert.match(host, new RegExp(`async fn ${command}\\b`))
+    assert.match(host, new RegExp(`invoke_handler\\([\\s\\S]*${command}`))
+    assert.ok(capability.permissions.includes(`allow-${command.replaceAll('_', '-')}`))
+  }
+})
+
 test('browser adapter dependency allowlist rejects additional workspace packages', () => {
   assert.throws(
     () => assertBrowserAdapterDependencies({

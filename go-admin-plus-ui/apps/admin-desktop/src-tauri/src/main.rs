@@ -3,6 +3,7 @@
 #[cfg(all(not(debug_assertions), not(feature = "custom-protocol")))]
 compile_error!("release desktop builds must enable the custom-protocol feature");
 
+mod host_capabilities;
 mod product_contract;
 mod proxy;
 mod vault;
@@ -279,6 +280,31 @@ async fn desktop_logout(state: State<'_, Arc<HostState>>) -> Result<LogoutResult
         eprintln!("desktop native logout state: command-complete");
     }
     result
+}
+
+#[tauri::command]
+async fn desktop_pick_file(
+    app: tauri::AppHandle,
+) -> Result<Option<host_capabilities::PickedFileOutput>, &'static str> {
+    host_capabilities::pick_file(app).await
+}
+
+#[tauri::command]
+async fn desktop_save_file(
+    app: tauri::AppHandle,
+    file: host_capabilities::SaveFileInput,
+) -> Result<host_capabilities::SaveFileOutput, &'static str> {
+    host_capabilities::save_file(app, file).await
+}
+
+#[tauri::command]
+async fn desktop_notify(app: tauri::AppHandle, message: String) -> Result<(), &'static str> {
+    host_capabilities::notify(&app, message)
+}
+
+#[tauri::command]
+async fn desktop_write_clipboard(app: tauri::AppHandle, text: String) -> Result<(), &'static str> {
+    host_capabilities::write_clipboard(app, text).await
 }
 
 #[derive(Serialize)]
@@ -806,13 +832,20 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(managed)
         .invoke_handler(tauri::generate_handler![
             desktop_request,
             desktop_identity,
             desktop_navigation,
             desktop_login,
-            desktop_logout
+            desktop_logout,
+            desktop_pick_file,
+            desktop_save_file,
+            desktop_notify,
+            desktop_write_clipboard
         ])
         .setup({
             let state = Arc::clone(&state);

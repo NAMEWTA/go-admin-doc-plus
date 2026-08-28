@@ -8,6 +8,10 @@
     "allow-desktop-identity",
     "allow-desktop-navigation",
     "allow-desktop-login",
-    "allow-desktop-logout"
+    "allow-desktop-logout",
+    "allow-desktop-pick-file",
+    "allow-desktop-save-file",
+    "allow-desktop-notify",
+    "allow-desktop-write-clipboard"
   ]
 }

@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import type { AccountProfile, SessionClient, SessionState } from '@go-admin-plus/domain-iam/session'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
-import type { ShellRuntimePort } from '@go-admin-plus/platform'
+import type { PlatformPort, ShellRuntimePort } from '@go-admin-plus/platform'
 import { createBrowserFilesClient } from '@go-admin-plus/adapter-browser'
 import { AuditPage, createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
 import { createDemoController, createWebDemoClient, DemoProductsPage } from '@go-admin-plus/web-domain-demo'
@@ -20,6 +20,7 @@ import { productRoutesFor, type ProductHost } from './manifest'
 const props = defineProps<{
   host: ProductHost
   runtime: ShellRuntimePort
+  platform: PlatformPort
   fetcher?: typeof globalThis.fetch
   sessionClient?: SessionClient
 }>()
@@ -27,6 +28,7 @@ const props = defineProps<{
 type View = 'loading' | 'login' | 'workspace' | 'account' | 'forbidden' | 'not-found' | 'unavailable'
 
 const fetcher = props.fetcher ?? globalThis.fetch
+const platform = props.platform
 const session = createSessionController(props.sessionClient ?? createWebSessionClient(fetcher))
 const sessionState = ref<SessionState>(session.state())
 const permissions = ref<ReadonlySet<string>>(new Set())
@@ -252,7 +254,7 @@ onUnmounted(() => {
           <GeneratorWizardPage v-else-if="view === 'workspace' && module === 'generator'" :controller="generator" @session-required="requireSession" @forbidden="forbid" />
           <SchedulerPage v-else-if="view === 'workspace' && module === 'scheduler'" :controller="scheduler" @session-required="requireSession" />
           <DemoProductsPage v-else-if="view === 'workspace' && module === 'demo'" :controller="demo" @session-required="requireSession" @forbidden="forbid" />
-          <FilesPage v-else-if="view === 'workspace' && module === 'files'" :controller="files" @session-required="requireSession" />
+          <FilesPage v-else-if="view === 'workspace' && module === 'files'" :controller="files" :platform="platform" @session-required="requireSession" />
           <AccountPage v-else-if="view === 'account' && profile" :controller="session" :profile="profile" @signed-out="signedOut" />
         </div>
       </div>

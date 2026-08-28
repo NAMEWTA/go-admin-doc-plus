@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { filesPermissions, type FileMetadata, type FileQuery, type UploadCandidate } from '@go-admin-plus/domain-files'
+import type { PlatformPort } from '@go-admin-plus/platform'
 import type { FilesController } from './files-controller'
 
-const props = defineProps<{ controller: FilesController }>()
+const props = defineProps<{ controller: FilesController; platform: PlatformPort }>()
 const emit = defineEmits<{ sessionRequired: [] }>()
 const revision = ref(0)
 const search = ref('')
@@ -41,6 +42,22 @@ const chooseFile = (event: Event) => {
   selectedUpload.value = file ? { name: file.name, type: file.type, size: file.size, body: file } : null
   localError.value = null
 }
+const chooseHostFile = async () => {
+  localError.value = null
+  if (!props.platform.listCapabilities().has('file-open')) { localError.value = '当前运行环境不支持选择文件'; return }
+  try {
+    const file = await props.platform.pickFile()
+    selectedUpload.value = file ? {
+      name: file.name,
+      type: file.mediaType,
+      size: file.bytes.length,
+      body: new Blob([file.bytes.slice().buffer], { type: file.mediaType })
+    } : null
+  } catch {
+    selectedUpload.value = null
+    localError.value = '选择文件失败'
+  }
+}
 const upload = async () => {
   if (!selectedUpload.value) { localError.value = '请选择文件'; return }
   const result = await props.controller.upload(selectedUpload.value)
@@ -72,6 +89,19 @@ const download = async (row: FileMetadata) => {
   const blob = await props.controller.download(row)
   revision.value += 1
   if (!blob) return
+  if (props.platform.runtime === 'desktop') {
+    if (!props.platform.listCapabilities().has('file-save')) { localError.value = '当前运行环境不支持保存文件'; return }
+    try {
+      await props.platform.saveFile({
+        name: row.originalName,
+        mediaType: row.mediaType,
+        bytes: new Uint8Array(await blob.arrayBuffer())
+      })
+    } catch {
+      localError.value = '保存文件失败'
+    }
+    return
+  }
   const url = URL.createObjectURL(blob)
   try {
     const anchor = document.createElement('a')
@@ -100,7 +130,8 @@ onMounted(() => settle(() => props.controller.list.refresh()))
         <button type="button" :disabled="blocked" @click="search = ''; settle(() => controller.list.reset())">重置</button>
       </form>
       <div v-if="canWrite" class="files-page__upload" data-testid="files-upload">
-        <label>选择文件<input ref="fileInput" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.txt,application/pdf,image/jpeg,image/png,text/plain" :disabled="blocked" @change="chooseFile"></label>
+        <label v-if="platform.runtime === 'web'">选择文件<input ref="fileInput" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.txt,application/pdf,image/jpeg,image/png,text/plain" :disabled="blocked" @change="chooseFile"></label>
+        <label v-else>选择文件<button type="button" :disabled="blocked" @click="chooseHostFile">选择文件</button><span v-if="selectedUpload">{{ selectedUpload.name }}</span></label>
         <button type="button" :disabled="blocked || !selectedUpload" @click="upload">上传</button>
         <p v-if="localError" role="alert">{{ localError }}</p>
       </div>

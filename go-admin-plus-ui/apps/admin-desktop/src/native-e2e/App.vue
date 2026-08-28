@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { createDesktopFetch, createDesktopRuntime, createDesktopSessionClient, createDesktopTransport } from '@go-admin-plus/adapter-desktop'
+import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSessionClient, createDesktopTransport } from '@go-admin-plus/adapter-desktop'
 import { ProductWorkspace } from '@go-admin-plus/app-shell/product'
 
 const runtime = createDesktopRuntime()
+const platform = createDesktopPlatform()
 const fetcher = createDesktopFetch()
 const session = createDesktopSessionClient()
 const nativeBoundary = ref('')
@@ -95,7 +96,7 @@ onUnmounted(() => {
     <button type="button" @click="nativeControl('permissions-on')">E2E permissions on</button>
     <button type="button" @click="nativeControl('session-revoke')">E2E revoke session</button>
   </aside>
-  <ProductWorkspace :key="workspaceKey" host="desktop" :runtime="runtime" :fetcher="fetcher" :session-client="session" />
+  <ProductWorkspace :key="workspaceKey" host="desktop" :runtime="runtime" :platform="platform" :fetcher="fetcher" :session-client="session" />
 </template>
 
 <style scoped>

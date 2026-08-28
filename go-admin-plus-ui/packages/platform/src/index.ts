@@ -27,10 +27,22 @@ export interface ShellRuntimePort {
 
 export type HostCapability = 'clipboard-write' | 'file-open' | 'file-save' | 'notification'
 
+export interface HostFile {
+  readonly name: string
+  readonly mediaType: string
+  readonly bytes: Uint8Array
+}
+
+export type HostFileSaveResult = 'saved' | 'cancelled'
+
 export interface PlatformPort {
   readonly runtime: 'web' | 'desktop'
   /** Callers must check capability presence before invoking an optional host operation. */
   listCapabilities(): ReadonlySet<HostCapability>
+  /** Selects one bounded product file without exposing a native filesystem path. */
+  pickFile(): Promise<HostFile | null>
+  /** Saves one bounded product file and reports an explicit user cancellation. */
+  saveFile(file: HostFile): Promise<HostFileSaveResult>
   notify(message: string): Promise<void>
   writeClipboard(text: string): Promise<void>
 }

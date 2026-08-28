@@ -421,6 +421,9 @@ importers:
       '@go-admin-plus/domain-files':
         specifier: workspace:*
         version: link:../../domains/files
+      '@go-admin-plus/platform':
+        specifier: workspace:*
+        version: link:../../platform
       '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui

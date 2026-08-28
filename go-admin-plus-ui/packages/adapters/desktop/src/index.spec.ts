@@ -2,9 +2,38 @@ import { describe, expect, it } from 'vitest'
 
 import { DemoRequestError } from '@go-admin-plus/domain-demo'
 
-import { createDesktopDemoClient, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
+import { createDesktopDemoClient, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
 
 describe('desktop adapter security boundary', () => {
+  it('implements the explicit host capability port through bounded native commands', async () => {
+    const calls: Array<readonly [string, Record<string, unknown> | undefined]> = []
+    const platform = createDesktopPlatform(async <T>(command: string, args?: Record<string, unknown>) => {
+      calls.push([command, args])
+      if (command === 'desktop_pick_file') return {
+        name: 'design.txt', mediaType: 'text/plain', sizeBytes: 3, data: 'YWJj'
+      } as T
+      if (command === 'desktop_save_file') return { status: 'saved' } as T
+      return undefined as T
+    })
+
+    expect([...platform.listCapabilities()].sort()).toEqual([
+      'clipboard-write', 'file-open', 'file-save', 'notification'
+    ])
+    await platform.notify('生成任务已完成')
+    await platform.writeClipboard('product-001')
+    const selected = await platform.pickFile()
+    expect(selected).toEqual({
+      name: 'design.txt', mediaType: 'text/plain', bytes: new Uint8Array([97, 98, 99])
+    })
+    await expect(platform.saveFile(selected!)).resolves.toBe('saved')
+    expect(calls).toEqual([
+      ['desktop_notify', { message: '生成任务已完成' }],
+      ['desktop_write_clipboard', { text: 'product-001' }],
+      ['desktop_pick_file', undefined],
+      ['desktop_save_file', { file: { name: 'design.txt', mediaType: 'text/plain', data: 'YWJj' } }]
+    ])
+  })
+
   it('accepts only the public identity projection and rejects hidden session material', async () => {
     const runtime = createDesktopRuntime(async <T>(command: string) => {
       if (command === 'desktop_identity') return {

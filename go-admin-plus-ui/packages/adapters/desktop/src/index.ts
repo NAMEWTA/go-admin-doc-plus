@@ -2,10 +2,53 @@ import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 
 import { DemoRequestError, type DemoClient, type DemoFailure, type Product, type ProductPage } from '@go-admin-plus/domain-demo'
 import { SessionRequestError, type AccountProfile, type SessionClient } from '@go-admin-plus/domain-iam/session'
-import type { DataScope, NavigationEntry, PermissionCode, RuntimeIdentity, ShellRuntimePort } from '@go-admin-plus/platform'
+import type { DataScope, HostFile, HostFileSaveResult, NavigationEntry, PermissionCode, PlatformPort, RuntimeIdentity, ShellRuntimePort } from '@go-admin-plus/platform'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
+const hostCapabilities = Object.freeze(['clipboard-write', 'file-open', 'file-save', 'notification'] as const)
+const maximumHostFileBytes = 10 * 1024 * 1024
+const hostMediaTypes = new Set(['application/pdf', 'image/jpeg', 'image/png', 'text/plain'])
+const validHostFileName = (name: string) => name.length > 0 && name.length <= 255 && !/[\\/\0]/.test(name)
+
+const parseHostFile = (value: unknown): HostFile => {
+  const record = asRecord(value)
+  if (!exactKeys(record, ['name', 'mediaType', 'sizeBytes', 'data']) ||
+    typeof record.name !== 'string' || !validHostFileName(record.name) ||
+    typeof record.mediaType !== 'string' || !hostMediaTypes.has(record.mediaType) ||
+    !Number.isSafeInteger(record.sizeBytes) || Number(record.sizeBytes) < 0 || Number(record.sizeBytes) > maximumHostFileBytes ||
+    typeof record.data !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(record.data)) {
+    throw new Error('invalid desktop host file')
+  }
+  const bytes = base64ToBytes(record.data)
+  if (bytes.length !== record.sizeBytes || bytesToBase64(bytes) !== record.data) throw new Error('invalid desktop host file')
+  return { name: record.name, mediaType: record.mediaType, bytes }
+}
+
+const encodeHostFile = (file: HostFile) => {
+  if (!validHostFileName(file.name) || !hostMediaTypes.has(file.mediaType) || file.bytes.length > maximumHostFileBytes) {
+    throw new Error('invalid desktop host file')
+  }
+  return { name: file.name, mediaType: file.mediaType, data: bytesToBase64(file.bytes) }
+}
+
+export const createDesktopPlatform = (invoke: Invoke = tauriInvoke): PlatformPort => ({
+  runtime: 'desktop',
+  listCapabilities: () => new Set(hostCapabilities),
+  pickFile: async () => {
+    const value = await invoke<unknown>('desktop_pick_file')
+    return value === null ? null : parseHostFile(value)
+  },
+  saveFile: async file => {
+    const value = asRecord(await invoke<unknown>('desktop_save_file', { file: encodeHostFile(file) }))
+    if (!exactKeys(value, ['status']) || (value.status !== 'saved' && value.status !== 'cancelled')) {
+      throw new Error('invalid desktop save result')
+    }
+    return value.status as HostFileSaveResult
+  },
+  notify: message => invoke<void>('desktop_notify', { message }),
+  writeClipboard: text => invoke<void>('desktop_write_clipboard', { text })
+})
 
 interface HostResponse {
   readonly status: number
