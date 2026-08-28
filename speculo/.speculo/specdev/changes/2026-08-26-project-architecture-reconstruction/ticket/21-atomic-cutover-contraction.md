@@ -134,6 +134,10 @@ D25 后继续审计 Desktop adapter graph，确认 `createDesktopDemoClient` 与
 
 Lead 以 `main@f76649efa829a209b91bb9729ce5c90d4dec0371` 为审计 base，基于用户已批准的零兼容完整重构精确开放 `<Path>go-admin-plus/internal/application/architecture_test.go</Path>`、`<Path>go-admin-plus/internal/contracts/capabilities/**</Path>`、`<Path>go-admin-plus/internal/app/product/**</Path>`、`<Path>go-admin-plus/internal/modules/{audit,demo,files,generator,organization,scheduler,settings}/**</Path>`、`<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>` 与对应 SpecDev Evidence：用 Go AST 对非测试生产文件建立模块边界门禁和失败 fixture；只把被多个模块真实共享的 capability 定义值移入 contracts；由各消费者保留最小同步 port，并由 product composition root 实现 Session、Authorization、Organization Projection 与 Login Fact 映射；同步 Generator 模板，删除所有消费者模块内旧 `NewIAM*` adapter 和隐式 IAM 默认构造，不提供兼容转发。IAM 内部子包协作保持 IAM 模块内部实现细节；HTTP/API/OpenAPI、数据库 schema/migration、业务行为、可见 UI/CSS、受保护发行和暂停的 E2E 不变。
 
+#### T21-D28-A01（Lead 批准）
+
+构造函数收缩后的全仓调用点审计证明 `<Path>go-admin-plus/test/{files,organization,settings,scheduler}/**</Path>` 等受跟踪双数据库/浏览器 harness 也是替代组合根，仍需编译并装配同一 IAM provider；若 adapter 只作为 product 私有类型，这些非 E2E 测试无法编译，在各 harness 复制映射又会形成多份安全边界。Lead 精确追加开放 `<Path>go-admin-plus/internal/app/adapters/**</Path>` 与受影响的 `<Path>go-admin-plus/test/**</Path>` 调用点：把 IAM 具体映射集中为 app-owned、按消费者接口返回的类型化 adapter 集合，正式 product 与测试组合根共同复用；`internal/app/product` 仍是正式产品唯一组合点，测试目录不得成为生产依赖。该修正不恢复模块内构造、不新增共享 service locator，也不运行被用户暂停的 E2E。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
