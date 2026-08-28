@@ -128,6 +128,12 @@ D25 后继续审计 Desktop adapter graph，确认 `createDesktopDemoClient` 与
 
 授权 checkpoint 为 `c16a2e3b90cde3b21ad592763801c90abb0d9048`；implementation/result 为 `b20e56c771d08d47da25c68dde251d1a38c07ae5`（tree `c1ae58477ebc0065f8c5577a55f536e3eb8d13a8`）。三个 package 已拥有 strict typecheck，Desktop adapter 同时拥有标准 test；architecture gate 动态拒绝缺失 contract。完整证据见 T-21 Evidence 第 28 节，T-21 状态不变。
 
+### T21-D28（Lead 批准）
+
+最终按 ADR-006/ADR-012 从 Go production import graph 反向审计，确认现有 architecture gate 只验证目录形态，没有实现决策要求的 Go import graph 与禁止依赖 fixture；Audit、Demo、Files、Generator、Organization、Scheduler、Settings 的生产包仍直接导入 IAM authorization/session/administration。部分消费者虽已声明最小 port，但具体 `IAM*Adapter`、IAM 返回类型和默认 `NewService` 构造仍位于消费者模块，`internal/app/product` 只调用这些构造函数，实际依赖方向没有反转；Generator 模板还会为新模块继续生成同类跨模块导入。
+
+Lead 以 `main@f76649efa829a209b91bb9729ce5c90d4dec0371` 为审计 base，基于用户已批准的零兼容完整重构精确开放 `<Path>go-admin-plus/internal/application/architecture_test.go</Path>`、`<Path>go-admin-plus/internal/contracts/capabilities/**</Path>`、`<Path>go-admin-plus/internal/app/product/**</Path>`、`<Path>go-admin-plus/internal/modules/{audit,demo,files,generator,organization,scheduler,settings}/**</Path>`、`<Path>go-admin-plus/internal/modules/iam/authorization/**</Path>` 与对应 SpecDev Evidence：用 Go AST 对非测试生产文件建立模块边界门禁和失败 fixture；只把被多个模块真实共享的 capability 定义值移入 contracts；由各消费者保留最小同步 port，并由 product composition root 实现 Session、Authorization、Organization Projection 与 Login Fact 映射；同步 Generator 模板，删除所有消费者模块内旧 `NewIAM*` adapter 和隐式 IAM 默认构造，不提供兼容转发。IAM 内部子包协作保持 IAM 模块内部实现细节；HTTP/API/OpenAPI、数据库 schema/migration、业务行为、可见 UI/CSS、受保护发行和暂停的 E2E 不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
