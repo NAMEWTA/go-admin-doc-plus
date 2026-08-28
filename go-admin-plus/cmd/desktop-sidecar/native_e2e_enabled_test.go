@@ -3,10 +3,17 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"go-admin/internal/app/product"
+	"go-admin/internal/modules/iam/session"
+	"go-admin/internal/platform/config"
+	"go-admin/internal/platform/database"
 )
 
 func TestNativeE2EControlRequestIsExactAndBounded(t *testing.T) {
@@ -33,5 +40,38 @@ func TestNativeE2EControlRequestIsExactAndBounded(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/__desktop/test-control", strings.NewReader(`{"action":"scope-all"}`))
 	if _, err := decodeNativeE2EAction(request); err == nil {
 		t.Fatal("accepted request without exact JSON content type")
+	}
+}
+
+func TestNativeE2EScopeControlEnforcesAndRestoresOwnership(t *testing.T) {
+	ctx := context.Background()
+	process := database.NewProcess()
+	db, err := process.Open(ctx, database.Config{
+		Profile: config.ProfileDesktopSQLite, SQLitePath: filepath.Join(t.TempDir(), "desktop.db"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	runner, err := product.NewMigrationRunner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runner.Up(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	runtime := &sidecarRuntime{database: db, sessions: &session.Service{}}
+	for _, action := range []string{"scope-self", "scope-self", "scope-all"} {
+		if err := runtime.applyNativeE2EAction(ctx, action); err != nil {
+			t.Fatalf("%s: %v", action, err)
+		}
+	}
+	var scope string
+	if err := db.Bun().NewRaw(`SELECT data_scope FROM iam_roles WHERE id = ?`, "role-system-admin").Scan(ctx, &scope); err != nil || scope != "all" {
+		t.Fatalf("scope = %q, %v", scope, err)
+	}
+	var sentinels int
+	if err := db.Bun().NewRaw(`SELECT COUNT(*) FROM demo_products WHERE sku = ?`, "E2E-FOREIGN").Scan(ctx, &sentinels); err != nil || sentinels != 1 {
+		t.Fatalf("sentinels = %d, %v", sentinels, err)
 	}
 }

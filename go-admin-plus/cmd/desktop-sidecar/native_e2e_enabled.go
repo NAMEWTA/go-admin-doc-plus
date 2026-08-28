@@ -18,6 +18,13 @@ type nativeE2EAction struct {
 	Action string `json:"action"`
 }
 
+var (
+	errNativeE2EDependencies  = errors.New("desktop test control dependencies unavailable")
+	errNativeE2EScopeSentinel = errors.New("desktop test control scope sentinel failed")
+	errNativeE2EScopeUpdate   = errors.New("desktop test control scope update failed")
+	errNativeE2EScopeRows     = errors.New("desktop test control scope rows failed")
+)
+
 func (runtime *sidecarRuntime) registerNativeE2EControl(mux *http.ServeMux) {
 	mux.Handle("POST /__desktop/test-control", runtime.requireControl(http.HandlerFunc(runtime.nativeE2EControl)))
 }
@@ -46,13 +53,26 @@ func decodeNativeE2EAction(request *http.Request) (string, error) {
 
 func (runtime *sidecarRuntime) nativeE2EControl(writer http.ResponseWriter, request *http.Request) {
 	action, err := decodeNativeE2EAction(request)
-	if err == nil {
-		ctx, cancel := context.WithTimeout(request.Context(), requestTimeout)
-		defer cancel()
-		err = runtime.applyNativeE2EAction(ctx, action)
-	}
 	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
+		writer.WriteHeader(http.StatusGatewayTimeout)
+		return
+	}
+	ctx, cancel := context.WithTimeout(request.Context(), requestTimeout)
+	defer cancel()
+	err = runtime.applyNativeE2EAction(ctx, action)
+	if err != nil {
+		status := http.StatusInternalServerError
+		switch {
+		case errors.Is(err, errNativeE2EDependencies):
+			status = http.StatusHTTPVersionNotSupported
+		case errors.Is(err, errNativeE2EScopeSentinel):
+			status = http.StatusNotImplemented
+		case errors.Is(err, errNativeE2EScopeUpdate):
+			status = http.StatusBadGateway
+		case errors.Is(err, errNativeE2EScopeRows):
+			status = http.StatusServiceUnavailable
+		}
+		writer.WriteHeader(status)
 		return
 	}
 	writer.WriteHeader(http.StatusNoContent)
@@ -60,18 +80,27 @@ func (runtime *sidecarRuntime) nativeE2EControl(writer http.ResponseWriter, requ
 
 func (runtime *sidecarRuntime) applyNativeE2EAction(ctx context.Context, action string) error {
 	if runtime.database == nil || runtime.sessions == nil {
-		return errors.New("desktop test control unavailable")
+		return errNativeE2EDependencies
 	}
 	switch action {
 	case "scope-self", "scope-all":
 		scope := strings.TrimPrefix(action, "scope-")
+		if action == "scope-self" {
+			if _, err := runtime.database.Bun().ExecContext(ctx, `INSERT INTO demo_products
+				(id, owner_account_id, sku, name, name_key, description, price_cents, status, revision, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				ON CONFLICT(id) DO NOTHING`, "00000000-0000-4000-8000-000000000001", "account-native-other",
+				"E2E-FOREIGN", "Foreign product", "foreign product", "native scope sentinel", 1, "active", 1); err != nil {
+				return errNativeE2EScopeSentinel
+			}
+		}
 		result, err := runtime.database.Bun().ExecContext(ctx, `UPDATE iam_roles SET data_scope = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, scope, "role-system-admin")
 		if err != nil {
-			return errors.New("desktop test control failed")
+			return errNativeE2EScopeUpdate
 		}
 		count, err := result.RowsAffected()
 		if err != nil || count != 1 {
-			return errors.New("desktop test control failed")
+			return errNativeE2EScopeRows
 		}
 		return nil
 	case "permissions-off":

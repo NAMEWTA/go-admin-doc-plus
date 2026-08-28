@@ -35,9 +35,9 @@ pub struct SessionVault {
 
 impl SessionVault {
     pub fn open(data_root: &Path) -> Result<Self, &'static str> {
+        let key = read_or_create_os_key()?;
         let snapshot = data_root.join("session.stronghold");
         validate_snapshot(&snapshot)?;
-        let key = read_or_create_os_key()?;
         let stronghold =
             Stronghold::new(&snapshot, key.to_vec()).map_err(|_| "stronghold open failed")?;
         if stronghold.load_client(CLIENT_ID).is_err() {
@@ -209,7 +209,7 @@ fn set_snapshot_private(_path: &Path) -> Result<(), &'static str> {
     Ok(())
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "native-e2e"))]
 mod tests {
     #[cfg(feature = "native-e2e")]
     #[test]

@@ -120,7 +120,10 @@ const restore = async () => {
   else view.value = 'login'
 }
 const handlePopState = () => { path.value = window.location.pathname; resolveView() }
-const unsubscribe = session.subscribe(state => { sessionState.value = state })
+const unsubscribe = session.subscribe(state => {
+  sessionState.value = state
+  if (state.status === 'unauthenticated' && view.value !== 'loading') requireSession()
+})
 
 onMounted(() => {
   window.addEventListener('popstate', handlePopState)
