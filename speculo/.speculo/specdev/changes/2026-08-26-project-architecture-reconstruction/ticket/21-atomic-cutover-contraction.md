@@ -96,6 +96,8 @@ D20 的二进制扫描只由暂停的 native runner 在恢复 production 制品�
 
 最终 Spec-to-source adapter 审计证明 `<Path>go-admin-plus-ui/packages/platform/src/index.ts</Path>` 的 `PlatformPort` 只有声明且全仓零实现/零消费，Browser/Desktop Runtime Adapter 均未提供宿主能力；Desktop Files 仍直接使用浏览器 DOM 文件输入和下载链接。这与 CONTEXT 的双 adapter 实现合同及 Spec 的 Desktop 文件选择/下载、剪贴板、通知要求冲突。Lead 精确开放现有 platform、双 adapter、双 App 产品接线、共享 Files 页、Tauri host/capability/dependency、对应 package/lock/test 与 architecture gate 路径：以一个显式 Port 注入双 App，Web 保持现有文件输入外观，Desktop 文件选择/保存只通过有界自定义 Rust command 且不向 WebView 暴露路径或通用文件系统权限；剪贴板仅写、通知仅发送。业务 API、数据库、已删能力、可见产品样式、受保护发行和暂停 E2E 不变。
 
+实现/result 为 `aa502221356f7bbd9c3d7619ea10272f4a5971cf`（tree `bb167a772d714b427f1503e6cf69a579a1097bb5`）；完整 RED/GREEN、安全边界、构建和未执行范围记录于 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>` 第 23 节。T-21 继续保持 `implemented-pending-final-e2e`。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
