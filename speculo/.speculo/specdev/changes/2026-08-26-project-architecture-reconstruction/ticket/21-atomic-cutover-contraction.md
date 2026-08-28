@@ -80,6 +80,10 @@ AC-029 完成审计证明 `compatibility-zero` 只扫描部分治理/文档目�
 
 最终 AC-011/AC-022 非 E2E 审计证明 Web `/api/runtime/identity` 丢失 IAM manifest 的 `dataScope`，共享 `RuntimeIdentity` 没有该字段，而 Shell 会把缺失值默认为 `all`；因此 `self` 账号在 Web 中会错误显示只允许全部数据范围的控制项。真实完整 Go 并发测试又两次证明 Generator 直接启动 Volta Node shim 会以 `Resource temporarily unavailable (os error 35)` 失败，而同一生成器隔离运行 339 秒通过。Lead 基于用户已批准的零兼容完整重构和先完成编码/构建要求，精确开放 `<Path>go-admin-plus/internal/app/product/runtime.go</Path>`、`<Path>go-admin-plus/internal/app/product/runtime_test.go</Path>`、`<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>`、`<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>`、`<Path>go-admin-plus-ui/packages/platform/src/index.ts</Path>`、`<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>`、`<Path>go-admin-plus-ui/packages/adapters/browser/src/index.spec.ts</Path>`、`<Path>go-admin-plus-ui/packages/adapters/desktop/src/index.ts</Path>`、`<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>`、`<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>`、`<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>` 与 `<Path>go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs</Path>`：Web 与 Desktop 统一使用必填 `self|all` 数据范围且不提供兼容默认值；Generator 在 Volta 下解析已安装的真实 Node runtime，并让临时 Workspace 的 PATH 继承该实体目录。公共模块 OpenAPI、数据库 schema、UI/CSS、已删能力和受保护发行行为保持不变。
 
+### T21-D19（Lead 批准）
+
+最终 Desktop production artifact 反向审计发现，原 `<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>` 以环境分支包裹原生测试控件；Vite 虽能摇除 JavaScript 分支，却仍把 scoped `.native-e2e` CSS 写入 production bundle。既有 native restore 只搜索 `E2E scope self` 一项文本，无法证明 production WebView 资源不存在测试路由或其他控件。Lead 精确开放 Desktop App/入口/Vite/package 与原生 runner 静态测试路径：production App 只组合 `ProductWorkspace`；所有测试 UI 移入显式 `native-e2e` mode 的独立入口；默认 production build 完成后逐字节扫描全部产物，原生 runner 恢复 production 制品时复用同一 verifier。产品 UI/CSS、运行时行为、数据库、公共合同和受保护发行保持不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

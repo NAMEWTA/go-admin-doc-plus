@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T00:43:03+08:00",
+  "updated_at": "2026-08-29T01:06:58+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -603,6 +603,16 @@
       "approved_at": "2026-08-29T00:43:03+08:00",
       "reason": "The final AC-011/AC-022 audit proved the Web runtime omitted IAM dataScope and the Shell widened a missing scope to all, while two real concurrent Go test runs proved the Generator could fail through the Volta Node shim with Resource temporarily unavailable even though the isolated 339-second generation gate passed",
       "resolution": "Authorize only the twelve recorded product runtime, shared platform, Web/Desktop adapter, Shell regression, and Generator resolver files; require one explicit self-or-all identity contract with no compatibility default, resolve Volta to its installed Node runtime for deterministic concurrent generation, and leave UI/CSS, modular OpenAPI, schema, migrations, removed capabilities, protected release, and deferred E2E unchanged"
+    },
+    {
+      "id": "T21-D19",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T01:06:58+08:00",
+      "reason": "The final production-artifact audit proved Vite removed the native E2E JavaScript branch but retained its scoped native-e2e CSS in the Desktop production bundle, while the existing restore check searched only one visible button label and therefore could not prove that production assets contained no test controls",
+      "resolution": "Move native test controls into a dedicated native-e2e build entry selected only by an explicit Vite mode, keep the production App limited to ProductWorkspace composition, make every Desktop production build byte-scan all emitted assets for native control routes and markers, reuse that verifier during native artifact restoration, and leave product UI/CSS, runtime behavior, protected release, and deferred E2E unchanged"
     }
   ],
   "worktrees": [
