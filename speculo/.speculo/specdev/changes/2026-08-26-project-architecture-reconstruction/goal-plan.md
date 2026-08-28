@@ -437,6 +437,7 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - 全仓治理审计继续发现 Compose runtime/secrets 各保留一份嵌套 `.gitignore`，且原 governance check 只扫描前后端。`T21-D05` 在 T-18 implementation result 后串行接管这两个文件，以实现提交 `14670cf65e48a30e2462eff335c7987839342333`（tree `9b7967862b7c4737086decd39ef502109f898c67`）把规则迁至根、删除嵌套文件并扩展全仓扫描；后置 `2bab149ce72aa26cca85e1543581088d2c115570` 将 `.agents` 也纳入扫描。有效 RED 仅命中两文件，随后 governance/architecture/compatibility/docs/quality/syntax/diff 全绿，未运行 E2E。
 - AC-029 完成审计证明旧 `compatibility-zero` 只扫少量治理/文档目录，并遗漏 JWT、refresh token、AutoMigrate 与旧 ORM。`T21-D06` 以 `e93e74ec0779538a6a1dcc1b820054d5942cebc6`（tree `7db38de323b5dc1e4bc074cd7d77a6263d4f6bcd`）扩展到全仓文本源码/配置/锁文件，按精确文件与类别许可许可证、安全拒绝、负向测试和发行策略，跳过 Speculo 历史/产物/依赖/二进制；Go/Rust/Skill 失败探针与全部静态治理门禁通过，未运行 E2E。
 - 当前 `main@d38cf4c67db04d3ffe47e53090b43db9f1f79d11` 使用 CI 固定 Task `v3.48.0` 与 workspace 固定 pnpm `11.1.3` 完成最终非 E2E 复验：五项根治理/Task 合同、lint/全 typecheck、normal+SQLite 全量 Go、28 files/143 frontend tests、7 boundaries、Server/sidecar/Web/Desktop builds、OpenAPI 28/28/API 7/7/generate-check、release policy 16/16、Tauri 2 Rust 20/20/strict clippy/custom-protocol release check 全绿。两次错误 PATH/Corepack 版本尝试已明确作废且未放宽合同；按用户要求未运行 E2E，G8 继续暂停。
+- Lead 随后在 `main@abd57c6ae55f19deb4539edc4d3227148b33d5c4` 完成十个 G8-pending Ticket 的逐项完成审计并写入 G8 Evidence：T-10、T-12、T-13、T-15 至 T-21 的 implementation/result、非 E2E 测试、构建、合同、治理与源码卫生均已有完整证据；唯一剩余范围为统一 browser/fault/native/平台发行 E2E 及未授权的受保护签名/公证动作。T-17 Evidence 顶部的陈旧 stage-1 状态已同步为 implementation integrated；未运行 E2E，也未提前勾选 Ticket 验收框。
 
 ### Pending Decisions and Blockers
 
