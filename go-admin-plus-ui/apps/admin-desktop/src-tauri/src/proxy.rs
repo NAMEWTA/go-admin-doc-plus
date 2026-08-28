@@ -125,8 +125,24 @@ impl TransportProxy {
     }
 
     pub fn identity(&self) -> Result<IdentityResult, &'static str> {
-        let current = self.send("GET", "/iam/session/current", None, true)?;
+        #[cfg(feature = "native-e2e")]
+        let had_session = self
+            .vault
+            .lock()
+            .map_err(|_| "desktop vault unavailable")?
+            .read()?
+            .is_some();
+        let current = self.send("GET", "/api/iam/session/current", None, true)?;
         if current.response.status == 401 {
+            #[cfg(feature = "native-e2e")]
+            eprintln!(
+                "desktop native identity state: {}",
+                if had_session {
+                    "remote unauthenticated"
+                } else {
+                    "vault empty"
+                }
+            );
             if contains_secret_material(&current.response.body, &current.protected_values) {
                 return Err("desktop identity response invalid");
             }
@@ -167,7 +183,12 @@ impl TransportProxy {
         }
         let mut credentials =
             Some(serde_json::json!({"username": username.as_str(), "password": password.as_str()}));
-        let response = self.send("POST", "/iam/session/login", credentials.as_ref(), false);
+        let response = self.send(
+            "POST",
+            "/api/iam/session/login",
+            credentials.as_ref(),
+            false,
+        );
         if let Some(value) = credentials.as_mut() {
             scrub_json(value);
         }
@@ -186,18 +207,25 @@ impl TransportProxy {
     }
 
     pub fn logout(&self) -> Result<LogoutResult, &'static str> {
-        let response = self.send("POST", "/iam/session/logout", None, true)?;
+        let response = self.send("POST", "/api/iam/session/logout", None, true)?;
+        #[cfg(feature = "native-e2e")]
+        eprintln!("desktop native logout state: remote-complete");
         if !logout_status_allows_clear(response.response.status)
             || contains_secret_material(&response.response.body, &response.protected_values)
         {
             return Err("desktop logout request failed");
         }
-        finish_logout(response.response.status, || {
+        let result = finish_logout(response.response.status, || {
             self.vault
                 .lock()
                 .map_err(|_| "desktop vault unavailable")?
                 .clear()
-        })
+        });
+        #[cfg(feature = "native-e2e")]
+        if result.is_ok() {
+            eprintln!("desktop native logout state: vault-cleared");
+        }
+        result
     }
 
     pub fn business(&self, request: DesktopRequest) -> Result<DesktopResponse, &'static str> {
@@ -214,7 +242,8 @@ impl TransportProxy {
         {
             return Err("desktop request body rejected");
         }
-        let response = self.send(&request.method, &request.path, request.body.as_ref(), true);
+        let sidecar_path = format!("/api{}", request.path);
+        let response = self.send(&request.method, &sidecar_path, request.body.as_ref(), true);
         if let Some(body) = request.body.as_mut() {
             scrub_json(body);
         }
@@ -257,13 +286,26 @@ impl TransportProxy {
             .ok_or("desktop test control rejected")?;
         let body = serde_json::json!({"action": action});
         let response = self.send("POST", "/__desktop/test-control", Some(&body), false)?;
-        if response.response.status != 204
-            || response.response.body != Value::Null
-            || response.rotation.cookie.is_some()
-            || response.rotation.csrf.is_some()
-            || contains_secret_material(&response.response.body, &response.protected_values)
-        {
-            return Err("desktop test control failed");
+        if response.response.status != 204 {
+            return Err(match response.response.status {
+                403 => "desktop test control authorization failed",
+                500 => "desktop test control execution failed",
+                501 => "desktop test control scope sentinel failed",
+                502 => "desktop test control scope update failed",
+                503 => "desktop test control scope rows failed",
+                504 => "desktop test control request invalid",
+                505 => "desktop test control dependencies unavailable",
+                _ => "desktop test control status invalid",
+            });
+        }
+        if response.response.body != Value::Null {
+            return Err("desktop test control body invalid");
+        }
+        if response.rotation.cookie.is_some() || response.rotation.csrf.is_some() {
+            return Err("desktop test control rotation invalid");
+        }
+        if contains_secret_material(&response.response.body, &response.protected_values) {
+            return Err("desktop test control material invalid");
         }
         Ok(response.response)
     }
@@ -273,7 +315,7 @@ impl TransportProxy {
     }
 
     fn manifest(&self) -> Result<ManifestWire, &'static str> {
-        let response = self.send("GET", "/iam/administration/manifest", None, true)?;
+        let response = self.send("GET", "/api/iam/administration/manifest", None, true)?;
         if response.response.status != 200 {
             return Err("desktop navigation request failed");
         }
@@ -396,7 +438,9 @@ impl TransportProxy {
                         .header("Content-Type", content_type)
                         .send(bytes.as_slice()),
                     None => match value {
-                        Some(value) => builder.send_json(value),
+                        Some(value) => builder
+                            .header("Content-Type", "application/json")
+                            .send_json(value),
                         None => builder.send_empty(),
                     },
                 }
@@ -413,7 +457,9 @@ impl TransportProxy {
                 if let Some(values) = secrets.as_ref() {
                     builder = builder.header("X-CSRF-Token", &values.csrf);
                 }
-                builder.send_json(value)
+                builder
+                    .header("Content-Type", "application/json")
+                    .send_json(value)
             }
             ("PATCH", Some(value)) => {
                 let mut builder = self
@@ -427,7 +473,9 @@ impl TransportProxy {
                 if let Some(values) = secrets.as_ref() {
                     builder = builder.header("X-CSRF-Token", &values.csrf);
                 }
-                builder.send_json(value)
+                builder
+                    .header("Content-Type", "application/json")
+                    .send_json(value)
             }
             ("DELETE", None) => {
                 let mut builder = self
@@ -492,7 +540,18 @@ impl TransportProxy {
         } else if bytes.is_empty() {
             Ok(Value::Null)
         } else {
-            serde_json::from_slice(&bytes).map_err(|_| "desktop sidecar response invalid")
+            let decoded = serde_json::from_slice(&bytes);
+            #[cfg(feature = "native-e2e")]
+            if let Err(error) = &decoded {
+                eprintln!(
+                    "desktop native JSON response failed: status={status} bytes={} category={:?} line={} column={}",
+                    bytes.len(),
+                    error.classify(),
+                    error.line(),
+                    error.column()
+                );
+            }
+            decoded.map_err(|_| "desktop sidecar JSON response invalid")
         };
         bytes.zeroize();
         let body = parsed?;

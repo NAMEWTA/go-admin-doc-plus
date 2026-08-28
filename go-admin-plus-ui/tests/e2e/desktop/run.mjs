@@ -7,7 +7,7 @@ import { createConnection } from 'node:net'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { quoteAppleScript, windowContainsScript } from './accessibility.mjs'
+import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
@@ -39,7 +39,10 @@ const safeText = value => value
   .replaceAll(/(?:csrf|token|cookie|password)[^\s]*/gi, '[redacted]')
 const qualifyCommandFailure = (error, phase) => error instanceof Error && error.message.startsWith('desktop native command ')
   ? new Error(`desktop native ${phase} failed`)
+  : error instanceof Error && error.message.startsWith('desktop native accessibility ')
+    ? new Error(`desktop native ${phase} failed: ${error.message}`)
   : error
+const nativeDiagnostic = output => [...output.matchAll(/^(?:desktop native (?:startup|login|logout|request|identity) failed: [A-Za-z ]{1,96}|desktop native identity state: (?:vault empty|remote unauthenticated|unauthenticated)|desktop native logout state: (?:started|remote-complete|vault-cleared|command-complete))$/gm)].at(-1)?.[0]
 
 const keyringExists = (service, account) => new Promise((resolveKeyring, rejectKeyring) => {
   const child = spawn('/usr/bin/security', ['find-generic-password', '-s', service, '-a', account], { stdio: 'ignore' })
@@ -140,7 +143,48 @@ const assertSafeDiagnostics = (output, protectedRoots) => {
   }
 }
 
-const runAppleScript = script => execute('/usr/bin/osascript', ['-'], { input: script, timeout: 10_000 })
+const runAppleScript = script => new Promise((resolveScript, rejectScript) => {
+  const child = spawn('/usr/bin/osascript', ['-'], { stdio: ['pipe', 'pipe', 'pipe'] })
+  const stdout = []
+  const stderr = []
+  let size = 0
+  let settled = false
+  const finish = (error, output = '') => {
+    if (settled) return
+    settled = true
+    clearTimeout(timer)
+    if (error) rejectScript(error)
+    else resolveScript(output)
+  }
+  const collect = target => chunk => {
+    size += chunk.length
+    if (size > 4096) {
+      child.kill('SIGKILL')
+      finish(new Error('desktop native accessibility output exceeded the limit'))
+      return
+    }
+    target.push(chunk)
+  }
+  const timer = setTimeout(() => {
+    child.kill('SIGKILL')
+    finish(new Error('desktop native accessibility command timed out'))
+  }, 20_000)
+  child.stdout.on('data', collect(stdout))
+  child.stderr.on('data', collect(stderr))
+  child.once('error', () => finish(new Error('desktop native accessibility command unavailable')))
+  child.once('close', (code, signal) => {
+    if (settled) return
+    if (code === 0 && signal === null) {
+      finish(undefined, Buffer.concat(stdout).toString('utf8'))
+      return
+    }
+    const failure = Buffer.concat(stderr).toString('utf8')
+    const controlled = failure.match(/native (?:process|button|field|submit button) unavailable:?[ A-Za-z0-9-]*/)?.[0]?.trim()
+    const codeMatch = failure.match(/\(-?\d+\)/)?.[0]
+    finish(new Error(controlled ?? `desktop native accessibility command failed${codeMatch ? ` ${codeMatch}` : ''}`))
+  })
+  child.stdin.end(script)
+})
 const processIsAlive = pid => {
   try {
     process.kill(pid, 0)
@@ -168,6 +212,7 @@ end tell`)
 }
 
 const windowContains = async (pid, value) => {
+  if (!processIsAlive(pid)) throw new Error('native host exited before UI observation')
   const output = await runAppleScript(windowContainsScript(pid, value))
   return output.trim() === 'true'
 }
@@ -179,6 +224,39 @@ const poll = async (description, condition, timeout = 30_000) => {
     await delay(100)
   }
   throw new Error(`${description} timed out`)
+}
+
+const pollBoundary = async (pid, timeout = 30_000) => {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    if (await windowContains(pid, 'E2E authenticated boundary verified')) return
+    const blocked = (await runAppleScript(windowValueScript(pid, 'E2E boundary blocked:'))).trim()
+    if (blocked) throw new Error(blocked)
+    await delay(100)
+  }
+  throw new Error('authenticated WebView storage and URL boundary timed out')
+}
+
+const pollControl = async (pid, description, success, timeout = 30_000) => {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    if (await windowContains(pid, success)) return
+    const failed = (await runAppleScript(windowValueScript(pid, 'E2E control failed:'))).trim()
+    if (failed) throw new Error(failed)
+    await delay(100)
+  }
+  throw new Error(`${description} timed out`)
+}
+
+const pollRestoredIdentity = async (pid, timeout = 90_000) => {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    if (await windowContains(pid, 'Administrator')) return
+    if (await windowContains(pid, 'Sign in')) throw new Error('Stronghold session was not restored')
+    if (await windowContains(pid, '服务暂不可用')) throw new Error('Stronghold identity restore was unavailable')
+    await delay(100)
+  }
+  throw new Error('Stronghold authenticated workspace timed out')
 }
 
 const startApp = (binary, isolatedRoot, keyringAccount) => {
@@ -221,59 +299,30 @@ const stopApp = async owner => {
   if (owner.child.exitCode === null && owner.child.signalCode === null && !result.spawnError) throw new Error('native host cleanup was not observed')
 }
 
-const login = (pid, username, password) => runAppleScript(`tell application "System Events"
-tell (first process whose unix id is ${pid})
-  tell window 1
-    set value of text field 1 to ${quoteAppleScript(username)}
-    set value of text field 2 to ${quoteAppleScript(password)}
-    click button "登录"
-  end tell
-end tell
-end tell`)
+const login = (pid, username, password) => runAppleScript(fillAndClickScript(pid, [
+  { name: 'Username', value: username },
+  { name: 'Password', value: password }
+], 'Sign in'))
 
-const createProduct = pid => runAppleScript(`tell application "System Events"
-tell (first process whose unix id is ${pid})
-  tell window 1
-    set value of text field 2 to "E2E-001"
-    set value of text field 3 to "Native product"
-    set value of text area 1 to "created through the native window"
-    set value of text field 4 to "1250"
-    click button "Save"
-  end tell
-end tell
-end tell`)
+const createProduct = pid => runAppleScript(fillAndClickScript(pid, [
+  { name: 'SKU', value: 'E2E-001' },
+  { name: 'Name', value: 'Native product' },
+  { name: 'Description', role: 'AXTextArea', value: 'created through the native window' },
+  { name: 'Price', value: '1250' }
+], 'Save'))
 
-const updateProduct = pid => runAppleScript(`tell application "System Events"
-tell (first process whose unix id is ${pid})
-  tell window 1
-    click first button whose name is "Edit"
-    set value of text field 3 to "Native product updated"
-    click button "Save"
-  end tell
-end tell
-end tell`)
+const updateProduct = async pid => {
+  await runAppleScript(clickButtonScript(pid, 'Edit'))
+  await runAppleScript(fillAndClickScript(pid, [
+    { name: 'Name', value: 'Native product updated' }
+  ], 'Save'))
+}
 
-const deleteProduct = pid => runAppleScript(`tell application "System Events"
-tell (first process whose unix id is ${pid})
-  tell window 1 to click first button whose name is "Delete"
-  repeat 100 times
-    if (count of sheets of window 1) > 0 then
-      tell sheet 1 of window 1 to click button "OK"
-      return
-    end if
-    delay 0.05
-  end repeat
-  error "native delete confirmation unavailable"
-end tell
-end tell`)
+const deleteProduct = pid => clickButton(pid, 'Delete E2E-001')
 
-const logout = pid => runAppleScript(`tell application "System Events"
-tell (first process whose unix id is ${pid}) to tell window 1 to click button "退出"
-end tell`)
+const logout = pid => runAppleScript(clickButtonScript(pid, 'Sign out'))
 
-const clickButton = (pid, name) => runAppleScript(`tell application "System Events"
-tell (first process whose unix id is ${pid}) to tell window 1 to click first button whose name is ${quoteAppleScript(name)}
-end tell`)
+const clickButton = (pid, name) => runAppleScript(clickButtonScript(pid, name))
 
 const main = async () => {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'go-admin-desktop-native-')))
@@ -346,27 +395,38 @@ const main = async () => {
     await execute('go', ['run', './test/desktop/fixture', '--root', liveRoot, '--mode', 'previous'], { cwd: goRoot })
     phase = 'login-window'
     app = startTracked(binary, liveRoot, liveKeyring)
-    await poll('native login window', () => windowContains(app.child.pid, '登录'), 90_000)
-    phase = 'login'
+    await poll('native login window', () => windowContains(app.child.pid, 'Sign in'), 90_000)
+    phase = 'login-submit'
     await login(app.child.pid, 'admin', fixturePassword)
+    phase = 'login-workspace'
+    await poll('native authenticated workspace', () => windowContains(app.child.pid, 'Administrator'))
+    phase = 'login-navigation'
+    await poll('native Demo navigation', () => windowContains(app.child.pid, 'Demo products'))
+    await clickButton(app.child.pid, 'Demo products')
+    phase = 'login-demo'
     await poll('native Demo page', () => windowContains(app.child.pid, 'Products'))
-    await poll('authenticated WebView storage and URL boundary', () => windowContains(app.child.pid, 'E2E authenticated boundary verified'))
+    phase = 'login-boundary'
+    await pollBoundary(app.child.pid)
     phase = 'scope-authorization'
     await clickButton(app.child.pid, 'E2E scope self')
-    await poll('self scope request denied', () => windowContains(app.child.pid, 'E2E authorization denied'))
-    await poll('self scope capability hidden', () => windowContains(app.child.pid, '无权访问'))
+    await pollControl(app.child.pid, 'self scope ownership enforced', 'E2E self scope enforced')
+    await poll('self scope capability retained', () => windowContains(app.child.pid, 'Products'))
     await clickButton(app.child.pid, 'E2E scope all')
+    await pollControl(app.child.pid, 'all scope visibility restored', 'E2E all scope restored')
     await poll('all scope capability restored', () => windowContains(app.child.pid, 'Products'))
     phase = 'permission-authorization'
     await clickButton(app.child.pid, 'E2E permissions off')
-    await poll('revoked permission request denied', () => windowContains(app.child.pid, 'E2E authorization denied'))
+    await pollControl(app.child.pid, 'revoked permission request denied', 'E2E authorization denied')
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
     await clickButton(app.child.pid, 'E2E permissions on')
     await poll('permission capability restored', () => windowContains(app.child.pid, 'Products'))
     phase = 'session-revocation'
     await clickButton(app.child.pid, 'E2E revoke session')
-    await poll('session revoke requires login', () => windowContains(app.child.pid, '登录'))
+    await poll('session revoke requires login', () => windowContains(app.child.pid, 'Sign in'))
     await login(app.child.pid, 'admin', fixturePassword)
+    await poll('native authenticated workspace after relogin', () => windowContains(app.child.pid, 'Administrator'))
+    await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, 'Demo products'))
+    await clickButton(app.child.pid, 'Demo products')
     await poll('native Demo page after relogin', () => windowContains(app.child.pid, 'Products'))
     phase = 'single-instance'
     const firstSidecar = await newSidecarPid(sidecarBaseline)
@@ -385,6 +445,8 @@ const main = async () => {
     if (!(await windowContains(app.child.pid, 'Products'))) throw new Error('first native instance stopped serving after duplicate launch')
     if (await newSidecarPid(sidecarBaseline) !== firstSidecar) throw new Error('second native instance spawned another sidecar')
     phase = 'product-create'
+    await poll('native product form', () => windowContains(app.child.pid, 'Create product'))
+    await poll('native product save control', () => windowContains(app.child.pid, 'Save'))
     await createProduct(app.child.pid)
     await poll('native product create', () => windowContains(app.child.pid, 'E2E-001'))
     phase = 'product-update'
@@ -393,27 +455,33 @@ const main = async () => {
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
     await assertNoNewSidecars(sidecarBaseline)
-
-    phase = 'stronghold-restart'
-    app = startTracked(binary, liveRoot, liveKeyring)
-    await poll('Stronghold session restart', () => windowContains(app.child.pid, 'Products'))
-    await poll('restarted authenticated WebView boundary', () => windowContains(app.child.pid, 'E2E authenticated boundary verified'))
-    await poll('SQLite product restart', () => windowContains(app.child.pid, 'Native product updated'))
     phase = 'persistence-verification'
     await execute('go', [
       'run', './test/desktop/fixture', '--root', liveRoot, '--mode', 'verify', '--expected-product', 'Native product updated'
     ], { cwd: goRoot })
+
+    phase = 'stronghold-restart'
+    app = startTracked(binary, liveRoot, liveKeyring)
+    await pollRestoredIdentity(app.child.pid)
+    await poll('Stronghold Demo navigation', () => windowContains(app.child.pid, 'Demo products'))
+    await clickButton(app.child.pid, 'Demo products')
+    await poll('Stronghold session restart', () => windowContains(app.child.pid, 'Products'))
+    await pollBoundary(app.child.pid)
+    await poll('SQLite product restart', () => windowContains(app.child.pid, 'Native product updated'))
     phase = 'product-delete'
     await deleteProduct(app.child.pid)
     await poll('native product delete', async () => !(await windowContains(app.child.pid, 'E2E-001')))
+    phase = 'logout-navigation'
+    await clickButton(app.child.pid, 'Administrator')
+    await poll('native account page', () => windowContains(app.child.pid, 'Sign out'))
     phase = 'logout'
     await logout(app.child.pid)
-    await poll('native logout', () => windowContains(app.child.pid, '登录'))
+    await poll('native logout', () => windowContains(app.child.pid, 'Sign in'), 90_000)
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
     phase = 'logout-restart'
     app = startTracked(binary, liveRoot, liveKeyring)
-    await poll('logout persistence after restart', () => windowContains(app.child.pid, '登录'), 90_000)
+    await poll('logout persistence after restart', () => windowContains(app.child.pid, 'Sign in'), 90_000)
     if (await windowContains(app.child.pid, 'Products')) throw new Error('logout left a restartable desktop session')
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
@@ -423,7 +491,10 @@ const main = async () => {
       throw new Error('native E2E created a production credential')
     }
   } catch (error) {
-    failure = qualifyCommandFailure(error, phase)
+    const diagnostic = app && nativeDiagnostic(app.output())
+    failure = diagnostic
+      ? new Error(diagnostic)
+      : qualifyCommandFailure(error, phase)
   } finally {
     const cleanups = [
       async () => {

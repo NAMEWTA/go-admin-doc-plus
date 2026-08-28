@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { basename } from 'node:path'
 
 const maxOutput = 16 * 1024
-const sidecarExecutable = /^go-admin-sidecar-(?:aarch64-apple-darwin|x86_64-apple-darwin|x86_64-pc-windows-msvc\.exe)$/
+const sidecarExecutable = /^go-admin-sidecar(?:\.exe|-(?:aarch64-apple-darwin|x86_64-apple-darwin|x86_64-pc-windows-msvc\.exe))?$/
 
 export const execute = (command, args, {
   allowedExitCodes = [0], cwd, env = process.env, input, timeout = 120_000

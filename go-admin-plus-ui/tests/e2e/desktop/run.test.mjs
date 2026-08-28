@@ -1,19 +1,73 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { quoteAppleScript, windowContainsScript } from './accessibility.mjs'
+import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
-test('accessibility query bulk-loads and safely walks nested names', () => {
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
+
+test('native runner Go fixture dependencies exist in the current backend', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  const fixtures = [...runner.matchAll(/'go', \['run', '([^']+)'/g)].map(match => match[1])
+  assert.deepEqual([...new Set(fixtures)], ['./test/desktop/fixture'])
+  assert.ok(existsSync(join(repositoryRoot, 'go-admin-plus', 'test/desktop/fixture/main.go')))
+})
+
+test('native runner accessibility labels match the current Session UI', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  const login = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue'), 'utf8')
+  const account = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue'), 'utf8')
+  assert.match(login, />Sign in<\/button>/)
+  assert.match(account, />Sign out<\/button>/)
+  assert.match(runner, /\], 'Sign in'\)\)/)
+  assert.match(runner, /clickButton\(app\.child\.pid, 'Administrator'\)[\s\S]*windowContains\(app\.child\.pid, 'Sign out'\)/)
+  assert.match(runner, /clickButtonScript\(pid, 'Sign out'\)/)
+  assert.match(runner, /poll\('native logout', \(\) => windowContains\(app\.child\.pid, 'Sign in'\), 90_000\)/)
+  assert.doesNotMatch(runner, /登录|退出/)
+})
+
+test('native runner stops polling after an early host exit', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  assert.match(runner, /const windowContains = async \(pid, value\) => \{\n  if \(!processIsAlive\(pid\)\) throw new Error\('native host exited before UI observation'\)/)
+  assert.match(runner, /desktop native identity state/)
+})
+
+test('native runner verifies SQLite only while the sidecar is stopped', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  const stopped = runner.indexOf('await assertNoNewSidecars(sidecarBaseline)', runner.indexOf("phase = 'product-update'"))
+  const verified = runner.indexOf("phase = 'persistence-verification'", stopped)
+  const restarted = runner.indexOf("phase = 'stronghold-restart'", verified)
+  assert.ok(stopped > 0 && stopped < verified && verified < restarted)
+})
+
+test('native delete uses the uniquely named product action and a test-only confirmation port', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  const app = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/App.vue'), 'utf8')
+  const page = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/demo/src/DemoProductsPage.vue'), 'utf8')
+  assert.match(runner, /clickButton\(pid, 'Delete E2E-001'\)/)
+  assert.match(app, /if \(!nativeE2E\) return\n  nativeConfirm = window\.confirm\n  window\.confirm = \(\) => true/)
+  assert.match(page, /:aria-label="`Delete \$\{product\.sku\}`"/)
+  assert.doesNotMatch(runner, /first button whose name is "Delete"/)
+  assert.doesNotMatch(runner, /tell sheet 1 of window 1 to click button "OK"/)
+  assert.match(runner, /desktop native \$\{phase\} failed: \$\{error\.message\}/)
+})
+
+test('accessibility query walks the native flattened element collection', () => {
   assert.equal(quoteAppleScript('a\\"b'), '"a\\\\\\"b"')
   const script = windowContainsScript(42, 'Products')
-  assert.match(script, /on collectionContains\(itemsToScan, expectedValue\)/)
-  assert.match(script, /if class of rawItem is list/)
-  assert.match(script, /rawItem is not missing value/)
-  assert.match(script, /set elementNames to name of every UI element of entire contents of window 1/)
-  assert.match(script, /my collectionContains\(elementNames, expectedValue\)/)
-  assert.doesNotMatch(script, /name of every UI element.*as text/)
+  assert.match(script, /set elementsToScan to entire contents of window 1/)
+  assert.match(script, /repeat with currentElement in elementsToScan/)
+  assert.match(script, /if \(name of currentElement as text\) contains expectedValue/)
+  assert.doesNotMatch(script, /every UI element of entire contents/)
+  assert.match(clickButtonScript(42, 'Save'), /role of currentElement is "AXButton" and name of currentElement is "Save"/)
+  const form = fillAndClickScript(42, [{ name: 'Name', value: 'Native product' }], 'Save')
+  assert.match(form, /name of currentElement is "Name"/)
+  assert.match(form, /keystroke "Native product"/)
+  assert.match(form, /name of currentElement is "Save"/)
+  assert.match(windowValueScript(42, 'E2E boundary blocked:'), /observedName starts with "E2E boundary blocked:"/)
 })
 
 test('native runner is a default skip with no environment prerequisites', () => {
@@ -45,6 +99,8 @@ test('process parser accepts only an exact approved sidecar executable', () => {
     '101 /tmp/go-admin-sidecar-aarch64-apple-darwin --desktop',
     '102 /tmp/go-admin-sidecar-x86_64-apple-darwin',
     '103 /tmp/go-admin-sidecar-x86_64-pc-windows-msvc.exe',
+    '109 /tmp/go-admin-sidecar',
+    '110 /tmp/go-admin-sidecar.exe',
     '104 node test.mjs go-admin-sidecar-aarch64-apple-darwin',
     '105 /bin/sh -c /tmp/go-admin-sidecar-aarch64-apple-darwin',
     '106 /tmp/go-admin-sidecar-aarch64-apple-darwin-copy',
@@ -52,7 +108,7 @@ test('process parser accepts only an exact approved sidecar executable', () => {
     '108 /tmp/go-admin-sidecar-x86_64-pc-windows-msvc',
     'not-a-pid /tmp/go-admin-sidecar-aarch64-apple-darwin'
   ].join('\n'))
-  assert.deepEqual([...processes], [101, 102, 103])
+  assert.deepEqual([...processes], [101, 102, 103, 109, 110])
 })
 
 test('bounded command failures wait for killed process pipes to close', async () => {

@@ -33,9 +33,10 @@ use tauri_plugin_shell::{
 use zeroize::Zeroizing;
 
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(30);
+const HOST_READY_TIMEOUT: Duration = Duration::from_secs(120);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_DIAGNOSTIC_BYTES: usize = 4096;
-#[cfg(any(debug_assertions, test))]
+#[cfg(any(debug_assertions, test, feature = "native-e2e"))]
 const DEVELOPMENT_ENVIRONMENT_ALLOWLIST: &[&str] = &[
     "PATH",
     "GOROOT",
@@ -60,6 +61,8 @@ struct HostState {
     child: Mutex<Option<CommandChild>>,
     child_exited: Arc<AtomicBool>,
     shutting_down: Arc<AtomicBool>,
+    runtime_terminal: AtomicBool,
+    runtime_changed: tokio::sync::Notify,
     requested_exit_code: AtomicI32,
     requests: Arc<tokio::sync::Semaphore>,
 }
@@ -71,6 +74,8 @@ impl HostState {
             child: Mutex::new(None),
             child_exited: Arc::new(AtomicBool::new(true)),
             shutting_down: Arc::new(AtomicBool::new(false)),
+            runtime_terminal: AtomicBool::new(false),
+            runtime_changed: tokio::sync::Notify::new(),
             requested_exit_code: AtomicI32::new(0),
             requests: Arc::new(tokio::sync::Semaphore::new(1)),
         }
@@ -84,6 +89,25 @@ impl HostState {
             .ok_or("desktop runtime unavailable")
     }
 
+    async fn wait_for_proxy(&self) -> Result<Arc<TransportProxy>, &'static str> {
+        let deadline = tokio::time::Instant::now() + HOST_READY_TIMEOUT;
+        loop {
+            let changed = self.runtime_changed.notified();
+            if let Ok(proxy) = self.proxy() {
+                return Ok(proxy);
+            }
+            if self.runtime_terminal.load(Ordering::Acquire) {
+                return Err("desktop runtime unavailable");
+            }
+            let now = tokio::time::Instant::now();
+            if now >= deadline {
+                return Err("desktop runtime startup timed out");
+            }
+            let recheck = std::cmp::min(deadline, now + Duration::from_millis(50));
+            let _ = tokio::time::timeout_at(recheck, changed).await;
+        }
+    }
+
     fn child_spawned(&self) {
         self.child_exited.store(false, Ordering::Release);
     }
@@ -93,12 +117,16 @@ impl HostState {
     }
 
     fn fail_and_exit(&self, app: &tauri::AppHandle) {
+        self.runtime_terminal.store(true, Ordering::Release);
+        self.runtime_changed.notify_waiters();
         self.requested_exit_code.store(1, Ordering::Release);
         app.exit(1);
     }
 
     fn shutdown(&self) {
         self.shutting_down.store(true, Ordering::Release);
+        self.runtime_terminal.store(true, Ordering::Release);
+        self.runtime_changed.notify_waiters();
         if let Ok(proxy) = self.proxy() {
             proxy.shutdown();
         }
@@ -130,45 +158,59 @@ async fn desktop_request(
     state: State<'_, Arc<HostState>>,
     request: DesktopRequest,
 ) -> Result<DesktopResponse, &'static str> {
-    let proxy = state.proxy()?;
+    let proxy = state.wait_for_proxy().await?;
     let permit = state
         .requests
         .clone()
         .acquire_owned()
         .await
         .map_err(|_| "desktop runtime unavailable")?;
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.business(request)
     })
     .await
-    .map_err(|_| "desktop request failed")?
+    .map_err(|_| "desktop request failed")?;
+    #[cfg(feature = "native-e2e")]
+    if let Err(error) = &result {
+        eprintln!("desktop native request failed: {error}");
+    }
+    result
 }
 
 #[tauri::command]
 async fn desktop_identity(
     state: State<'_, Arc<HostState>>,
 ) -> Result<IdentityResult, &'static str> {
-    let proxy = state.proxy()?;
+    let proxy = state.wait_for_proxy().await?;
     let permit = state
         .requests
         .clone()
         .acquire_owned()
         .await
         .map_err(|_| "desktop runtime unavailable")?;
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.identity()
     })
     .await
-    .map_err(|_| "desktop identity failed")?
+    .map_err(|_| "desktop identity failed")?;
+    #[cfg(feature = "native-e2e")]
+    if let Err(error) = &result {
+        eprintln!("desktop native identity failed: {error}");
+    }
+    #[cfg(feature = "native-e2e")]
+    if matches!(&result, Ok(IdentityResult::Unauthenticated)) {
+        eprintln!("desktop native identity state: unauthenticated");
+    }
+    result
 }
 
 #[tauri::command]
 async fn desktop_navigation(
     state: State<'_, Arc<HostState>>,
 ) -> Result<Vec<PublicMenu>, &'static str> {
-    let proxy = state.proxy()?;
+    let proxy = state.wait_for_proxy().await?;
     let permit = state
         .requests
         .clone()
@@ -189,7 +231,7 @@ async fn desktop_login(
     username: String,
     password: String,
 ) -> Result<PublicProfile, &'static str> {
-    let proxy = state.proxy()?;
+    let proxy = state.wait_for_proxy().await?;
     let permit = state
         .requests
         .clone()
@@ -198,29 +240,45 @@ async fn desktop_login(
         .map_err(|_| "desktop runtime unavailable")?;
     let username = Zeroizing::new(username);
     let password = Zeroizing::new(password);
-    tauri::async_runtime::spawn_blocking(move || {
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.login(username, password)
     })
     .await
-    .map_err(|_| "desktop login failed")?
+    .map_err(|_| "desktop login failed")?;
+    #[cfg(feature = "native-e2e")]
+    if let Err(error) = &result {
+        eprintln!("desktop native login failed: {error}");
+    }
+    result
 }
 
 #[tauri::command]
 async fn desktop_logout(state: State<'_, Arc<HostState>>) -> Result<LogoutResult, &'static str> {
-    let proxy = state.proxy()?;
+    let proxy = state.wait_for_proxy().await?;
     let permit = state
         .requests
         .clone()
         .acquire_owned()
         .await
         .map_err(|_| "desktop runtime unavailable")?;
-    tauri::async_runtime::spawn_blocking(move || {
+    #[cfg(feature = "native-e2e")]
+    eprintln!("desktop native logout state: started");
+    let result = tauri::async_runtime::spawn_blocking(move || {
         let _permit = permit;
         proxy.logout()
     })
     .await
-    .map_err(|_| "desktop logout failed")?
+    .map_err(|_| "desktop logout failed")?;
+    #[cfg(feature = "native-e2e")]
+    if let Err(error) = &result {
+        eprintln!("desktop native logout failed: {error}");
+    }
+    #[cfg(feature = "native-e2e")]
+    if result.is_ok() {
+        eprintln!("desktop native logout state: command-complete");
+    }
+    result
 }
 
 #[derive(Serialize)]
@@ -315,6 +373,7 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
         .proxy
         .write()
         .map_err(|_| "desktop runtime unavailable")? = Some(proxy);
+    state.runtime_changed.notify_waiters();
     *state
         .child
         .lock()
@@ -373,7 +432,7 @@ async fn start_runtime(app: tauri::AppHandle, state: Arc<HostState>) -> Result<(
     Ok(())
 }
 
-#[cfg(debug_assertions)]
+#[cfg(any(debug_assertions, feature = "native-e2e"))]
 fn sidecar_environment(_app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'static str> {
     let repository = discover_development_repository(
         env::current_dir().map_err(|_| "desktop generator repository unavailable")?,
@@ -384,7 +443,7 @@ fn sidecar_environment(_app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'
     })
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(all(not(debug_assertions), not(feature = "native-e2e")))]
 fn sidecar_environment(app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'static str> {
     let resources = app
         .path()
@@ -393,7 +452,7 @@ fn sidecar_environment(app: &tauri::AppHandle) -> Result<SidecarEnvironment, &'s
     release_sidecar_environment(&resources, env::consts::OS, env::consts::ARCH)
 }
 
-#[cfg(any(debug_assertions, test))]
+#[cfg(any(debug_assertions, test, feature = "native-e2e"))]
 fn allowlisted_development_environment(
     source: impl IntoIterator<Item = (OsString, OsString)>,
 ) -> Vec<(OsString, OsString)> {
@@ -407,7 +466,7 @@ fn allowlisted_development_environment(
         .collect()
 }
 
-#[cfg(any(debug_assertions, test))]
+#[cfg(any(debug_assertions, test, feature = "native-e2e"))]
 fn discover_development_repository(start: PathBuf) -> Result<PathBuf, &'static str> {
     let start = fs::canonicalize(start).map_err(|_| "desktop generator repository unavailable")?;
     for candidate in start.ancestors() {
@@ -418,7 +477,7 @@ fn discover_development_repository(start: PathBuf) -> Result<PathBuf, &'static s
     Err("desktop generator repository unavailable")
 }
 
-#[cfg(any(not(debug_assertions), test))]
+#[cfg(any(all(not(debug_assertions), not(feature = "native-e2e")), test))]
 fn release_sidecar_environment(
     resources: &Path,
     operating_system: &str,
@@ -485,7 +544,7 @@ fn release_sidecar_environment(
     })
 }
 
-#[cfg(any(not(debug_assertions), test))]
+#[cfg(any(all(not(debug_assertions), not(feature = "native-e2e")), test))]
 fn canonical_release_directory(path: &Path) -> Result<PathBuf, &'static str> {
     let metadata =
         fs::symlink_metadata(path).map_err(|_| "desktop generator resources unavailable")?;
@@ -500,8 +559,10 @@ fn canonical_release_directory(path: &Path) -> Result<PathBuf, &'static str> {
 }
 
 fn generator_repository_is_complete(root: &Path) -> bool {
-    root.join(".git").is_dir()
-        && root.join("scripts/contracts/cli.mjs").is_file()
+    let repository_marker = fs::symlink_metadata(root.join(".git")).ok();
+    repository_marker.is_some_and(|metadata| {
+        !metadata.file_type().is_symlink() && (metadata.is_dir() || metadata.is_file())
+    }) && root.join("scripts/contracts/cli.mjs").is_file()
         && root.join("go-admin-plus/go.mod").is_file()
         && root.join("go-admin-plus-ui/pnpm-workspace.yaml").is_file()
 }
@@ -758,10 +819,9 @@ fn main() {
             move |app| {
                 let handle = app.handle().clone();
                 tauri::async_runtime::spawn(async move {
-                    if start_runtime(handle.clone(), Arc::clone(&state))
-                        .await
-                        .is_err()
-                    {
+                    if let Err(_error) = start_runtime(handle.clone(), Arc::clone(&state)).await {
+                        #[cfg(feature = "native-e2e")]
+                        eprintln!("desktop native startup failed: {_error}");
                         state.fail_and_exit(&handle);
                     }
                 });
@@ -844,6 +904,33 @@ mod tests {
             environment,
             vec![(OsString::from("PATH"), OsString::from("/tools"))]
         );
+    }
+
+    #[test]
+    fn development_repository_accepts_a_regular_git_worktree_marker() {
+        let temporary = fs::canonicalize(std::env::temp_dir())
+            .unwrap()
+            .join(format!(
+                "go-admin-desktop-worktree-repository-{}",
+                random_secret().unwrap()
+            ));
+        for directory in [
+            temporary.join("scripts/contracts"),
+            temporary.join("go-admin-plus"),
+            temporary.join("go-admin-plus-ui"),
+        ] {
+            fs::create_dir_all(directory).unwrap();
+        }
+        for file in [
+            temporary.join(".git"),
+            temporary.join("scripts/contracts/cli.mjs"),
+            temporary.join("go-admin-plus/go.mod"),
+            temporary.join("go-admin-plus-ui/pnpm-workspace.yaml"),
+        ] {
+            fs::write(file, []).unwrap();
+        }
+        assert!(generator_repository_is_complete(&temporary));
+        fs::remove_dir_all(temporary).unwrap();
     }
 
     #[test]

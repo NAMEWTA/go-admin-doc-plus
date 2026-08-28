@@ -65,7 +65,7 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
           <tbody><tr v-for="product in snapshot.rows" :key="product.id">
             <td><input v-if="canDelete" type="checkbox" :checked="snapshot.selectedKeys.includes(product.id)" :aria-label="`Select ${product.sku}`" @change="toggle(product, ($event.target as HTMLInputElement).checked)"></td>
             <td>{{ product.sku }}</td><td>{{ product.name }}</td><td>{{ product.priceCents }}</td><td>{{ product.status }}</td>
-            <td><button v-if="canWrite" type="button" :disabled="blocked" @click="edit(product)">Edit</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove([product])">Delete</button></td>
+            <td><button v-if="canWrite" type="button" :disabled="blocked" @click="edit(product)">Edit</button><button v-if="canDelete" type="button" :aria-label="`Delete ${product.sku}`" :disabled="blocked" @click="remove([product])">Delete</button></td>
           </tr></tbody>
         </table>
         <nav aria-label="Pagination"><button type="button" :disabled="blocked || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">Previous</button><span>Page {{ snapshot.page }}</span><label>Rows <select :value="snapshot.pageSize" :disabled="blocked" @change="settle(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label><button type="button" :disabled="blocked || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.list.setPage(snapshot.page + 1))">Next</button></nav>
