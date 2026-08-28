@@ -52,8 +52,11 @@ try {
 
     $target = Join-Path $repository "go-admin-plus-ui/apps/admin-desktop/src-tauri/target/$($identity.targetTriple)/release"
     $application = Join-Path $target 'go-admin-plus-desktop.exe'
+    $sidecar = Join-Path $repository 'go-admin-plus-ui/apps/admin-desktop/src-tauri/binaries/go-admin-sidecar-x86_64-pc-windows-msvc.exe'
     $installer = Get-ChildItem -LiteralPath (Join-Path $target 'bundle/nsis') -Filter '*-setup.exe' -File
-    if (-not (Test-Path -LiteralPath $application) -or $installer.Count -ne 1) { throw 'Expected Tauri outputs are incomplete.' }
+    if (-not (Test-Path -LiteralPath $application) -or -not (Test-Path -LiteralPath $sidecar) -or $installer.Count -ne 1) { throw 'Expected Tauri outputs are incomplete.' }
+    node (Join-Path $repository 'go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs') --files $application $sidecar
+    if ($LASTEXITCODE -ne 0) { throw 'Production Desktop artifacts retained native test controls.' }
     New-Item -ItemType Directory -Path $OutputDirectory | Out-Null
     $canonicalInstaller = Join-Path $OutputDirectory "$($identity.artifactBasename)-$Version-windows-x64-setup.exe"
     Copy-Item -LiteralPath $application -Destination (Join-Path $OutputDirectory 'go-admin-plus-desktop.exe')

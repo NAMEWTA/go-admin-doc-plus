@@ -91,6 +91,8 @@ export async function verifyRepository(repository) {
   assert.match(verifier, /lipo -archs/)
   assert.match(verifier, /binding-darwin-arm64/)
   assert.match(verifier, /binding-darwin-x64/)
+  assert.match(verifier, /verify-production\.mjs/)
+  assert.match(verifier, /--files "\$host" "\$sidecar"/)
   assert.match(verifier, /codesign --verify --deep --strict/)
   assert.match(installer, /GITHUB_ACTIONS/)
   assert.match(installer, /security find-generic-password/)

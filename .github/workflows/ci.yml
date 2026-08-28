@@ -145,3 +145,4 @@ jobs:
           cargo clippy --manifest-path go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.toml --locked --all-targets -- -D warnings
           pnpm --dir go-admin-plus-ui --filter @go-admin-plus/admin-desktop tauri build \
             --features custom-protocol --no-bundle
+          node go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs

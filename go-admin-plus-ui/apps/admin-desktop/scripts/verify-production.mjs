@@ -8,10 +8,24 @@ export const desktopNativeControlMarkers = Object.freeze([
   '/__desktop/test-control',
   'native-e2e',
   'VITE_GO_ADMIN_NATIVE_E2E',
-  'GO_ADMIN_DESKTOP_E2E',
+  'GO_ADMIN_DESKTOP_NATIVE_E2E',
+  'GO_ADMIN_DESKTOP_E2E_',
   'desktop_native_e2e',
-  'E2E ',
-  'E2E-'
+  'E2E authenticated boundary verified',
+  'E2E unauthenticated boundary verified',
+  'E2E boundary blocked:',
+  'E2E self scope enforced',
+  'E2E all scope restored',
+  'E2E authorization denied',
+  'E2E control failed:',
+  'E2E scope self',
+  'E2E scope all',
+  'E2E permissions off',
+  'E2E permissions on',
+  'E2E revoke session',
+  'E2E-FOREIGN',
+  'E2E-001',
+  'native E2E credential identity'
 ])
 
 const filesBelow = async directory => {
@@ -54,7 +68,10 @@ const invoked = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href 
 if (invoked) {
   const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
   try {
-    await verifyDesktopProductionAssets(resolve(appRoot, 'dist'))
+    const args = process.argv.slice(2)
+    if (args.length === 0) await verifyDesktopProductionAssets(resolve(appRoot, 'dist'))
+    else if (args[0] === '--files' && args.length > 1) await verifyDesktopProductionFiles(args.slice(1))
+    else throw new Error('desktop production verification arguments are invalid')
     process.stdout.write('DESKTOP_PRODUCTION_ASSETS_PASS\n')
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : 'desktop production assets verification failed'}\n`)

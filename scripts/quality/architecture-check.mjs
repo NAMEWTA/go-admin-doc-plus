@@ -119,7 +119,8 @@ export const checkArchitecture = root => {
       [/case \$\(go env GOHOSTOS\) in/, 'local package script must select Desktop bundles from GOHOSTOS'],
       [/darwin\) desktop_bundle=app/, 'local package script must support the macOS app bundle'],
       [/windows\) desktop_bundle=nsis/, 'local package script must support the Windows NSIS bundle'],
-      [/tauri build \\\n\s+--features custom-protocol --bundles "\$desktop_bundle"/, 'local package script must enable the Tauri production protocol']
+      [/tauri build \\\n\s+--features custom-protocol --bundles "\$desktop_bundle"/, 'local package script must enable the Tauri production protocol'],
+      [/apps\/admin-desktop\/scripts\/verify-build\.mjs/, 'local Desktop package must verify production WebView, sidecar, and host artifacts']
     ]
     for (const [pattern, message] of requiredPackageContracts) {
       if (!pattern.test(packageScript)) failures.push(message)
@@ -135,6 +136,9 @@ export const checkArchitecture = root => {
     }
     if (!/run_pnpm --filter @go-admin-plus\/admin-desktop tauri build[\s\\]+--features custom-protocol --no-bundle/.test(buildScript)) {
       failures.push('Desktop build must compile the Tauri host without bundling')
+    }
+    if (!/apps\/admin-desktop\/scripts\/verify-build\.mjs/.test(buildScript)) {
+      failures.push('Desktop build must verify production WebView, sidecar, and host artifacts')
     }
     if (!/all\)\s*\n\s*build_web\s*\n\s*build_desktop/.test(buildScript)) {
       failures.push('aggregate product build must include native Desktop')
@@ -185,6 +189,9 @@ export const checkArchitecture = root => {
     }
     if (!/pnpm --dir go-admin-plus-ui --filter @go-admin-plus\/admin-desktop tauri build \\\n+\s+--features custom-protocol --no-bundle/.test(desktopJob)) {
       failures.push('Desktop CI must link the Tauri host without bundling')
+    }
+    if (!/node go-admin-plus-ui\/apps\/admin-desktop\/scripts\/verify-build\.mjs/.test(desktopJob)) {
+      failures.push('Desktop CI must verify production WebView, sidecar, and host artifacts')
     }
   }
 

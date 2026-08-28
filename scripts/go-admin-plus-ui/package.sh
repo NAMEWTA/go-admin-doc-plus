@@ -31,6 +31,7 @@ case $target in
     node "$repo_root/release/shared/sidecar/build.mjs" --host
     exec_pnpm --filter @go-admin-plus/admin-desktop tauri build \
       --features custom-protocol --bundles "$desktop_bundle"
+    node "$frontend_root/apps/admin-desktop/scripts/verify-build.mjs"
     ;;
   *)
     fail "unsupported frontend package target: $target (expected web or desktop)"

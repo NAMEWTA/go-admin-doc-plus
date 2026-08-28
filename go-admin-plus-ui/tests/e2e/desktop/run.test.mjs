@@ -10,6 +10,7 @@ import {
   verifyDesktopProductionAssets,
   verifyDesktopProductionFiles
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
+import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
 import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
@@ -64,10 +65,24 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
     '/__desktop/test-control',
     'native-e2e',
     'VITE_GO_ADMIN_NATIVE_E2E',
-    'GO_ADMIN_DESKTOP_E2E',
+    'GO_ADMIN_DESKTOP_NATIVE_E2E',
+    'GO_ADMIN_DESKTOP_E2E_',
     'desktop_native_e2e',
-    'E2E ',
-    'E2E-'
+    'E2E authenticated boundary verified',
+    'E2E unauthenticated boundary verified',
+    'E2E boundary blocked:',
+    'E2E self scope enforced',
+    'E2E all scope restored',
+    'E2E authorization denied',
+    'E2E control failed:',
+    'E2E scope self',
+    'E2E scope all',
+    'E2E permissions off',
+    'E2E permissions on',
+    'E2E revoke session',
+    'E2E-FOREIGN',
+    'E2E-001',
+    'native E2E credential identity'
   ])
   for (const marker of desktopNativeControlMarkers) {
     writeFileSync(join(root, 'assets/app.css'), `.product-shell{content:${JSON.stringify(marker)}}`)
@@ -76,7 +91,17 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
   writeFileSync(join(root, 'assets/app.css'), '.product-shell{display:grid}')
   await assert.doesNotReject(verifyDesktopProductionFiles([join(root, 'index.html'), join(root, 'assets/app.css')]))
   writeFileSync(join(root, 'assets/app.css'), '.product-shell{content:"E2E permissions on"}')
-  await assert.rejects(verifyDesktopProductionFiles([join(root, 'assets/app.css')]), /native test control: E2E /)
+  await assert.rejects(verifyDesktopProductionFiles([join(root, 'assets/app.css')]), /native test control: E2E permissions on/)
+})
+
+test('production Desktop artifact paths are exact for each supported host', () => {
+  const arm = desktopProductionArtifactPaths('/repository', 'darwin', 'arm64')
+  assert.equal(arm.sidecar, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/binaries/go-admin-sidecar-aarch64-apple-darwin')
+  assert.equal(arm.host, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/target/release/go-admin-plus-desktop')
+  const windows = desktopProductionArtifactPaths('/repository', 'win32', 'x64')
+  assert.equal(windows.sidecar, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/binaries/go-admin-sidecar-x86_64-pc-windows-msvc.exe')
+  assert.equal(windows.host, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/target/release/go-admin-plus-desktop.exe')
+  assert.throws(() => desktopProductionArtifactPaths('/repository', 'linux', 'x64'), /unsupported desktop host target/)
 })
 
 test('native runner stops polling after an early host exit', () => {

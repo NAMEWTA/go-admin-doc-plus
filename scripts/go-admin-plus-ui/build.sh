@@ -18,6 +18,7 @@ build_desktop() {
   node "$repo_root/release/shared/sidecar/build.mjs" --host
   run_pnpm --filter @go-admin-plus/admin-desktop tauri build \
     --features custom-protocol --no-bundle
+  node "$frontend_root/apps/admin-desktop/scripts/verify-build.mjs"
 }
 
 case ${1:-all} in

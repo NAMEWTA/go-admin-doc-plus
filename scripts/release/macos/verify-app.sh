@@ -20,6 +20,7 @@ test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$plist")" = 
 for binary in "$host" "$sidecar"; do
   test "$(lipo -archs "$binary")" = "x86_64 arm64"
 done
+node "$repository/go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs" --files "$host" "$sidecar"
 
 generator="$app/Contents/Resources/generator"
 for marker in repository/.git repository/scripts/contracts/cli.mjs repository/go-admin-plus/go.mod repository/go-admin-plus-ui/pnpm-workspace.yaml pnpm-store go-mod; do

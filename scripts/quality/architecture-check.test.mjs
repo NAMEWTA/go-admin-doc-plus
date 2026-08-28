@@ -167,6 +167,7 @@ test('rejects a Desktop build that compiles only WebView assets', () => {
   const failures = checkArchitecture(root)
   assert.ok(failures.includes('Desktop build must stage the host Go sidecar'))
   assert.ok(failures.includes('Desktop build must compile the Tauri host without bundling'))
+  assert.ok(failures.includes('Desktop build must verify production WebView, sidecar, and host artifacts'))
   assert.ok(failures.includes('aggregate product build must include native Desktop'))
   assert.ok(failures.includes('Desktop target must use the native build'))
 })
@@ -185,6 +186,7 @@ test('rejects Desktop CI that checks Rust without linking the native host', () =
   assert.ok(failures.includes('Desktop CI must install the frozen frontend workspace'))
   assert.ok(failures.includes('Desktop CI must stage the host Go sidecar'))
   assert.ok(failures.includes('Desktop CI must link the Tauri host without bundling'))
+  assert.ok(failures.includes('Desktop CI must verify production WebView, sidecar, and host artifacts'))
 })
 
 test('rejects backend CI that omits the generator Node and pnpm toolchain', () => {

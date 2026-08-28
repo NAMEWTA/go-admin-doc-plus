@@ -84,6 +84,8 @@ export async function verifyRepository(repository) {
   assert.match(builder, /offlineInstaller/)
   assert.match(builder, /installMode = 'currentUser'/)
   assert.match(builder, /signCommand/)
+  assert.match(builder, /verify-production\.mjs/)
+  assert.match(builder, /--files/)
   assert.match(signer, /artifact-signing-cli/)
   assert.match(verifier, /Get-AuthenticodeSignature/)
   assert.match(verifier, /TimeStamperCertificate/)
