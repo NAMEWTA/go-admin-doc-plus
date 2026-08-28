@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T06:16:18+08:00",
+  "updated_at": "2026-08-29T06:19:25+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -763,6 +763,16 @@
       "approved_at": "2026-08-29T06:01:11+08:00",
       "reason": "The post-D31 ADR-006 command audit proved cmd/go-admin-plus still imports application health and platform database, canonicalizes runtime roots, maps database profiles, opens the database, and invokes the concrete product builder, while the command-boundary gate covers only Desktop",
       "resolution": "Move Server database/profile/product composition into internal/app/product behind one Server Host constructor, retain only argument/environment/config launch material and Host execution in cmd/go-admin-plus, move composition tests with their owner, and add a negative Server command import/runtime ownership gate; preserve both Server database profiles, APIs, schema, UI/CSS, release, and deferred E2E"
+    },
+    {
+      "id": "T21-D33",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T06:19:25+08:00",
+      "reason": "The final ADR-006 command audit proved cmd/migrate still maps database profiles, opens and closes the database process, creates the product migration runner, and executes migrations, while migrate and config-check are absent from the command-boundary gate",
+      "resolution": "Add one product-owned typed migration operation that owns database mapping and lifecycle, reduce cmd/migrate to launch parsing, typed config loading, operation invocation and output, and extend the common main-only/runtime-import gate to migrate and config-check; preserve migration SQL, both Server profiles, output contract, API, schema, UI/CSS, release, and deferred E2E"
     }
   ],
   "worktrees": [

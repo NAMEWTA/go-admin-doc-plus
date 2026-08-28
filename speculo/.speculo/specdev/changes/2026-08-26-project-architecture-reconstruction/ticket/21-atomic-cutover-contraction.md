@@ -174,6 +174,12 @@ Lead 以 `main@37c4da5bdd50ddbed32786e553ec8f10d43ec452` 为审计 base，精确
 
 D32 授权 checkpoint 为 `00ce6f955776264c8abe6a124783389a8c9b37cc`；implementation/result 为 `d19eff17b82fc7b8f634383ac6f5f19061c139f5`（tree `50000d31faccaab92f1b32e6d34fd4a062e20789`）。Server command 生产 import 已收缩为 product/config，双 profile、数据库、产品和 Host 组合集中到 app/product，并由真实 SQLite 启停测试与负向 command gate 覆盖；普通/SQLite 全量 Go、race、vet、三平台交叉构建、根静态门禁、release policy 和 Server/Web/Tauri 2 全目标 production build 全绿。完整证据见 T-21 Evidence 第 33 节；按用户要求未运行任何 E2E，T-21 状态不变。
 
+### T21-D33（Lead 批准）
+
+D32 后审计最后两个正式 utility command，确认 `<Path>cmd/config-check/main.go</Path>` 只处理参数、typed config 验证和脱敏结果，属于命令自身 launch-material 职责；但 `<Path>cmd/migrate/main.go</Path>` 仍直接导入 platform database，映射 profile、打开/关闭 database process、创建 product migration runner 并执行迁移。migrate/config-check 也未被 command gate 覆盖，因此 ADR-006 的全部 command 尚未形成闭环。
+
+Lead 以 `main@854f663d167c769a9797947c8a42dca49bdfe8d7` 为审计 base，精确开放 `<Path>go-admin-plus/internal/app/product/migration*.go</Path>`、`<Path>go-admin-plus/cmd/migrate/**</Path>`、`<Path>go-admin-plus/internal/application/architecture_test.go</Path>` 及对应 SpecDev 状态/Evidence：新增 product-owned typed migration operation，唯一完成 Server SQLite/PostgreSQL database config、process open/close、runner composition 和执行；migrate command 只保留参数/环境、typed snapshot、operation 调用和既有结果输出。复用 D31/D32 的通用检查器，把 migrate 与 config-check 纳入“只有 main.go 生产源、禁止 application/modules/database/network runtime import”实际仓库门禁，并以 migrate 负向 fixture 固定失败语义。migration SQL/schema、双方言行为、输出文本、API、前端页面 template/style、UI/CSS、发行与暂停 E2E 不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
