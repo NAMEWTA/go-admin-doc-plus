@@ -88,6 +88,10 @@ AC-029 完成审计证明 `compatibility-zero` 只扫描部分治理/文档目�
 
 对 D19 门禁做反向完备性审计后确认，WebView verifier 只列出五项选定 marker，漏掉其余边界/授权文案、fixture、旧环境开关和 native feature 身份；sidecar/host restore 仍另行只搜索 `/__desktop/test-control`。Lead 把 `<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>` 定为唯一 production marker 合同：目录资源与普通二进制都使用同一不可变集合，覆盖 route、mode/feature/env、全部 `E2E ` 文案和 `E2E-` fixture；原生恢复删除自定义单路由扫描并复用普通文件 verifier。测试逐项注入全部 marker，且静态拒绝 runner 恢复两份实现。产品代码、UI/CSS、数据库与公共合同不变。
 
+### T21-D21（Lead 批准）
+
+D20 的二进制扫描只由暂停的 native runner 在恢复 production 制品时调用，常规 Desktop build/package、CI 和受保护 macOS/Windows 发行仍可在不扫描最终 sidecar/host 的情况下成功；同时四字节 `E2E ` / `E2E-` 通配 marker 对已签名或压缩二进制存在随机碰撞风险。Lead 新增唯一跨平台 build verifier，复用现有 target-triple/sidecar 命名合同解析精确制品路径，并在本地 build/package、Desktop CI 及两平台受保护发行链路自动执行；marker 改为覆盖全部当前控件的精确长字符串，负向 architecture/release policy 和逐 marker 功能测试阻止接线或覆盖回退。产品代码、UI/CSS、数据库、公共合同、签名授权与暂停的 E2E 均不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

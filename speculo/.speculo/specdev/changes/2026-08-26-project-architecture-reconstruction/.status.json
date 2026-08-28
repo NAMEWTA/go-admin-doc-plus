@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T01:16:04+08:00",
+  "updated_at": "2026-08-29T01:28:26+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -623,6 +623,16 @@
       "approved_at": "2026-08-29T01:16:04+08:00",
       "reason": "The follow-up production boundary audit proved the new WebView verifier listed only five selected native control strings while the production sidecar and host restore path still scanned only the test-control route, leaving the remaining boundary, authorization, fixture, environment, and feature markers outside one authoritative rejection contract",
       "resolution": "Define one immutable marker set covering the route, build modes, environment and feature identities, all E2E messages, and fixture prefixes; apply it to both emitted WebView trees and explicit production binaries; require functional rejection tests for every marker and static proof that native restoration uses the shared file verifier; leave product code, UI/CSS, database, public contracts, and deferred E2E unchanged"
+    },
+    {
+      "id": "T21-D21",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T01:28:26+08:00",
+      "reason": "The final production-build audit proved D20 scanned sidecar and host binaries only while the paused native runner restored artifacts; canonical local build and package, Desktop CI, and protected macOS and Windows release paths could complete without applying the shared production marker contract to their final binaries",
+      "resolution": "Add one cross-platform verifier that derives exact host and sidecar paths from the existing target-triple contract; invoke it after local Desktop build and package and in Desktop CI, scan the protected macOS and Windows host and sidecar before signing or staging, replace collision-prone four-byte wildcard markers with exact current test-control strings, and enforce all wiring with negative architecture and release-policy tests without running E2E"
     }
   ],
   "worktrees": [
