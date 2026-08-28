@@ -205,6 +205,29 @@ const base64ToBytes = (value: string): Uint8Array => {
   return Uint8Array.from(binary, character => character.charCodeAt(0))
 }
 
+const parseBinaryResponse = (value: unknown): Uint8Array => {
+  const invalid = () => new Error('invalid desktop binary response')
+  let record: Record<string, unknown>
+  try {
+    record = asRecord(value)
+  } catch {
+    throw invalid()
+  }
+  if (!exactKeys(record, ['encoding', 'mediaType', 'data']) || record.encoding !== 'base64' ||
+    record.mediaType !== 'application/octet-stream' || typeof record.data !== 'string' ||
+    record.data.length > Math.ceil(maximumHostFileBytes / 3) * 4 ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(record.data)) {
+    throw invalid()
+  }
+  try {
+    const bytes = base64ToBytes(record.data)
+    if (bytes.length > maximumHostFileBytes || bytesToBase64(bytes) !== record.data) throw invalid()
+    return bytes
+  } catch {
+    throw invalid()
+  }
+}
+
 const requestBody = async (request: Request): Promise<unknown> => {
   if (request.method === 'GET' || request.method === 'HEAD') return undefined
   const contentType = request.headers.get('content-type') ?? ''
@@ -233,11 +256,14 @@ export const createDesktopFetch = (invoke: Invoke = tauriInvoke): typeof globalT
   const method = request.method.toUpperCase() as Method
   if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) throw new Error('desktop request method is not allowed')
   const response = await invokeRequest(invoke, `${url.pathname.slice(4)}${url.search}`, method, await requestBody(request), request.signal)
-  const binary = response.body && typeof response.body === 'object' && !Array.isArray(response.body)
-    ? response.body as Record<string, unknown>
-    : null
-  if (binary?.encoding === 'base64' && typeof binary.data === 'string' && typeof binary.mediaType === 'string') {
-    return new Response(base64ToBytes(binary.data).buffer as ArrayBuffer, { status: response.status, headers: { 'content-type': binary.mediaType } })
+  const isFilesDownload = method === 'GET' && response.status >= 200 && response.status < 300 &&
+    /^\/api\/files\/objects\/[^/]+\/content$/.test(url.pathname)
+  if (isFilesDownload) {
+    const bytes = parseBinaryResponse(response.body)
+    return new Response(bytes.buffer as ArrayBuffer, {
+      status: response.status,
+      headers: { 'content-type': 'application/octet-stream' }
+    })
   }
   return new Response(response.body === null ? null : JSON.stringify(response.body), {
     status: response.status,

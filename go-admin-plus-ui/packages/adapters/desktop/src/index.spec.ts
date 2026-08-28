@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { DemoRequestError } from '@go-admin-plus/domain-demo'
 
-import { createDesktopDemoClient, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
+import { createDesktopDemoClient, createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
+
+afterEach(() => { vi.unstubAllGlobals() })
 
 describe('desktop adapter security boundary', () => {
   it('implements the explicit host capability port through bounded native commands', async () => {
@@ -32,6 +34,27 @@ describe('desktop adapter security boundary', () => {
       ['desktop_pick_file', undefined],
       ['desktop_save_file', { file: { name: 'design.txt', mediaType: 'text/plain', data: 'YWJj' } }]
     ])
+  })
+
+  it('decodes only the exact canonical Files binary envelope', async () => {
+    vi.stubGlobal('window', { location: { origin: 'https://desktop.test' } })
+    const fetcher = createDesktopFetch(async <T>() => ({
+      status: 200,
+      body: { encoding: 'base64', mediaType: 'application/octet-stream', data: '/wBh' }
+    }) as T)
+    const response = await fetcher('/api/files/objects/00000000-0000-4000-8000-000000000013/content')
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([0xff, 0x00, 0x61])
+    expect(response.headers.get('content-type')).toBe('application/octet-stream')
+
+    for (const body of [
+      { encoding: 'base64', mediaType: 'image/png', data: '/wBh' },
+      { encoding: 'base64', mediaType: 'application/octet-stream', data: '/wBh', sessionToken: 'hidden' },
+      { encoding: 'base64', mediaType: 'application/octet-stream', data: 'YQ' }
+    ]) {
+      const invalid = createDesktopFetch(async <T>() => ({ status: 200, body }) as T)
+      await expect(invalid('/api/files/objects/00000000-0000-4000-8000-000000000013/content'))
+        .rejects.toThrow('invalid desktop binary response')
+    }
   })
 
   it('accepts only the public identity projection and rejects hidden session material', async () => {

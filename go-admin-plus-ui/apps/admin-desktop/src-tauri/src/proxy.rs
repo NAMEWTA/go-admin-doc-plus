@@ -519,24 +519,15 @@ impl TransportProxy {
             .limit(MAX_RESPONSE_BYTES)
             .read_to_vec()
             .map_err(|_| "desktop sidecar response invalid")?;
-        let binary_response =
-            path.starts_with("/files/objects/") && path.ends_with("/content") && status < 300;
-        let parsed = if binary_response {
-            let media_type = unique_header(response.headers(), "content-type")?
-                .ok_or("desktop binary response invalid")?;
-            if !matches!(
-                media_type.as_str(),
-                "image/png"
-                    | "image/jpeg"
-                    | "application/pdf"
-                    | "text/plain; charset=utf-8"
-                    | "text/plain"
-            ) {
-                return Err("desktop binary response invalid");
-            }
-            Ok(
-                serde_json::json!({"encoding":"base64", "mediaType":media_type, "data":STANDARD.encode(&bytes)}),
-            )
+        let binary_media_type = if is_files_download(path, status) {
+            unique_header(response.headers(), "content-type")?
+        } else {
+            None
+        };
+        let parsed = if let Some(body) =
+            parse_binary_response_body(path, status, binary_media_type.as_deref(), &bytes)?
+        {
+            Ok(body)
         } else if bytes.is_empty() {
             Ok(Value::Null)
         } else {
@@ -564,6 +555,29 @@ impl TransportProxy {
             protected_values,
         })
     }
+}
+
+fn is_files_download(path: &str, status: u16) -> bool {
+    path.starts_with("/files/objects/") && path.ends_with("/content") && status < 300
+}
+
+fn parse_binary_response_body(
+    path: &str,
+    status: u16,
+    media_type: Option<&str>,
+    bytes: &[u8],
+) -> Result<Option<Value>, &'static str> {
+    if !is_files_download(path, status) {
+        return Ok(None);
+    }
+    if media_type != Some("application/octet-stream") {
+        return Err("desktop binary response invalid");
+    }
+    Ok(Some(serde_json::json!({
+        "encoding": "base64",
+        "mediaType": "application/octet-stream",
+        "data": STANDARD.encode(bytes),
+    })))
 }
 
 fn multipart_upload(body: &Value) -> Result<(String, Vec<u8>), &'static str> {
@@ -1052,5 +1066,46 @@ mod tests {
         assert!(unique_header(&headers, "set-cookie").is_err());
         assert!(!valid_secret("abcdefghijklmnopqrstuvwxyzABCDEFGH12345678+"));
         assert!(valid_secret("abcdefghijklmnopqrstuvwxyzABCDEFGH123456789"));
+    }
+
+    #[test]
+    fn files_downloads_use_the_exact_openapi_binary_envelope() {
+        let body = parse_binary_response_body(
+            "/files/objects/00000000-0000-4000-8000-000000000013/content",
+            200,
+            Some("application/octet-stream"),
+            &[0xff, 0x00, 0x61],
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            body,
+            serde_json::json!({
+                "encoding": "base64",
+                "mediaType": "application/octet-stream",
+                "data": "/wBh"
+            })
+        );
+        for incompatible in ["image/png", "application/pdf", "text/plain"] {
+            assert!(
+                parse_binary_response_body(
+                    "/files/objects/00000000-0000-4000-8000-000000000013/content",
+                    200,
+                    Some(incompatible),
+                    b"content",
+                )
+                .is_err()
+            );
+        }
+        assert_eq!(
+            parse_binary_response_body(
+                "/files/objects/00000000-0000-4000-8000-000000000013/content",
+                404,
+                Some("application/problem+json"),
+                br#"{"type":"not-found"}"#,
+            )
+            .unwrap(),
+            None
+        );
     }
 }
