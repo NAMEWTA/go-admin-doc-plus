@@ -170,3 +170,19 @@ test('rejects a Desktop build that compiles only WebView assets', () => {
   assert.ok(failures.includes('aggregate product build must include native Desktop'))
   assert.ok(failures.includes('Desktop target must use the native build'))
 })
+
+test('rejects Desktop CI that checks Rust without linking the native host', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workflowRoot = join(root, '.github/workflows')
+  mkdirSync(workflowRoot, { recursive: true })
+  writeFileSync(join(workflowRoot, 'ci.yml'), `jobs:
+  desktop-rust:
+    steps:
+      - run: cargo check --locked --release --features custom-protocol
+`)
+
+  const failures = checkArchitecture(root)
+  assert.ok(failures.includes('Desktop CI must install the frozen frontend workspace'))
+  assert.ok(failures.includes('Desktop CI must stage the host Go sidecar'))
+  assert.ok(failures.includes('Desktop CI must link the Tauri host without bundling'))
+})

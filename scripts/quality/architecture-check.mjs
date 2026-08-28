@@ -33,6 +33,15 @@ const workspacePackageNames = root => {
   return names
 }
 
+const workflowJob = (source, id) => {
+  const lines = source.split('\n')
+  const start = lines.findIndex(line => line === `  ${id}:`)
+  if (start === -1) return ''
+  const nextJob = lines.slice(start + 1).findIndex(line => /^  [A-Za-z0-9_-]+:\s*$/.test(line))
+  const end = nextJob === -1 ? lines.length : start + nextJob + 1
+  return lines.slice(start, end).join('\n')
+}
+
 export const checkArchitecture = root => {
   const failures = []
   const canonicalGoModule = 'github.com/NAMEWTA/go-admin-plus/go-admin-plus'
@@ -132,6 +141,20 @@ export const checkArchitecture = root => {
       failures.push('Desktop target must use the native build')
     }
     if (/pnpm build:prod/.test(buildScript)) failures.push('product build must not stop at aggregate WebView assets')
+  }
+
+  const ciWorkflowPath = join(root, '.github/workflows/ci.yml')
+  if (existsSync(ciWorkflowPath)) {
+    const desktopJob = workflowJob(readFileSync(ciWorkflowPath, 'utf8'), 'desktop-rust')
+    if (!/pnpm --dir go-admin-plus-ui install --frozen-lockfile/.test(desktopJob)) {
+      failures.push('Desktop CI must install the frozen frontend workspace')
+    }
+    if (!/node release\/shared\/sidecar\/build\.mjs --host/.test(desktopJob)) {
+      failures.push('Desktop CI must stage the host Go sidecar')
+    }
+    if (!/pnpm --dir go-admin-plus-ui --filter @go-admin-plus\/admin-desktop tauri build \\\n+\s+--features custom-protocol --no-bundle/.test(desktopJob)) {
+      failures.push('Desktop CI must link the Tauri host without bundling')
+    }
   }
 
   const internalRoot = join(root, 'go-admin-plus/internal')
