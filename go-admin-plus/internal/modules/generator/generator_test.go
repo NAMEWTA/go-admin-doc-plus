@@ -357,7 +357,11 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 			t.Fatalf("node %s: %v\n%s", strings.Join(arguments, " "), err, output)
 		}
 	}
-	for _, arguments := range [][]string{{"test", "./internal/modules/catalog/..."}, {"build", "./internal/modules/catalog/..."}} {
+	for _, arguments := range [][]string{
+		{"test", "./internal/application"},
+		{"test", "./internal/modules/catalog/..."},
+		{"build", "./internal/modules/catalog/..."},
+	} {
 		command := exec.CommandContext(ctx, "go", arguments...)
 		command.Dir = filepath.Join(fixture, "go-admin-plus")
 		command.Env = append([]string(nil), environment...)
@@ -454,6 +458,25 @@ func TestCompileSkeletonRejectsEnvironmentFiles(t *testing.T) {
 		if allowedSkeletonPath(path) {
 			t.Fatalf("compile skeleton accepted %s", path)
 		}
+	}
+}
+
+func TestCompileGateRunsRepositoryArchitectureBeforeGeneratedModule(t *testing.T) {
+	commands := compileGateCommands("/fixture/go-admin-plus", "/fixture/go-admin-plus-ui", "catalog")
+	architecture, moduleTest, moduleBuild := -1, -1, -1
+	for index, command := range commands {
+		arguments := strings.Join(command.arguments, " ")
+		switch {
+		case command.directory == "/fixture/go-admin-plus" && command.name == "go" && arguments == "test ./internal/application":
+			architecture = index
+		case command.directory == "/fixture/go-admin-plus" && command.name == "go" && arguments == "test ./internal/modules/catalog/...":
+			moduleTest = index
+		case command.directory == "/fixture/go-admin-plus" && command.name == "go" && arguments == "build ./internal/modules/catalog/...":
+			moduleBuild = index
+		}
+	}
+	if architecture < 0 || moduleTest < 0 || moduleBuild < 0 || architecture >= moduleTest || moduleTest >= moduleBuild {
+		t.Fatalf("compile gate architecture/module order = %d/%d/%d", architecture, moduleTest, moduleBuild)
 	}
 }
 

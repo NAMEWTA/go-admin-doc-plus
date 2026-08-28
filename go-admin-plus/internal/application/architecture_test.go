@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -17,6 +18,11 @@ import (
 )
 
 const moduleImportMarker = "/internal/modules/"
+
+var (
+	createTablePattern   = regexp.MustCompile("(?i)\\bCREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+[`\"]?([a-z_][a-z0-9_]*)[`\"]?")
+	sqlIdentifierPattern = regexp.MustCompile(`^[a-z_][a-z0-9_]*$`)
+)
 
 func TestKernelDoesNotOwnHostDependencies(t *testing.T) {
 	packages, err := parser.ParseDir(token.NewFileSet(), ".", nil, parser.ImportsOnly)
@@ -95,6 +101,327 @@ import "example.test/product/internal/modules/iam/authorization"
 	if fmt.Sprint(violations) != fmt.Sprint(want) {
 		t.Fatalf("violations = %v, want %v", violations, want)
 	}
+}
+
+func TestProductionModulesOnlyAccessOwnedTables(t *testing.T) {
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve architecture test path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
+	violations, err := productionModuleTableViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatalf("inspect production module table access: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("production modules must access only tables declared by their own migrations:\n%s", strings.Join(violations, "\n"))
+	}
+}
+
+func TestProductionModuleTableFixtureRejectsForeignOwnership(t *testing.T) {
+	root := t.TempDir()
+	writeFixture := func(name, content string) {
+		t.Helper()
+		filename := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatalf("create fixture directory: %v", err)
+		}
+		if err := os.WriteFile(filename, []byte(content), 0o600); err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+	}
+	writeFixture("internal/modules/orders/migrations/sqlite/001_orders.sql", `CREATE TABLE orders_items (id TEXT PRIMARY KEY);`)
+	writeFixture("internal/modules/iam/migrations/sqlite/001_iam.sql", `CREATE TABLE IF NOT EXISTS "iam_accounts" (id TEXT PRIMARY KEY);`)
+	writeFixture("internal/modules/catalog/migrations/sqlite/001_catalog.sql", `CREATE TABLE products (id TEXT PRIMARY KEY);`)
+	writeFixture("internal/modules/orders/repository.go", "package orders\nconst own = `SELECT id FROM orders_items`\nconst foreign = \"SELECT id FROM \" + \"IAM_\" + \"ACCOUNTS\"\n")
+	writeFixture("internal/modules/orders/repository_test.go", "package orders\nconst ignored = `SELECT id FROM iam_accounts`\n")
+	writeFixture("internal/modules/demo/product.go", "package demo\nconst productName = `products`\n")
+
+	violations, err := productionModuleTableViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatalf("inspect fixture: %v", err)
+	}
+	want := []string{"internal/modules/orders/repository.go: orders accesses iam table iam_accounts"}
+	if fmt.Sprint(violations) != fmt.Sprint(want) {
+		t.Fatalf("violations = %v, want %v", violations, want)
+	}
+}
+
+func TestModuleTableOwnershipRejectsConflictingModules(t *testing.T) {
+	root := t.TempDir()
+	for _, name := range []string{
+		"internal/modules/orders/migrations/sqlite/001_orders.sql",
+		"internal/modules/iam/migrations/postgres/001_iam.sql",
+	} {
+		filename := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatalf("create fixture directory: %v", err)
+		}
+		if err := os.WriteFile(filename, []byte(`CREATE TABLE shared_records (id TEXT PRIMARY KEY);`), 0o600); err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+	}
+
+	_, err := moduleTableOwnership(os.DirFS(root))
+	if err == nil || !strings.Contains(err.Error(), "table shared_records is owned by both iam and orders") {
+		t.Fatalf("conflicting ownership error = %v", err)
+	}
+}
+
+func TestReferencedSQLTablesReadsTablePositionsOnly(t *testing.T) {
+	tests := map[string]struct {
+		value string
+		want  []string
+	}{
+		"ordinary product text": {value: "products"},
+		"quoted value":          {value: "SELECT 'FROM iam_accounts' AS message FROM orders_items", want: []string{"orders_items"}},
+		"qualified identifier":  {value: `SELECT * FROM "public"."iam_accounts"`, want: []string{"iam_accounts"}},
+		"update only":           {value: "UPDATE ONLY iam_accounts SET enabled = true", want: []string{"iam_accounts"}},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := referencedSQLTables(test.value); fmt.Sprint(got) != fmt.Sprint(test.want) {
+				t.Fatalf("referenced tables = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func productionModuleTableViolations(root fs.FS) ([]string, error) {
+	owners, err := moduleTableOwnership(root)
+	if err != nil {
+		return nil, err
+	}
+	var violations []string
+	seen := map[string]struct{}{}
+	err = fs.WalkDir(root, "internal/modules", func(filename string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || path.Ext(filename) != ".go" || strings.HasSuffix(filename, "_test.go") {
+			return nil
+		}
+		parts := strings.Split(filename, "/")
+		if len(parts) < 4 {
+			return nil
+		}
+		sourceModule := parts[2]
+		content, err := fs.ReadFile(root, filename)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", filename, err)
+		}
+		parsed, err := parser.ParseFile(token.NewFileSet(), filename, content, 0)
+		if err != nil {
+			return fmt.Errorf("parse %s: %w", filename, err)
+		}
+		var inspectErr error
+		ast.Inspect(parsed, func(node ast.Node) bool {
+			expression, ok := node.(ast.Expr)
+			if !ok || inspectErr != nil {
+				return inspectErr == nil
+			}
+			value, static, err := staticStringValue(expression)
+			if err != nil {
+				inspectErr = fmt.Errorf("parse string in %s: %w", filename, err)
+				return false
+			}
+			if !static {
+				return true
+			}
+			for _, table := range referencedSQLTables(value) {
+				owner, exists := owners[table]
+				if !exists || owner == sourceModule {
+					continue
+				}
+				violation := fmt.Sprintf("%s: %s accesses %s table %s", filename, sourceModule, owner, table)
+				if _, exists := seen[violation]; !exists {
+					seen[violation] = struct{}{}
+					violations = append(violations, violation)
+				}
+			}
+			return true
+		})
+		return inspectErr
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(violations)
+	return violations, nil
+}
+
+func referencedSQLTables(value string) []string {
+	tokens := sqlTokens(value)
+	if len(tokens) == 0 {
+		return nil
+	}
+	startsSQL := map[string]struct{}{
+		"alter": {}, "create": {}, "delete": {}, "drop": {}, "insert": {},
+		"merge": {}, "select": {}, "truncate": {}, "update": {}, "with": {},
+	}
+	if _, ok := startsSQL[tokens[0]]; !ok {
+		return nil
+	}
+
+	seen := map[string]struct{}{}
+	var tables []string
+	for index, token := range tokens {
+		isReference := token == "from" || token == "into" || token == "join" || token == "truncate" || token == "update"
+		if token == "table" && index > 0 {
+			previous := tokens[index-1]
+			isReference = previous == "alter" || previous == "create" || previous == "drop"
+		}
+		if !isReference {
+			continue
+		}
+		next := index + 1
+		if next < len(tokens) && tokens[next] == "only" {
+			next++
+		}
+		if next >= len(tokens) || !sqlIdentifierPattern.MatchString(tokens[next]) {
+			continue
+		}
+		table := tokens[next]
+		if next+2 < len(tokens) && tokens[next+1] == "." && sqlIdentifierPattern.MatchString(tokens[next+2]) {
+			table = tokens[next+2]
+		}
+		if _, exists := seen[table]; !exists {
+			seen[table] = struct{}{}
+			tables = append(tables, table)
+		}
+	}
+	return tables
+}
+
+func sqlTokens(value string) []string {
+	var tokens []string
+	for index := 0; index < len(value); {
+		switch {
+		case value[index] == '-' && index+1 < len(value) && value[index+1] == '-':
+			index += 2
+			for index < len(value) && value[index] != '\n' {
+				index++
+			}
+		case value[index] == '/' && index+1 < len(value) && value[index+1] == '*':
+			index += 2
+			for index+1 < len(value) && !(value[index] == '*' && value[index+1] == '/') {
+				index++
+			}
+			if index+1 < len(value) {
+				index += 2
+			}
+		case value[index] == '\'':
+			index, _ = skipSQLQuoted(value, index, '\'')
+		case value[index] == '"' || value[index] == '`':
+			quote := value[index]
+			end, closed := skipSQLQuoted(value, index, quote)
+			if closed {
+				identifier := strings.ToLower(value[index+1 : end-1])
+				if sqlIdentifierPattern.MatchString(identifier) {
+					tokens = append(tokens, identifier)
+				}
+			}
+			index = end
+		case value[index] == '.':
+			tokens = append(tokens, ".")
+			index++
+		case isSQLIdentifierStart(value[index]):
+			end := index + 1
+			for end < len(value) && isSQLIdentifierPart(value[end]) {
+				end++
+			}
+			tokens = append(tokens, strings.ToLower(value[index:end]))
+			index = end
+		default:
+			index++
+		}
+	}
+	return tokens
+}
+
+func skipSQLQuoted(value string, start int, quote byte) (int, bool) {
+	for index := start + 1; index < len(value); index++ {
+		if value[index] != quote {
+			continue
+		}
+		if index+1 < len(value) && value[index+1] == quote {
+			index++
+			continue
+		}
+		return index + 1, true
+	}
+	return len(value), false
+}
+
+func isSQLIdentifierStart(value byte) bool {
+	return value == '_' || value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z'
+}
+
+func isSQLIdentifierPart(value byte) bool {
+	return isSQLIdentifierStart(value) || value >= '0' && value <= '9'
+}
+
+func staticStringValue(expression ast.Expr) (string, bool, error) {
+	switch value := expression.(type) {
+	case *ast.BasicLit:
+		if value.Kind != token.STRING {
+			return "", false, nil
+		}
+		result, err := strconv.Unquote(value.Value)
+		return result, true, err
+	case *ast.ParenExpr:
+		return staticStringValue(value.X)
+	case *ast.BinaryExpr:
+		if value.Op != token.ADD {
+			return "", false, nil
+		}
+		left, leftStatic, err := staticStringValue(value.X)
+		if err != nil || !leftStatic {
+			return "", leftStatic, err
+		}
+		right, rightStatic, err := staticStringValue(value.Y)
+		if err != nil || !rightStatic {
+			return "", rightStatic, err
+		}
+		return left + right, true, nil
+	default:
+		return "", false, nil
+	}
+}
+
+func moduleTableOwnership(root fs.FS) (map[string]string, error) {
+	owners := map[string]string{}
+	err := fs.WalkDir(root, "internal/modules", func(filename string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || path.Ext(filename) != ".sql" || !strings.Contains(filename, "/migrations/") {
+			return nil
+		}
+		parts := strings.Split(filename, "/")
+		if len(parts) < 5 {
+			return nil
+		}
+		module := parts[2]
+		content, err := fs.ReadFile(root, filename)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", filename, err)
+		}
+		for _, match := range createTablePattern.FindAllSubmatch(content, -1) {
+			table := strings.ToLower(string(match[1]))
+			if owner, exists := owners[table]; exists && owner != module {
+				modules := []string{owner, module}
+				sort.Strings(modules)
+				return fmt.Errorf("table %s is owned by both %s and %s", table, modules[0], modules[1])
+			}
+			owners[table] = module
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return owners, nil
 }
 
 func productionModuleImportViolations(root fs.FS) ([]string, error) {

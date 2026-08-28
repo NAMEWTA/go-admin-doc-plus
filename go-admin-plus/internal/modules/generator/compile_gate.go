@@ -80,20 +80,7 @@ func (gate *WorkspaceCompileGate) Check(ctx context.Context, _ string, preview P
 		return ErrGateFailed
 	}
 	environment := minimalCommandEnvironment(safeHome)
-	commands := []gateCommand{
-		{uiRoot, pnpmExecutable(), []string{"install", "--lockfile-only", "--no-frozen-lockfile", "--ignore-scripts"}},
-		{fixture, "node", []string{"scripts/contracts/cli.mjs", "lint", "--contract", "contracts/openapi/modules/" + preview.Module + ".yaml"}},
-		{fixture, "node", []string{"scripts/contracts/cli.mjs", "generate"}},
-		{fixture, "node", []string{"scripts/contracts/cli.mjs", "generate", "--check"}},
-		{goRoot, "go", []string{"test", "./internal/modules/" + preview.Module + "/..."}},
-		{goRoot, "go", []string{"build", "./internal/modules/" + preview.Module + "/..."}},
-		{uiRoot, pnpmExecutable(), []string{"install", "--frozen-lockfile", "--ignore-scripts"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/domain-" + preview.Module, "typecheck"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/domain-" + preview.Module, "test"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + preview.Module, "typecheck"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + preview.Module, "test"}},
-		{uiRoot, pnpmExecutable(), []string{"check:workspace"}},
-	}
+	commands := compileGateCommands(goRoot, uiRoot, preview.Module)
 	for _, command := range commands {
 		if err := command.run(ctx, environment); err != nil {
 			return gateContextError(ctx)
@@ -112,6 +99,25 @@ type gateCommand struct {
 	directory string
 	name      string
 	arguments []string
+}
+
+func compileGateCommands(goRoot, uiRoot, module string) []gateCommand {
+	fixture := filepath.Dir(goRoot)
+	return []gateCommand{
+		{uiRoot, pnpmExecutable(), []string{"install", "--lockfile-only", "--no-frozen-lockfile", "--ignore-scripts"}},
+		{fixture, "node", []string{"scripts/contracts/cli.mjs", "lint", "--contract", "contracts/openapi/modules/" + module + ".yaml"}},
+		{fixture, "node", []string{"scripts/contracts/cli.mjs", "generate"}},
+		{fixture, "node", []string{"scripts/contracts/cli.mjs", "generate", "--check"}},
+		{goRoot, "go", []string{"test", "./internal/application"}},
+		{goRoot, "go", []string{"test", "./internal/modules/" + module + "/..."}},
+		{goRoot, "go", []string{"build", "./internal/modules/" + module + "/..."}},
+		{uiRoot, pnpmExecutable(), []string{"install", "--frozen-lockfile", "--ignore-scripts"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/domain-" + module, "typecheck"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/domain-" + module, "test"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + module, "typecheck"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + module, "test"}},
+		{uiRoot, pnpmExecutable(), []string{"check:workspace"}},
+	}
 }
 
 func (command gateCommand) run(ctx context.Context, environment []string) error {
