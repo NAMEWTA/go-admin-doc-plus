@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T14:53:17+08:00",
+  "updated_at": "2026-08-28T15:12:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -383,6 +383,16 @@
       "approved_at": "2026-08-27T23:21:53+08:00",
       "reason": "The T-19 release sidecar environment maps x86_64 only to darwin-amd64 and hard-codes Unix executable paths, so a Windows installer built solely from T-20 release assets cannot start the complete packaged Generator",
       "resolution": "Authorize only go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs to select the release toolchain by OS plus architecture, require packaged Windows Go/Node/pnpm/MinGit, pass only the bounded Windows bootstrap environment, and add matching tests; product transport, vault, lifecycle, other Desktop files, and existing macOS behavior remain unchanged"
+    },
+    {
+      "id": "T05-D04",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T15:12:00+08:00",
+      "reason": "Post-cutover source comparison proved ProductWorkspace and LoginPage had replaced the established admin UI/CSS despite the user's execution constraint to preserve page design while removing only deleted functions",
+      "resolution": "Restore the established shared tokens, dark collapsible sidebar, 50px navbar, breadcrumb, 40px visited tabs, responsive drawer, terminal-stage login and matching source contracts in the current pnpm boundaries; do not restore captcha, legacy routes, stores, imports, Element Plus coupling, or any deleted business capability"
     }
   ],
   "worktrees": [
