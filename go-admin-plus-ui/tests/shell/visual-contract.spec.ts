@@ -165,6 +165,45 @@ describe('admin visual contract', () => {
     })
   })
 
+  it('localizes destructive confirmations and keeps read details in the shared modal contract', async () => {
+    const [shell, settingsController, audit] = await Promise.all([
+      source('packages/app-shell/src/product/ProductWorkspace.vue'),
+      source('packages/web-domains/settings/src/settings-controller.ts'),
+      source('packages/web-domains/audit/src/AuditPage.vue')
+    ])
+
+    for (const message of ['确定删除该记录吗？', '确定删除所选的', '确定清理所选日期之前且符合保留策略的审计日志吗？', '确定删除该']) {
+      expect(shell).toContain(message)
+    }
+    expect(shell).not.toMatch(/Delete (?:this|\$\{count\})/)
+    expect(settingsController).not.toMatch(/'save-(?:setting|dictionary|item)'/)
+    expect(audit).toContain('data-testid="audit-detail-dialog"')
+    expect(audit).toContain('role="dialog"')
+    expect(audit).toContain('detailDialog.value?.focus()')
+    expect(audit).toContain('detailTrigger.value?.focus()')
+    expect(audit).not.toContain('<dialog')
+  })
+
+  it('exposes navigation for every retained paginated Settings and Generator projection', async () => {
+    const [settings, generator] = await Promise.all([
+      source('packages/web-domains/settings/src/SettingsPage.vue'),
+      source('packages/web-domains/generator/src/GeneratorWizardPage.vue')
+    ])
+
+    for (const testId of ['settings-pagination', 'dictionaries-pagination', 'items-pagination']) {
+      expect(settings).toContain(`data-testid="${testId}"`)
+    }
+    for (const list of ['settings', 'dictionaries', 'items']) {
+      expect(settings).toContain(`controller.${list}.setPage(`)
+      expect(settings).toContain(`controller.${list}.setPageSize(`)
+    }
+    expect(generator).toContain('data-testid="generator-table-pagination"')
+    expect(generator).toContain('controller.tables.setPage(')
+    expect(generator).toContain('controller.tables.setPageSize(')
+    expect(generator).toContain("if (await props.controller.createPreview() === 'completed') selectedFile.value = 0")
+    expect(generator).toContain('props.controller.reset(); selectedFile.value = 0; confirmed.value = false')
+  })
+
   it('keeps paused browser and desktop drivers synchronized with localized UI labels', async () => {
     const [iam, organization, scheduler, audit, desktop] = await Promise.all([
       source('tests/e2e/iam/administration/browser-driver.ts'),

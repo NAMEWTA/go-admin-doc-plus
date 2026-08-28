@@ -13,7 +13,7 @@ import { AccountPage, createWebSessionClient, LoginPage } from '@go-admin/web-do
 import { AdministrationPage, createAdministrationController, createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
 import { createOrganizationController, createWebOrganizationClient, OrganizationPage } from '@go-admin/web-domain-organization'
 import { createSchedulerController, createWebSchedulerClient, SchedulerPage } from '@go-admin/web-domain-scheduler'
-import { createSettingsController, createWebSettingsClient, SettingsPage } from '@go-admin/web-domain-settings'
+import { createSettingsController, createWebSettingsClient, SettingsPage, type SettingsRemovalKind } from '@go-admin/web-domain-settings'
 
 import { productRoutesFor, type ProductHost } from './manifest'
 
@@ -43,11 +43,15 @@ const capability = {
   can: (permission: string) => permissions.value.has(permission),
   scope: () => dataScope.value
 }
-const confirmRemoval = async (count: number) => window.confirm(`Delete ${count} item${count === 1 ? '' : 's'}?`)
-const confirmSetting = async (kind: string) => window.confirm(`Delete this ${kind}?`)
+const confirmRemoval = async (count: number) => window.confirm(count === 1 ? '确定删除该记录吗？' : `确定删除所选的 ${count} 条记录吗？`)
+const confirmAuditCleanup = async () => window.confirm('确定清理所选日期之前且符合保留策略的审计日志吗？')
+const confirmSetting = async (kind: SettingsRemovalKind) => {
+  const labels: Record<SettingsRemovalKind, string> = { setting: '参数', dictionary: '字典', 'dictionary-item': '字典项' }
+  return window.confirm(`确定删除该${labels[kind]}吗？`)
+}
 
 const administration = createAdministrationController(createWebAdministrationClient(fetcher), confirmRemoval)
-const audit = createAuditController(createWebAuditClient(fetcher), confirmRemoval)
+const audit = createAuditController(createWebAuditClient(fetcher), confirmAuditCleanup)
 const organization = createOrganizationController(createWebOrganizationClient(fetcher), capability, confirmRemoval)
 const settings = createSettingsController(createWebSettingsClient(fetcher), confirmSetting, capability)
 const generator = createGeneratorController(createWebGeneratorClient(fetcher), capability)

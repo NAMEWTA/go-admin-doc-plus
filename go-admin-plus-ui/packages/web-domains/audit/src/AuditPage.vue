@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { AuditRequestError, type AuditFact, type AuditFailure, type AuditFilters } from '@go-admin/domain-audit'
 import { consumeCleanupFailure, type AuditController } from './audit-controller'
 
@@ -9,6 +9,8 @@ const version = ref(0)
 const filters = reactive({ kind: '', action: '', outcome: '', source: '', from: '', to: '' })
 const cleanupBefore = ref('')
 const selected = ref<AuditFact | null>(null)
+const detailDialog = ref<HTMLElement | null>(null)
+const detailTrigger = ref<HTMLButtonElement | null>(null)
 const failure = ref<AuditFailure | null>(null)
 const busy = ref(false)
 const cleanupStatus = ref<'completed' | 'refresh-failed' | 'repair-required' | null>(null)
@@ -40,7 +42,19 @@ const reset = async () => {
 	Object.assign(filters, { kind: '', action: '', outcome: '', source: '', from: '', to: '' })
 	await run(() => props.controller.list.reset())
 }
-const detail = (id: string) => run(async () => { selected.value = await props.controller.detail(id) })
+const detail = (id: string, event: Event) => {
+	detailTrigger.value = event.currentTarget as HTMLButtonElement
+	return run(async () => {
+		selected.value = await props.controller.detail(id)
+		await nextTick()
+		detailDialog.value?.focus()
+	})
+}
+const closeDetail = async () => {
+	selected.value = null
+	await nextTick()
+	detailTrigger.value?.focus()
+}
 const consumeRefreshFailure = () => {
 	failure.value = consumeCleanupFailure(props.controller, () => emit('relogin'))
 }
@@ -85,7 +99,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
         <tbody>
 					<tr v-for="fact in snapshot.rows" :key="fact.id" data-testid="audit-row">
 						<td>{{ formatDate(fact.occurredAt) }}</td><td>{{ kindLabel(fact.kind) }}</td><td>{{ actionLabel(fact.action) }}</td><td>{{ outcomeLabel(fact.outcome) }}</td><td class="long-text">{{ fact.subject }}</td><td>{{ sourceLabel(fact.source) }}</td>
-              <td><button type="button" data-testid="audit-view" @click="detail(fact.id)">详情</button></td>
+              <td><button type="button" data-testid="audit-view" @click="detail(fact.id, $event)">详情</button></td>
           </tr>
         </tbody>
       </table>
@@ -98,7 +112,13 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
     </section>
     <p v-if="cleanupStatus === 'completed'" role="status" data-testid="audit-cleanup-status">已删除 {{ controller.lastCleanup()?.deleted ?? 0 }} 条记录。<span v-if="controller.lastCleanup()?.moreEligible">仍有符合条件的记录。</span></p>
     <p v-else-if="cleanupStatus === 'refresh-failed' || cleanupStatus === 'repair-required'" role="status">清理已完成，继续操作前需要刷新列表。<button type="button" data-testid="audit-cleanup-repair" :disabled="busy" @click="repairCleanup">重试刷新</button></p>
-    <dialog :open="selected !== null"><template v-if="selected"><h2>审计详情</h2><dl><dt>对象</dt><dd class="long-text">{{ selected.subject }}</dd><dt>操作者</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>结果</dt><dd>{{ outcomeLabel(selected.outcome) }}</dd><dt>发生时间</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl><button type="button" @click="selected = null">关闭</button></template></dialog>
+    <div v-if="selected" class="management-dialog-backdrop" @click.self="closeDetail" @keydown.esc="closeDetail">
+      <section ref="detailDialog" class="management-dialog" data-testid="audit-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title" tabindex="-1">
+        <header class="management-dialog__header"><h2 id="audit-detail-title">审计详情</h2><button type="button" aria-label="关闭" @click="closeDetail">×</button></header>
+        <div class="management-dialog__body"><dl><dt>对象</dt><dd class="long-text">{{ selected.subject }}</dd><dt>操作者</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>结果</dt><dd>{{ outcomeLabel(selected.outcome) }}</dd><dt>发生时间</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl></div>
+        <footer class="management-dialog__footer"><button type="button" @click="closeDetail">关闭</button></footer>
+      </section>
+    </div>
   </main>
 </template>
 
@@ -112,7 +132,6 @@ label { display: grid; gap: 6px; }
 .table-wrap :is(th, td) { white-space: nowrap; }
 .long-text { max-width: 360px; overflow-wrap: anywhere; white-space: normal; }
 .cleanup { border-top: 1px solid var(--ga-border-light); padding-top: 20px; }
-dialog { width: min(520px, calc(100% - 32px)); border: 1px solid var(--ga-border); border-radius: var(--ga-radius); }
-dl { display: grid; grid-template-columns: 100px 1fr; gap: 10px; }
+dl { display: grid; width: 100%; grid-template-columns: 100px 1fr; gap: 10px; margin: 0; }
 @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } .commands { grid-column: 1 / -1; } .cleanup { align-items: stretch; flex-direction: column; } }
 </style>

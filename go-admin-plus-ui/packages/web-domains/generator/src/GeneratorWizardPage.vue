@@ -20,21 +20,24 @@ const updateNames = (key: 'module'|'entity'|'plural', value: string) => {
   props.controller.setNames(key === 'module' ? value : draft.value.module, key === 'entity' ? value : draft.value.entity, key === 'plural' ? value : draft.value.plural); revision.value += 1
 }
 const updateColumn = (column: ColumnDraft, changes: Partial<Omit<ColumnDraft, 'name'>>) => { props.controller.configureColumn(column.name, changes); revision.value += 1 }
+const restart = () => { props.controller.reset(); selectedFile.value = 0; confirmed.value = false; revision.value += 1 }
+const createPreview = () => settle(async () => { if (await props.controller.createPreview() === 'completed') selectedFile.value = 0 })
 const write = () => settle(async () => { const result = await props.controller.confirmWrite(confirmed.value); if (result !== 'completed') confirmed.value = false })
 onMounted(() => { void settle(() => props.controller.tables.refresh()) })
 </script>
 
 <template>
   <section class="generator-wizard" aria-labelledby="generator-title">
-    <header><div><h1 id="generator-title">代码生成</h1><p>{{ step === 'source' ? '选择数据表' : step === 'configure' ? '配置字段' : step === 'preview' ? '预览代码' : '生成完成' }}</p></div><button v-if="step !== 'source'" type="button" :disabled="controller.busy" @click="controller.reset(); confirmed = false; revision += 1">重新开始</button></header>
+    <header><div><h1 id="generator-title">代码生成</h1><p>{{ step === 'source' ? '选择数据表' : step === 'configure' ? '配置字段' : step === 'preview' ? '预览代码' : '生成完成' }}</p></div><button v-if="step !== 'source'" type="button" :disabled="controller.busy" @click="restart">重新开始</button></header>
     <p v-if="failure" role="alert" :data-failure="failure">代码生成操作未能完成，请检查配置后重试。</p>
 
     <div v-if="step === 'source' && controller.projectionVisible" class="wizard-panel">
       <form class="toolbar" @submit.prevent="settle(() => controller.tables.search({ search }))"><label>数据表<input v-model="search" placeholder="请输入表名"></label><button :disabled="controller.busy">搜索</button><button type="button" :disabled="controller.busy" @click="search = ''; settle(() => controller.tables.reset())">重置</button></form>
       <table><thead><tr><th>Schema</th><th>表名</th><th>操作</th></tr></thead><tbody><tr v-for="table in snapshot.rows" :key="`${table.schema}.${table.name}`"><td>{{ table.schema }}</td><td>{{ table.name }}</td><td><button type="button" :disabled="controller.busy" @click="settle(() => controller.select(table))">配置</button></td></tr></tbody></table>
+      <nav class="pagination" data-testid="generator-table-pagination" aria-label="数据表分页"><span>共 {{ snapshot.total }} 张表</span><button type="button" :disabled="controller.busy || snapshot.page <= 1" @click="settle(() => controller.tables.setPage(snapshot.page - 1))">上一页</button><span>第 {{ snapshot.page }} 页</span><label>每页<select :value="snapshot.pageSize" :disabled="controller.busy" @change="settle(() => controller.tables.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label><button type="button" :disabled="controller.busy || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.tables.setPage(snapshot.page + 1))">下一页</button></nav>
     </div>
 
-    <form v-else-if="step === 'configure' && draft" class="wizard-panel" @submit.prevent="settle(() => controller.createPreview())">
+    <form v-else-if="step === 'configure' && draft" class="wizard-panel" @submit.prevent="createPreview">
       <div class="names"><label>模块<input :value="draft.module" @input="updateNames('module', ($event.target as HTMLInputElement).value)"></label><label>实体<input :value="draft.entity" @input="updateNames('entity', ($event.target as HTMLInputElement).value)"></label><label>复数路由<input :value="draft.plural" @input="updateNames('plural', ($event.target as HTMLInputElement).value)"></label></div>
       <table><thead><tr><th>数据列</th><th>字段</th><th>生成</th><th>搜索</th><th>排序</th></tr></thead><tbody><tr v-for="column in draft.columns" :key="column.name"><td>{{ column.name }}</td><td><input :value="column.field" @input="updateColumn(column, { field: ($event.target as HTMLInputElement).value })"></td><td><input type="checkbox" :checked="column.include" @change="updateColumn(column, { include: ($event.target as HTMLInputElement).checked })"></td><td><input type="checkbox" :checked="column.searchable" :disabled="!column.include" @change="updateColumn(column, { searchable: ($event.target as HTMLInputElement).checked })"></td><td><input type="checkbox" :checked="column.sortable" :disabled="!column.include" @change="updateColumn(column, { sortable: ($event.target as HTMLInputElement).checked })"></td></tr></tbody></table>
       <footer><button type="submit" :disabled="controller.busy">预览</button></footer>
