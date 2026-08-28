@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 
 const removedPaths = [
   'go-admin-ui-plus', 'go-admin-plus/app', 'go-admin-plus/common', 'go-admin-plus/api',
-  'go-admin-plus/internal/tenant', 'go-admin-plus/internal/profile', 'go-admin-plus/cmd/go-admin-desktop'
+  'go-admin-plus/internal/tenant', 'go-admin-plus/internal/profile', 'go-admin-plus/cmd/go-admin-desktop',
+  'go-admin-plus-ui/apps/admin-desktop/src-tauri/src/demo_contract.rs'
 ]
 const forbidden = [
   ['old frontend name', /go-admin-ui-plus/], ['Wails runtime', /\bwails(?:app)?\b/i],

@@ -1854,11 +1854,9 @@ dependencies = [
  "tauri-plugin-shell",
  "tauri-plugin-single-instance",
  "tauri-plugin-stronghold",
- "time",
  "tokio",
  "ureq",
  "url",
- "uuid",
  "zeroize",
 ]
 

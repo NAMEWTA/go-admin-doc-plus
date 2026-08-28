@@ -36,3 +36,12 @@ test('detects removed paths and active compatibility references', () => {
   assert.ok(!failures.some(message => message.includes('go-admin-plus/internal/application/architecture_test.go')))
   assert.ok(!failures.some(message => message.includes('bin/sidecar')))
 })
+
+test('rejects the retired uncompiled Desktop Demo contract', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-compatibility-'))
+  const retired = 'go-admin-plus-ui/apps/admin-desktop/src-tauri/src/demo_contract.rs'
+  mkdirSync(join(root, 'go-admin-plus-ui/apps/admin-desktop/src-tauri/src'), { recursive: true })
+  writeFileSync(join(root, retired), 'pub fn validate_demo_only_contract() {}\n')
+
+  assert.deepEqual(checkCompatibility(root), [`removed path still exists: ${retired}`])
+})
