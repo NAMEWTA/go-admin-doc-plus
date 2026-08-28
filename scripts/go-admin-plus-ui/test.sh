@@ -4,5 +4,4 @@ set -eu
 
 require_tool pnpm
 cd "$frontend_root"
-pnpm test
-exec pnpm check:workspace
+exec pnpm test

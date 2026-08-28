@@ -63,6 +63,90 @@ test('rejects command filters for nonexistent workspace packages', () => {
   ))
 })
 
+test('rejects a root typecheck command that can omit workspace package checks', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workspaceRoot = join(root, 'go-admin-plus-ui')
+  const packageRoot = join(workspaceRoot, 'packages/domains/audit')
+  mkdirSync(packageRoot, { recursive: true })
+  writeFileSync(join(workspaceRoot, 'package.json'), JSON.stringify({
+    name: '@go-admin-plus/workspace',
+    scripts: {
+      typecheck: 'pnpm --filter @go-admin-plus/domain-iam typecheck'
+    }
+  }))
+  writeFileSync(join(packageRoot, 'package.json'), JSON.stringify({
+    name: '@go-admin-plus/domain-audit',
+    scripts: {
+      typecheck: 'tsc -p src/tsconfig.json'
+    }
+  }))
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend root typecheck must recursively run every workspace package typecheck script'
+  ))
+})
+
+test('rejects a frontend test config that can omit workspace package specs', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const testRoot = join(root, 'go-admin-plus-ui/tests/shell')
+  mkdirSync(testRoot, { recursive: true })
+  writeFileSync(join(testRoot, 'vitest.config.ts'), `export default {
+    test: { include: ['packages/domains/iam/src/**/*.spec.ts'] }
+  }\n`)
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend test discovery must include every workspace package spec'
+  ))
+})
+
+test('rejects a frontend test config that omits E2E harness unit specs', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const testRoot = join(root, 'go-admin-plus-ui/tests/shell')
+  mkdirSync(testRoot, { recursive: true })
+  writeFileSync(join(testRoot, 'vitest.config.ts'), `export default {
+    test: { include: ['packages/**/*.spec.ts'] }
+  }\n`)
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend test discovery must include E2E harness unit specs'
+  ))
+})
+
+test('rejects a frontend root test command that omits Node unit test discovery', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workspaceRoot = join(root, 'go-admin-plus-ui')
+  mkdirSync(workspaceRoot, { recursive: true })
+  writeFileSync(join(workspaceRoot, 'package.json'), JSON.stringify({
+    name: '@go-admin-plus/workspace',
+    scripts: {
+      test: 'vitest run --config tests/shell/vitest.config.ts',
+      typecheck: 'pnpm --recursive --if-present typecheck'
+    }
+  }))
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend root test must run Node unit test discovery'
+  ))
+})
+
+test('rejects a root typecheck command that omits an E2E driver project', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workspaceRoot = join(root, 'go-admin-plus-ui')
+  const driverRoot = join(workspaceRoot, 'tests/e2e/audit')
+  mkdirSync(driverRoot, { recursive: true })
+  writeFileSync(join(workspaceRoot, 'package.json'), JSON.stringify({
+    name: '@go-admin-plus/workspace',
+    scripts: {
+      typecheck: 'pnpm --recursive --if-present typecheck'
+    }
+  }))
+  writeFileSync(join(driverRoot, 'tsconfig.json'), '{}\n')
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend root typecheck omits test project tests/e2e/audit/tsconfig.json'
+  ))
+})
+
 test('rejects aggregate local frontend packaging', () => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
   const scriptRoot = join(root, 'scripts/go-admin-plus-ui')

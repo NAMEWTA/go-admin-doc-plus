@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { dirname, extname, join, relative, resolve } from 'node:path'
+import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const commandExtensions = new Set(['.cjs', '.js', '.json', '.md', '.mjs', '.ps1', '.sh', '.ts', '.yaml', '.yml'])
@@ -49,6 +49,8 @@ export const checkArchitecture = root => {
     'go-admin-plus/cmd/config-check/main.go', 'go-admin-plus/cmd/migrate/main.go',
     'go-admin-plus/internal/app/product/registry.go', 'go-admin-plus/internal/modules',
     'go-admin-plus-ui/package.json', 'go-admin-plus-ui/pnpm-workspace.yaml',
+    'go-admin-plus-ui/tests/shell/vitest.config.ts',
+    'go-admin-plus-ui/tests/shell/node-tests.mjs',
     'go-admin-plus-ui/apps/admin-web/package.json',
     'go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json',
     'scripts/go-admin-plus-ui/package.sh',
@@ -65,9 +67,17 @@ export const checkArchitecture = root => {
   }
 
   const frontendManifestPath = join(root, 'go-admin-plus-ui/package.json')
+  let frontendManifest
   if (existsSync(frontendManifestPath)) {
-    const name = JSON.parse(readFileSync(frontendManifestPath, 'utf8')).name
-    if (name !== canonicalWorkspaceName) failures.push(`frontend workspace name must be ${canonicalWorkspaceName}`)
+    frontendManifest = JSON.parse(readFileSync(frontendManifestPath, 'utf8'))
+    if (frontendManifest.name !== canonicalWorkspaceName) failures.push(`frontend workspace name must be ${canonicalWorkspaceName}`)
+    const firstTypecheckCommand = frontendManifest.scripts?.typecheck?.split('&&', 1)[0]?.trim()
+    if (firstTypecheckCommand !== 'pnpm --recursive --if-present typecheck') {
+      failures.push('frontend root typecheck must recursively run every workspace package typecheck script')
+    }
+    if (!frontendManifest.scripts?.test?.includes('node tests/shell/node-tests.mjs')) {
+      failures.push('frontend root test must run Node unit test discovery')
+    }
   }
 
   const specDevConfigPath = join(root, 'speculo/.speculo/specdev/config.json')
@@ -124,6 +134,25 @@ export const checkArchitecture = root => {
     const workspace = readFileSync(workspacePath, 'utf8')
     for (const pattern of ['apps/*', 'packages/*', 'packages/adapters/*', 'packages/domains/*', 'packages/web-domains/*']) {
       if (!workspace.includes(pattern)) failures.push(`workspace does not declare ${pattern}`)
+    }
+  }
+  const frontendTestConfigPath = join(root, 'go-admin-plus-ui/tests/shell/vitest.config.ts')
+  if (existsSync(frontendTestConfigPath)) {
+    const config = readFileSync(frontendTestConfigPath, 'utf8')
+    if (!/['"]packages\/\*\*\/\*\.spec\.ts['"]/.test(config)) {
+      failures.push('frontend test discovery must include every workspace package spec')
+    }
+    if (!/['"]tests\/e2e\/\*\*\/\*\.spec\.ts['"]/.test(config)) {
+      failures.push('frontend test discovery must include E2E harness unit specs')
+    }
+  }
+  if (frontendManifest) {
+    const frontendRoot = join(root, 'go-admin-plus-ui')
+    const typecheck = frontendManifest.scripts?.typecheck ?? ''
+    const testProjects = commandFiles(join(frontendRoot, 'tests')).filter(path => basename(path) === 'tsconfig.json')
+    for (const project of testProjects) {
+      const projectPath = relative(frontendRoot, project).replaceAll('\\', '/')
+      if (!typecheck.includes(projectPath)) failures.push(`frontend root typecheck omits test project ${projectPath}`)
     }
   }
   return failures
