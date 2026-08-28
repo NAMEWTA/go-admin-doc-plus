@@ -17,19 +17,28 @@ const commandFiles = directory => {
   })
 }
 
-const workspacePackageNames = root => {
+const workspacePackages = root => {
   const workspaceRoot = join(root, 'go-admin-plus-ui')
-  const names = new Set()
-  const rootManifest = join(workspaceRoot, 'package.json')
-  if (existsSync(rootManifest)) names.add(JSON.parse(readFileSync(rootManifest, 'utf8')).name)
+  const packages = []
   for (const packageRoot of ['apps', 'packages', 'packages/adapters', 'packages/domains', 'packages/web-domains']) {
     const directory = join(workspaceRoot, packageRoot)
     if (!existsSync(directory)) continue
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const manifest = join(directory, entry.name, 'package.json')
-      if (entry.isDirectory() && existsSync(manifest)) names.add(JSON.parse(readFileSync(manifest, 'utf8')).name)
+      const packageDirectory = join(directory, entry.name)
+      const manifestPath = join(packageDirectory, 'package.json')
+      if (entry.isDirectory() && existsSync(manifestPath)) {
+        packages.push({ directory: packageDirectory, manifest: JSON.parse(readFileSync(manifestPath, 'utf8')) })
+      }
     }
   }
+  return packages
+}
+
+const workspacePackageNames = root => {
+  const workspaceRoot = join(root, 'go-admin-plus-ui')
+  const names = new Set(workspacePackages(root).map(({ manifest }) => manifest.name))
+  const rootManifest = join(workspaceRoot, 'package.json')
+  if (existsSync(rootManifest)) names.add(JSON.parse(readFileSync(rootManifest, 'utf8')).name)
   return names
 }
 
@@ -89,6 +98,14 @@ export const checkArchitecture = root => {
     }
     if (!frontendManifest.scripts?.test?.includes('node tests/shell/node-tests.mjs')) {
       failures.push('frontend root test must run Node unit test discovery')
+    }
+  }
+
+  for (const { directory, manifest } of workspacePackages(root)) {
+    if (!manifest.scripts?.typecheck) failures.push(`${manifest.name} must declare a typecheck script`)
+    const ownsSpecs = commandFiles(directory).some(path => /\.spec\.[cm]?[jt]sx?$/.test(path))
+    if (ownsSpecs && !manifest.scripts?.test) {
+      failures.push(`${manifest.name} owns package specs and must declare a test script`)
     }
   }
 

@@ -86,6 +86,35 @@ test('rejects a root typecheck command that can omit workspace package checks', 
   ))
 })
 
+test('rejects a workspace package without an independent typecheck contract', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const packageRoot = join(root, 'go-admin-plus-ui/packages/platform')
+  mkdirSync(join(packageRoot, 'src'), { recursive: true })
+  writeFileSync(join(packageRoot, 'package.json'), JSON.stringify({
+    name: '@go-admin-plus/platform'
+  }))
+  writeFileSync(join(packageRoot, 'src/index.ts'), 'export type Runtime = "web" | "desktop"\n')
+
+  assert.ok(checkArchitecture(root).includes(
+    '@go-admin-plus/platform must declare a typecheck script'
+  ))
+})
+
+test('rejects a workspace package spec without an independent test contract', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const packageRoot = join(root, 'go-admin-plus-ui/packages/adapters/desktop')
+  mkdirSync(join(packageRoot, 'src'), { recursive: true })
+  writeFileSync(join(packageRoot, 'package.json'), JSON.stringify({
+    name: '@go-admin-plus/adapter-desktop',
+    scripts: { typecheck: 'tsc --noEmit -p tsconfig.json' }
+  }))
+  writeFileSync(join(packageRoot, 'src/index.spec.ts'), 'export {}\n')
+
+  assert.ok(checkArchitecture(root).includes(
+    '@go-admin-plus/adapter-desktop owns package specs and must declare a test script'
+  ))
+})
+
 test('rejects a frontend test config that can omit workspace package specs', () => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
   const testRoot = join(root, 'go-admin-plus-ui/tests/shell')

@@ -6,9 +6,17 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "test": "vitest run src",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@go-admin-plus/domain-iam": "workspace:*",
     "@go-admin-plus/platform": "workspace:*",
     "@tauri-apps/api": "2.11.1"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
