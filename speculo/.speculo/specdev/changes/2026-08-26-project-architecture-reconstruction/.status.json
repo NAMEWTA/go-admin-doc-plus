@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T19:48:29+08:00",
+  "updated_at": "2026-08-28T20:24:13+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -493,6 +493,16 @@
       "approved_at": "2026-08-28T19:48:29+08:00",
       "reason": "The final repository audit proved the backend still declared the pre-reconstruction short module path go-admin and all internal imports retained it, while AC-029 explicitly requires old module paths to reach zero and compatibility-zero did not scan .mod files or reject that path",
       "resolution": "Adopt github.com/NAMEWTA/go-admin-plus/go-admin-plus as the canonical backend module, mechanically migrate every current source, test, fixture, and Generator template import, document and assert the exact declaration, scan .mod files, and reject both historical declarations and imports without adding aliases, replace directives, compatibility shims, or product behavior changes"
+    },
+    {
+      "id": "T21-D08",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T20:24:13+08:00",
+      "reason": "The final cross-language naming audit proved all pnpm workspace packages, lock importers, source imports, task and release filters, OpenAPI generation, and Generator templates retained the historical @go-admin/* scope despite the no-compatibility product rename and canonical @go-admin-plus/workspace identity",
+      "resolution": "Atomically migrate every active workspace package and consumer to @go-admin-plus/*, make the frontend generation wrapper delegate the single root OpenAPI generator instead of a nonexistent package, assert the exact workspace and package scope, and reject the historical scope without aliases, dual scopes, compatibility shims, or behavior changes"
     }
   ],
   "worktrees": [
