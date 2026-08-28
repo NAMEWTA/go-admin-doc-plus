@@ -27,13 +27,19 @@ done
 actual=$(mktemp "${TMPDIR:-/tmp}/go-admin-governance.XXXXXX")
 trap 'rm -f "$actual"' EXIT HUP INT TERM
 
-find "$backend_root" "$repo_root/go-admin-plus-ui" \
-  \( -name node_modules -o -name dist -o -name target -o -name coverage -o -name .git -o \
-    -path '*/.husky/_' \) -prune -o \
+find "$repo_root" \
+  \( -path "$repo_root/.git" -o -path "$repo_root/.github" -o -path "$repo_root/.husky" -o \
+    -path "$repo_root/.agents" -o -path "$repo_root/.artifacts" -o -path "$repo_root/.data" -o \
+    -path "$repo_root/speculo" -o -name node_modules -o -name dist -o -name target -o -name coverage \) -prune -o \
   -type f \( -path '*/.github/*' -o -path '*/.husky/*' -o \
     -name .gitignore -o -name .gitattributes -o -name .editorconfig -o \
     -name .dockerignore -o -name Makefile -o -name 'Dockerfile*' -o \
-    -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' \) -print >"$actual"
+    -name 'docker-compose*.yml' -o -name 'docker-compose*.yaml' \) \
+  ! -path "$repo_root/.gitignore" ! -path "$repo_root/.gitattributes" \
+  ! -path "$repo_root/.editorconfig" ! -path "$repo_root/.dockerignore" \
+  ! -path "$repo_root/Makefile" ! -path "$repo_root/Dockerfile" \
+  ! -path "$repo_root/docker-compose.yml" ! -path "$repo_root/docker-compose.yaml" \
+  -print >"$actual"
 
 if test -s "$actual"; then
   sed "s|^$repo_root/||" "$actual" >&2

@@ -26,6 +26,11 @@ specdev-candidate/
 speculo/.speculo/back/
 /.data/
 
+# Deployment runtime and secrets
+/deploy/compose/runtime/*
+!/deploy/compose/runtime/secrets/
+/deploy/compose/runtime/secrets/*
+
 # Backend runtime and local configuration
 /go-admin-plus/vendor/
 *.sqlite3
