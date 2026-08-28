@@ -8,6 +8,7 @@ import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
+import { nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
@@ -42,8 +43,6 @@ const qualifyCommandFailure = (error, phase) => error instanceof Error && error.
   : error instanceof Error && error.message.startsWith('desktop native accessibility ')
     ? new Error(`desktop native ${phase} failed: ${error.message}`)
   : error
-const nativeDiagnostic = output => [...output.matchAll(/^(?:desktop native (?:startup|login|logout|request|identity) failed: [A-Za-z ]{1,96}|desktop native identity state: (?:vault empty|remote unauthenticated|unauthenticated)|desktop native logout state: (?:started|remote-complete|vault-cleared|command-complete))$/gm)].at(-1)?.[0]
-
 const keyringExists = (service, account) => new Promise((resolveKeyring, rejectKeyring) => {
   const child = spawn('/usr/bin/security', ['find-generic-password', '-s', service, '-a', account], { stdio: 'ignore' })
   child.once('error', () => rejectKeyring(new Error('macOS credential store unavailable')))
@@ -491,10 +490,9 @@ const main = async () => {
       throw new Error('native E2E created a production credential')
     }
   } catch (error) {
-    const diagnostic = app && nativeDiagnostic(app.output())
-    failure = diagnostic
-      ? new Error(diagnostic)
-      : qualifyCommandFailure(error, phase)
+    failure = error instanceof Error && error.message.startsWith('desktop native command ')
+      ? qualifyCommandFailure(error, phase)
+      : nativePhaseFailure(phase, app?.output() ?? '')
   } finally {
     const cleanups = [
       async () => {

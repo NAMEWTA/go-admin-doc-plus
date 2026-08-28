@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
+import { nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
@@ -32,7 +33,23 @@ test('native runner accessibility labels match the current Session UI', () => {
 test('native runner stops polling after an early host exit', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   assert.match(runner, /const windowContains = async \(pid, value\) => \{\n  if \(!processIsAlive\(pid\)\) throw new Error\('native host exited before UI observation'\)/)
-  assert.match(runner, /desktop native identity state/)
+  assert.match(runner, /nativePhaseFailure\(phase, app\?\.output\(\) \?\? ''\)/)
+})
+
+test('native diagnostics preserve the failing phase and ignore state transitions', () => {
+  const output = [
+    'desktop native identity state: vault empty',
+    'desktop native identity state: unauthenticated',
+  ].join('\n')
+  assert.equal(nativeFailureDiagnostic(output), undefined)
+  assert.equal(nativePhaseFailure('session-revocation', output).message, 'desktop native session-revocation failed')
+
+  const failed = `${output}\ndesktop native login failed: desktop login rejected\n`
+  assert.equal(nativeFailureDiagnostic(failed), 'desktop native login failed: desktop login rejected')
+  assert.equal(
+    nativePhaseFailure('login-workspace', failed).message,
+    'desktop native login-workspace failed: desktop native login failed: desktop login rejected'
+  )
 })
 
 test('native runner verifies SQLite only while the sidecar is stopped', () => {
