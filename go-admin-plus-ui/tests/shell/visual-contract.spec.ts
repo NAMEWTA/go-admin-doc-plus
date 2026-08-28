@@ -41,6 +41,9 @@ describe('admin visual contract', () => {
     for (const selector of ['.toolbar', '.filters', '.editor', '.pagination', '[data-action="delete"]']) {
       expect(theme).toContain(selector)
     }
+    for (const selector of ['.management-toolbar', '.management-dialog-backdrop', '.management-dialog__header', '.management-dialog__body', '.management-dialog__footer']) {
+      expect(theme).toContain(selector)
+    }
     expect(web).toContain("@go-admin/ui/admin-theme.css")
     expect(desktop).toContain("@go-admin/ui/admin-theme.css")
     expect(uiManifest).toContain('"./admin-theme.css"')
@@ -83,5 +86,50 @@ describe('admin visual contract', () => {
     expect(login).toContain('http://localhost:5173')
     expect(login).not.toContain('http://localhost:3000')
     expect(login).not.toMatch(/captcha|验证码|uuid/i)
+  })
+
+  it('keeps management creation and editing in explicit dialogs', async () => {
+    const pages = await Promise.all([
+      source('packages/web-domains/iam/src/administration/AdministrationPage.vue'),
+      source('packages/web-domains/organization/src/OrganizationPage.vue'),
+      source('packages/web-domains/demo/src/DemoProductsPage.vue'),
+      source('packages/web-domains/settings/src/SettingsPage.vue'),
+      source('packages/web-domains/scheduler/src/SchedulerPage.vue')
+    ])
+
+    const openControls = [
+      'open-create-user',
+      'open-create-department',
+      'open-product-form',
+      'open-setting-form',
+      'open-scheduler-definition-form'
+    ]
+    pages.forEach((page, index) => {
+      expect(page).toContain(`data-testid="${openControls[index]}"`)
+      expect(page).toContain('management-dialog-backdrop')
+      expect(page).toContain('role="dialog"')
+      expect(page).not.toMatch(/class="[^"]*\beditor\b[^"]*"/)
+    })
+  })
+
+  it('keeps paused browser and desktop drivers synchronized with localized UI labels', async () => {
+    const [iam, organization, scheduler, audit, desktop] = await Promise.all([
+      source('tests/e2e/iam/administration/browser-driver.ts'),
+      source('tests/e2e/organization/browser-driver.ts'),
+      source('tests/e2e/scheduler/browser-driver.ts'),
+      source('tests/e2e/audit/browser-driver.ts'),
+      source('tests/e2e/desktop/run.mjs')
+    ])
+
+    expect(iam).toContain("users: '用户管理'")
+    expect(organization).toContain("openTab('部门管理'")
+    expect(scheduler).toContain("button.textContent === '执行记录'")
+    expect(audit).toContain("includes('会话已失效，请重新登录')")
+    for (const label of ['账号', '密码', '登录', '产品示例', '退出登录']) expect(desktop).toContain(`'${label}'`)
+
+    const drivers = [iam, organization, scheduler, audit, desktop].join('\n')
+    for (const staleLabel of ["'Users'", "'Departments'", "'Executions'", "'Sign in again'", "'Sign out'"]) {
+      expect(drivers).not.toContain(staleLabel)
+    }
   })
 })

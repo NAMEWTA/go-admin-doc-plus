@@ -105,13 +105,13 @@ onMounted(() => settle(() => props.controller.list.refresh()))
         <table>
           <thead><tr><th v-if="canDelete" scope="col">选择</th><th scope="col">文件名称</th><th scope="col">类型</th><th scope="col">大小</th><th scope="col">更新时间</th><th scope="col">操作</th></tr></thead>
           <tbody><tr v-for="row in snapshot.rows" :key="row.id" :data-file-id="row.id">
-            <td v-if="canDelete"><input type="checkbox" :checked="snapshot.selectedKeys.includes(row.id)" :aria-label="`Select ${row.originalName}`" :disabled="blocked" @change="toggle(row, ($event.target as HTMLInputElement).checked)"></td>
+            <td v-if="canDelete"><input type="checkbox" :checked="snapshot.selectedKeys.includes(row.id)" :aria-label="`选择 ${row.originalName}`" :disabled="blocked" @change="toggle(row, ($event.target as HTMLInputElement).checked)"></td>
             <td>{{ row.originalName }}</td><td>{{ row.mediaType }}</td><td>{{ row.sizeBytes }}</td><td>{{ row.updatedAt }}</td>
             <td><button type="button" :disabled="blocked" @click="download(row)">下载</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove([row])">删除</button></td>
           </tr></tbody>
         </table>
       </div>
-      <nav aria-label="Pagination">
+      <nav aria-label="分页">
         <button type="button" :disabled="blocked || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">上一页</button>
         <span>第 {{ snapshot.page }} 页</span>
         <label>每页<select :value="snapshot.pageSize" :disabled="blocked" @change="settle(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label>

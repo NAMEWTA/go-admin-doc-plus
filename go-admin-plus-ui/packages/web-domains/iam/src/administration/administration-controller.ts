@@ -242,8 +242,8 @@ export const createUserAndClearPassword = async (controller: AdministrationContr
   finally { clear() }
 }
 
-export const settleAdministrationPageOperation = async (operation: () => Promise<unknown>, settled: () => void): Promise<void> => {
-  try { await operation() }
+export const settleAdministrationPageOperation = async <T>(operation: () => Promise<T>, settled: () => void): Promise<T | undefined> => {
+  try { return await operation() }
   catch { /* The controller owns stable failure classification; page operations must settle. */ }
   finally { settled() }
 }

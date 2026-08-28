@@ -251,7 +251,7 @@ const pollRestoredIdentity = async (pid, timeout = 90_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
     if (await windowContains(pid, 'Administrator')) return
-    if (await windowContains(pid, 'Sign in')) throw new Error('Stronghold session was not restored')
+    if (await windowContains(pid, '使用管理员账号登录控制台')) throw new Error('Stronghold session was not restored')
     if (await windowContains(pid, '服务暂不可用')) throw new Error('Stronghold identity restore was unavailable')
     await delay(100)
   }
@@ -299,27 +299,27 @@ const stopApp = async owner => {
 }
 
 const login = (pid, username, password) => runAppleScript(fillAndClickScript(pid, [
-  { name: 'Username', value: username },
-  { name: 'Password', value: password }
-], 'Sign in'))
+  { name: '账号', value: username },
+  { name: '密码', value: password }
+], '登录'))
 
 const createProduct = pid => runAppleScript(fillAndClickScript(pid, [
   { name: 'SKU', value: 'E2E-001' },
-  { name: 'Name', value: 'Native product' },
-  { name: 'Description', role: 'AXTextArea', value: 'created through the native window' },
-  { name: 'Price', value: '1250' }
-], 'Save'))
+  { name: '名称', value: 'Native product' },
+  { name: '描述', role: 'AXTextArea', value: 'created through the native window' },
+  { name: '价格（分）', value: '1250' }
+], '保存'))
 
 const updateProduct = async pid => {
-  await runAppleScript(clickButtonScript(pid, 'Edit'))
+  await runAppleScript(clickButtonScript(pid, '修改'))
   await runAppleScript(fillAndClickScript(pid, [
-    { name: 'Name', value: 'Native product updated' }
-  ], 'Save'))
+    { name: '名称', value: 'Native product updated' }
+  ], '保存'))
 }
 
-const deleteProduct = pid => clickButton(pid, 'Delete E2E-001')
+const deleteProduct = pid => clickButton(pid, '删除 E2E-001')
 
-const logout = pid => runAppleScript(clickButtonScript(pid, 'Sign out'))
+const logout = pid => runAppleScript(clickButtonScript(pid, '退出登录'))
 
 const clickButton = (pid, name) => runAppleScript(clickButtonScript(pid, name))
 
@@ -394,39 +394,39 @@ const main = async () => {
     await execute('go', ['run', './test/desktop/fixture', '--root', liveRoot, '--mode', 'previous'], { cwd: goRoot })
     phase = 'login-window'
     app = startTracked(binary, liveRoot, liveKeyring)
-    await poll('native login window', () => windowContains(app.child.pid, 'Sign in'), 90_000)
+    await poll('native login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'), 90_000)
     phase = 'login-submit'
     await login(app.child.pid, 'admin', fixturePassword)
     phase = 'login-workspace'
     await poll('native authenticated workspace', () => windowContains(app.child.pid, 'Administrator'))
     phase = 'login-navigation'
-    await poll('native Demo navigation', () => windowContains(app.child.pid, 'Demo products'))
-    await clickButton(app.child.pid, 'Demo products')
+    await poll('native Demo navigation', () => windowContains(app.child.pid, '产品示例'))
+    await clickButton(app.child.pid, '产品示例')
     phase = 'login-demo'
-    await poll('native Demo page', () => windowContains(app.child.pid, 'Products'))
+    await poll('native Demo page', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'login-boundary'
     await pollBoundary(app.child.pid)
     phase = 'scope-authorization'
     await clickButton(app.child.pid, 'E2E scope self')
     await pollControl(app.child.pid, 'self scope ownership enforced', 'E2E self scope enforced')
-    await poll('self scope capability retained', () => windowContains(app.child.pid, 'Products'))
+    await poll('self scope capability retained', () => windowContains(app.child.pid, '产品搜索'))
     await clickButton(app.child.pid, 'E2E scope all')
     await pollControl(app.child.pid, 'all scope visibility restored', 'E2E all scope restored')
-    await poll('all scope capability restored', () => windowContains(app.child.pid, 'Products'))
+    await poll('all scope capability restored', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'permission-authorization'
     await clickButton(app.child.pid, 'E2E permissions off')
     await pollControl(app.child.pid, 'revoked permission request denied', 'E2E authorization denied')
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
     await clickButton(app.child.pid, 'E2E permissions on')
-    await poll('permission capability restored', () => windowContains(app.child.pid, 'Products'))
+    await poll('permission capability restored', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'session-revocation'
     await clickButton(app.child.pid, 'E2E revoke session')
-    await poll('session revoke requires login', () => windowContains(app.child.pid, 'Sign in'))
+    await poll('session revoke requires login', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
     await login(app.child.pid, 'admin', fixturePassword)
     await poll('native authenticated workspace after relogin', () => windowContains(app.child.pid, 'Administrator'))
-    await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, 'Demo products'))
-    await clickButton(app.child.pid, 'Demo products')
-    await poll('native Demo page after relogin', () => windowContains(app.child.pid, 'Products'))
+    await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
+    await clickButton(app.child.pid, '产品示例')
+    await poll('native Demo page after relogin', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'single-instance'
     const firstSidecar = await newSidecarPid(sidecarBaseline)
     await assertLoopbackOnly(firstSidecar)
@@ -441,11 +441,12 @@ const main = async () => {
     if (await windowCount(second.child.pid) !== 0 || await windowCount(app.child.pid) !== firstWindowCount) {
       throw new Error('second native instance created an additional window')
     }
-    if (!(await windowContains(app.child.pid, 'Products'))) throw new Error('first native instance stopped serving after duplicate launch')
+    if (!(await windowContains(app.child.pid, '产品搜索'))) throw new Error('first native instance stopped serving after duplicate launch')
     if (await newSidecarPid(sidecarBaseline) !== firstSidecar) throw new Error('second native instance spawned another sidecar')
     phase = 'product-create'
-    await poll('native product form', () => windowContains(app.child.pid, 'Create product'))
-    await poll('native product save control', () => windowContains(app.child.pid, 'Save'))
+    await clickButton(app.child.pid, '新增')
+    await poll('native product form', () => windowContains(app.child.pid, '新增产品'))
+    await poll('native product save control', () => windowContains(app.child.pid, '保存'))
     await createProduct(app.child.pid)
     await poll('native product create', () => windowContains(app.child.pid, 'E2E-001'))
     phase = 'product-update'
@@ -462,9 +463,9 @@ const main = async () => {
     phase = 'stronghold-restart'
     app = startTracked(binary, liveRoot, liveKeyring)
     await pollRestoredIdentity(app.child.pid)
-    await poll('Stronghold Demo navigation', () => windowContains(app.child.pid, 'Demo products'))
-    await clickButton(app.child.pid, 'Demo products')
-    await poll('Stronghold session restart', () => windowContains(app.child.pid, 'Products'))
+    await poll('Stronghold Demo navigation', () => windowContains(app.child.pid, '产品示例'))
+    await clickButton(app.child.pid, '产品示例')
+    await poll('Stronghold session restart', () => windowContains(app.child.pid, '产品搜索'))
     await pollBoundary(app.child.pid)
     await poll('SQLite product restart', () => windowContains(app.child.pid, 'Native product updated'))
     phase = 'product-delete'
@@ -472,16 +473,16 @@ const main = async () => {
     await poll('native product delete', async () => !(await windowContains(app.child.pid, 'E2E-001')))
     phase = 'logout-navigation'
     await clickButton(app.child.pid, 'Administrator')
-    await poll('native account page', () => windowContains(app.child.pid, 'Sign out'))
+    await poll('native account page', () => windowContains(app.child.pid, '退出登录'))
     phase = 'logout'
     await logout(app.child.pid)
-    await poll('native logout', () => windowContains(app.child.pid, 'Sign in'), 90_000)
+    await poll('native logout', () => windowContains(app.child.pid, '使用管理员账号登录控制台'), 90_000)
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
     phase = 'logout-restart'
     app = startTracked(binary, liveRoot, liveKeyring)
-    await poll('logout persistence after restart', () => windowContains(app.child.pid, 'Sign in'), 90_000)
-    if (await windowContains(app.child.pid, 'Products')) throw new Error('logout left a restartable desktop session')
+    await poll('logout persistence after restart', () => windowContains(app.child.pid, '使用管理员账号登录控制台'), 90_000)
+    if (await windowContains(app.child.pid, '产品搜索')) throw new Error('logout left a restartable desktop session')
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
     await deleteTestKeyring(liveKeyring)

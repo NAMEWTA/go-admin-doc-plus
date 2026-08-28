@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { SchedulerRequestError, type Definition, type SchedulerClient } from '@go-admin/domain-scheduler'
-import { createSchedulerController } from './scheduler-controller'
+import { createSchedulerController, settleSchedulerPageOperation } from './scheduler-controller'
 
 const taskTypes = [{ key: 'reports.daily', label: 'Daily', fields: [{ name: 'name', label: 'Name', kind: 'string' as const, required: true }] }]
 const definition: Definition = { id: '00000000-0000-4000-8000-000000000001', name: 'Daily', taskType: 'reports.daily', schedule: { minutes: [0], hours: [1], daysOfMonth: [], months: [1], weekdays: [] }, parameters: { name: 'sales' }, enabled: false, revision: 1, createdAt: '2026-08-27T00:00:00Z', updatedAt: '2026-08-27T00:00:00Z' }
@@ -10,6 +10,14 @@ const client = (): SchedulerClient => ({
 })
 
 describe('scheduler controller', () => {
+  it('returns a completed page operation result while always settling', async () => {
+    const settled = vi.fn()
+
+    await expect(settleSchedulerPageOperation(async () => 'completed' as const, settled)).resolves.toBe('completed')
+    await expect(settleSchedulerPageOperation(async () => { throw new Error('handled by controller') }, settled)).resolves.toBeUndefined()
+    expect(settled).toHaveBeenCalledTimes(2)
+  })
+
   it('blocks repeated mutations after write success until projection repair', async () => {
     const api = client(); let calls = 0
     vi.mocked(api.listDefinitions).mockImplementation(async () => { calls += 1; if (calls === 2) throw new SchedulerRequestError('unavailable'); return { rows: [definition], total: 1 } })

@@ -11,6 +11,9 @@ const filters = reactive({ search: '' })
 const user = reactive<CreateUserModel>({ username: '', displayName: '', email: '', password: '' })
 const role = reactive<CreateRoleModel>({ key: '', name: '', dataScope: 'self' })
 const menu = reactive({ key: '', label: '', path: '', permissionCode: '', sortOrder: 0 })
+const createUserOpen = ref(false)
+const createRoleOpen = ref(false)
+const createMenuOpen = ref(false)
 const editedUser = ref<User | null>(null)
 const editedRole = ref<Role | null>(null)
 const editedMenu = ref<Menu | null>(null)
@@ -33,28 +36,69 @@ const surfaceFailure = () => {
           : failure === 'unavailable' ? '管理服务暂时不可用。' : ''
   if (failure === 'relogin') emit('sessionRequired')
 }
-const run = (operation: () => Promise<unknown>) => settleAdministrationPageOperation(operation, () => {
+const run = <T>(operation: () => Promise<T>) => settleAdministrationPageOperation(operation, () => {
   surfaceFailure(); revision.value += 1
 })
+const closeUserEditor = () => { editedUser.value = null; assignedRoles.value = []; replacementPassword.value = '' }
+const closeRoleEditor = () => { editedRole.value = null; grantedPermissions.value = []; grantedMenus.value = [] }
+const closeMenuEditor = () => { editedMenu.value = null }
+const resetUserForm = () => { Object.assign(user, { username: '', displayName: '', email: '', password: '' }) }
+const openCreateUser = () => { resetUserForm(); createUserOpen.value = true }
+const closeCreateUser = () => { createUserOpen.value = false; resetUserForm() }
+const resetRoleForm = () => { Object.assign(role, { key: '', name: '', dataScope: 'self' }) }
+const openCreateRole = () => { resetRoleForm(); createRoleOpen.value = true }
+const closeCreateRole = () => { createRoleOpen.value = false; resetRoleForm() }
+const resetMenuForm = () => { Object.assign(menu, { key: '', label: '', path: '', permissionCode: '', sortOrder: 0 }) }
+const openCreateMenu = () => { resetMenuForm(); createMenuOpen.value = true }
+const closeCreateMenu = () => { createMenuOpen.value = false; resetMenuForm() }
+const closeDialogs = () => {
+  closeCreateUser(); closeCreateRole(); closeCreateMenu()
+  closeUserEditor(); closeRoleEditor(); closeMenuEditor()
+}
+const switchTab = (value: 'users' | 'roles' | 'menus') => { closeDialogs(); tab.value = value }
 const search = () => run(() => props.controller.users.search({ ...filters }))
 const reset = () => run(async () => { filters.search = ''; await props.controller.users.reset() })
-const submitUser = () => run(() => createUserAndClearPassword(props.controller, { ...user }, () => { user.password = '' }))
-const submitRole = () => run(() => props.controller.createRole.run({ ...role }))
-const submitMenu = () => run(() => props.controller.createMenu.run({ ...menu }))
+const submitUser = async () => {
+  const result = await run(() => createUserAndClearPassword(props.controller, { ...user }, () => { user.password = '' }))
+  if (result === 'submitted') closeCreateUser()
+}
+const submitRole = async () => {
+  const result = await run(() => props.controller.createRole.run({ ...role }))
+  if (result === 'submitted') closeCreateRole()
+}
+const submitMenu = async () => {
+  const result = await run(() => props.controller.createMenu.run({ ...menu }))
+  if (result === 'submitted') closeCreateMenu()
+}
 const editUser = (value: User) => { editedUser.value = { ...value, roleIds: [...value.roleIds] }; assignedRoles.value = [...value.roleIds]; replacementPassword.value = '' }
-const saveUser = () => editedUser.value && run(() => props.controller.updateUser(editedUser.value!, !editedUser.value!.disabled))
+const saveUser = async () => {
+  if (!editedUser.value) return
+  if (await run(() => props.controller.updateUser(editedUser.value!, !editedUser.value!.disabled)) === 'completed') closeUserEditor()
+}
 const toggleUser = (value: User) => run(() => props.controller.updateUser(value, value.disabled))
 const deleteUser = (value: User) => run(() => props.controller.deleteUsers.run([value.id]))
-const saveUserRoles = () => editedUser.value && run(() => props.controller.setUserRoles(editedUser.value!.id, assignedRoles.value))
+const saveUserRoles = async () => {
+  if (!editedUser.value) return
+  if (await run(() => props.controller.setUserRoles(editedUser.value!.id, assignedRoles.value)) === 'completed') closeUserEditor()
+}
 const resetPassword = async () => {
   if (!editedUser.value) return
-  await run(() => resetPasswordAndClear(props.controller, editedUser.value!.id, replacementPassword.value, () => { replacementPassword.value = '' }))
+  if (await run(() => resetPasswordAndClear(props.controller, editedUser.value!.id, replacementPassword.value, () => { replacementPassword.value = '' })) === 'completed') closeUserEditor()
 }
 const editRole = (value: Role) => { editedRole.value = { ...value, permissionCodes: [...value.permissionCodes], menuIds: [...value.menuIds] }; grantedPermissions.value = [...value.permissionCodes]; grantedMenus.value = [...value.menuIds] }
-const saveRole = () => editedRole.value && run(() => props.controller.updateRole(editedRole.value!))
-const saveRoleGrants = () => editedRole.value && run(() => props.controller.setRoleGrants(editedRole.value!.id, grantedPermissions.value, grantedMenus.value))
+const saveRole = async () => {
+  if (!editedRole.value) return
+  if (await run(() => props.controller.updateRole(editedRole.value!)) === 'completed') closeRoleEditor()
+}
+const saveRoleGrants = async () => {
+  if (!editedRole.value) return
+  if (await run(() => props.controller.setRoleGrants(editedRole.value!.id, grantedPermissions.value, grantedMenus.value)) === 'completed') closeRoleEditor()
+}
 const editMenu = (value: Menu) => { editedMenu.value = { ...value } }
-const saveMenu = () => editedMenu.value && run(() => props.controller.updateMenu(editedMenu.value!))
+const saveMenu = async () => {
+  if (!editedMenu.value) return
+  if (await run(() => props.controller.updateMenu(editedMenu.value!)) === 'completed') closeMenuEditor()
+}
 const selectUser = (checked: boolean, row: typeof users.value.rows[number]) => {
   const selected = new Set(users.value.selectedKeys)
   if (checked) selected.add(row.id); else selected.delete(row.id)
@@ -65,7 +109,7 @@ onMounted(() => run(async () => {
   if (can('iam.users.read')) await props.controller.users.refresh()
   if (!can(`iam.${tab.value}.read`)) tab.value = can('iam.roles.read') ? 'roles' : 'menus'
 }))
-onBeforeUnmount(() => { user.password = ''; replacementPassword.value = '' })
+onBeforeUnmount(() => { closeDialogs(); user.password = ''; replacementPassword.value = '' })
 </script>
 
 <template>
@@ -74,7 +118,7 @@ onBeforeUnmount(() => { user.password = ''; replacementPassword.value = '' })
     <p v-if="failureMessage" role="alert">{{ failureMessage }}</p>
     <button v-if="controller.hasPendingRepair()" type="button" data-testid="repair-projection" :disabled="controller.busy" @click="run(() => controller.repairProjection())">刷新已保存数据</button>
     <nav class="tabs" aria-label="用户与权限管理视图">
-      <button v-for="value in (['users', 'roles', 'menus'] as const).filter((item) => can(`iam.${item}.read`))" :key="value" type="button" :aria-pressed="tab === value" @click="tab = value">{{ value === 'users' ? '用户管理' : value === 'roles' ? '角色管理' : '菜单管理' }}</button>
+      <button v-for="value in (['users', 'roles', 'menus'] as const).filter((item) => can(`iam.${item}.read`))" :key="value" type="button" :aria-pressed="tab === value" @click="switchTab(value)">{{ value === 'users' ? '用户管理' : value === 'roles' ? '角色管理' : '菜单管理' }}</button>
     </nav>
 
     <section v-if="tab === 'users' && can('iam.users.read')" aria-labelledby="users-heading">
@@ -82,31 +126,46 @@ onBeforeUnmount(() => { user.password = ''; replacementPassword.value = '' })
       <form class="toolbar" data-testid="user-search" @submit.prevent="search">
         <label>关键字<input v-model.trim="filters.search" maxlength="100" placeholder="用户名、姓名或邮箱"></label>
         <button type="submit">查询</button><button type="button" data-testid="user-search-reset" @click="reset">重置</button>
+        <button v-if="can('iam.users.write')" type="button" data-testid="open-create-user" @click="openCreateUser">新增</button>
         <button v-if="can('iam.users.delete')" type="button" data-testid="delete-selected-users" :disabled="users.selectedKeys.length === 0 || controller.deleteUsers.busy || mutationBlocked" @click="run(() => controller.deleteUsers.run(users.selectedKeys))">删除所选</button>
       </form>
       <table><thead><tr><th scope="col">选择</th><th scope="col">用户名</th><th scope="col">姓名</th><th scope="col">邮箱</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead>
         <tbody><tr v-for="row in users.rows" :key="row.id" :data-row-key="row.username"><td><input v-if="can('iam.users.delete')" type="checkbox" :checked="users.selectedKeys.includes(row.id)" :aria-label="`选择 ${row.username}`" @change="selectUser(($event.target as HTMLInputElement).checked, row)"></td><td>{{ row.username }}</td><td>{{ row.displayName }}</td><td>{{ row.email }}</td><td>{{ row.disabled ? '停用' : '启用' }}</td><td><button v-if="can('iam.users.write')" type="button" data-action="edit" @click="editUser(row)">编辑</button><button v-if="can('iam.users.write')" type="button" data-action="toggle" :disabled="mutationBlocked" @click="toggleUser(row)">{{ row.disabled ? '启用' : '停用' }}</button><button v-if="can('iam.users.delete')" type="button" data-action="delete" :disabled="controller.deleteUsers.busy || mutationBlocked" @click="deleteUser(row)">删除</button></td></tr></tbody>
       </table>
       <div class="pagination"><button type="button" :disabled="users.page <= 1" @click="run(() => controller.users.setPage(users.page - 1))">上一页</button><span>第 {{ users.page }} 页</span><button type="button" :disabled="users.page * users.pageSize >= users.total" @click="run(() => controller.users.setPage(users.page + 1))">下一页</button></div>
-      <form v-if="can('iam.users.write')" class="editor" data-testid="create-user" @submit.prevent="submitUser"><h3>新增用户</h3><label>用户名<input name="username" v-model.trim="user.username" required minlength="3" maxlength="64"></label><label>姓名<input name="displayName" v-model.trim="user.displayName" required maxlength="80"></label><label>邮箱<input name="email" v-model.trim="user.email" type="email" required></label><label>密码<input name="password" v-model="user.password" type="password" required minlength="12" autocomplete="new-password"></label><button type="submit" :disabled="controller.createUser.busy || mutationBlocked">新增用户</button></form>
-      <form v-if="editedUser && can('iam.users.write')" class="editor" data-testid="edit-user" @submit.prevent="saveUser"><h3>编辑 {{ editedUser.username }}</h3><label>姓名<input name="displayName" v-model.trim="editedUser.displayName" required maxlength="80"></label><label>邮箱<input name="email" v-model.trim="editedUser.email" type="email" required></label><button type="submit" :disabled="mutationBlocked">保存用户</button></form>
-      <form v-if="editedUser && can('iam.roles.assign')" class="editor" data-testid="assign-user-roles" @submit.prevent="saveUserRoles"><h3>分配角色</h3><label v-for="item in roles" :key="item.id" class="choice"><input v-model="assignedRoles" type="checkbox" :value="item.id" :data-role-key="item.key">{{ item.name }}</label><button type="submit" :disabled="mutationBlocked">保存角色分配</button></form>
-      <form v-if="editedUser && can('iam.users.reset-password')" class="editor" data-testid="reset-user-password" @submit.prevent="resetPassword"><h3>重置密码</h3><label>新密码<input name="password" v-model="replacementPassword" type="password" required minlength="12" autocomplete="new-password"></label><button type="submit" :disabled="mutationBlocked">重置密码</button></form>
+      <div v-if="createUserOpen && can('iam.users.write')" class="management-dialog-backdrop" @click.self="closeCreateUser" @keydown.esc="closeCreateUser">
+        <form class="management-dialog" data-testid="create-user" role="dialog" aria-modal="true" aria-labelledby="create-user-title" @submit.prevent="submitUser">
+          <header class="management-dialog__header"><h3 id="create-user-title">新增用户</h3><button type="button" aria-label="关闭" :disabled="mutationBlocked" @click="closeCreateUser">×</button></header>
+          <div class="management-dialog__body"><label>用户名<input name="username" v-model.trim="user.username" autofocus required minlength="3" maxlength="64"></label><label>姓名<input name="displayName" v-model.trim="user.displayName" required maxlength="80"></label><label>邮箱<input name="email" v-model.trim="user.email" type="email" required></label><label>密码<input name="password" v-model="user.password" type="password" required minlength="12" autocomplete="new-password"></label></div>
+          <footer class="management-dialog__footer"><button type="button" :disabled="mutationBlocked" @click="closeCreateUser">取消</button><button type="submit" :disabled="controller.createUser.busy || mutationBlocked">确定</button></footer>
+        </form>
+      </div>
+      <div v-if="editedUser" class="management-dialog-backdrop" @click.self="closeUserEditor" @keydown.esc="closeUserEditor">
+        <div class="management-dialog management-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="edit-user-title">
+          <header class="management-dialog__header"><h3 id="edit-user-title">编辑用户 {{ editedUser.username }}</h3><button type="button" aria-label="关闭" :disabled="mutationBlocked" @click="closeUserEditor">×</button></header>
+          <div class="management-dialog__body management-dialog__body--sections">
+            <form v-if="can('iam.users.write')" class="management-dialog__section" data-testid="edit-user" @submit.prevent="saveUser"><h4>基本信息</h4><label>姓名<input name="displayName" v-model.trim="editedUser.displayName" required maxlength="80"></label><label>邮箱<input name="email" v-model.trim="editedUser.email" type="email" required></label><button type="submit" :disabled="mutationBlocked">保存用户</button></form>
+            <form v-if="can('iam.roles.assign')" class="management-dialog__section" data-testid="assign-user-roles" @submit.prevent="saveUserRoles"><h4>分配角色</h4><div class="management-dialog__choices"><label v-for="item in roles" :key="item.id" class="choice"><input v-model="assignedRoles" type="checkbox" :value="item.id" :data-role-key="item.key">{{ item.name }}</label></div><button type="submit" :disabled="mutationBlocked">保存角色分配</button></form>
+            <form v-if="can('iam.users.reset-password')" class="management-dialog__section" data-testid="reset-user-password" @submit.prevent="resetPassword"><h4>重置密码</h4><label>新密码<input name="password" v-model="replacementPassword" type="password" required minlength="12" autocomplete="new-password"></label><button type="submit" :disabled="mutationBlocked">重置密码</button></form>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section v-else-if="tab === 'roles' && can('iam.roles.read')" aria-labelledby="roles-heading">
       <h2 id="roles-heading">角色管理</h2>
+      <div class="toolbar management-toolbar"><button v-if="can('iam.roles.write')" type="button" data-testid="open-create-role" @click="openCreateRole">新增</button></div>
       <table><thead><tr><th>角色标识</th><th>角色名称</th><th>数据范围</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="item in roles" :key="item.id" :data-row-key="item.key"><td>{{ item.key }}</td><td>{{ item.name }}</td><td>{{ item.dataScope === 'self' ? '本人' : '全部' }}</td><td>{{ item.enabled ? '启用' : '停用' }}</td><td><button v-if="can('iam.roles.write')" type="button" data-action="edit" @click="editRole(item)">编辑</button><button v-if="can('iam.roles.delete')" type="button" data-action="delete" :disabled="item.protected || mutationBlocked" @click="run(() => controller.deleteRole(item.id))">删除</button></td></tr></tbody></table>
-      <form v-if="can('iam.roles.write')" class="editor" data-testid="create-role" @submit.prevent="submitRole"><h3>新增角色</h3><label>角色标识<input name="key" v-model.trim="role.key" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_-]*"></label><label>角色名称<input name="name" v-model.trim="role.name" required maxlength="100"></label><label>数据范围<select name="dataScope" v-model="role.dataScope"><option value="self">本人</option><option value="all">全部</option></select></label><button type="submit" :disabled="controller.createRole.busy || mutationBlocked">新增角色</button></form>
-      <form v-if="editedRole && can('iam.roles.write')" class="editor" data-testid="edit-role" @submit.prevent="saveRole"><h3>编辑 {{ editedRole.key }}</h3><label>角色名称<input name="name" v-model.trim="editedRole.name" required maxlength="100"></label><label>数据范围<select name="dataScope" v-model="editedRole.dataScope"><option value="self">本人</option><option value="all">全部</option></select></label><label class="choice"><input name="enabled" v-model="editedRole.enabled" type="checkbox">启用</label><button type="submit" :disabled="editedRole.protected || mutationBlocked">保存角色</button></form>
-      <form v-if="editedRole && can('iam.roles.assign')" class="editor" data-testid="assign-role-grants" @submit.prevent="saveRoleGrants"><h3>分配权限与菜单</h3><fieldset><legend>权限标识</legend><label v-for="item in controller.permissions()" :key="item.code" class="choice"><input v-model="grantedPermissions" type="checkbox" :value="item.code" :data-permission-code="item.code">{{ item.name }}</label></fieldset><fieldset><legend>菜单</legend><label v-for="item in menus" :key="item.id" class="choice"><input v-model="grantedMenus" type="checkbox" :value="item.id" :data-menu-key="item.key">{{ item.label }}</label></fieldset><button type="submit" :disabled="editedRole.protected || mutationBlocked">保存权限分配</button></form>
+      <div v-if="createRoleOpen && can('iam.roles.write')" class="management-dialog-backdrop" @click.self="closeCreateRole" @keydown.esc="closeCreateRole"><form class="management-dialog" data-testid="create-role" role="dialog" aria-modal="true" aria-labelledby="create-role-title" @submit.prevent="submitRole"><header class="management-dialog__header"><h3 id="create-role-title">新增角色</h3><button type="button" aria-label="关闭" @click="closeCreateRole">×</button></header><div class="management-dialog__body"><label>角色标识<input name="key" v-model.trim="role.key" autofocus required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_-]*"></label><label>角色名称<input name="name" v-model.trim="role.name" required maxlength="100"></label><label>数据范围<select name="dataScope" v-model="role.dataScope"><option value="self">本人</option><option value="all">全部</option></select></label></div><footer class="management-dialog__footer"><button type="button" @click="closeCreateRole">取消</button><button type="submit" :disabled="controller.createRole.busy || mutationBlocked">确定</button></footer></form></div>
+      <div v-if="editedRole" class="management-dialog-backdrop" @click.self="closeRoleEditor" @keydown.esc="closeRoleEditor"><div class="management-dialog management-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="edit-role-title"><header class="management-dialog__header"><h3 id="edit-role-title">编辑角色 {{ editedRole.key }}</h3><button type="button" aria-label="关闭" @click="closeRoleEditor">×</button></header><div class="management-dialog__body management-dialog__body--sections"><form v-if="can('iam.roles.write')" class="management-dialog__section" data-testid="edit-role" @submit.prevent="saveRole"><h4>基本信息</h4><label>角色名称<input name="name" v-model.trim="editedRole.name" required maxlength="100"></label><label>数据范围<select name="dataScope" v-model="editedRole.dataScope"><option value="self">本人</option><option value="all">全部</option></select></label><label class="choice"><input name="enabled" v-model="editedRole.enabled" type="checkbox">启用</label><button type="submit" :disabled="editedRole.protected || mutationBlocked">保存角色</button></form><form v-if="can('iam.roles.assign')" class="management-dialog__section" data-testid="assign-role-grants" @submit.prevent="saveRoleGrants"><h4>分配权限与菜单</h4><fieldset><legend>权限标识</legend><label v-for="item in controller.permissions()" :key="item.code" class="choice"><input v-model="grantedPermissions" type="checkbox" :value="item.code" :data-permission-code="item.code">{{ item.name }}</label></fieldset><fieldset><legend>菜单</legend><label v-for="item in menus" :key="item.id" class="choice"><input v-model="grantedMenus" type="checkbox" :value="item.id" :data-menu-key="item.key">{{ item.label }}</label></fieldset><button type="submit" :disabled="editedRole.protected || mutationBlocked">保存权限分配</button></form></div></div></div>
     </section>
 
     <section v-else-if="tab === 'menus' && can('iam.menus.read')" aria-labelledby="menus-heading">
       <h2 id="menus-heading">菜单管理</h2>
+      <div class="toolbar management-toolbar"><button v-if="can('iam.menus.write')" type="button" data-testid="open-create-menu" @click="openCreateMenu">新增</button></div>
       <table><thead><tr><th>菜单标识</th><th>菜单名称</th><th>路由地址</th><th>权限标识</th><th>操作</th></tr></thead><tbody><tr v-for="item in menus" :key="item.id" :data-row-key="item.key"><td>{{ item.key }}</td><td>{{ item.label }}</td><td>{{ item.path }}</td><td>{{ item.permissionCode }}</td><td><button v-if="can('iam.menus.write')" type="button" data-action="edit" @click="editMenu(item)">编辑</button><button v-if="can('iam.menus.delete')" type="button" data-action="delete" :disabled="item.protected || mutationBlocked" @click="run(() => controller.deleteMenu(item.id))">删除</button></td></tr></tbody></table>
-      <form v-if="can('iam.menus.write')" class="editor" data-testid="create-menu" @submit.prevent="submitMenu"><h3>新增菜单</h3><label>菜单标识<input name="key" v-model.trim="menu.key" required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_-]*"></label><label>菜单名称<input name="label" v-model.trim="menu.label" required maxlength="80"></label><label>路由地址<input name="path" v-model.trim="menu.path" required pattern="/[a-z0-9/_-]+"></label><label>权限标识<input name="permissionCode" v-model.trim="menu.permissionCode" required minlength="3"></label><label>显示顺序<input name="sortOrder" v-model.number="menu.sortOrder" type="number" min="0" max="100000"></label><button type="submit" :disabled="controller.createMenu.busy || mutationBlocked">新增菜单</button></form>
-      <form v-if="editedMenu && can('iam.menus.write')" class="editor" data-testid="edit-menu" @submit.prevent="saveMenu"><h3>编辑 {{ editedMenu.key }}</h3><label>菜单名称<input name="label" v-model.trim="editedMenu.label" required maxlength="80"></label><label>路由地址<input name="path" v-model.trim="editedMenu.path" required pattern="/[a-z0-9/_-]+"></label><label>权限标识<input name="permissionCode" v-model.trim="editedMenu.permissionCode" required minlength="3"></label><label>显示顺序<input name="sortOrder" v-model.number="editedMenu.sortOrder" type="number" min="0" max="100000"></label><button type="submit" :disabled="editedMenu.protected || mutationBlocked">保存菜单</button></form>
+      <div v-if="createMenuOpen && can('iam.menus.write')" class="management-dialog-backdrop" @click.self="closeCreateMenu" @keydown.esc="closeCreateMenu"><form class="management-dialog" data-testid="create-menu" role="dialog" aria-modal="true" aria-labelledby="create-menu-title" @submit.prevent="submitMenu"><header class="management-dialog__header"><h3 id="create-menu-title">新增菜单</h3><button type="button" aria-label="关闭" @click="closeCreateMenu">×</button></header><div class="management-dialog__body"><label>菜单标识<input name="key" v-model.trim="menu.key" autofocus required minlength="3" maxlength="64" pattern="[a-z0-9][a-z0-9_-]*"></label><label>菜单名称<input name="label" v-model.trim="menu.label" required maxlength="80"></label><label>路由地址<input name="path" v-model.trim="menu.path" required pattern="/[a-z0-9/_-]+"></label><label>权限标识<input name="permissionCode" v-model.trim="menu.permissionCode" required minlength="3"></label><label>显示顺序<input name="sortOrder" v-model.number="menu.sortOrder" type="number" min="0" max="100000"></label></div><footer class="management-dialog__footer"><button type="button" @click="closeCreateMenu">取消</button><button type="submit" :disabled="controller.createMenu.busy || mutationBlocked">确定</button></footer></form></div>
+      <div v-if="editedMenu && can('iam.menus.write')" class="management-dialog-backdrop" @click.self="closeMenuEditor" @keydown.esc="closeMenuEditor"><form class="management-dialog" data-testid="edit-menu" role="dialog" aria-modal="true" aria-labelledby="edit-menu-title" @submit.prevent="saveMenu"><header class="management-dialog__header"><h3 id="edit-menu-title">编辑菜单 {{ editedMenu.key }}</h3><button type="button" aria-label="关闭" @click="closeMenuEditor">×</button></header><div class="management-dialog__body"><label>菜单名称<input name="label" v-model.trim="editedMenu.label" required maxlength="80"></label><label>路由地址<input name="path" v-model.trim="editedMenu.path" required pattern="/[a-z0-9/_-]+"></label><label>权限标识<input name="permissionCode" v-model.trim="editedMenu.permissionCode" required minlength="3"></label><label>显示顺序<input name="sortOrder" v-model.number="editedMenu.sortOrder" type="number" min="0" max="100000"></label></div><footer class="management-dialog__footer"><button type="button" @click="closeMenuEditor">取消</button><button type="submit" :disabled="editedMenu.protected || mutationBlocked">保存</button></footer></form></div>
     </section>
     <section v-else aria-live="polite"><p>当前账号没有可用的管理视图。</p></section>
   </main>
@@ -117,9 +176,7 @@ onBeforeUnmount(() => { user.password = ''; replacementPassword.value = '' })
 h1, h2, h3 { margin: 0; letter-spacing: 0; }
 .tabs, .toolbar, .pagination { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
 .tabs button[aria-pressed="true"] { border-bottom-color: var(--ga-brand); color: var(--ga-brand); }
-section, .editor { display: grid; gap: 16px; }
-.editor { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; border-top: 1px solid var(--ga-border-light); padding-top: 16px; }
-.editor h3 { grid-column: 1 / -1; }
+section { display: grid; gap: 16px; }
 label { display: grid; gap: 6px; }
 input, select, button { min-height: 40px; font: inherit; }
 button { border: 1px solid var(--ga-border); background: var(--ga-bg-container); padding: 6px 12px; }

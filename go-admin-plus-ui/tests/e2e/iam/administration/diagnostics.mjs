@@ -15,11 +15,11 @@ export const safeBrowserDiagnostic = (value) => sanitize(value, 'unknown browser
 
 const failures = new Set(['relogin', 'forbidden', 'validation', 'conflict', 'unavailable'])
 const alertCodes = new Map([
-  ['Your session must be renewed.', 'relogin'],
-  ['You do not have permission for that action.', 'forbidden'],
-  ['Review the submitted values.', 'validation'],
-  ['The resource changed or is protected.', 'conflict'],
-  ['The administration service is unavailable.', 'unavailable'],
+  ['登录状态已失效，请重新登录。', 'relogin'],
+  ['当前账号没有执行该操作的权限。', 'forbidden'],
+  ['请检查提交内容。', 'validation'],
+  ['数据已发生变化或受系统保护。', 'conflict'],
+  ['管理服务暂不可用。', 'unavailable'],
 ])
 
 const requestPhases = new Set(['not-started', 'pending', 'success', 'error'])

@@ -238,6 +238,81 @@ a { color: inherit; text-decoration: none; }
   box-shadow: var(--ga-shadow-lg);
 }
 
+.product-shell__content .management-toolbar {
+  min-height: 48px;
+  justify-content: flex-start;
+}
+.product-shell__content .management-dialog-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 27 33 / 46%);
+}
+.product-shell__content .management-dialog {
+  display: grid;
+  width: min(620px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  color: var(--ga-text-1);
+  background: var(--ga-bg-container);
+  border: 1px solid var(--ga-border);
+  border-radius: var(--ga-radius-lg);
+  box-shadow: var(--ga-shadow-lg);
+}
+.product-shell__content .management-dialog--wide { width: min(860px, 100%); }
+.product-shell__content .management-dialog__header {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--ga-border-light);
+}
+.product-shell__content .management-dialog__header > :is(h2, h3) { margin: 0; }
+.product-shell__content .management-dialog__header > button {
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  color: var(--ga-text-3);
+  background: transparent;
+  border-color: transparent;
+  font-size: 22px;
+  line-height: 1;
+}
+.product-shell__content .management-dialog__body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px;
+  overflow: auto;
+}
+.product-shell__content .management-dialog__body--sections { grid-template-columns: 1fr; }
+.product-shell__content .management-dialog__section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ga-border-light);
+}
+.product-shell__content .management-dialog__section:last-child { padding-bottom: 0; border-bottom: 0; }
+.product-shell__content .management-dialog__section > :is(h4, fieldset, .management-dialog__choices) { grid-column: 1 / -1; }
+.product-shell__content .management-dialog__section h4 { margin: 0; font-size: 14px; font-weight: 600; }
+.product-shell__content .management-dialog__section > button[type="submit"] { justify-self: start; }
+.product-shell__content .management-dialog__choices { display: flex; flex-wrap: wrap; gap: 12px 18px; }
+.product-shell__content .management-dialog__footer {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--ga-border-light);
+}
+
 @media (max-width: 760px) {
   .product-shell__content :is(
     .administration-page, .audit-page, .organization-page, .settings-page,
@@ -250,4 +325,7 @@ a { color: inherit; text-decoration: none; }
   .product-shell__content :is(.toolbar, .filters, .search, .demo-products__search, .files-page__search) label {
     min-width: min(100%, 180px);
   }
+  .product-shell__content .management-dialog-backdrop { padding: 12px; }
+  .product-shell__content .management-dialog { max-height: calc(100vh - 24px); }
+  .product-shell__content :is(.management-dialog__body, .management-dialog__section) { grid-template-columns: 1fr; }
 }

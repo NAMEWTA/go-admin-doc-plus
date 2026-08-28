@@ -90,7 +90,7 @@ const scenario = async () => {
   selfApp.mount('#app')
   await Promise.resolve()
   await Promise.resolve()
-  assert(document.querySelector('.tabs button') === null && document.querySelector('.editor') === null, 'self scope exposed organization management controls')
+  assert(document.querySelector('.tabs button') === null && document.querySelector('[data-testid="open-create-department"]') === null, 'self scope exposed organization management controls')
   const afterSelf = await (await control('snapshot')).json() as { departments: number; positions: number }
   assert(afterSelf.departments === beforeSelf.departments && afterSelf.positions === beforeSelf.positions, 'self-scoped requests changed organization state')
   selfApp.unmount()
@@ -104,6 +104,8 @@ const scenario = async () => {
   app.mount('#app')
   await waitUntil(() => row('root') !== null, 'department root did not render')
 
+  element<HTMLButtonElement>('[data-testid="open-create-department"]').click()
+  await waitUntil(() => document.querySelector('[data-testid="create-department"]') !== null, 'department create dialog did not render')
   await input('[data-testid="create-department"] [name="key"]', 'browser-operations')
   await input('[data-testid="create-department"] [name="name"]', 'Browser Operations')
   await input('[data-testid="create-department"] [name="parentId"]', 'department-root-001')
@@ -112,6 +114,8 @@ const scenario = async () => {
 
   const browserOperations = controller.departments().find((item) => item.key === 'browser-operations')
   assert(browserOperations, 'created department projection missing')
+  element<HTMLButtonElement>('[data-testid="open-create-department"]').click()
+  await waitUntil(() => document.querySelector('[data-testid="create-department"]') !== null, 'child department create dialog did not render')
   await input('[data-testid="create-department"] [name="key"]', 'browser-team')
   await input('[data-testid="create-department"] [name="name"]', 'Browser Team')
   await input('[data-testid="create-department"] [name="parentId"]', browserOperations.id)
@@ -125,13 +129,17 @@ const scenario = async () => {
   await waitUntil(() => row('browser-operations')?.textContent?.includes('Browser Operations Updated') === true, 'department edit did not render')
   const browserTeam = controller.departments().find((item) => item.key === 'browser-team')
   assert(browserTeam, 'child department projection missing')
+  rowAction('browser-operations', 'edit')
+  await waitUntil(() => document.querySelector('[data-testid="edit-department"]') !== null, 'department editor did not reopen')
   await input('[data-testid="edit-department"] select', browserTeam.id)
   submit('edit-department')
-  await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('protected or still referenced') === true, 'department cycle conflict was not visible')
+  await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('受保护或仍被引用') === true, 'department cycle conflict was not visible')
   assert(controller.departments().find((item) => item.key === 'browser-operations')?.parentId === 'department-root-001', 'department cycle changed state')
 
-  await openTab('Positions', 'positions-heading')
+  await openTab('岗位管理', 'positions-heading')
   const createPosition = async (key: string, name: string) => {
+    element<HTMLButtonElement>('[data-testid="open-create-position"]').click()
+    await waitUntil(() => document.querySelector('[data-testid="create-position"]') !== null, `position ${key} create dialog did not render`)
     await input('[data-testid="create-position"] [name="key"]', key)
     await input('[data-testid="create-position"] [name="name"]', name)
     await input('[data-testid="create-position"] [name="departmentId"]', browserOperations.id)
@@ -161,18 +169,18 @@ const scenario = async () => {
   element<HTMLButtonElement>('[data-testid="position-search"] button[type="button"]').click()
   await waitUntil(() => ['browser-lead', 'browser-ascii', 'browser-percent', 'browser-under', 'browser-unicode'].every((key) => row(key) !== null), 'position search reset did not restore projection')
 
-  await openTab('Departments', 'departments-heading')
+  await openTab('部门管理', 'departments-heading')
   rowAction('browser-operations', 'delete')
-  await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('referenced') === true, 'referenced department conflict was not visible')
+  await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('仍被引用') === true, 'referenced department conflict was not visible')
   assert(row('browser-operations') !== null, 'referenced department was deleted')
   await expectOrganizationFailure(() => api.deleteDepartment('department-root-001'), 'conflict')
 
-  await openTab('Positions', 'positions-heading')
+  await openTab('岗位管理', 'positions-heading')
   for (const key of ['browser-lead', 'browser-ascii', 'browser-percent', 'browser-under', 'browser-unicode']) {
     rowAction(key, 'delete')
     await waitUntil(() => row(key) === null, `position ${key} delete did not render`)
   }
-  await openTab('Departments', 'departments-heading')
+  await openTab('部门管理', 'departments-heading')
   rowAction('browser-team', 'delete')
   await waitUntil(() => row('browser-team') === null, 'child department delete did not render')
   rowAction('browser-operations', 'delete')
@@ -202,7 +210,7 @@ const scenario = async () => {
   const revokedApp = createApp({ render: () => h(OrganizationPage as Component, { controller: revokedController }) })
   revokedApp.mount('#app')
   await waitUntil(() => row('root') !== null, 'authorized department projection did not recover')
-  assert(![...document.querySelectorAll('.tabs button')].some((item) => item.textContent === 'Positions'), 'revoked organization navigation remained visible')
+  assert(![...document.querySelectorAll('.tabs button')].some((item) => item.textContent === '岗位管理'), 'revoked organization navigation remained visible')
 
   revokedApp.unmount()
   await control('revoke-session', 'POST')
@@ -213,7 +221,7 @@ const scenario = async () => {
   const expiredApp = createApp({ render: () => h(OrganizationPage as Component, { controller: expiredController, onSessionRequired: () => { sessionRequired = true } }) })
   expiredApp.mount('#app')
   await waitUntil(() => sessionRequired && expiredController.failure() === 'relogin', 'revoked session did not enter relogin state')
-  assert(document.querySelector('[data-row-key]') === null && document.querySelector('[role="alert"]')?.textContent?.includes('renewed') === true, 'revoked session kept organization data visible')
+  assert(document.querySelector('[data-row-key]') === null && document.querySelector('[role="alert"]')?.textContent?.includes('请重新登录') === true, 'revoked session kept organization data visible')
   await capability.refresh()
   assert(capability.state().manifest === null && capability.state().status === 'unauthorized', 'revoked session retained capability manifest')
   expiredApp.unmount()

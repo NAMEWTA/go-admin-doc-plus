@@ -30,21 +30,24 @@ const scenario = async () => {
   const selfController = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
   const selfApp = createApp({ render: () => h(SchedulerPage as Component, { controller: selfController }) }); selfApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
-  assert(document.querySelector('.tabs button') === null && document.querySelector('.editor') === null, 'self scope exposed scheduler controls')
+  assert(document.querySelector('.tabs button') === null && document.querySelector('[data-testid="open-scheduler-definition-form"]') === null, 'self scope exposed scheduler controls')
   selfApp.unmount(); await control('scope', 'POST', { scope: 'all' }); await capability.refresh()
 
   const controller = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
   const app = createApp({ render: () => h(SchedulerPage as Component, { controller }) }); app.mount('#app')
-  await waitUntil(() => document.querySelector('[data-testid="scheduler-definition-form"]') !== null && controller.taskTypes().length === 1, 'scheduler editor did not load')
+  await waitUntil(() => document.querySelector('[data-testid="open-scheduler-definition-form"]') !== null && controller.taskTypes().length === 1, 'scheduler management view did not load')
   const create = async (name: string, key: string, fail: boolean) => {
+    element<HTMLButtonElement>('[data-testid="open-scheduler-definition-form"]').click()
+    await waitUntil(() => document.querySelector('[data-testid="scheduler-definition-form"]') !== null, 'scheduler create dialog did not open')
     await input('[data-testid="scheduler-definition-form"] [name="name"]', name)
     await input('[data-testid="scheduler-parameters"] [name="key"]', key)
     await input('[data-testid="scheduler-parameters"] [name="fail"]', fail)
     element<HTMLFormElement>('[data-testid="scheduler-definition-form"]').requestSubmit()
     await waitUntil(() => definitionRow(name) !== undefined, `${name} create did not render`)
+    await waitUntil(() => document.querySelector('[data-testid="scheduler-definition-form"]') === null, `${name} create dialog did not close`)
     action(name, 'toggle')
-    await waitUntil(() => definitionRow(name)?.textContent?.includes('Enabled') === true, `${name} enable did not render`)
+    await waitUntil(() => definitionRow(name)?.textContent?.includes('运行中') === true, `${name} enable did not render`)
   }
   await create('Browser success', 'success', false)
   await create('Browser failure', 'failure', true)
@@ -54,10 +57,10 @@ const scenario = async () => {
   const snapshot = await (await control('snapshot')).json() as Record<string, number>
   assert(snapshot.definitions === 2 && snapshot.executions === 2 && snapshot.effects === 1 && snapshot.events === 1 && snapshot.outbox === 1, 'scheduler transaction/savepoint snapshot mismatch')
   await controller.executions.refresh()
-  const executionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === 'Executions'); assert(executionsTab, 'execution tab missing'); executionsTab.click()
+  const executionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === '执行记录'); assert(executionsTab, 'execution tab missing'); executionsTab.click()
   await waitUntil(() => document.body.textContent?.includes('browser_expected_failure') === true, 'failed execution history missing')
-  const definitionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === 'Definitions'); assert(definitionsTab, 'definitions tab missing'); definitionsTab.click(); await Promise.resolve()
-  for (const name of ['Browser success', 'Browser failure']) { action(name, 'toggle'); await waitUntil(() => definitionRow(name)?.textContent?.includes('Stopped') === true, `${name} stop did not linearize`) }
+  const definitionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === '任务管理'); assert(definitionsTab, 'definitions tab missing'); definitionsTab.click(); await Promise.resolve()
+  for (const name of ['Browser success', 'Browser failure']) { action(name, 'toggle'); await waitUntil(() => definitionRow(name)?.textContent?.includes('已停止') === true, `${name} stop did not linearize`) }
   const second = await (await control('run', 'POST')).json() as Record<string, number>
   assert(second.triggered === 0, 'stopped scheduler produced a new execution')
   action('Browser success', 'edit'); await waitUntil(() => document.querySelector('[data-testid="scheduler-definition-form"] [name="name"]') !== null, 'edit did not open'); await input('[data-testid="scheduler-definition-form"] [name="name"]', 'Browser success updated'); element<HTMLFormElement>('[data-testid="scheduler-definition-form"]').requestSubmit(); await waitUntil(() => definitionRow('Browser success updated') !== undefined, 'edit did not render')
@@ -69,7 +72,7 @@ const scenario = async () => {
   app.unmount(); document.body.innerHTML = '<div id="app"></div>'
   const revoked = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
   const revokedApp = createApp({ render: () => h(SchedulerPage as Component, { controller: revoked }) }); revokedApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
-  assert(![...document.querySelectorAll('.tabs button')].some(button => button.textContent === 'Definitions'), 'revoked scheduler navigation remained visible')
+  assert(![...document.querySelectorAll('.tabs button')].some(button => button.textContent === '任务管理'), 'revoked scheduler navigation remained visible')
   revokedApp.unmount(); await control('revoke-session', 'POST'); await expectFailure(() => api.taskTypes(), 'relogin')
   document.body.innerHTML = '<pre id="result">SCHEDULER_E2E_PASS</pre>'; await control('shutdown', 'POST')
 }

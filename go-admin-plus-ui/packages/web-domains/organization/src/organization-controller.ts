@@ -173,8 +173,8 @@ export const createOrganizationController = (
   }
 }
 
-export const settleOrganizationPageOperation = async (operation: () => Promise<unknown>, settled: () => void) => {
-  try { await operation() }
+export const settleOrganizationPageOperation = async <T>(operation: () => Promise<T>, settled: () => void): Promise<T | undefined> => {
+  try { return await operation() }
   catch { /* The controller owns stable failure classification. */ }
   finally { settled() }
 }

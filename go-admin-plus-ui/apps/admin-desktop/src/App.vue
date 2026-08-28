@@ -37,7 +37,7 @@ const verifyNativeBoundary = async () => {
     const safe = failures.length === 0
     nativeBoundary.value = safe && text.includes('Administrator')
       ? 'E2E authenticated boundary verified'
-      : safe && text.includes('Sign in') ? 'E2E unauthenticated boundary verified'
+      : safe && text.includes('使用管理员账号登录控制台') ? 'E2E unauthenticated boundary verified'
         : `E2E boundary blocked: ${failures.join(',')}`
   } catch {
     nativeBoundary.value = ''

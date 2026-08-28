@@ -43,7 +43,7 @@ const submit = async () => {
     </section>
 
     <section class="login-page__panel">
-      <form aria-label="Sign in" @submit.prevent="submit">
+      <form aria-label="登录" @submit.prevent="submit">
         <h1>Go Admin Plus</h1>
         <p class="login-page__subtitle">使用管理员账号登录控制台</p>
         <label>账号<input v-model.trim="credentials.username" autocomplete="username" placeholder="请输入账号" required minlength="3" maxlength="64"></label>

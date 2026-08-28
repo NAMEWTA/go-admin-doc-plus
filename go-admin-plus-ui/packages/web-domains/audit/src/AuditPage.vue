@@ -57,13 +57,17 @@ const repairCleanup = () => run(async () => {
 	if (result === 'refresh-failed') consumeRefreshFailure()
 })
 const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value))
+const kindLabel = (value: AuditFact['kind']) => value === 'login' ? '登录日志' : '操作日志'
+const actionLabel = (value: AuditFact['action']) => ({ login: '登录', create: '新增', update: '修改', delete: '删除' })[value]
+const outcomeLabel = (value: AuditFact['outcome']) => value === 'succeeded' ? '成功' : '失败'
+const sourceLabel = (value: AuditFact['source']) => ({ web: 'Web', desktop: '桌面端', server: '服务端' })[value]
 onMounted(() => { void run(() => props.controller.list.refresh()) })
 </script>
 
 <template>
   <main class="audit-page">
     <header><h1>审计日志</h1></header>
-    <form class="filters" aria-label="Audit filters" @submit.prevent="search">
+    <form class="filters" aria-label="审计筛选" @submit.prevent="search">
       <label>日志类型<select v-model="filters.kind"><option value="">全部</option><option value="login">登录日志</option><option value="operation">操作日志</option></select></label>
       <label>操作<select v-model="filters.action" data-testid="audit-action"><option value="">全部</option><option value="login">登录</option><option value="create">新增</option><option value="update">修改</option><option value="delete">删除</option></select></label>
       <label>结果<select v-model="filters.outcome"><option value="">全部</option><option value="succeeded">成功</option><option value="failed">失败</option></select></label>
@@ -80,7 +84,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
         <thead><tr><th>时间</th><th>类型</th><th>操作</th><th>结果</th><th>对象</th><th>来源</th><th>操作</th></tr></thead>
         <tbody>
 					<tr v-for="fact in snapshot.rows" :key="fact.id" data-testid="audit-row">
-						<td>{{ formatDate(fact.occurredAt) }}</td><td>{{ fact.kind }}</td><td>{{ fact.action }}</td><td>{{ fact.outcome }}</td><td class="long-text">{{ fact.subject }}</td><td>{{ fact.source }}</td>
+						<td>{{ formatDate(fact.occurredAt) }}</td><td>{{ kindLabel(fact.kind) }}</td><td>{{ actionLabel(fact.action) }}</td><td>{{ outcomeLabel(fact.outcome) }}</td><td class="long-text">{{ fact.subject }}</td><td>{{ sourceLabel(fact.source) }}</td>
               <td><button type="button" data-testid="audit-view" @click="detail(fact.id)">详情</button></td>
           </tr>
         </tbody>
@@ -94,7 +98,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
     </section>
     <p v-if="cleanupStatus === 'completed'" role="status" data-testid="audit-cleanup-status">已删除 {{ controller.lastCleanup()?.deleted ?? 0 }} 条记录。<span v-if="controller.lastCleanup()?.moreEligible">仍有符合条件的记录。</span></p>
     <p v-else-if="cleanupStatus === 'refresh-failed' || cleanupStatus === 'repair-required'" role="status">清理已完成，继续操作前需要刷新列表。<button type="button" data-testid="audit-cleanup-repair" :disabled="busy" @click="repairCleanup">重试刷新</button></p>
-    <dialog :open="selected !== null"><template v-if="selected"><h2>审计详情</h2><dl><dt>对象</dt><dd class="long-text">{{ selected.subject }}</dd><dt>操作者</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>结果</dt><dd>{{ selected.outcome }}</dd><dt>发生时间</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl><button type="button" @click="selected = null">关闭</button></template></dialog>
+    <dialog :open="selected !== null"><template v-if="selected"><h2>审计详情</h2><dl><dt>对象</dt><dd class="long-text">{{ selected.subject }}</dd><dt>操作者</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>结果</dt><dd>{{ outcomeLabel(selected.outcome) }}</dd><dt>发生时间</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl><button type="button" @click="selected = null">关闭</button></template></dialog>
   </main>
 </template>
 

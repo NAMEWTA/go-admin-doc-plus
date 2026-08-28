@@ -78,7 +78,7 @@ const scenario = async () => {
     await setSearch(search)
     await waitUntil(() => controller.list.snapshot().rows.length === 1 && controller.list.snapshot().rows[0]?.originalName === expected, `literal search ${search} failed`)
   }
-  const reset = [...document.querySelectorAll<HTMLButtonElement>('.files-page__search button')].find(button => button.textContent === 'Reset')
+  const reset = [...document.querySelectorAll<HTMLButtonElement>('.files-page__search button')].find(button => button.textContent === '重置')
   assert(reset, 'search reset missing')
   reset.click()
   await waitUntil(() => controller.list.snapshot().total === 5, 'search reset failed')

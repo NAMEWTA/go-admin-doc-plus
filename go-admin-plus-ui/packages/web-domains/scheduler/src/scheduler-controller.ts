@@ -100,4 +100,8 @@ const failClosedList = <F extends object, R, K>(raw: ListController<F, R, K>, vi
   select: rows => { if (visible()) raw.select(rows) }, clearSelection: () => raw.clearSelection(),
 })
 const isFailure = (value: string): value is SchedulerFailure => ['relogin', 'forbidden', 'validation', 'not-found', 'conflict', 'unavailable'].includes(value)
-export const settleSchedulerPageOperation = async (operation: () => Promise<unknown>, settled: () => void) => { try { await operation() } catch { /* Controller owns stable failure classification. */ } finally { settled() } }
+export const settleSchedulerPageOperation = async <T>(operation: () => Promise<T>, settled: () => void): Promise<T | undefined> => {
+  try { return await operation() }
+  catch { return undefined /* Controller owns stable failure classification. */ }
+  finally { settled() }
+}

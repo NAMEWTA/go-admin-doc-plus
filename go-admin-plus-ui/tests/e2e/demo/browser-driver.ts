@@ -48,6 +48,8 @@ const input = (name: string, value: string) => {
   control.value = value; control.dispatchEvent(new Event(control instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }))
 }
 const create = async (sku: string, name: string) => {
+  element<HTMLButtonElement>('[data-testid="open-product-form"]').click()
+  await waitUntil(() => document.querySelector('.demo-products__form') !== null, 'product create form did not open')
   input('sku', sku); input('name', name); input('description', 'Browser tracer'); input('priceCents', '1250'); input('status', 'active')
   element<HTMLButtonElement>('.demo-products__form button[type="submit"]').click()
   await waitUntil(() => controller.list.snapshot().rows.some(row => row.sku === sku), 'created product did not appear')
@@ -79,7 +81,7 @@ try {
   await create('TRACE-02', 'Tracer product two')
   const selections = [...document.querySelectorAll<HTMLInputElement>('tbody input[type="checkbox"]')]
   for (const selection of selections) { selection.click(); await Promise.resolve() }
-  const batch = element<HTMLButtonElement>('.demo-products__actions button'); await waitUntil(() => !batch.disabled, 'batch delete did not enable'); batch.click()
+  const batch = element<HTMLButtonElement>('[data-testid="delete-selected-products"]'); await waitUntil(() => !batch.disabled, 'batch delete did not enable'); batch.click()
   await waitUntil(() => !controller.list.snapshot().rows.some(row => row.sku.startsWith('TRACE-')), 'batch delete did not refresh')
   const csrfBaseline = controller.list.snapshot().total
   const csrfRejected = await fetch('/api/demo/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sku: 'CSRF-01', name: 'CSRF rejected', description: '', priceCents: 1, status: 'active' }) })
