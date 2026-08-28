@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T20:24:13+08:00",
+  "updated_at": "2026-08-28T20:41:56+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -503,6 +503,16 @@
       "approved_at": "2026-08-28T20:24:13+08:00",
       "reason": "The final cross-language naming audit proved all pnpm workspace packages, lock importers, source imports, task and release filters, OpenAPI generation, and Generator templates retained the historical @go-admin/* scope despite the no-compatibility product rename and canonical @go-admin-plus/workspace identity",
       "resolution": "Atomically migrate every active workspace package and consumer to @go-admin-plus/*, make the frontend generation wrapper delegate the single root OpenAPI generator instead of a nonexistent package, assert the exact workspace and package scope, and reject the historical scope without aliases, dual scopes, compatibility shims, or behavior changes"
+    },
+    {
+      "id": "T21-D09",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T20:41:56+08:00",
+      "reason": "The non-E2E completion audit executed every local package target and proved Web built into a temporary Admin Web directory while archiving a nonexistent workspace dist directory, and Desktop omitted the required custom-protocol feature before attempting every configured bundle, so both public package paths failed despite narrower builds passing",
+      "resolution": "Build Web directly into an artifacts-owned staging dist and atomically archive that exact output; select the supported local Desktop bundle from GOHOSTOS, require custom-protocol, retain protected DMG and signed platform packaging in their release workflows, accept the canonical Tauri 2 build-dependency manifest form, and add a workspace regression without changing UI or product behavior"
     }
   ],
   "worktrees": [
