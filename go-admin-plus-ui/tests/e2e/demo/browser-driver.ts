@@ -1,10 +1,10 @@
 import { createApp, h, type App, type Component } from 'vue'
-import { createDemoController, createWebDemoClient, DemoProductsPage } from '@go-admin/web-domain-demo'
-import { createCapabilityController } from '@go-admin/domain-iam/administration'
-import { createSessionController } from '@go-admin/domain-iam/session'
-import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
-import { DemoRequestError } from '@go-admin/domain-demo'
+import { createDemoController, createWebDemoClient, DemoProductsPage } from '@go-admin-plus/web-domain-demo'
+import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
+import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
+import { DemoRequestError } from '@go-admin-plus/domain-demo'
 
 const result = document.querySelector<HTMLElement>('#result')!
 const rawClient = createWebDemoClient(fetch, '/api')

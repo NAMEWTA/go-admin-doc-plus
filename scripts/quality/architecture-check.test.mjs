@@ -18,3 +18,13 @@ test('rejects the historical short Go module path', () => {
     'Go module path must be github.com/NAMEWTA/go-admin-plus/go-admin-plus'
   ))
 })
+
+test('rejects the historical frontend workspace scope', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  mkdirSync(join(root, 'go-admin-plus-ui'), { recursive: true })
+  writeFileSync(join(root, 'go-admin-plus-ui/package.json'), '{"name":"@go-admin/workspace"}\n')
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend workspace name must be @go-admin-plus/workspace'
+  ))
+})

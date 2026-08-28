@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { SchedulerRequestError, type Definition, type SchedulerClient } from '@go-admin/domain-scheduler'
+import { SchedulerRequestError, type Definition, type SchedulerClient } from '@go-admin-plus/domain-scheduler'
 import { createSchedulerController, settleSchedulerPageOperation } from './scheduler-controller'
 
 const taskTypes = [{ key: 'reports.daily', label: 'Daily', fields: [{ name: 'name', label: 'Name', kind: 'string' as const, required: true }] }]

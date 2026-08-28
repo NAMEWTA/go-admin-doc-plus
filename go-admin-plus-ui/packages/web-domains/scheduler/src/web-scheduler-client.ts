@@ -1,4 +1,4 @@
-import { createContractClient, SchedulerRequestError, type SchedulerClient } from '@go-admin/domain-scheduler'
+import { createContractClient, SchedulerRequestError, type SchedulerClient } from '@go-admin-plus/domain-scheduler'
 
 interface Problem { category?: string; code?: string }
 

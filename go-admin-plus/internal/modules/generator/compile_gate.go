@@ -87,10 +87,10 @@ func (gate *WorkspaceCompileGate) Check(ctx context.Context, _ string, preview P
 		{goRoot, "go", []string{"test", "./internal/modules/" + preview.Module + "/..."}},
 		{goRoot, "go", []string{"build", "./internal/modules/" + preview.Module + "/..."}},
 		{uiRoot, pnpmExecutable(), []string{"install", "--frozen-lockfile", "--ignore-scripts"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin/domain-" + preview.Module, "typecheck"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin/domain-" + preview.Module, "test"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin/web-domain-" + preview.Module, "typecheck"}},
-		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin/web-domain-" + preview.Module, "test"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/domain-" + preview.Module, "typecheck"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/domain-" + preview.Module, "test"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + preview.Module, "typecheck"}},
+		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + preview.Module, "test"}},
 		{uiRoot, pnpmExecutable(), []string{"check:workspace"}},
 	}
 	for _, command := range commands {

@@ -1,4 +1,4 @@
-import type { ShellRuntimePort } from '@go-admin/platform'
+import type { ShellRuntimePort } from '@go-admin-plus/platform'
 
 export type ShellState =
   | { readonly kind: 'authenticated', readonly path: string, readonly subjectId: string }

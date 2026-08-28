@@ -1,5 +1,5 @@
-import { buildDepartmentTree, OrganizationRequestError, validOrganizationName, validOrganizationSearch, type Department, type DepartmentInput, type DepartmentTreeNode, type OrganizationClient, type Position, type PositionInput } from '@go-admin/domain-organization'
-import { createListController, type ListController } from '@go-admin/ui'
+import { buildDepartmentTree, OrganizationRequestError, validOrganizationName, validOrganizationSearch, type Department, type DepartmentInput, type DepartmentTreeNode, type OrganizationClient, type Position, type PositionInput } from '@go-admin-plus/domain-organization'
+import { createListController, type ListController } from '@go-admin-plus/ui'
 
 export interface PositionFilters { search: string }
 export type OrganizationFailure = 'relogin' | 'forbidden' | 'validation' | 'not-found' | 'conflict' | 'unavailable'

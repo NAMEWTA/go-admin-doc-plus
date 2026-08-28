@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createShellNavigator, resolveShellState } from '@go-admin/app-shell'
-import type { RuntimeIdentity, RuntimeRequest, ShellRuntimePort } from '@go-admin/platform'
+import { createShellNavigator, resolveShellState } from '@go-admin-plus/app-shell'
+import type { RuntimeIdentity, RuntimeRequest, ShellRuntimePort } from '@go-admin-plus/platform'
 
 const deferred = <T>() => {
   let resolve!: (value: T) => void

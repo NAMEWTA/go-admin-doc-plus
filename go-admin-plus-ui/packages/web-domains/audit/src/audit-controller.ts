@@ -1,10 +1,10 @@
-import { AuditRequestError, type AuditClient, type AuditFact, type AuditFailure, type AuditFilters, type CleanupResult } from '@go-admin/domain-audit'
+import { AuditRequestError, type AuditClient, type AuditFact, type AuditFailure, type AuditFilters, type CleanupResult } from '@go-admin-plus/domain-audit'
 import {
   createListController,
   createRemovalController,
   type ListController,
   type RemovalRunResult,
-} from '@go-admin/ui'
+} from '@go-admin-plus/ui'
 
 export interface AuditController {
   readonly list: ListController<AuditFilters, AuditFact, string>

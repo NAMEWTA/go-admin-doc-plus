@@ -1,5 +1,5 @@
 {
-  "name": "@go-admin/domain-files",
+  "name": "@go-admin-plus/domain-files",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@go-admin/api-client": "workspace:*"
+    "@go-admin-plus/api-client": "workspace:*"
   },
   "scripts": {
     "test": "vitest run src",

@@ -1,4 +1,4 @@
-import { AdministrationRequestError, createContractClient, type AdministrationClient } from '@go-admin/domain-iam/administration'
+import { AdministrationRequestError, createContractClient, type AdministrationClient } from '@go-admin-plus/domain-iam/administration'
 
 interface Problem { category?: string; code?: string }
 

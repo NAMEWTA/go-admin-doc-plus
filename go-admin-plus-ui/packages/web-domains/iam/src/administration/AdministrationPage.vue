@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import type { Menu, Role, User } from '@go-admin/domain-iam/administration'
+import type { Menu, Role, User } from '@go-admin-plus/domain-iam/administration'
 import { createUserAndClearPassword, resetPasswordAndClear, settleAdministrationPageOperation, type AdministrationController, type CreateRoleModel, type CreateUserModel } from './administration-controller'
 
 const props = defineProps<{ controller: AdministrationController }>()

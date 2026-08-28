@@ -1,11 +1,11 @@
 import { createApp,h,type App,type Component } from 'vue'
-import { createSettingsController,createWebSettingsClient,SettingsPage } from '@go-admin/web-domain-settings'
-import { createCapabilityController } from '@go-admin/domain-iam/administration'
-import { createSessionController } from '@go-admin/domain-iam/session'
-import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
-import { SettingsRequestError,settingsPermissions,type SettingInput,type SettingsPermissionCode } from '@go-admin/domain-settings'
-import { createBrowserSessionFetch } from '@go-admin/adapter-browser'
+import { createSettingsController,createWebSettingsClient,SettingsPage } from '@go-admin-plus/web-domain-settings'
+import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
+import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
+import { SettingsRequestError,settingsPermissions,type SettingInput,type SettingsPermissionCode } from '@go-admin-plus/domain-settings'
+import { createBrowserSessionFetch } from '@go-admin-plus/adapter-browser'
 
 const result=document.querySelector<HTMLElement>('#result')!
 let lastMutationStatus=0,lastProblem='',lastProblemCode=''

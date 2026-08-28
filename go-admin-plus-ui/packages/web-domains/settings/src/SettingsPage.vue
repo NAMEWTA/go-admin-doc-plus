@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed,onMounted,reactive,ref } from 'vue'
-import { settingsPermissions,type Dictionary,type DictionaryInput,type DictionaryItem,type DictionaryItemInput,type DictionaryOption,type Setting,type SettingInput } from '@go-admin/domain-settings'
+import { settingsPermissions,type Dictionary,type DictionaryInput,type DictionaryItem,type DictionaryItemInput,type DictionaryOption,type Setting,type SettingInput } from '@go-admin-plus/domain-settings'
 import type { SettingsController } from './settings-controller'
 const props=defineProps<{controller:SettingsController}>();const emit=defineEmits<{sessionRequired:[];forbidden:[]}>();const revision=ref(0),tab=ref<'business'|'ui'|'dictionaries'>('business'),search=ref(''),itemSearch=ref(''),options=ref<ReadonlyArray<DictionaryOption>>([]),settingFormOpen=ref(false),dictionaryFormOpen=ref(false),itemFormOpen=ref(false)
 const settingForm=reactive<SettingInput&{id?:string;revision?:number}>(props.controller.emptySetting()),dictionaryForm=reactive<DictionaryInput&{id?:string;revision?:number}>(props.controller.emptyDictionary()),itemForm=reactive<DictionaryItemInput&{id?:string;revision?:number}>(props.controller.emptyItem())

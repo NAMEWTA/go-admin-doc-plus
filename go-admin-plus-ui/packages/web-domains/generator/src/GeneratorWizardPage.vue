@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import type { ColumnDraft } from '@go-admin/domain-generator'
+import type { ColumnDraft } from '@go-admin-plus/domain-generator'
 import type { GeneratorController } from './generator-controller'
 
 const props = defineProps<{ controller: GeneratorController }>()

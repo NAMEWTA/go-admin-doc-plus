@@ -50,8 +50,8 @@ describe('admin visual contract', () => {
     for (const selector of ['.management-toolbar', '.management-dialog-backdrop', '.management-dialog__header', '.management-dialog__body', '.management-dialog__footer']) {
       expect(theme).toContain(selector)
     }
-    expect(web).toContain("@go-admin/ui/admin-theme.css")
-    expect(desktop).toContain("@go-admin/ui/admin-theme.css")
+    expect(web).toContain("@go-admin-plus/ui/admin-theme.css")
+    expect(desktop).toContain("@go-admin-plus/ui/admin-theme.css")
     expect(uiManifest).toContain('"./admin-theme.css"')
   })
 

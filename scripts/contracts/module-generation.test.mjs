@@ -22,7 +22,7 @@ test('generates Go and TypeScript transports for a module contract', () => {
     assert.match(readFileSync(join(outputRoot, goOutput), 'utf8'), /package contractfixturetransport/)
     assert.ok(existsSync(join(outputRoot, typescriptRoot, 'schema.ts')))
     assert.ok(existsSync(join(outputRoot, typescriptRoot, 'client.ts')))
-    assert.match(readFileSync(join(outputRoot, typescriptRoot, 'client.ts'), 'utf8'), /@go-admin\/api-client\/contract/)
+    assert.match(readFileSync(join(outputRoot, typescriptRoot, 'client.ts'), 'utf8'), /@go-admin-plus\/api-client\/contract/)
   } finally {
     rmSync(outputRoot, { recursive: true, force: true })
   }

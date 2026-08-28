@@ -8,8 +8,8 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@go-admin/domain-audit": ["../../../packages/domains/audit/src/index.ts"],
-      "@go-admin/web-domain-audit": ["../../../packages/web-domains/audit/src/index.ts"]
+      "@go-admin-plus/domain-audit": ["../../../packages/domains/audit/src/index.ts"],
+      "@go-admin-plus/web-domain-audit": ["../../../packages/web-domains/audit/src/index.ts"]
     },
     "strict": true,
     "target": "ES2024",

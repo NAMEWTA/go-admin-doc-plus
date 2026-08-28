@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import type { Definition, DefinitionInput, ExecutionStatus, ParameterField, TaskType } from '@go-admin/domain-scheduler'
+import type { Definition, DefinitionInput, ExecutionStatus, ParameterField, TaskType } from '@go-admin-plus/domain-scheduler'
 import { settleSchedulerPageOperation, type SchedulerController } from './scheduler-controller'
 
 const props = defineProps<{ controller: SchedulerController }>()

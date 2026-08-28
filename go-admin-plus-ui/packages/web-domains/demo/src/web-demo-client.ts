@@ -1,4 +1,4 @@
-import { createContractClient, DemoRequestError, type DemoClient, type DemoFailure } from '@go-admin/domain-demo'
+import { createContractClient, DemoRequestError, type DemoClient, type DemoFailure } from '@go-admin-plus/domain-demo'
 
 interface Problem { category?: string; code?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/

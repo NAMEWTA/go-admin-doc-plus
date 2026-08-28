@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 export const checkArchitecture = root => {
   const failures = []
   const canonicalGoModule = 'github.com/NAMEWTA/go-admin-plus/go-admin-plus'
+  const canonicalWorkspaceName = '@go-admin-plus/workspace'
   const required = [
     'Taskfile.yml', '.github/workflows/ci.yml', 'go-admin-plus/go.mod',
     'go-admin-plus/cmd/go-admin-plus/main.go', 'go-admin-plus/cmd/desktop-sidecar/main.go',
@@ -24,6 +25,12 @@ export const checkArchitecture = root => {
   if (existsSync(goModulePath)) {
     const declaration = readFileSync(goModulePath, 'utf8').match(/^module\s+(\S+)$/m)?.[1]
     if (declaration !== canonicalGoModule) failures.push(`Go module path must be ${canonicalGoModule}`)
+  }
+
+  const frontendManifestPath = join(root, 'go-admin-plus-ui/package.json')
+  if (existsSync(frontendManifestPath)) {
+    const name = JSON.parse(readFileSync(frontendManifestPath, 'utf8')).name
+    if (name !== canonicalWorkspaceName) failures.push(`frontend workspace name must be ${canonicalWorkspaceName}`)
   }
 
   const internalRoot = join(root, 'go-admin-plus/internal')

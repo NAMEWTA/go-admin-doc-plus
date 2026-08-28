@@ -26,7 +26,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Generator runtime preparation failed.' }
     node (Join-Path $repository 'release/shared/sidecar/build.mjs') --target $identity.targetTriple
     if ($LASTEXITCODE -ne 0) { throw 'Windows sidecar build failed.' }
-    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin/admin-desktop' build
+    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin-plus/admin-desktop' build
     if ($LASTEXITCODE -ne 0) { throw 'Desktop frontend build failed.' }
 
     $signCommand = (Resolve-Path (Join-Path $PSScriptRoot 'sign.cmd')).Path
@@ -46,7 +46,7 @@ try {
             }
         }
     } | ConvertTo-Json -Depth 12 -Compress
-    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin/admin-desktop' exec tauri build `
+    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin-plus/admin-desktop' exec tauri build `
         --target $identity.targetTriple --features custom-protocol --bundles nsis --config $config
     if ($LASTEXITCODE -ne 0) { throw 'Signed Tauri NSIS build failed.' }
 

@@ -96,10 +96,10 @@ jobs:
           bash -n scripts/release/macos/*.sh
           plutil -lint release/macos/entitlements.plist
           (cd go-admin-plus && go test ./internal/modules/generator ./cmd/desktop-sidecar -count=1)
-          pnpm --dir go-admin-plus-ui --filter @go-admin/admin-desktop typecheck
+          pnpm --dir go-admin-plus-ui --filter @go-admin-plus/admin-desktop typecheck
           node release/shared/sidecar/build.mjs --target aarch64-apple-darwin
-          pnpm --dir go-admin-plus-ui --filter @go-admin/admin-desktop exec cargo test --manifest-path src-tauri/Cargo.toml --locked
-          pnpm --dir go-admin-plus-ui --filter @go-admin/admin-desktop exec cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets --all-features -- -D warnings
+          pnpm --dir go-admin-plus-ui --filter @go-admin-plus/admin-desktop exec cargo test --manifest-path src-tauri/Cargo.toml --locked
+          pnpm --dir go-admin-plus-ui --filter @go-admin-plus/admin-desktop exec cargo clippy --manifest-path src-tauri/Cargo.toml --locked --all-targets --all-features -- -D warnings
 
       - name: Import Developer ID and notarization credentials
         shell: bash

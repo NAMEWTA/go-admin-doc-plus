@@ -713,7 +713,7 @@ func generatedWebTest(model Model) string {
 	}
 	template := `import { describe, expect, it, vi } from 'vitest'
 import { create{{ENTITY}}Controller } from './index'
-import type { {{ENTITY}}, {{ENTITY}}Client, {{ENTITY}}Input } from '@go-admin/domain-{{MODULE}}'
+import type { {{ENTITY}}, {{ENTITY}}Client, {{ENTITY}}Input } from '@go-admin-plus/domain-{{MODULE}}'
 const row = { id: '00000000-0000-4000-8000-000000000001', revision: 1 } as {{ENTITY}}
 const input = { {{INPUT}} } satisfies {{ENTITY}}Input
 describe('{{MODULE}} web domain', () => {
@@ -731,7 +731,7 @@ describe('{{MODULE}} web domain', () => {
 	return strings.NewReplacer("{{ENTITY}}", model.Entity, "{{MODULE}}", model.Module, "{{INPUT}}", values.String()).Replace(template)
 }
 func generatedWebClient(model Model) string {
-	template := `import { createContractClient, RequestError, type {{ENTITY}}Client, type RequestFailure } from '@go-admin/domain-{{MODULE}}'
+	template := `import { createContractClient, RequestError, type {{ENTITY}}Client, type RequestFailure } from '@go-admin-plus/domain-{{MODULE}}'
 interface Problem { category?: string; code?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/
 export const createWebClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): {{ENTITY}}Client => {
@@ -872,13 +872,13 @@ func migrationType(kind ColumnKind, postgres bool) string {
 }
 
 func generatedDomainManifest(model Model) string {
-	value := map[string]any{"name": "@go-admin/domain-" + model.Module, "version": "0.0.0", "private": true, "type": "module", "exports": map[string]string{".": "./src/index.ts"}, "dependencies": map[string]string{"@go-admin/api-client": "workspace:*"}, "scripts": map[string]string{"test": "vitest run src", "typecheck": "tsc -p src/tsconfig.json"}, "devDependencies": map[string]string{"typescript": "catalog:", "vitest": "catalog:"}}
+	value := map[string]any{"name": "@go-admin-plus/domain-" + model.Module, "version": "0.0.0", "private": true, "type": "module", "exports": map[string]string{".": "./src/index.ts"}, "dependencies": map[string]string{"@go-admin-plus/api-client": "workspace:*"}, "scripts": map[string]string{"test": "vitest run src", "typecheck": "tsc -p src/tsconfig.json"}, "devDependencies": map[string]string{"typescript": "catalog:", "vitest": "catalog:"}}
 	encoded, _ := json.MarshalIndent(value, "", "  ")
 	return string(encoded) + "\n"
 }
 
 func generatedWebManifest(model Model) string {
-	value := map[string]any{"name": "@go-admin/web-domain-" + model.Module, "version": "0.0.0", "private": true, "type": "module", "exports": map[string]string{".": "./src/index.ts"}, "dependencies": map[string]string{"@go-admin/domain-" + model.Module: "workspace:*", "@go-admin/ui": "workspace:*", "vue": "catalog:"}, "scripts": map[string]string{"test": "vitest run --config vitest.config.ts", "typecheck": "vue-tsc -p src/tsconfig.json"}, "devDependencies": map[string]string{"@vitejs/plugin-vue": "catalog:", "@vue/compiler-sfc": "catalog:", "typescript": "catalog:", "vite": "catalog:", "vitest": "catalog:", "vue-tsc": "catalog:"}}
+	value := map[string]any{"name": "@go-admin-plus/web-domain-" + model.Module, "version": "0.0.0", "private": true, "type": "module", "exports": map[string]string{".": "./src/index.ts"}, "dependencies": map[string]string{"@go-admin-plus/domain-" + model.Module: "workspace:*", "@go-admin-plus/ui": "workspace:*", "vue": "catalog:"}, "scripts": map[string]string{"test": "vitest run --config vitest.config.ts", "typecheck": "vue-tsc -p src/tsconfig.json"}, "devDependencies": map[string]string{"@vitejs/plugin-vue": "catalog:", "@vue/compiler-sfc": "catalog:", "typescript": "catalog:", "vite": "catalog:", "vitest": "catalog:", "vue-tsc": "catalog:"}}
 	encoded, _ := json.MarshalIndent(value, "", "  ")
 	return string(encoded) + "\n"
 }
@@ -962,8 +962,8 @@ export const validate{{ENTITY}}Input = (input: Readonly<{{ENTITY}}Input>): boole
 }
 
 func generatedWebDomain(model Model) string {
-	template := `import { RequestError, empty{{ENTITY}}Input, permissions, validate{{ENTITY}}Input, type {{ENTITY}}, type {{ENTITY}}Client, type {{ENTITY}}Input, type PermissionCode, type RequestFailure } from '@go-admin/domain-{{MODULE}}'
-import { createListController, type ListController } from '@go-admin/ui'
+	template := `import { RequestError, empty{{ENTITY}}Input, permissions, validate{{ENTITY}}Input, type {{ENTITY}}, type {{ENTITY}}Client, type {{ENTITY}}Input, type PermissionCode, type RequestFailure } from '@go-admin-plus/domain-{{MODULE}}'
+import { createListController, type ListController } from '@go-admin-plus/ui'
 export interface Filters { readonly search: string }
 export interface CapabilityPort { can(permission: PermissionCode): boolean }
 export interface {{ENTITY}}Controller {
@@ -1011,7 +1011,7 @@ func generatedVuePage(model Model) string {
 	}
 	template := `<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { permissions, type {{ENTITY}}, type {{ENTITY}}Input } from '@go-admin/domain-{{MODULE}}'
+import { permissions, type {{ENTITY}}, type {{ENTITY}}Input } from '@go-admin-plus/domain-{{MODULE}}'
 import type { {{ENTITY}}Controller } from './index'
 const props = defineProps<{ controller: {{ENTITY}}Controller }>()
 const revision = ref(0); const search = ref(''); const editing = ref<{{ENTITY}} | null>(null)

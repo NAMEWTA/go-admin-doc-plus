@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AuditRequestError } from '@go-admin/domain-audit'
+import { AuditRequestError } from '@go-admin-plus/domain-audit'
 import { createWebAuditClient } from './web-audit-client'
 
 const json = (value: unknown, init: ResponseInit = {}) => new Response(JSON.stringify(value), { status: 200, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'c'.repeat(43) }, ...init })

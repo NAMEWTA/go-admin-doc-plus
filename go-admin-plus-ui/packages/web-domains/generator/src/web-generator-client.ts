@@ -1,4 +1,4 @@
-import { createContractClient, GeneratorRequestError, type GenerationDraft, type GenerationPreview, type GenerationResult, type GeneratorClient, type GeneratorFailure, type TableMetadata, type TableReference } from '@go-admin/domain-generator'
+import { createContractClient, GeneratorRequestError, type GenerationDraft, type GenerationPreview, type GenerationResult, type GeneratorClient, type GeneratorFailure, type TableMetadata, type TableReference } from '@go-admin-plus/domain-generator'
 
 interface Problem { category?: string; code?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/

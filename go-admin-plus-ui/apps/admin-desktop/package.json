@@ -1,5 +1,5 @@
 {
-  "name": "@go-admin/admin-desktop",
+  "name": "@go-admin-plus/admin-desktop",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,9 +14,9 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@go-admin/adapter-desktop": "workspace:*",
-    "@go-admin/app-shell": "workspace:*",
-    "@go-admin/ui": "workspace:*",
+    "@go-admin-plus/adapter-desktop": "workspace:*",
+    "@go-admin-plus/app-shell": "workspace:*",
+    "@go-admin-plus/ui": "workspace:*",
     "@tauri-apps/api": "2.11.1",
     "vue": "catalog:"
   },

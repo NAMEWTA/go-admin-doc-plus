@@ -28,8 +28,8 @@ lipo -create \
   -output "$binaries/go-admin-sidecar-universal-apple-darwin"
 test "$(lipo -archs "$binaries/go-admin-sidecar-universal-apple-darwin")" = "x86_64 arm64"
 
-pnpm --dir "$repository/go-admin-plus-ui" --filter @go-admin/admin-desktop build
-pnpm --dir "$repository/go-admin-plus-ui" --filter @go-admin/admin-desktop exec tauri build \
+pnpm --dir "$repository/go-admin-plus-ui" --filter @go-admin-plus/admin-desktop build
+pnpm --dir "$repository/go-admin-plus-ui" --filter @go-admin-plus/admin-desktop exec tauri build \
   --target universal-apple-darwin \
   --features custom-protocol \
   --bundles app \

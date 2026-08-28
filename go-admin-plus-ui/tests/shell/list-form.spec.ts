@@ -4,7 +4,7 @@ import {
   createFormController,
   createListController,
   createRemovalController
-} from '@go-admin/ui'
+} from '@go-admin-plus/ui'
 
 const deferred = <T>() => {
   let resolve!: (value: T) => void

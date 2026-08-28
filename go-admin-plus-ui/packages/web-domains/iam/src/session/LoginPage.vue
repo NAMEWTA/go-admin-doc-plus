@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
-import type { SessionController } from '@go-admin/domain-iam/session'
+import type { SessionController } from '@go-admin-plus/domain-iam/session'
 import GopherMark from './GopherMark.vue'
 
 const props = defineProps<{ controller: SessionController }>()

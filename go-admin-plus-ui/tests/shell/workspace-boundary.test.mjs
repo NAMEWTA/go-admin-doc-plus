@@ -6,41 +6,41 @@ import test from 'node:test'
 
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
-const browserAdapterWorkspaceDependencies = ['@go-admin/domain-files', '@go-admin/platform']
+const browserAdapterWorkspaceDependencies = ['@go-admin-plus/domain-files', '@go-admin-plus/platform']
 const assertBrowserAdapterDependencies = dependencies => {
   for (const dependency of browserAdapterWorkspaceDependencies) {
     assert.equal(dependencies[dependency], 'workspace:*')
   }
   assert.deepEqual(
-    Object.keys(dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
+    Object.keys(dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
     browserAdapterWorkspaceDependencies,
     'browser adapter may only depend on its platform and Files domain ports'
   )
 }
 const requiredPackageNames = [
-  '@go-admin/adapter-browser',
-  '@go-admin/adapter-desktop',
-  '@go-admin/admin-desktop',
-  '@go-admin/admin-web',
-  '@go-admin/app-shell',
-  '@go-admin/domain-audit',
-  '@go-admin/domain-demo',
-  '@go-admin/domain-files',
-  '@go-admin/domain-generator',
-  '@go-admin/domain-iam',
-  '@go-admin/domain-organization',
-  '@go-admin/domain-scheduler',
-  '@go-admin/domain-settings',
-  '@go-admin/platform',
-  '@go-admin/ui',
-  '@go-admin/web-domain-audit',
-  '@go-admin/web-domain-demo',
-  '@go-admin/web-domain-files',
-  '@go-admin/web-domain-generator',
-  '@go-admin/web-domain-iam',
-  '@go-admin/web-domain-organization',
-  '@go-admin/web-domain-scheduler',
-  '@go-admin/web-domain-settings'
+  '@go-admin-plus/adapter-browser',
+  '@go-admin-plus/adapter-desktop',
+  '@go-admin-plus/admin-desktop',
+  '@go-admin-plus/admin-web',
+  '@go-admin-plus/app-shell',
+  '@go-admin-plus/domain-audit',
+  '@go-admin-plus/domain-demo',
+  '@go-admin-plus/domain-files',
+  '@go-admin-plus/domain-generator',
+  '@go-admin-plus/domain-iam',
+  '@go-admin-plus/domain-organization',
+  '@go-admin-plus/domain-scheduler',
+  '@go-admin-plus/domain-settings',
+  '@go-admin-plus/platform',
+  '@go-admin-plus/ui',
+  '@go-admin-plus/web-domain-audit',
+  '@go-admin-plus/web-domain-demo',
+  '@go-admin-plus/web-domain-files',
+  '@go-admin-plus/web-domain-generator',
+  '@go-admin-plus/web-domain-iam',
+  '@go-admin-plus/web-domain-organization',
+  '@go-admin-plus/web-domain-scheduler',
+  '@go-admin-plus/web-domain-settings'
 ]
 
 const sourceFiles = async root => {
@@ -90,6 +90,7 @@ test('all planned packages are private and expose only public entry points', asy
     assert.ok(names.has(name), `required workspace package ${name} is missing`)
   }
   for (const { directory, manifest } of manifests) {
+    assert.match(manifest.name, /^@go-admin-plus\//, `${relative(workspaceRoot, directory)} uses a non-canonical package scope`)
     assert.equal(manifest.private, true, relative(workspaceRoot, directory))
     assert.equal(manifest.type, 'module', relative(workspaceRoot, directory))
     assert.ok(manifest.exports, `${relative(workspaceRoot, directory)} has no public exports`)
@@ -97,7 +98,7 @@ test('all planned packages are private and expose only public entry points', asy
       ...manifest.dependencies,
       ...manifest.devDependencies
     })) {
-      if (dependency.startsWith('@go-admin/')) {
+      if (dependency.startsWith('@go-admin-plus/')) {
         assert.equal(version, 'workspace:*', `${manifest.name} must link ${dependency} through the workspace`)
       }
     }
@@ -110,7 +111,7 @@ test('workspace dependencies are acyclic', async () => {
   ))
   const graph = new Map(manifests.map(manifest => [
     manifest.name,
-    Object.keys(manifest.dependencies ?? {}).filter(name => name.startsWith('@go-admin/'))
+    Object.keys(manifest.dependencies ?? {}).filter(name => name.startsWith('@go-admin-plus/'))
   ]))
   for (const [name, dependencies] of graph) {
     for (const dependency of dependencies) {
@@ -137,14 +138,14 @@ test('workspace consumers use package exports rather than source paths', async (
     ...rootManifest.dependencies,
     ...rootManifest.devDependencies
   })) {
-    if (dependency.startsWith('@go-admin/')) assert.equal(version, 'workspace:*')
+    if (dependency.startsWith('@go-admin-plus/')) assert.equal(version, 'workspace:*')
   }
 
   for (const file of await sourceFiles(workspaceRoot)) {
     const source = await readFile(file, 'utf8')
     assert.doesNotMatch(
       source,
-      /from\s+['"]@go-admin\/[^'"]+\/src(?:\/|['"])/,
+      /from\s+['"]@go-admin-plus\/[^'"]+\/src(?:\/|['"])/,
       relative(workspaceRoot, file)
     )
   }
@@ -162,26 +163,26 @@ test('workspace consumers use package exports rather than source paths', async (
 
 test('apps select adapters without owning runtime transport', async () => {
   const adminWeb = await readJson(join(workspaceRoot, 'apps/admin-web/package.json'))
-  assert.equal(adminWeb.dependencies['@go-admin/adapter-browser'], 'workspace:*')
-  assert.equal(adminWeb.dependencies['@go-admin/platform'], undefined)
+  assert.equal(adminWeb.dependencies['@go-admin-plus/adapter-browser'], 'workspace:*')
+  assert.equal(adminWeb.dependencies['@go-admin-plus/platform'], undefined)
   assert.deepEqual(
-    Object.keys(adminWeb.dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
-    ['@go-admin/adapter-browser', '@go-admin/app-shell', '@go-admin/ui']
+    Object.keys(adminWeb.dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
+    ['@go-admin-plus/adapter-browser', '@go-admin-plus/app-shell', '@go-admin-plus/ui']
   )
 
   const browserAdapter = await readJson(join(workspaceRoot, 'packages/adapters/browser/package.json'))
   assertBrowserAdapterDependencies(browserAdapter.dependencies)
 
   const adminDesktop = await readJson(join(workspaceRoot, 'apps/admin-desktop/package.json'))
-  assert.equal(adminDesktop.dependencies['@go-admin/adapter-desktop'], 'workspace:*')
+  assert.equal(adminDesktop.dependencies['@go-admin-plus/adapter-desktop'], 'workspace:*')
   assert.deepEqual(
-    Object.keys(adminDesktop.dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
-    ['@go-admin/adapter-desktop', '@go-admin/app-shell', '@go-admin/ui']
+    Object.keys(adminDesktop.dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
+    ['@go-admin-plus/adapter-desktop', '@go-admin-plus/app-shell', '@go-admin-plus/ui']
   )
 
   const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
   for (const module of ['iam', 'audit', 'organization', 'settings', 'generator', 'scheduler', 'demo', 'files']) {
-    assert.match(productShell, new RegExp(`@go-admin/web-domain-${module}`), `product shell must compose ${module}`)
+    assert.match(productShell, new RegExp(`@go-admin-plus/web-domain-${module}`), `product shell must compose ${module}`)
   }
   assert.match(productShell, /productRoutesFor\(props\.host\)/)
 
@@ -195,9 +196,9 @@ test('apps select adapters without owning runtime transport', async () => {
 test('browser adapter dependency allowlist rejects additional workspace packages', () => {
   assert.throws(
     () => assertBrowserAdapterDependencies({
-      '@go-admin/domain-files': 'workspace:*',
-      '@go-admin/platform': 'workspace:*',
-      '@go-admin/app-shell': 'workspace:*'
+      '@go-admin-plus/domain-files': 'workspace:*',
+      '@go-admin-plus/platform': 'workspace:*',
+      '@go-admin-plus/app-shell': 'workspace:*'
     }),
     /browser adapter may only depend/
   )
@@ -213,7 +214,7 @@ test('headless packages do not depend on Vue, DOM globals, deep imports, or cred
       if (!entry.isFile()) continue
       const source = await readFile(join(root, entry.name), 'utf8')
       assert.doesNotMatch(source, /from\s+['"](?:vue|vue-router)['"]|\b(?:window|document|localStorage)\b/)
-      assert.doesNotMatch(source, /@go-admin\/[^'"]+\/src\//)
+      assert.doesNotMatch(source, /@go-admin-plus\/[^'"]+\/src\//)
     }
   }
   const platformSource = await readFile(join(workspaceRoot, 'packages/platform/src/index.ts'), 'utf8')

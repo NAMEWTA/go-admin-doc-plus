@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { GeneratorRequestError, generatorPermissions, type GenerationPreview, type GeneratorClient, type TableMetadata } from '@go-admin/domain-generator'
+import { GeneratorRequestError, generatorPermissions, type GenerationPreview, type GeneratorClient, type TableMetadata } from '@go-admin-plus/domain-generator'
 import { createGeneratorController } from './generator-controller'
 import pageSource from './GeneratorWizardPage.vue?raw'
 

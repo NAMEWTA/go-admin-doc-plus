@@ -8,8 +8,8 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@go-admin/domain-iam/session": ["../../../../packages/domains/iam/src/session/index.ts"],
-      "@go-admin/web-domain-iam/session": ["../../../../packages/web-domains/iam/src/session/index.ts"]
+      "@go-admin-plus/domain-iam/session": ["../../../../packages/domains/iam/src/session/index.ts"],
+      "@go-admin-plus/web-domain-iam/session": ["../../../../packages/web-domains/iam/src/session/index.ts"]
     },
     "strict": true,
     "target": "ES2024",

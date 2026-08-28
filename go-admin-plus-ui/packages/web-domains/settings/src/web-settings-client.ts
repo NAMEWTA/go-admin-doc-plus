@@ -1,4 +1,4 @@
-import { createContractClient, SettingsRequestError, type SettingsClient, type SettingsFailure } from '@go-admin/domain-settings'
+import { createContractClient, SettingsRequestError, type SettingsClient, type SettingsFailure } from '@go-admin-plus/domain-settings'
 
 interface Problem { category?:string; code?:string }
 const csrfPattern=/^[A-Za-z0-9_-]{43}$/

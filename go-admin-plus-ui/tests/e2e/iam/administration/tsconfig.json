@@ -8,11 +8,11 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
-      "@go-admin/domain-iam/administration": ["../../../../packages/domains/iam/src/administration/index.ts"],
-      "@go-admin/domain-iam/session": ["../../../../packages/domains/iam/src/session/index.ts"],
-      "@go-admin/web-domain-iam/administration": ["../../../../packages/web-domains/iam/src/administration/index.ts"],
-      "@go-admin/web-domain-iam/session": ["../../../../packages/web-domains/iam/src/session/index.ts"],
-      "@go-admin/ui": ["../../../../packages/ui/src/index.ts"],
+      "@go-admin-plus/domain-iam/administration": ["../../../../packages/domains/iam/src/administration/index.ts"],
+      "@go-admin-plus/domain-iam/session": ["../../../../packages/domains/iam/src/session/index.ts"],
+      "@go-admin-plus/web-domain-iam/administration": ["../../../../packages/web-domains/iam/src/administration/index.ts"],
+      "@go-admin-plus/web-domain-iam/session": ["../../../../packages/web-domains/iam/src/session/index.ts"],
+      "@go-admin-plus/ui": ["../../../../packages/ui/src/index.ts"],
       "vue": ["../../../../packages/web-domains/iam/node_modules/vue"]
     },
     "strict": true,

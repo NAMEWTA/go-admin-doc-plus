@@ -41,6 +41,8 @@ packages/
   web-domains/         领域 Vue 页面包
 ```
 
+根 workspace 固定为 `@go-admin-plus/workspace`，内部私有包统一使用 `@go-admin-plus/*` scope；不保留历史别名或双 scope。
+
 依赖方向为 App -> app-shell/adapters -> domain ports；领域逻辑不依赖具体宿主。Web 与 Desktop 复用领域功能，但分别选择浏览器 HTTP 和 Tauri IPC 适配器。
 
 ## 根治理

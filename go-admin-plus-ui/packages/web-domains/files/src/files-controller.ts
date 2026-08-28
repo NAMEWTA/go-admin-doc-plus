@@ -1,5 +1,5 @@
-import { FilesRequestError, filesPermissions, validFileSearch, validUploadCandidate, type FileMetadata, type FilesClient, type FilesFailure, type FilesPermissionCode, type UploadCandidate } from '@go-admin/domain-files'
-import { createListController, type ListController } from '@go-admin/ui'
+import { FilesRequestError, filesPermissions, validFileSearch, validUploadCandidate, type FileMetadata, type FilesClient, type FilesFailure, type FilesPermissionCode, type UploadCandidate } from '@go-admin-plus/domain-files'
+import { createListController, type ListController } from '@go-admin-plus/ui'
 
 export type FilesMutationResult = 'completed' | 'invalid' | 'cancelled' | 'empty' | 'busy' | 'failed' | 'refresh-failed'
 export interface FilesFilters { readonly search: string }

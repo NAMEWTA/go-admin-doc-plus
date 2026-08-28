@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { OrganizationRequestError, type Department, type OrganizationClient } from '@go-admin/domain-organization'
+import { OrganizationRequestError, type Department, type OrganizationClient } from '@go-admin-plus/domain-organization'
 import { createOrganizationController } from './organization-controller'
 
 const root: Department = { id: 'department-root-001', key: 'root', name: 'Organization', protected: true, sortOrder: 0 }

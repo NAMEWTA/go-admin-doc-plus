@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createWebRuntime } from '@go-admin/adapter-browser'
+import { createWebRuntime } from '@go-admin-plus/adapter-browser'
 
 const response = (status: number, value?: unknown): Response => ({
   ok: status >= 200 && status < 300,

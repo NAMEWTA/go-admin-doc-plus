@@ -16,7 +16,7 @@ case $target in
     require_desktop_workspace
     cd "$frontend_root"
     node "$repo_root/release/shared/sidecar/build.mjs" --host
-    exec pnpm --filter @go-admin/admin-desktop tauri build
+    exec pnpm --filter @go-admin-plus/admin-desktop tauri build
     ;;
   *)
     fail "unsupported frontend package target: $target (expected web or desktop)"

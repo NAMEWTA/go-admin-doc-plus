@@ -1,11 +1,11 @@
 import { createApp, h, type Component } from 'vue'
-import { createCapabilityController } from '@go-admin/domain-iam/administration'
-import { createSessionController } from '@go-admin/domain-iam/session'
-import { SchedulerRequestError, type DefinitionInput } from '@go-admin/domain-scheduler'
-import { createSchedulerController, createWebSchedulerClient, SchedulerPage } from '@go-admin/web-domain-scheduler'
-import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
-import { createBrowserSessionFetch } from '@go-admin/adapter-browser'
+import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
+import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import { SchedulerRequestError, type DefinitionInput } from '@go-admin-plus/domain-scheduler'
+import { createSchedulerController, createWebSchedulerClient, SchedulerPage } from '@go-admin-plus/web-domain-scheduler'
+import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
+import { createBrowserSessionFetch } from '@go-admin-plus/adapter-browser'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
 const waitUntil = async (condition: () => boolean, message: string, timeout = 10_000) => { const deadline = Date.now() + timeout; while (Date.now() < deadline) { if (condition()) return; await new Promise(resolve => setTimeout(resolve, 25)) }; throw new Error(message) }

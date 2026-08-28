@@ -1,5 +1,5 @@
 {
-  "name": "@go-admin/api-client",
+  "name": "@go-admin-plus/api-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",

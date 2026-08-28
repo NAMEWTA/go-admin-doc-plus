@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { demoPermissions, validateProduct, type Product, type ProductInput, type ProductQuery } from '@go-admin/domain-demo'
+import { demoPermissions, validateProduct, type Product, type ProductInput, type ProductQuery } from '@go-admin-plus/domain-demo'
 import type { DemoController } from './demo-controller'
 
 const props = defineProps<{ controller: DemoController }>()

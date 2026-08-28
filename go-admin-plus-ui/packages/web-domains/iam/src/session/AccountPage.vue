@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref, watch } from 'vue'
-import type { AccountProfile, SessionController, UpdateProfile } from '@go-admin/domain-iam/session'
+import type { AccountProfile, SessionController, UpdateProfile } from '@go-admin-plus/domain-iam/session'
 import { passwordsMatch } from './account-form'
 
 const props = defineProps<{ controller: SessionController; profile: AccountProfile }>()

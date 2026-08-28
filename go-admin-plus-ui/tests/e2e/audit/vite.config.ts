@@ -10,8 +10,8 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@go-admin/domain-audit': fileURLToPath(new URL('../../../packages/domains/audit/src/index.ts', import.meta.url)),
-      '@go-admin/web-domain-audit': fileURLToPath(new URL('../../../packages/web-domains/audit/src/index.ts', import.meta.url)),
+      '@go-admin-plus/domain-audit': fileURLToPath(new URL('../../../packages/domains/audit/src/index.ts', import.meta.url)),
+      '@go-admin-plus/web-domain-audit': fileURLToPath(new URL('../../../packages/web-domains/audit/src/index.ts', import.meta.url)),
     },
   },
   build: {

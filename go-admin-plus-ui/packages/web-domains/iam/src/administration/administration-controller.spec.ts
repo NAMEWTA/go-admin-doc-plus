@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { AdministrationRequestError, type AdministrationClient } from '@go-admin/domain-iam/administration'
+import { AdministrationRequestError, type AdministrationClient } from '@go-admin-plus/domain-iam/administration'
 import { createAdministrationController, createUserAndClearPassword, resetPasswordAndClear, settleAdministrationPageOperation } from './administration-controller'
 
 const client = (): AdministrationClient => ({

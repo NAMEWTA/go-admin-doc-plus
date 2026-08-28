@@ -4,7 +4,7 @@ import {
   type AuditClient,
   type AuditFailure,
   type AuditListRequest,
-} from '@go-admin/domain-audit'
+} from '@go-admin-plus/domain-audit'
 
 interface Problem { category?: string; code?: string }
 

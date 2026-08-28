@@ -10,7 +10,7 @@ import {
   type FilesClient,
   type FilesFailure,
   type UploadCandidate,
-} from '@go-admin/domain-files'
+} from '@go-admin-plus/domain-files'
 
 interface Problem { category?: string; code?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/

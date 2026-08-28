@@ -1,5 +1,5 @@
-import { SchedulerRequestError, validDefinitionInput, validSchedulerSearch, type Definition, type DefinitionInput, type Execution, type ExecutionStatus, type SchedulerClient, type TaskType } from '@go-admin/domain-scheduler'
-import { createListController, type ListController } from '@go-admin/ui'
+import { SchedulerRequestError, validDefinitionInput, validSchedulerSearch, type Definition, type DefinitionInput, type Execution, type ExecutionStatus, type SchedulerClient, type TaskType } from '@go-admin-plus/domain-scheduler'
+import { createListController, type ListController } from '@go-admin-plus/ui'
 
 export interface DefinitionFilters { search: string }
 export interface ExecutionFilters { definitionId: string; status: ExecutionStatus | '' }

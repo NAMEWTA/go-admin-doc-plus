@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { createDesktopFetch, createDesktopRuntime, createDesktopSessionClient, createDesktopTransport } from '@go-admin/adapter-desktop'
-import { ProductWorkspace } from '@go-admin/app-shell/product'
+import { createDesktopFetch, createDesktopRuntime, createDesktopSessionClient, createDesktopTransport } from '@go-admin-plus/adapter-desktop'
+import { ProductWorkspace } from '@go-admin-plus/app-shell/product'
 
 const runtime = createDesktopRuntime()
 const fetcher = createDesktopFetch()

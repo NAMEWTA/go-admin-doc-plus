@@ -1,4 +1,4 @@
-import { createContractClient, OrganizationRequestError, type OrganizationClient } from '@go-admin/domain-organization'
+import { createContractClient, OrganizationRequestError, type OrganizationClient } from '@go-admin-plus/domain-organization'
 
 interface Problem { category?: string; code?: string }
 

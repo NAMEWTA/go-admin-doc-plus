@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { DemoRequestError } from '@go-admin/domain-demo'
+import { DemoRequestError } from '@go-admin-plus/domain-demo'
 
 import { createDesktopDemoClient, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
 

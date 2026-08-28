@@ -11,6 +11,7 @@ const removedPaths = [
 const forbidden = [
   ['old frontend name', /go-admin-ui-plus/], ['Wails runtime', /\bwails(?:app)?\b/i],
   ['old Go module path', /(?:^|\n)\s*module\s+go-admin\s*(?:\n|$)|["']go-admin\/internal\//],
+  ['old frontend package scope', /@go-admin\//],
   ['old upstream core', /go-admin-core/], ['Casbin', /\bcasbin\b/i],
   ['Redis', /\bredis\b/i], ['tenant feature', /\btenant(?:s|_id)?\b/i],
   ['MySQL', /\bmysql\b/i], ['SQL Server', /\bsqlserver\b|\bsql server\b/i],
@@ -42,6 +43,7 @@ const allowedMatches = new Map(Object.entries({
   'go-admin-plus/test/iam/authorization/administration_test.go': ['Casbin', 'tenant feature', 'JWT'],
   'release/macos/README.md': ['Wails runtime'],
   'scripts/quality/architecture-check.mjs': ['old frontend name'],
+  'scripts/quality/architecture-check.test.mjs': ['old frontend package scope'],
   'scripts/release/linux/verify-policy.mjs': ['old frontend name'],
   'scripts/release/macos/verify-policy.mjs': ['Wails runtime', 'old release class'],
   'scripts/release/macos/verify-policy.test.mjs': ['old release class'],

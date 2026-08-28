@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import type { Department, DepartmentInput, Position, PositionInput } from '@go-admin/domain-organization'
+import type { Department, DepartmentInput, Position, PositionInput } from '@go-admin-plus/domain-organization'
 import { settleOrganizationPageOperation, type OrganizationController } from './organization-controller'
 
 const props = defineProps<{ controller: OrganizationController }>()

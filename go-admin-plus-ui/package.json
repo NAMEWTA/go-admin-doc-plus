@@ -1,20 +1,20 @@
 {
-  "name": "@go-admin/workspace",
+  "name": "@go-admin-plus/workspace",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@go-admin/adapter-browser": "workspace:*",
-    "@go-admin/app-shell": "workspace:*",
-    "@go-admin/platform": "workspace:*",
-    "@go-admin/ui": "workspace:*"
+    "@go-admin-plus/adapter-browser": "workspace:*",
+    "@go-admin-plus/app-shell": "workspace:*",
+    "@go-admin-plus/platform": "workspace:*",
+    "@go-admin-plus/ui": "workspace:*"
   },
   "scripts": {
-    "dev": "pnpm --filter @go-admin/admin-web dev",
-    "build": "pnpm --filter @go-admin/admin-web build && pnpm --filter @go-admin/admin-desktop build",
+    "dev": "pnpm --filter @go-admin-plus/admin-web dev",
+    "build": "pnpm --filter @go-admin-plus/admin-web build && pnpm --filter @go-admin-plus/admin-desktop build",
     "build:prod": "pnpm build",
     "lint": "oxlint --ignore-pattern '**/node_modules/**' --ignore-pattern '**/dist/**' --deny-warnings apps packages tests",
-    "typecheck": "pnpm --filter @go-admin/domain-iam typecheck && pnpm --filter @go-admin/web-domain-iam typecheck && pnpm --filter @go-admin/domain-demo typecheck && pnpm --filter @go-admin/web-domain-demo typecheck && pnpm --filter @go-admin/admin-web typecheck && pnpm --filter @go-admin/domain-organization typecheck && pnpm --filter @go-admin/web-domain-organization typecheck && pnpm --filter @go-admin/domain-generator typecheck && pnpm --filter @go-admin/web-domain-generator typecheck && pnpm --filter @go-admin/domain-settings typecheck && pnpm --filter @go-admin/web-domain-settings typecheck && pnpm --filter @go-admin/domain-scheduler typecheck && pnpm --filter @go-admin/web-domain-scheduler typecheck && pnpm --filter @go-admin/domain-files typecheck && pnpm --filter @go-admin/web-domain-files typecheck && pnpm --filter @go-admin/adapter-browser typecheck:files && pnpm --filter @go-admin/app-shell typecheck && pnpm --filter @go-admin/admin-desktop typecheck && tsc -p tests/shell/tsconfig.json && tsc -p tests/e2e/iam/session/tsconfig.json && tsc -p tests/e2e/demo/tsconfig.json && vue-tsc -p tests/e2e/organization/tsconfig.json",
+    "typecheck": "pnpm --filter @go-admin-plus/domain-iam typecheck && pnpm --filter @go-admin-plus/web-domain-iam typecheck && pnpm --filter @go-admin-plus/domain-demo typecheck && pnpm --filter @go-admin-plus/web-domain-demo typecheck && pnpm --filter @go-admin-plus/admin-web typecheck && pnpm --filter @go-admin-plus/domain-organization typecheck && pnpm --filter @go-admin-plus/web-domain-organization typecheck && pnpm --filter @go-admin-plus/domain-generator typecheck && pnpm --filter @go-admin-plus/web-domain-generator typecheck && pnpm --filter @go-admin-plus/domain-settings typecheck && pnpm --filter @go-admin-plus/web-domain-settings typecheck && pnpm --filter @go-admin-plus/domain-scheduler typecheck && pnpm --filter @go-admin-plus/web-domain-scheduler typecheck && pnpm --filter @go-admin-plus/domain-files typecheck && pnpm --filter @go-admin-plus/web-domain-files typecheck && pnpm --filter @go-admin-plus/adapter-browser typecheck:files && pnpm --filter @go-admin-plus/app-shell typecheck && pnpm --filter @go-admin-plus/admin-desktop typecheck && tsc -p tests/shell/tsconfig.json && tsc -p tests/e2e/iam/session/tsconfig.json && tsc -p tests/e2e/demo/tsconfig.json && vue-tsc -p tests/e2e/organization/tsconfig.json",
     "type-check": "pnpm typecheck",
     "test": "vitest run --config tests/shell/vitest.config.ts",
     "test:unit": "pnpm test",

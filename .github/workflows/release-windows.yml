@@ -122,10 +122,10 @@ jobs:
           }
           Get-Content release/windows/identity.json -Raw | ConvertFrom-Json | Out-Null
           go -C go-admin-plus test ./internal/modules/generator ./cmd/desktop-sidecar -count=1
-          pnpm --dir go-admin-plus-ui --filter '@go-admin/admin-desktop' typecheck
+          pnpm --dir go-admin-plus-ui --filter '@go-admin-plus/admin-desktop' typecheck
           node release/shared/sidecar/build.mjs --target x86_64-pc-windows-msvc
-          pnpm --dir go-admin-plus-ui --filter '@go-admin/admin-desktop' exec cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
-          pnpm --dir go-admin-plus-ui --filter '@go-admin/admin-desktop' exec cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets --all-features -- -D warnings
+          pnpm --dir go-admin-plus-ui --filter '@go-admin-plus/admin-desktop' exec cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc
+          pnpm --dir go-admin-plus-ui --filter '@go-admin-plus/admin-desktop' exec cargo clippy --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --all-targets --all-features -- -D warnings
 
       - name: Build signed x64 Tauri NSIS candidate
         shell: pwsh

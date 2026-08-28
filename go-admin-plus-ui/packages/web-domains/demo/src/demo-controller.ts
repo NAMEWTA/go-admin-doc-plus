@@ -1,5 +1,5 @@
-import { DemoRequestError, demoPermissions, emptyProduct, validateProduct, validateProductSearch, type DeleteTarget, type DemoClient, type DemoFailure, type DemoPermissionCode, type Product, type ProductInput } from '@go-admin/domain-demo'
-import { createListController, type ListController } from '@go-admin/ui'
+import { DemoRequestError, demoPermissions, emptyProduct, validateProduct, validateProductSearch, type DeleteTarget, type DemoClient, type DemoFailure, type DemoPermissionCode, type Product, type ProductInput } from '@go-admin-plus/domain-demo'
+import { createListController, type ListController } from '@go-admin-plus/ui'
 
 export type MutationResult = 'completed' | 'invalid' | 'cancelled' | 'empty' | 'busy' | 'failed' | 'refresh-failed'
 export interface DemoFilters { readonly search: string }

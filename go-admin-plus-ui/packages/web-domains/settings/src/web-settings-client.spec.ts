@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest'
-import { SettingsRequestError } from '@go-admin/domain-settings'
+import { SettingsRequestError } from '@go-admin-plus/domain-settings'
 import { createWebSettingsClient } from './web-settings-client'
 const json=(status:number,body:unknown,csrf?:string)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json',...(csrf?{'X-CSRF-Token':csrf}:{})}})
 describe('web settings client',()=>{

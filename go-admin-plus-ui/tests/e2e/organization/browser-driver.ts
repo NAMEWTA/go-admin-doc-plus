@@ -1,10 +1,10 @@
 import { createApp, h, type Component } from 'vue'
-import { createCapabilityController } from '@go-admin/domain-iam/administration'
-import { createSessionController } from '@go-admin/domain-iam/session'
-import { OrganizationRequestError } from '@go-admin/domain-organization'
-import { createOrganizationController, createWebOrganizationClient, OrganizationPage } from '@go-admin/web-domain-organization'
-import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
+import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
+import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import { OrganizationRequestError } from '@go-admin-plus/domain-organization'
+import { createOrganizationController, createWebOrganizationClient, OrganizationPage } from '@go-admin-plus/web-domain-organization'
+import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
 const waitUntil = async (condition: () => boolean, message: string, timeout = 10_000) => {

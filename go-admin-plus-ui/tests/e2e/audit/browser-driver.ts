@@ -1,4 +1,4 @@
-import { createAuditController, createWebAuditClient, mountAuditPage } from '@go-admin/web-domain-audit'
+import { createAuditController, createWebAuditClient, mountAuditPage } from '@go-admin-plus/web-domain-audit'
 import { auditFixture } from './fixture'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => {

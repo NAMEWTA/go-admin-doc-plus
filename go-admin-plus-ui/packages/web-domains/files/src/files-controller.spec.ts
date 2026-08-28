@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { FilesRequestError, filesPermissions, type FileMetadata, type FilesClient, type FilesPermissionCode, type UploadCandidate } from '@go-admin/domain-files'
+import { FilesRequestError, filesPermissions, type FileMetadata, type FilesClient, type FilesPermissionCode, type UploadCandidate } from '@go-admin-plus/domain-files'
 import { createFilesController } from './files-controller'
 import pageSource from './FilesPage.vue?raw'
 

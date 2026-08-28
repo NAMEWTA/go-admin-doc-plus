@@ -1,5 +1,5 @@
-import { createListController, type ListController } from '@go-admin/ui'
-import { GeneratorRequestError, defaultColumns, generatorPermissions, validateDraft, type ColumnDraft, type GenerationDraft, type GenerationPreview, type GenerationResult, type GeneratorClient, type GeneratorFailure, type TableMetadata, type TableReference } from '@go-admin/domain-generator'
+import { createListController, type ListController } from '@go-admin-plus/ui'
+import { GeneratorRequestError, defaultColumns, generatorPermissions, validateDraft, type ColumnDraft, type GenerationDraft, type GenerationPreview, type GenerationResult, type GeneratorClient, type GeneratorFailure, type TableMetadata, type TableReference } from '@go-admin-plus/domain-generator'
 
 export interface GeneratorCapabilityPort { can(permissionCode: string): boolean }
 export type WizardStep = 'source' | 'configure' | 'preview' | 'complete'

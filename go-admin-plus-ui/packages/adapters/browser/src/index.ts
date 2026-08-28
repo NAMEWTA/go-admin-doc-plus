@@ -4,7 +4,7 @@ import type {
   RuntimeIdentity,
   RuntimeRequest,
   ShellRuntimePort
-} from '@go-admin/platform'
+} from '@go-admin-plus/platform'
 
 export { createBrowserFilesClient } from './files'
 export { createBrowserSessionFetch } from './session-fetch'

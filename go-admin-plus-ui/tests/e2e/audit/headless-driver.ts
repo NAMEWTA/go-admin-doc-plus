@@ -1,4 +1,4 @@
-import { createAuditController, createWebAuditClient } from '@go-admin/web-domain-audit'
+import { createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
 import { auditFixture } from './fixture'
 
 const baseURL = process.env.GO_ADMIN_AUDIT_E2E_BASE_URL

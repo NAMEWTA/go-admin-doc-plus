@@ -1,5 +1,5 @@
 {
-  "name": "@go-admin/adapter-browser",
+  "name": "@go-admin-plus/adapter-browser",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,8 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@go-admin/domain-files": "workspace:*",
-    "@go-admin/platform": "workspace:*"
+    "@go-admin-plus/domain-files": "workspace:*",
+    "@go-admin-plus/platform": "workspace:*"
   },
   "scripts": {
     "test:files": "vitest run src/files.spec.ts",

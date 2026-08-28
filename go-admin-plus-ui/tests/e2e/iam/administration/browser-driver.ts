@@ -1,8 +1,8 @@
 import { createApp, h, type App, type Component } from 'vue'
-import type { AdministrationClient } from '@go-admin/domain-iam/administration'
-import { createSessionController } from '@go-admin/domain-iam/session'
-import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin/web-domain-iam/administration'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
+import type { AdministrationClient } from '@go-admin-plus/domain-iam/administration'
+import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin-plus/web-domain-iam/administration'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
 import { administrationMountDiagnostic, safeBrowserDiagnostic } from './diagnostics.mjs'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }

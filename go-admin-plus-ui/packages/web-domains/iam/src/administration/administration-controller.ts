@@ -1,5 +1,5 @@
-import { AdministrationRequestError, type AdministrationClient, type Menu, type MenuInput, type Permission, type Role, type User } from '@go-admin/domain-iam/administration'
-import { createListController, type FormController, type FormRunResult, type ListController, type RemovalController, type RemovalRunResult } from '@go-admin/ui'
+import { AdministrationRequestError, type AdministrationClient, type Menu, type MenuInput, type Permission, type Role, type User } from '@go-admin-plus/domain-iam/administration'
+import { createListController, type FormController, type FormRunResult, type ListController, type RemovalController, type RemovalRunResult } from '@go-admin-plus/ui'
 
 export interface UserFilters { search: string }
 export interface CreateUserModel { username: string; displayName: string; email: string; password: string }

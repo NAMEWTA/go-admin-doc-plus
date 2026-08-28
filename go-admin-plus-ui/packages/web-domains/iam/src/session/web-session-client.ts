@@ -1,4 +1,4 @@
-import { createContractClient, SessionRequestError, type AccountProfile, type LoginCredentials, type SessionClient, type UpdateProfile } from '@go-admin/domain-iam/session'
+import { createContractClient, SessionRequestError, type AccountProfile, type LoginCredentials, type SessionClient, type UpdateProfile } from '@go-admin-plus/domain-iam/session'
 
 interface Problem { category?: string }
 

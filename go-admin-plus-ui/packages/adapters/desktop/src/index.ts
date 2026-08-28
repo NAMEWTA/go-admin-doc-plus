@@ -1,8 +1,8 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 
-import { DemoRequestError, type DemoClient, type DemoFailure, type Product, type ProductPage } from '@go-admin/domain-demo'
-import { SessionRequestError, type AccountProfile, type SessionClient } from '@go-admin/domain-iam/session'
-import type { NavigationEntry, PermissionCode, RuntimeIdentity, ShellRuntimePort } from '@go-admin/platform'
+import { DemoRequestError, type DemoClient, type DemoFailure, type Product, type ProductPage } from '@go-admin-plus/domain-demo'
+import { SessionRequestError, type AccountProfile, type SessionClient } from '@go-admin-plus/domain-iam/session'
+import type { NavigationEntry, PermissionCode, RuntimeIdentity, ShellRuntimePort } from '@go-admin-plus/platform'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'

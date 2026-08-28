@@ -1,7 +1,7 @@
 import { SettingsRequestError, emptyDictionary, emptyItem, emptySetting, settingsPermissions, validKey, validSearch, validText,
   type Dictionary, type DictionaryInput, type DictionaryItem, type DictionaryItemInput, type Setting, type SettingCategory, type SettingInput,
-  type DictionaryOption, type SettingsClient, type SettingsFailure, type SettingsPermissionCode } from '@go-admin/domain-settings'
-import { createListController, type ListController } from '@go-admin/ui'
+  type DictionaryOption, type SettingsClient, type SettingsFailure, type SettingsPermissionCode } from '@go-admin-plus/domain-settings'
+import { createListController, type ListController } from '@go-admin-plus/ui'
 
 export interface SearchFilters { readonly search:string }
 export interface SettingsCapabilityPort { can(code:SettingsPermissionCode):boolean; scope():string|null }

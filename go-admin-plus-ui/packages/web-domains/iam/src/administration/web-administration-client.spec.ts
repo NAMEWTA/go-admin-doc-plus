@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AdministrationRequestError } from '@go-admin/domain-iam/administration'
+import { AdministrationRequestError } from '@go-admin-plus/domain-iam/administration'
 import { createWebAdministrationClient } from './web-administration-client'
 
 describe('web administration client', () => {

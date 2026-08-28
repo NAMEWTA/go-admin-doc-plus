@@ -3,13 +3,13 @@
     "allowImportingTsExtensions": true, "erasableSyntaxOnly": true, "lib": ["ES2024", "DOM", "DOM.Iterable"],
     "module": "ESNext", "moduleResolution": "Bundler", "noEmit": true, "noUncheckedIndexedAccess": true,
     "paths": {
-      "@go-admin/domain-demo": ["../../../packages/domains/demo/src/index.ts"],
-      "@go-admin/web-domain-demo": ["../../../packages/web-domains/demo/src/index.ts"],
-      "@go-admin/domain-iam/administration": ["../../../packages/domains/iam/src/administration/index.ts"],
-      "@go-admin/domain-iam/session": ["../../../packages/domains/iam/src/session/index.ts"],
-      "@go-admin/web-domain-iam/administration": ["../../../packages/web-domains/iam/src/administration/index.ts"],
-      "@go-admin/web-domain-iam/session": ["../../../packages/web-domains/iam/src/session/index.ts"],
-      "@go-admin/ui": ["../../../packages/ui/src/index.ts"],
+      "@go-admin-plus/domain-demo": ["../../../packages/domains/demo/src/index.ts"],
+      "@go-admin-plus/web-domain-demo": ["../../../packages/web-domains/demo/src/index.ts"],
+      "@go-admin-plus/domain-iam/administration": ["../../../packages/domains/iam/src/administration/index.ts"],
+      "@go-admin-plus/domain-iam/session": ["../../../packages/domains/iam/src/session/index.ts"],
+      "@go-admin-plus/web-domain-iam/administration": ["../../../packages/web-domains/iam/src/administration/index.ts"],
+      "@go-admin-plus/web-domain-iam/session": ["../../../packages/web-domains/iam/src/session/index.ts"],
+      "@go-admin-plus/ui": ["../../../packages/ui/src/index.ts"],
       "vue": ["../../../packages/web-domains/demo/node_modules/vue"]
     },
     "strict": true, "target": "ES2024", "types": ["vite/client"]

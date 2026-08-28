@@ -1,5 +1,5 @@
 {
-  "name": "@go-admin/web-domain-iam",
+  "name": "@go-admin-plus/web-domain-iam",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     "./administration": "./src/administration/index.ts"
   },
   "dependencies": {
-    "@go-admin/domain-iam": "workspace:*",
-    "@go-admin/ui": "workspace:*",
+    "@go-admin-plus/domain-iam": "workspace:*",
+    "@go-admin-plus/ui": "workspace:*",
     "vue": "catalog:"
   },
   "scripts": {

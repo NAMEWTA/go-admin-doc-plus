@@ -1,5 +1,5 @@
-import { createSessionController, type SessionController } from '@go-admin/domain-iam/session'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
+import { createSessionController, type SessionController } from '@go-admin-plus/domain-iam/session'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
 
 const originalPassword = 'correct horse battery'
 const replacementPassword = 'replacement password value'

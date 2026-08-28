@@ -1,11 +1,11 @@
 import { createApp, h, type Component } from 'vue'
-import { GeneratorRequestError, generatorPermissions } from '@go-admin/domain-generator'
-import { createGeneratorController, createWebGeneratorClient, GeneratorWizardPage } from '@go-admin/web-domain-generator'
-import { createCapabilityController } from '@go-admin/domain-iam/administration'
-import { createSessionController } from '@go-admin/domain-iam/session'
-import { createWebAdministrationClient } from '@go-admin/web-domain-iam/administration'
-import { createWebSessionClient } from '@go-admin/web-domain-iam/session'
-import { createBrowserSessionFetch } from '@go-admin/adapter-browser'
+import { GeneratorRequestError, generatorPermissions } from '@go-admin-plus/domain-generator'
+import { createGeneratorController, createWebGeneratorClient, GeneratorWizardPage } from '@go-admin-plus/web-domain-generator'
+import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
+import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
+import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
+import { createBrowserSessionFetch } from '@go-admin-plus/adapter-browser'
 
 const result = document.querySelector<HTMLElement>('#result')!
 const sessionFetch = createBrowserSessionFetch(fetch)

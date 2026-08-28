@@ -1,5 +1,5 @@
 {
-  "name": "@go-admin/web-domain-scheduler",
+  "name": "@go-admin-plus/web-domain-scheduler",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,8 +7,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@go-admin/domain-scheduler": "workspace:*",
-    "@go-admin/ui": "workspace:*",
+    "@go-admin-plus/domain-scheduler": "workspace:*",
+    "@go-admin-plus/ui": "workspace:*",
     "vue": "catalog:"
   },
   "scripts": {

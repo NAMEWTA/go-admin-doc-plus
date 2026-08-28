@@ -1,5 +1,5 @@
 import { describe,expect,it,vi } from 'vitest'
-import { SettingsRequestError,settingsPermissions,type Dictionary,type DictionaryItem,type Setting,type SettingsClient,type SettingsPermissionCode } from '@go-admin/domain-settings'
+import { SettingsRequestError,settingsPermissions,type Dictionary,type DictionaryItem,type Setting,type SettingsClient,type SettingsPermissionCode } from '@go-admin-plus/domain-settings'
 import { createSettingsController } from './settings-controller'
 const setting:Setting={id:'10000000-0000-4000-8000-000000000001',category:'business',key:'shop.title',label:'Shop',value:'Title',description:'',enabled:true,revision:1}
 const dictionary:Dictionary={id:'20000000-0000-4000-8000-000000000001',key:'order.status',name:'Order status',description:'',enabled:true,revision:1}

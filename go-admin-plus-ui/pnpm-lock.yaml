@@ -38,16 +38,16 @@ importers:
 
   .:
     dependencies:
-      '@go-admin/adapter-browser':
+      '@go-admin-plus/adapter-browser':
         specifier: workspace:*
         version: link:packages/adapters/browser
-      '@go-admin/app-shell':
+      '@go-admin-plus/app-shell':
         specifier: workspace:*
         version: link:packages/app-shell
-      '@go-admin/platform':
+      '@go-admin-plus/platform':
         specifier: workspace:*
         version: link:packages/platform
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:packages/ui
     devDependencies:
@@ -78,13 +78,13 @@ importers:
 
   apps/admin-desktop:
     dependencies:
-      '@go-admin/adapter-desktop':
+      '@go-admin-plus/adapter-desktop':
         specifier: workspace:*
         version: link:../../packages/adapters/desktop
-      '@go-admin/app-shell':
+      '@go-admin-plus/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tauri-apps/api':
@@ -118,13 +118,13 @@ importers:
 
   apps/admin-web:
     dependencies:
-      '@go-admin/adapter-browser':
+      '@go-admin-plus/adapter-browser':
         specifier: workspace:*
         version: link:../../packages/adapters/browser
-      '@go-admin/app-shell':
+      '@go-admin-plus/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       vue:
@@ -152,10 +152,10 @@ importers:
 
   packages/adapters/browser:
     dependencies:
-      '@go-admin/domain-files':
+      '@go-admin-plus/domain-files':
         specifier: workspace:*
         version: link:../../domains/files
-      '@go-admin/platform':
+      '@go-admin-plus/platform':
         specifier: workspace:*
         version: link:../../platform
     devDependencies:
@@ -168,13 +168,13 @@ importers:
 
   packages/adapters/desktop:
     dependencies:
-      '@go-admin/domain-demo':
+      '@go-admin-plus/domain-demo':
         specifier: workspace:*
         version: link:../../domains/demo
-      '@go-admin/domain-iam':
+      '@go-admin-plus/domain-iam':
         specifier: workspace:*
         version: link:../../domains/iam
-      '@go-admin/platform':
+      '@go-admin-plus/platform':
         specifier: workspace:*
         version: link:../../platform
       '@tauri-apps/api':
@@ -202,37 +202,37 @@ importers:
 
   packages/app-shell:
     dependencies:
-      '@go-admin/adapter-browser':
+      '@go-admin-plus/adapter-browser':
         specifier: workspace:*
         version: link:../adapters/browser
-      '@go-admin/domain-iam':
+      '@go-admin-plus/domain-iam':
         specifier: workspace:*
         version: link:../domains/iam
-      '@go-admin/platform':
+      '@go-admin-plus/platform':
         specifier: workspace:*
         version: link:../platform
-      '@go-admin/web-domain-audit':
+      '@go-admin-plus/web-domain-audit':
         specifier: workspace:*
         version: link:../web-domains/audit
-      '@go-admin/web-domain-demo':
+      '@go-admin-plus/web-domain-demo':
         specifier: workspace:*
         version: link:../web-domains/demo
-      '@go-admin/web-domain-files':
+      '@go-admin-plus/web-domain-files':
         specifier: workspace:*
         version: link:../web-domains/files
-      '@go-admin/web-domain-generator':
+      '@go-admin-plus/web-domain-generator':
         specifier: workspace:*
         version: link:../web-domains/generator
-      '@go-admin/web-domain-iam':
+      '@go-admin-plus/web-domain-iam':
         specifier: workspace:*
         version: link:../web-domains/iam
-      '@go-admin/web-domain-organization':
+      '@go-admin-plus/web-domain-organization':
         specifier: workspace:*
         version: link:../web-domains/organization
-      '@go-admin/web-domain-scheduler':
+      '@go-admin-plus/web-domain-scheduler':
         specifier: workspace:*
         version: link:../web-domains/scheduler
-      '@go-admin/web-domain-settings':
+      '@go-admin-plus/web-domain-settings':
         specifier: workspace:*
         version: link:../web-domains/settings
       vue:
@@ -254,7 +254,7 @@ importers:
 
   packages/domains/audit:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -267,7 +267,7 @@ importers:
 
   packages/domains/demo:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -280,7 +280,7 @@ importers:
 
   packages/domains/files:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -293,7 +293,7 @@ importers:
 
   packages/domains/generator:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -306,7 +306,7 @@ importers:
 
   packages/domains/iam:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -319,7 +319,7 @@ importers:
 
   packages/domains/organization:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -332,7 +332,7 @@ importers:
 
   packages/domains/scheduler:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -345,7 +345,7 @@ importers:
 
   packages/domains/settings:
     dependencies:
-      '@go-admin/api-client':
+      '@go-admin-plus/api-client':
         specifier: workspace:*
         version: link:../../api-client
     devDependencies:
@@ -362,10 +362,10 @@ importers:
 
   packages/web-domains/audit:
     dependencies:
-      '@go-admin/domain-audit':
+      '@go-admin-plus/domain-audit':
         specifier: workspace:*
         version: link:../../domains/audit
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -390,10 +390,10 @@ importers:
 
   packages/web-domains/demo:
     dependencies:
-      '@go-admin/domain-demo':
+      '@go-admin-plus/domain-demo':
         specifier: workspace:*
         version: link:../../domains/demo
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -418,10 +418,10 @@ importers:
 
   packages/web-domains/files:
     dependencies:
-      '@go-admin/domain-files':
+      '@go-admin-plus/domain-files':
         specifier: workspace:*
         version: link:../../domains/files
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -446,10 +446,10 @@ importers:
 
   packages/web-domains/generator:
     dependencies:
-      '@go-admin/domain-generator':
+      '@go-admin-plus/domain-generator':
         specifier: workspace:*
         version: link:../../domains/generator
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -474,10 +474,10 @@ importers:
 
   packages/web-domains/iam:
     dependencies:
-      '@go-admin/domain-iam':
+      '@go-admin-plus/domain-iam':
         specifier: workspace:*
         version: link:../../domains/iam
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -502,10 +502,10 @@ importers:
 
   packages/web-domains/organization:
     dependencies:
-      '@go-admin/domain-organization':
+      '@go-admin-plus/domain-organization':
         specifier: workspace:*
         version: link:../../domains/organization
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -530,10 +530,10 @@ importers:
 
   packages/web-domains/scheduler:
     dependencies:
-      '@go-admin/domain-scheduler':
+      '@go-admin-plus/domain-scheduler':
         specifier: workspace:*
         version: link:../../domains/scheduler
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:
@@ -558,10 +558,10 @@ importers:
 
   packages/web-domains/settings:
     dependencies:
-      '@go-admin/domain-settings':
+      '@go-admin-plus/domain-settings':
         specifier: workspace:*
         version: link:../../domains/settings
-      '@go-admin/ui':
+      '@go-admin-plus/ui':
         specifier: workspace:*
         version: link:../../ui
       vue:

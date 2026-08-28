@@ -11,7 +11,7 @@ COPY go-admin-plus-ui/packages/ ./packages/
 COPY go-admin-plus-ui/tests/shell/ ./tests/shell/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts
-RUN GO_ADMIN_BUILD_DIR=/out pnpm --filter @go-admin/admin-web build
+RUN GO_ADMIN_BUILD_DIR=/out pnpm --filter @go-admin-plus/admin-web build
 
 FROM ${NGINX_BASE} AS runtime
 ARG VERSION=0.0.0-dev

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
-import { AuditRequestError, type AuditFact, type AuditFailure, type AuditFilters } from '@go-admin/domain-audit'
+import { AuditRequestError, type AuditFact, type AuditFailure, type AuditFilters } from '@go-admin-plus/domain-audit'
 import { consumeCleanupFailure, type AuditController } from './audit-controller'
 
 const props = defineProps<{ controller: AuditController }>()

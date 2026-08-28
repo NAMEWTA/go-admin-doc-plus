@@ -378,10 +378,10 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 	uiRoot := filepath.Join(fixture, "go-admin-plus-ui")
 	for _, arguments := range [][]string{
 		{"install", "--frozen-lockfile", "--ignore-scripts"},
-		{"--filter", "@go-admin/domain-catalog", "typecheck"},
-		{"--filter", "@go-admin/domain-catalog", "test"},
-		{"--filter", "@go-admin/web-domain-catalog", "typecheck"},
-		{"--filter", "@go-admin/web-domain-catalog", "test"},
+		{"--filter", "@go-admin-plus/domain-catalog", "typecheck"},
+		{"--filter", "@go-admin-plus/domain-catalog", "test"},
+		{"--filter", "@go-admin-plus/web-domain-catalog", "typecheck"},
+		{"--filter", "@go-admin-plus/web-domain-catalog", "test"},
 		{"check:workspace"},
 	} {
 		command := exec.CommandContext(ctx, pnpmExecutable(), arguments...)
@@ -784,7 +784,7 @@ func TestGeneratedOutputHasNoLegacyOrDeepImports(t *testing.T) {
 		}
 		return strings.Join(values, "\n")
 	}())
-	for _, forbidden := range []string{"gorm.io", "casbin", "redis", "tenant_id", "@go-admin/domain-demo/src"} {
+	for _, forbidden := range []string{"gorm.io", "casbin", "redis", "tenant_id", "@go-admin-plus/domain-demo/src"} {
 		if strings.Contains(joined, forbidden) {
 			t.Fatalf("generated legacy/deep import %q", forbidden)
 		}

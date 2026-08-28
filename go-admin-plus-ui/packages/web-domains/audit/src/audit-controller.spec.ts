@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AuditRequestError, type AuditClient, type AuditFact } from '@go-admin/domain-audit'
+import { AuditRequestError, type AuditClient, type AuditFact } from '@go-admin-plus/domain-audit'
 import { consumeCleanupFailure, createAuditController } from './audit-controller'
 
 const fact: AuditFact = {

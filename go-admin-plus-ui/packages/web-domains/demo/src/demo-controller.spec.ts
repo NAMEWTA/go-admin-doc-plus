@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DemoRequestError, demoPermissions, type DemoClient, type Product, type ProductInput, type ProductQuery } from '@go-admin/domain-demo'
+import { DemoRequestError, demoPermissions, type DemoClient, type Product, type ProductInput, type ProductQuery } from '@go-admin-plus/domain-demo'
 import { createDemoController } from './demo-controller'
 import pageSource from './DemoProductsPage.vue?raw'
 

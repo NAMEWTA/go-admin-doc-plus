@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { filesPermissions, type FileMetadata, type FileQuery, type UploadCandidate } from '@go-admin/domain-files'
+import { filesPermissions, type FileMetadata, type FileQuery, type UploadCandidate } from '@go-admin-plus/domain-files'
 import type { FilesController } from './files-controller'
 
 const props = defineProps<{ controller: FilesController }>()
