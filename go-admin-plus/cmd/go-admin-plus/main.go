@@ -6,15 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
-	serverhost "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/host/server"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 const version = "0.1.0-dev"
@@ -60,55 +55,11 @@ func run(arguments []string) error {
 	if err != nil {
 		return errors.New("server configuration failed")
 	}
-	dataRoot, err := canonicalDirectory(options.dataRoot)
-	if err != nil {
-		return errors.New("server data root failed")
-	}
-	repositoryRoot, err := filepath.Abs(options.repositoryRoot)
-	if err != nil {
-		return errors.New("server repository root failed")
-	}
-	repositoryRoot, err = filepath.EvalSymlinks(repositoryRoot)
-	if err != nil {
-		return errors.New("server repository root failed")
-	}
-	address, databaseConfig, sessionPolicy, generatorSchema, err := runtimeProfile(snapshot)
-	if err != nil {
-		return err
-	}
-	databaseCapability := "sqlite"
-	if profile == config.ProfileServerPostgres {
-		databaseCapability = "postgres"
-	}
-
-	host, err := serverhost.New(serverhost.Config{
-		Address: address, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, ShutdownTimeout: 10 * time.Second,
-		Capabilities: health.Capabilities{Profile: string(profile), Version: version, Database: databaseCapability},
-	}, func(ctx context.Context) (serverhost.Runtime, error) {
-		db, err := database.NewProcess().Open(ctx, databaseConfig)
-		if err != nil {
-			return serverhost.Runtime{}, errors.New("server database startup failed")
-		}
-		built, err := product.Build(ctx, db, product.Options{
-			SessionPolicy:       sessionPolicy,
-			FilesRoot:           filepath.Join(dataRoot, "files"),
-			RepositoryRoot:      repositoryRoot,
-			GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
-			GeneratorSchema:     generatorSchema,
-			GeneratorTables:     []string{"demo_products"},
-			WorkerOwner:         fmt.Sprintf("server-%d", os.Getpid()),
-			WorkerInterval:      time.Second,
-			AuditRetentionAge:   30 * 24 * time.Hour,
-		})
-		if err != nil {
-			_ = db.Close()
-			return serverhost.Runtime{}, err
-		}
-		return serverhost.Runtime{
-			Application: built.Application,
-			Readiness:   built.Readiness,
-			Close:       func(context.Context) error { return db.Close() },
-		}, nil
+	host, err := product.NewServerHost(product.ServerLaunch{
+		Snapshot:       snapshot,
+		DataRoot:       options.dataRoot,
+		RepositoryRoot: options.repositoryRoot,
+		Version:        version,
 	})
 	if err != nil {
 		return errors.New("server host configuration failed")
@@ -144,25 +95,4 @@ func environment() map[string]string {
 		}
 	}
 	return result
-}
-
-func canonicalDirectory(path string) (string, error) {
-	absolute, err := filepath.Abs(filepath.Clean(path))
-	if err != nil {
-		return "", err
-	}
-	if err := os.MkdirAll(absolute, 0o700); err != nil {
-		return "", err
-	}
-	return filepath.EvalSymlinks(absolute)
-}
-
-func runtimeProfile(snapshot config.Snapshot) (string, database.Config, config.SessionPolicy, string, error) {
-	if profile, ok := snapshot.ServerSQLite(); ok {
-		return profile.HTTPListen(), database.Config{Profile: config.ProfileServerSQLite, SQLitePath: profile.DatabasePath()}, profile.SessionPolicy(), "main", nil
-	}
-	if profile, ok := snapshot.ServerPostgres(); ok {
-		return profile.HTTPListen(), database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: profile.DatabaseDSN()}, profile.SessionPolicy(), "public", nil
-	}
-	return "", database.Config{}, config.SessionPolicy{}, "", errors.New("server runtime profile is invalid")
 }

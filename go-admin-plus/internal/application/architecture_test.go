@@ -168,8 +168,61 @@ func TestDesktopSidecarCommandFixtureRejectsRuntimeOwnership(t *testing.T) {
 	}
 }
 
+func TestServerCommandContainsOnlyProcessEntry(t *testing.T) {
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve architecture test path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
+	violations, err := serverCommandViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatalf("inspect Server command: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("cmd/go-admin-plus may contain only its process entry; runtime composition belongs under internal/app/product:\n%s", strings.Join(violations, "\n"))
+	}
+}
+
+func TestServerCommandFixtureRejectsRuntimeOwnership(t *testing.T) {
+	root := t.TempDir()
+	writeFixture := func(name, content string) {
+		t.Helper()
+		filename := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filename, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeFixture("cmd/go-admin-plus/main.go", "package main\nimport (\n_ \"database/sql\"\n_ \"net/http\"\n_ \"example.test/product/internal/platform/database\"\n)\nfunc main() {}\n")
+	writeFixture("cmd/go-admin-plus/main_test.go", "package main\n")
+	writeFixture("cmd/go-admin-plus/runtime.go", "package main\n")
+
+	violations, err := serverCommandViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"cmd/go-admin-plus/main.go: Server entry imports runtime dependency database/sql",
+		"cmd/go-admin-plus/main.go: Server entry imports runtime dependency example.test/product/internal/platform/database",
+		"cmd/go-admin-plus/main.go: Server entry imports runtime dependency net/http",
+		"cmd/go-admin-plus/runtime.go: Server command owns non-entry production code",
+	}
+	if fmt.Sprint(violations) != fmt.Sprint(want) {
+		t.Fatalf("violations = %v, want %v", violations, want)
+	}
+}
+
 func desktopSidecarCommandViolations(root fs.FS) ([]string, error) {
-	const commandDirectory = "cmd/desktop-sidecar"
+	return commandViolations(root, "cmd/desktop-sidecar", "Desktop")
+}
+
+func serverCommandViolations(root fs.FS) ([]string, error) {
+	return commandViolations(root, "cmd/go-admin-plus", "Server")
+}
+
+func commandViolations(root fs.FS, commandDirectory, commandName string) ([]string, error) {
 	var violations []string
 	mainFilename := commandDirectory + "/main.go"
 	content, err := fs.ReadFile(root, mainFilename)
@@ -185,8 +238,8 @@ func desktopSidecarCommandViolations(root fs.FS) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		if desktopEntryRuntimeImport(importPath) {
-			violations = append(violations, fmt.Sprintf("%s: Desktop entry imports runtime dependency %s", mainFilename, importPath))
+		if commandEntryRuntimeImport(importPath) {
+			violations = append(violations, fmt.Sprintf("%s: %s entry imports runtime dependency %s", mainFilename, commandName, importPath))
 		}
 	}
 	err = fs.WalkDir(root, commandDirectory, func(filename string, entry fs.DirEntry, walkErr error) error {
@@ -196,7 +249,7 @@ func desktopSidecarCommandViolations(root fs.FS) ([]string, error) {
 		if entry.IsDir() || path.Ext(filename) != ".go" || strings.HasSuffix(filename, "_test.go") || filename == commandDirectory+"/main.go" {
 			return nil
 		}
-		violations = append(violations, filename+": Desktop command owns non-entry production code")
+		violations = append(violations, fmt.Sprintf("%s: %s command owns non-entry production code", filename, commandName))
 		return nil
 	})
 	if err != nil {
@@ -206,8 +259,8 @@ func desktopSidecarCommandViolations(root fs.FS) ([]string, error) {
 	return violations, nil
 }
 
-func desktopEntryRuntimeImport(importPath string) bool {
-	if importPath == "net" || importPath == "net/http" {
+func commandEntryRuntimeImport(importPath string) bool {
+	if importPath == "database/sql" || importPath == "net" || importPath == "net/http" {
 		return true
 	}
 	for _, marker := range []string{
