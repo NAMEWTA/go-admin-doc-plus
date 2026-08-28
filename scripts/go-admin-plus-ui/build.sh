@@ -3,19 +3,33 @@ set -eu
 . "$(dirname "$0")/common.sh"
 
 require_tool pnpm
+
+build_web() {
+  cd "$frontend_root"
+  pnpm --filter @go-admin-plus/admin-web build
+}
+
+build_desktop() {
+  require_tool node
+  require_tool go
+  require_tool cargo
+  require_desktop_workspace
+  cd "$frontend_root"
+  node "$repo_root/release/shared/sidecar/build.mjs" --host
+  pnpm --filter @go-admin-plus/admin-desktop tauri build \
+    --features custom-protocol --no-bundle
+}
+
 case ${1:-all} in
   all)
-    cd "$frontend_root"
-    exec pnpm build:prod
+    build_web
+    build_desktop
     ;;
   web)
-    cd "$frontend_root"
-    exec pnpm --filter @go-admin-plus/admin-web build
+    build_web
     ;;
   desktop)
-    require_desktop_workspace
-    cd "$frontend_root"
-    exec pnpm --filter @go-admin-plus/admin-desktop build
+    build_desktop
     ;;
   *)
     fail "unsupported frontend build target: ${1:-} (expected all, web, or desktop)"

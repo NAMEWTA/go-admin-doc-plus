@@ -157,3 +157,16 @@ test('rejects aggregate local frontend packaging', () => {
     'local package script must not invoke the aggregate frontend build'
   ))
 })
+
+test('rejects a Desktop build that compiles only WebView assets', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const scriptRoot = join(root, 'scripts/go-admin-plus-ui')
+  mkdirSync(scriptRoot, { recursive: true })
+  writeFileSync(join(scriptRoot, 'build.sh'), 'pnpm build:prod\n')
+
+  const failures = checkArchitecture(root)
+  assert.ok(failures.includes('Desktop build must stage the host Go sidecar'))
+  assert.ok(failures.includes('Desktop build must compile the Tauri host without bundling'))
+  assert.ok(failures.includes('aggregate product build must include native Desktop'))
+  assert.ok(failures.includes('Desktop target must use the native build'))
+})

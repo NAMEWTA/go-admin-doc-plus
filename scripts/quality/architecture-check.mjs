@@ -53,6 +53,7 @@ export const checkArchitecture = root => {
     'go-admin-plus-ui/tests/shell/node-tests.mjs',
     'go-admin-plus-ui/apps/admin-web/package.json',
     'go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json',
+    'scripts/go-admin-plus-ui/build.sh',
     'scripts/go-admin-plus-ui/package.sh',
     'speculo/.speculo/specdev/config.json'
   ]
@@ -113,6 +114,24 @@ export const checkArchitecture = root => {
       if (!pattern.test(packageScript)) failures.push(message)
     }
     if (/pnpm build:prod/.test(packageScript)) failures.push('local package script must not invoke the aggregate frontend build')
+  }
+
+  const buildScriptPath = join(root, 'scripts/go-admin-plus-ui/build.sh')
+  if (existsSync(buildScriptPath)) {
+    const buildScript = readFileSync(buildScriptPath, 'utf8')
+    if (!/node "\$repo_root\/release\/shared\/sidecar\/build\.mjs" --host/.test(buildScript)) {
+      failures.push('Desktop build must stage the host Go sidecar')
+    }
+    if (!/pnpm --filter @go-admin-plus\/admin-desktop tauri build \\\n\s+--features custom-protocol --no-bundle/.test(buildScript)) {
+      failures.push('Desktop build must compile the Tauri host without bundling')
+    }
+    if (!/all\)\s*\n\s*build_web\s*\n\s*build_desktop/.test(buildScript)) {
+      failures.push('aggregate product build must include native Desktop')
+    }
+    if (!/desktop\)\s*\n\s*build_desktop/.test(buildScript)) {
+      failures.push('Desktop target must use the native build')
+    }
+    if (/pnpm build:prod/.test(buildScript)) failures.push('product build must not stop at aggregate WebView assets')
   }
 
   const internalRoot = join(root, 'go-admin-plus/internal')

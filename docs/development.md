@@ -51,7 +51,10 @@ GO_ADMIN_DATABASE_DSN_FILE=/absolute/path/to/dsn task migrate PROFILE=server-pos
 
 ## 构建与本地打包
 
-`build` 验证可编译目标，`package` 生成当前宿主可用的本地制品：
+`build` 验证可编译目标。`TARGET=desktop` 会先构建当前宿主的 Go sidecar，再以
+`custom-protocol` release 模式编译 Tauri 2 宿主，但不生成 bundle。Desktop 仅支持 macOS
+与 Windows，因此包含 Desktop 的 `TARGET=all` 也只支持这两个宿主。`package` 生成当前宿主
+可用的本地制品：
 
 ```bash
 task build TARGET=all PROFILE=server-sqlite

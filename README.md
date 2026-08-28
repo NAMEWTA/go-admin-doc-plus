@@ -49,8 +49,10 @@ task architecture:check
 task compatibility:zero
 task docs:check
 
-# 构建全部目标并生成当前宿主的本地制品
+# 构建 Server、Web 和当前受支持宿主的 sidecar/Tauri 可执行文件
 task build TARGET=all PROFILE=server-sqlite
+
+# 生成当前宿主的本地制品
 task package TARGET=server PROFILE=server-sqlite
 task package TARGET=web
 task package TARGET=desktop
