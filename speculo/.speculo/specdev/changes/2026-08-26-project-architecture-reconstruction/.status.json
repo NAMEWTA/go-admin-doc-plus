@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T03:59:15+08:00",
+  "updated_at": "2026-08-29T04:03:43+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -713,6 +713,16 @@
       "approved_at": "2026-08-29T03:30:41+08:00",
       "reason": "The constructor contraction audit proved tracked dual-dialect and browser harnesses are alternate composition roots that must compile against the same IAM provider, while keeping adapters private to product would force duplicated security mappings",
       "resolution": "Own typed cross-module mappings once under internal/app/adapters and allow only affected tracked test composition call sites to reuse them; keep internal/app/product as the sole production composition root and do not restore module-local adapters, add a service locator, or run deferred E2E"
+    },
+    {
+      "id": "T21-D29",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T04:03:43+08:00",
+      "reason": "The ADR-012/ADR-016 database-boundary audit found no current cross-module table access but proved no automated gate derives module table ownership from migrations or rejects future foreign-table SQL in production modules",
+      "resolution": "Derive table ownership from module CREATE TABLE migrations, scan non-test production Go string literals for foreign module tables, and add own-table, foreign-table, test-file, and conflicting-owner fixtures only in the application architecture test; do not change product code, schema, migrations, API, frontend, release, or deferred E2E"
     }
   ],
   "worktrees": [

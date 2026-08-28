@@ -140,6 +140,10 @@ Lead 以 `main@f76649efa829a209b91bb9729ce5c90d4dec0371` 为审计 base，基于
 
 D28 授权 checkpoint 为 `cb3a428d3805723d58f3fe40022d6aaa78fbf516`，D28-A01 授权 checkpoint 为 `fe4345ff00b6065426b7473cc85eb962c3dc057c`；implementation/result 为 `c648a32ad5e20efe2059fe7993af3fa751ce5887`（tree `bb8320f5179ea9c4a04d7762986ac06f961cffa9`）。生产跨顶层模块 import edge、旧 `NewIAM*` adapter 和隐式 IAM 默认构造均已归零；普通/SQLite 全量 Go、race、vet、Generator 真实隔离编译、根 architecture/compatibility-zero 与 Server/Web/Tauri 2 全目标 production build 通过。完整证据见 T-21 Evidence 第 29 节；T-21 状态不变。
 
+### T21-D29（Lead 批准）
+
+D28 后继续按 ADR-012/ADR-016 审计数据库边界，确认当前八模块生产 SQL 未发现跨模块表访问，但现有 architecture gate、quality scripts 与测试都没有从模块 migration 推导表所有权，也无法拒绝模块新增对其他模块表的 SQL 字面量。一次人工零命中不能证明“模块不能访问其他模块 repository/table”长期成立。Lead 以 `main@5e76dee3a8c1f600d0b32fc865ed11a896b61b06` 为审计 base，精确开放 `<Path>go-admin-plus/internal/application/architecture_test.go</Path>` 与对应 SpecDev 状态/Evidence：从双方言 module migration 提取 `CREATE TABLE` 所有权，扫描非测试生产 Go 字符串并拒绝跨顶层模块表名，增加 own-table/foreign-table/`_test.go` 负向 fixture；重复方言声明必须归属同一模块，动态 Generator metadata 与 platform-owned reliable runtime 不改变。产品实现、数据库 schema/migration、API/OpenAPI、前端、页面 template/style、UI/CSS、发行和暂停的 E2E 均不修改。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
