@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import type { AccountProfile, SessionController, UpdateProfile } from '@go-admin/domain-iam/session'
 import { passwordsMatch } from './account-form'
 
@@ -10,7 +10,16 @@ const password = reactive({ currentPassword: '', newPassword: '', confirmPasswor
 const busy = ref(false)
 const activeTab = ref<'profile' | 'password'>('profile')
 const passwordMismatch = ref(false)
+const profileTab = ref<HTMLButtonElement | null>(null)
+const passwordTab = ref<HTMLButtonElement | null>(null)
 const profileMark = computed(() => (props.profile.displayName.trim().charAt(0) || props.profile.username.charAt(0) || 'A').toUpperCase())
+
+const activateTab = async (tab: 'profile' | 'password') => {
+  activeTab.value = tab
+  await nextTick()
+  const target = tab === 'profile' ? profileTab : passwordTab
+  target.value?.focus()
+}
 
 watch(() => props.profile, profile => {
   form.displayName = profile.displayName
@@ -79,6 +88,7 @@ const logout = async () => {
         <h2 id="account-detail-title">基本资料</h2>
         <nav class="tabs" role="tablist" aria-label="账户设置">
           <button
+            ref="profileTab"
             id="account-profile-tab"
             type="button"
             role="tab"
@@ -86,8 +96,11 @@ const logout = async () => {
             aria-controls="account-profile-panel"
             :tabindex="activeTab === 'profile' ? 0 : -1"
             @click="activeTab = 'profile'"
+            @keydown.right.prevent="activateTab('password')"
+            @keydown.end.prevent="activateTab('password')"
           >基本资料</button>
           <button
+            ref="passwordTab"
             id="account-password-tab"
             type="button"
             role="tab"
@@ -95,6 +108,8 @@ const logout = async () => {
             aria-controls="account-password-panel"
             :tabindex="activeTab === 'password' ? 0 : -1"
             @click="activeTab = 'password'"
+            @keydown.left.prevent="activateTab('profile')"
+            @keydown.home.prevent="activateTab('profile')"
           >修改密码</button>
         </nav>
 

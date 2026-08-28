@@ -113,6 +113,8 @@ describe('admin visual contract', () => {
     expect(login).not.toContain('http://localhost:3000')
     expect(login).toContain("passwordVisible ? 'text' : 'password'")
     expect(login).toContain("passwordVisible ? '隐藏密码' : '显示密码'")
+    expect(login).toContain('passwordInput.value?.focus()')
+    expect(login).toContain('autofocus required')
     expect(login).toContain('login-page__line--7')
     expect(login).toMatch(/login-page__terminal\s*\{[^}]*flex:\s*0 1 620px[^}]*border-radius:\s*10px/s)
     expect(login).toContain('@keyframes line-in')
@@ -130,6 +132,8 @@ describe('admin visual contract', () => {
     expect(account).toContain("confirmPassword: ''")
     expect(account).toContain('passwordsMatch(password.newPassword, password.confirmPassword)')
     expect(account).toContain('两次输入的密码不一致。')
+    expect(account).toContain("@keydown.right.prevent=\"activateTab('password')\"")
+    expect(account).toContain("@keydown.left.prevent=\"activateTab('profile')\"")
     expect(account).toMatch(/grid-template-columns:\s*minmax\(220px, 1fr\) minmax\(0, 3fr\)/)
     for (const retained of ['用户名称', '用户昵称', '用户邮箱', '头像元数据', '基本资料', '修改密码']) {
       expect(account).toContain(retained)

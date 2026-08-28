@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { nextTick, reactive, ref } from 'vue'
 import type { SessionController } from '@go-admin/domain-iam/session'
 import GopherMark from './GopherMark.vue'
 
@@ -9,6 +9,13 @@ const credentials = reactive({ username: '', password: '' })
 const submitting = ref(false)
 const failed = ref(false)
 const passwordVisible = ref(false)
+const passwordInput = ref<HTMLInputElement | null>(null)
+
+const togglePassword = async () => {
+  passwordVisible.value = !passwordVisible.value
+  await nextTick()
+  passwordInput.value?.focus()
+}
 
 const submit = async () => {
   if (submitting.value) return
@@ -48,17 +55,17 @@ const submit = async () => {
       <form aria-label="登录" @submit.prevent="submit">
         <h1>Go Admin Plus</h1>
         <p class="login-page__subtitle">使用管理员账号登录控制台</p>
-        <label>账号<input v-model.trim="credentials.username" autocomplete="username" placeholder="请输入账号" required minlength="3" maxlength="64"></label>
+        <label>账号<input v-model.trim="credentials.username" autocomplete="username" placeholder="请输入账号" autofocus required minlength="3" maxlength="64"></label>
         <label>密码
           <span class="login-page__password-field">
-            <input v-model="credentials.password" autocomplete="current-password" :type="passwordVisible ? 'text' : 'password'" placeholder="请输入密码" required minlength="12" maxlength="128">
+            <input ref="passwordInput" v-model="credentials.password" autocomplete="current-password" :type="passwordVisible ? 'text' : 'password'" placeholder="请输入密码" required minlength="12" maxlength="128">
             <button
               class="login-page__password-toggle"
               type="button"
               :aria-label="passwordVisible ? '隐藏密码' : '显示密码'"
               :aria-pressed="passwordVisible"
               :title="passwordVisible ? '隐藏密码' : '显示密码'"
-              @click="passwordVisible = !passwordVisible"
+              @click="togglePassword"
             >{{ passwordVisible ? '隐藏' : '显示' }}</button>
           </span>
         </label>
