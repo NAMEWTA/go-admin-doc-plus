@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T02:49:24+08:00",
+  "updated_at": "2026-08-29T02:53:14+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -673,6 +673,16 @@
       "approved_at": "2026-08-29T02:40:54+08:00",
       "reason": "The final frontend dependency-graph audit proved shared @go-admin-plus/app-shell imports createBrowserFilesClient from @go-admin-plus/adapter-browser and declares the Browser adapter as a production dependency; Desktop therefore consumes a Browser runtime adapter through shared product composition, while every other module client lives in its own Web Domain",
       "resolution": "Move the existing fetch-compatible Files client and focused tests without behavior changes into web-domain-files, remove the Shell-to-Browser-adapter and Browser-adapter-to-Files-domain edges, standardize Browser adapter package tests and typecheck, and update only exact manifests, lock, root typecheck, and boundary tests; leave API, UI/CSS, runtime semantics, database, protected release, and deferred E2E unchanged"
+    },
+    {
+      "id": "T21-D26",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T02:53:14+08:00",
+      "reason": "The post-D25 Desktop adapter graph audit proved createDesktopDemoClient and its Demo status mapper are exported and tested but have no consumer; production and native-e2e composition both use createDesktopFetch with the Web Domain client, so the dead client alone keeps a Desktop-adapter-to-Demo-domain dependency",
+      "resolution": "Delete only the unconsumed Demo-specific Desktop client and its focused dead-code test, remove the now-unused Demo Domain manifest and lock edge, and add a Desktop adapter workspace dependency allowlist; preserve the generic Desktop transport, Session and Stronghold boundary, native-e2e control path, product behavior, API, UI/CSS, database, protected release, and deferred E2E"
     }
   ],
   "worktrees": [
