@@ -156,6 +156,8 @@ D29 后按 AC-026 与 ADR-006 逐层核对正式 runtime 路由和 Go import gra
 
 Lead 以 `main@638e2a0a43cbc4fc8994ddbce9b6d37eaffe83c4` 为审计 base，精确开放 `<Path>go-admin-plus/internal/application/{health,architecture_test.go}</Path>`、`<Path>go-admin-plus/internal/host/{server,lifecycle}</Path>`、删除 `<Path>go-admin-plus/internal/{app/kernel,platform/observability}</Path>`、受影响 `<Path>go-admin-plus/cmd/{go-admin-plus,desktop-sidecar}</Path>` 调用点及对应 SpecDev 状态/Evidence：把五个运维端点收敛到唯一 application health handler，以单次 application snapshot 和有界 readiness checker 计算 redacted starting/ready/dependency-failed/draining 状态与 metrics；profile/database capabilities 显式区分三正式 profile；Server 与 Desktop 共用同一 handler，Desktop 仍要求 loopback control token。Host resource lifecycle 机械迁至 host/lifecycle，不保留旧包转发；Go AST 负向 fixture 拒绝 contracts/application/platform 的反向层依赖并拒绝 app 下恢复非 composition package。产品模块、业务 OpenAPI、schema/migration、前端页面 template/style、UI/CSS、发行和暂停 E2E 不变。
 
+D30 授权 checkpoint 为 `de98a1f58f532812d0f4bc997eb16d04ccf9d15f`；implementation/result 为 `6c01fd983e2f26b4fb01c71be8ffcd7a11fdcb81`（tree `364840919749cb3ab736a7e18c05b6c63486ae7f`）。唯一 application health handler 已覆盖五端点和三 profile，Server/Desktop 复用同一 readiness/status 合同；旧 platform observability 删除，host lifecycle 离开 app，低层反向依赖与旧路径恢复均由 Go AST gate 拒绝。普通/SQLite 全量 Go、race、vet、真实 Generator、根静态门禁和 Server/Web/Tauri 2 全目标 production build 通过。完整证据见 T-21 Evidence 第 31 节；T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
