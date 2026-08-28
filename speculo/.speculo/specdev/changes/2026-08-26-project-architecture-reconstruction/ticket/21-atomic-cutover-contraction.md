@@ -180,6 +180,8 @@ D32 后审计最后两个正式 utility command，确认 `<Path>cmd/config-check
 
 Lead 以 `main@854f663d167c769a9797947c8a42dca49bdfe8d7` 为审计 base，精确开放 `<Path>go-admin-plus/internal/app/product/migration*.go</Path>`、`<Path>go-admin-plus/cmd/migrate/**</Path>`、`<Path>go-admin-plus/internal/application/architecture_test.go</Path>` 及对应 SpecDev 状态/Evidence：新增 product-owned typed migration operation，唯一完成 Server SQLite/PostgreSQL database config、process open/close、runner composition 和执行；migrate command 只保留参数/环境、typed snapshot、operation 调用和既有结果输出。复用 D31/D32 的通用检查器，把 migrate 与 config-check 纳入“只有 main.go 生产源、禁止 application/modules/database/network runtime import”实际仓库门禁，并以 migrate 负向 fixture 固定失败语义。migration SQL/schema、双方言行为、输出文本、API、前端页面 template/style、UI/CSS、发行与暂停 E2E 不变。
 
+D33 授权 checkpoint 为 `011af7c1e463a65803547977ec4ed144af017ce9`；implementation/result 为 `4f131015db226087c34cbd5fa944673a222c3222`（tree `979413799ce4cccbfcfa9c5a62f1f6ae33462509`）。migrate 的双方言 database process/runner 已由 product operation 唯一拥有，四个正式 command 均受 main-only/runtime-import gate 约束；普通/SQLite 全量 Go、race、vet、当前 HEAD 合同生成/lint/Task、三平台 migrate 交叉构建、根静态与 release policy、Server/Web/Tauri 2 全目标 production build 全绿。完整证据见 T-21 Evidence 第 34 节；按用户要求未运行任何 E2E，T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
