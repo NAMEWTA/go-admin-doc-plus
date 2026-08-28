@@ -104,6 +104,10 @@ D22 后继续反查 Desktop Files 二进制数据路径，确认 Files strict Op
 
 授权 checkpoint 为 `63bb941e904a0c14a659f1af2f4c3afbde91bcc0`；implementation/result 为 `0554d320b74c3e3be7f2c8db8c52e38af81b42b1`（tree `108d70c73529f18f9bbb116aa526aed43a331e59`）。Rust proxy 现在只把成功 Files content 响应编码为固定 `application/octet-stream` envelope，Desktop fetch bridge 只在该路由解码 exact-key、canonical、最大 10 MiB 的 base64；错误响应继续走 JSON。完整证据见 T-21 Evidence 第 24 节；T-21 继续保持 `implemented-pending-final-e2e`。
 
+### T21-D24（Lead 批准）
+
+最终 Desktop source graph 审计确认 `<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/demo_contract.rs</Path>` 在 T-17 切换到全产品 `<Path>product_contract.rs</Path>` 后仍保留 525 行旧 Demo-only validator/test，但 `main.rs` 不再声明该 module，Cargo 永远不编译它；该死源码还单独保留 `time` 与 `uuid` 两个 Desktop 直接依赖。Lead 只开放删除该文件、移除两项无用直接依赖及 lock 投影、并把精确旧路径加入 compatibility-zero 负向门禁；不修改现行 product contract、运行行为、API、数据库、UI/CSS、受保护发行或暂停 E2E。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

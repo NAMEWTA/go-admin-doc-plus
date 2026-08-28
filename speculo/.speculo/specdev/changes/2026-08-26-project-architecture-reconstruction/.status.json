@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T02:23:20+08:00",
+  "updated_at": "2026-08-29T02:31:43+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -653,6 +653,16 @@
       "approved_at": "2026-08-29T02:06:23+08:00",
       "reason": "The post-D22 binary data-path audit proved the Files OpenAPI response always emits Content-Type application/octet-stream while the Desktop Rust proxy accepts only image/png, image/jpeg, application/pdf, and text/plain for a successful Files content response, so every Desktop download is rejected before the shared Files page can save it",
       "resolution": "Authorize only the Desktop Rust proxy and unit tests, Desktop adapter and focused tests, and the corresponding SpecDev/architecture evidence needed to enforce one exact application/octet-stream binary envelope with canonical bounded base64 and no extra IPC fields; do not add MIME compatibility branches or change Files API, OpenAPI, database, page markup, UI/CSS, protected release, or deferred E2E"
+    },
+    {
+      "id": "T21-D24",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T02:31:43+08:00",
+      "reason": "The final Desktop source-graph audit proved src-tauri/src/demo_contract.rs remains as a 525-line unreferenced pre-product contract after T-17 cut over main.rs and proxy.rs to product_contract.rs; Cargo never compiles its tests or validators, and it alone keeps time and uuid as direct Desktop dependencies",
+      "resolution": "Delete the uncompiled Demo-only Rust contract, remove only the now-unused direct time and uuid dependencies while preserving transitive lock requirements, and add an exact compatibility-zero removed-path regression; do not change the active product contract, runtime behavior, API, database, UI/CSS, protected release, or deferred E2E"
     }
   ],
   "worktrees": [
