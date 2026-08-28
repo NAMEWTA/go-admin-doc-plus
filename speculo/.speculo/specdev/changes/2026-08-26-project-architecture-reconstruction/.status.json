@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T16:52:13+08:00",
+  "updated_at": "2026-08-28T17:08:15+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -413,6 +413,16 @@
       "approved_at": "2026-08-28T16:52:13+08:00",
       "reason": "A third interaction audit proved retained CRUD pages had replaced the established toolbar plus create/edit dialog workflow with permanently visible editors, while paused browser and native drivers still targeted superseded English labels and the Scheduler page could not close a successful dialog because its settle helper discarded command results",
       "resolution": "Restore explicit toolbar actions and bounded create/edit dialogs across IAM, Organization, Demo, Settings, and Scheduler; clear cancelled form state, localize displayed enums, return Scheduler command results, synchronize paused browser/native drivers, and add static visual contracts without Element Plus, compatibility paths, restored deleted capabilities, or execution of deferred E2E"
+    },
+    {
+      "id": "T21-D04",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T17:08:15+08:00",
+      "reason": "The final documentation audit proved both project-owned Agent Skills still instructed future changes to use removed backend, frontend, authorization, migration, and composition patterns, while compatibility-zero and docs-check did not scan the skill directory",
+      "resolution": "Rewrite both skills against the current dual-dialect OpenAPI, IAM capability, pnpm domain/Web Domain, shared controller, and product-composition architecture; add .agents/skills to compatibility-zero and docs-check with a regression proving stale skill content is rejected, without changing product behavior or executing deferred E2E"
     }
   ],
   "worktrees": [
