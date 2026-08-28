@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T04:45:40+08:00",
+  "updated_at": "2026-08-29T04:51:27+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -733,6 +733,16 @@
       "approved_at": "2026-08-29T04:08:32+08:00",
       "reason": "The post-gate Generator audit proved its pre-publish compile gate tests and builds only the generated module and never runs the repository application architecture package, so generated output can report success without executing import or table-ownership boundaries",
       "resolution": "Extract the fixed Generator gate command list into a testable function and require the application architecture package before generated-module test/build, preserving fail-closed publication and leaving templates, output, API, schema, frontend, release, and deferred E2E unchanged"
+    },
+    {
+      "id": "T21-D30",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T04:51:27+08:00",
+      "reason": "The AC-026 and backend-layer audit proved the production Server wires only live, ready, and capabilities while metrics and runtime status exist solely in an unreferenced duplicate platform/observability package that imports app/kernel against ADR-006; Desktop exposes neither canonical operational contract nor the shared readiness checks",
+      "resolution": "Consolidate all five operational endpoints in internal/application/health with one redacted snapshot/readiness contract, wire the canonical handler into Server and control-protected Desktop routes, delete platform/observability, relocate host resource lifecycle from app/kernel to host/lifecycle, and add a negative low-level import-direction/path gate; preserve product/API modules, pages, UI/CSS, release behavior, and deferred E2E"
     }
   ],
   "worktrees": [

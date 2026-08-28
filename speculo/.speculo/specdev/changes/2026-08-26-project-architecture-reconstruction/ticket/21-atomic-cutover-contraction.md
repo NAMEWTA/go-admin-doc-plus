@@ -150,6 +150,12 @@ D28 后继续按 ADR-012/ADR-016 审计数据库边界，确认当前八模块�
 
 D29 授权 checkpoint 为 `cba2cec93eaab9a4ae5e7c8bd1c827283d4c784f`，D29-A01 授权 checkpoint 为 `15c58d8cc9293190bae819a6d4f13b22f832b257`；implementation/result 为 `e6c300c1fdd891602ddf2b4303596b1917989e4e`（tree `f9c8d3cab05d0a440db1a47a7f47643408e7d254`）。双方言 migration owner、静态 SQL table-position 边界和 Generator application architecture 接线已建立；普通/SQLite 全量 Go、race、vet、真实 Generator 隔离编译、根 architecture/compatibility-zero 与 Server/Web/Tauri 2 全目标 production build 通过。完整证据见 T-21 Evidence 第 30 节；T-21 状态不变。
 
+### T21-D30（Lead 批准）
+
+D29 后按 AC-026 与 ADR-006 逐层核对正式 runtime 路由和 Go import graph，确认 Server 实际只接入 `<Code>/health/live</Code>`、`<Code>/health/ready</Code>` 与 `<Code>/api/v1/runtime/capabilities</Code>`；规范要求的 `<Code>/metrics</Code>` 和 `<Code>/api/v1/runtime/status</Code>` 只存在于零生产引用的 `<Path>internal/platform/observability</Path>` 重复实现。该死包还直接导入 `<Path>internal/app/kernel</Path>`，形成 platform -> app 反向依赖；`app/kernel` 本身拥有 Desktop host resource lifecycle，也不属于 app “只装配”职责。Desktop sidecar 仅暴露专用 readiness nonce，没有把 product readiness checker 接入规范运维合同。
+
+Lead 以 `main@638e2a0a43cbc4fc8994ddbce9b6d37eaffe83c4` 为审计 base，精确开放 `<Path>go-admin-plus/internal/application/{health,architecture_test.go}</Path>`、`<Path>go-admin-plus/internal/host/{server,lifecycle}</Path>`、删除 `<Path>go-admin-plus/internal/{app/kernel,platform/observability}</Path>`、受影响 `<Path>go-admin-plus/cmd/{go-admin-plus,desktop-sidecar}</Path>` 调用点及对应 SpecDev 状态/Evidence：把五个运维端点收敛到唯一 application health handler，以单次 application snapshot 和有界 readiness checker 计算 redacted starting/ready/dependency-failed/draining 状态与 metrics；profile/database capabilities 显式区分三正式 profile；Server 与 Desktop 共用同一 handler，Desktop 仍要求 loopback control token。Host resource lifecycle 机械迁至 host/lifecycle，不保留旧包转发；Go AST 负向 fixture 拒绝 contracts/application/platform 的反向层依赖并拒绝 app 下恢复非 composition package。产品模块、业务 OpenAPI、schema/migration、前端页面 template/style、UI/CSS、发行和暂停 E2E 不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
