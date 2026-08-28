@@ -166,7 +166,7 @@ test('apps select adapters without owning runtime transport', async () => {
   assert.equal(adminWeb.dependencies['@go-admin/platform'], undefined)
   assert.deepEqual(
     Object.keys(adminWeb.dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
-    ['@go-admin/adapter-browser', '@go-admin/app-shell']
+    ['@go-admin/adapter-browser', '@go-admin/app-shell', '@go-admin/ui']
   )
 
   const browserAdapter = await readJson(join(workspaceRoot, 'packages/adapters/browser/package.json'))
@@ -176,7 +176,7 @@ test('apps select adapters without owning runtime transport', async () => {
   assert.equal(adminDesktop.dependencies['@go-admin/adapter-desktop'], 'workspace:*')
   assert.deepEqual(
     Object.keys(adminDesktop.dependencies).filter(name => name.startsWith('@go-admin/')).sort(),
-    ['@go-admin/adapter-desktop', '@go-admin/app-shell']
+    ['@go-admin/adapter-desktop', '@go-admin/app-shell', '@go-admin/ui']
   )
 
   const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
@@ -220,13 +220,9 @@ test('headless packages do not depend on Vue, DOM globals, deep imports, or cred
   assert.doesNotMatch(platformSource, /\b(?:secret|password|sessionToken|authorization)\b/i)
 })
 
-test('mobile shell keeps navigation compact and assigns remaining height to content', async () => {
-  const styles = await readFile(join(workspaceRoot, 'apps/admin-web/src/styles.css'), 'utf8')
-  const mobileBreakpoint = styles.match(/@media \(max-width: 640px\) \{([\s\S]*)\}\s*$/)?.[1]
-
-  assert.ok(mobileBreakpoint, 'mobile shell breakpoint is missing')
-  assert.match(
-    mobileBreakpoint,
-    /\.shell__workspace\s*\{[^}]*grid-template-columns:\s*1fr;[^}]*grid-template-rows:\s*auto 1fr;[^}]*\}/
-  )
+test('mobile shell uses an off-canvas navigation and gives content the full viewport width', async () => {
+  const shell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
+  assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*grid-template-columns:\s*1fr/)
+  assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*\.product-shell__sidebar[^}]*transform:\s*translateX\(-100%\)/)
+  assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*\.product-shell__sidebar\.is-mobile-open[^}]*transform:\s*translateX\(0\)/)
 })

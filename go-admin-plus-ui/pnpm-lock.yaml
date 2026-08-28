@@ -84,6 +84,9 @@ importers:
       '@go-admin/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
+      '@go-admin/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tauri-apps/api':
         specifier: 2.11.1
         version: 2.11.1
@@ -121,6 +124,9 @@ importers:
       '@go-admin/app-shell':
         specifier: workspace:*
         version: link:../../packages/app-shell
+      '@go-admin/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       vue:
         specifier: 'catalog:'
         version: 3.5.41(typescript@6.0.3)

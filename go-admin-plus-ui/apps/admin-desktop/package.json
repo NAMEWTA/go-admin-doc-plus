@@ -16,6 +16,7 @@
   "dependencies": {
     "@go-admin/adapter-desktop": "workspace:*",
     "@go-admin/app-shell": "workspace:*",
+    "@go-admin/ui": "workspace:*",
     "@tauri-apps/api": "2.11.1",
     "vue": "catalog:"
   },
