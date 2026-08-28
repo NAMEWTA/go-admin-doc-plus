@@ -1,37 +1,44 @@
 import assert from 'node:assert/strict'
 import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { delimiter, dirname, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-const common = fileURLToPath(new URL('./common.sh', import.meta.url))
+const frontendCommon = fileURLToPath(new URL('./common.sh', import.meta.url))
+const backendCommon = fileURLToPath(new URL('../go-admin-plus/common.sh', import.meta.url))
 
 const executable = (path, body) => {
   writeFileSync(path, `#!/bin/sh\n${body}\n`)
   chmodSync(path, 0o755)
 }
 
-const probe = ({ withPnpm = false, withCorepack = true, functionName = 'run_pnpm', exitStatus = 0, argument = 'verify' }) => {
+const probe = ({
+  commonPath = frontendCommon,
+  withPnpm = false,
+  withCorepack = true,
+  pnpmVersion = '11.1.3',
+  functionName = 'run_pnpm',
+  exitStatus = 0,
+  argument = 'verify'
+}) => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-pnpm-contract-'))
   const output = join(root, 'output')
   if (withCorepack) executable(join(root, 'corepack'), `
-test "$1" = enable
-test "$2" = pnpm
-test "$3" = --install-directory
-mkdir -p "$4"
-{
-  printf '%s\\n' '#!/bin/sh'
-  printf '%s\\n' 'if [ "$1" = outer ]; then exec pnpm nested; fi'
-  printf '%s\\n' 'printf "corepack-shim:%s\\n" "$*" > "$GO_ADMIN_PNPM_PROBE"'
-} > "$4/pnpm"
-chmod +x "$4/pnpm"
+test "$1" = pnpm@11.1.3
+shift
+if [ "$1" = --version ]; then printf '%s\\n' '11.1.3'; exit 0; fi
+if [ "$1" = outer ]; then exec pnpm nested; fi
+printf 'corepack-shim:%s\\n' "$*" > "$GO_ADMIN_PNPM_PROBE"
 `)
   if (withPnpm) {
-    executable(join(root, 'pnpm'), `printf 'pnpm:%s\\n' "$*" > "$GO_ADMIN_PNPM_PROBE"\nexit ${exitStatus}`)
+    executable(join(root, 'pnpm'), `if [ "$1" = --version ]; then printf '%s\\n' '${pnpmVersion}'; exit 0; fi
+printf 'pnpm:%s\\n' "$*" > "$GO_ADMIN_PNPM_PROBE"
+exit ${exitStatus}`)
   }
-  const result = spawnSync('/bin/sh', ['-c', `. "$1"; ${functionName} "$2"`, 'probe', common, argument], {
+  const commandName = join(dirname(commonPath), 'common-probe')
+  const result = spawnSync('/bin/sh', ['-c', `. "$1"; ${functionName} "$2"`, commandName, commonPath, argument], {
     env: {
       ...process.env,
       GO_ADMIN_ARTIFACTS_DIR: join(root, 'artifacts'),
@@ -72,4 +79,17 @@ test('fails deterministically when neither pnpm nor Corepack is installed', { sk
   assert.equal(result.status, 1)
   assert.equal(output, null)
   assert.match(result.stderr, /required tool is not installed: pnpm or Corepack/)
+})
+
+test('exports the pinned Corepack shim to backend generator tests', { skip: process.platform === 'win32' }, () => {
+  const { result, output } = probe({ commonPath: backendCommon })
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(output, 'corepack-shim:verify')
+})
+
+test('rejects a directly installed pnpm with a drifted version', { skip: process.platform === 'win32' }, () => {
+  const { result, output } = probe({ withPnpm: true, withCorepack: false, pnpmVersion: '11.2.0' })
+  assert.equal(result.status, 1)
+  assert.equal(output, null)
+  assert.match(result.stderr, /pnpm 11\.1\.3 is required; found 11\.2\.0/)
 })

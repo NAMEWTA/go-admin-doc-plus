@@ -10,6 +10,10 @@ fail() {
 
 task_command=$(command -v task 2>/dev/null) || fail 'Go Task is required to verify the command contract'
 node_command=$(command -v node 2>/dev/null) || fail 'Node.js is required to verify the command contract'
+required_task_version=3.48.0
+task_version=$("$task_command" --version 2>/dev/null) || fail 'Go Task version cannot be determined'
+test "$task_version" = "$required_task_version" ||
+  fail "Go Task $required_task_version is required; found $task_version"
 
 "$node_command" --test "$repo_root/scripts/go-admin-plus-ui/common.test.mjs" || exit 1
 

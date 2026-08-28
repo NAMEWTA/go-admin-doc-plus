@@ -21,6 +21,7 @@ resolve_repo_path() {
 }
 
 artifacts_root=$(resolve_repo_path "${GO_ADMIN_ARTIFACTS_DIR:-.artifacts}")
+. "$repo_root/scripts/go-admin-plus/pnpm.sh"
 
 validate_profile() {
   case $1 in

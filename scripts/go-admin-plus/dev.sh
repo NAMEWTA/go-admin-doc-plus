@@ -8,6 +8,7 @@ profile=${2:-server-sqlite}
 case $target in
   server|server-sqlite|server-postgres)
     require_tool go
+    require_pnpm
     test "$target" = server || profile=$target
     config_file=$(profile_config "$profile")
     cd "$backend_root"

@@ -187,6 +187,23 @@ test('rejects Desktop CI that checks Rust without linking the native host', () =
   assert.ok(failures.includes('Desktop CI must link the Tauri host without bundling'))
 })
 
+test('rejects backend CI that omits the generator Node and pnpm toolchain', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workflowRoot = join(root, '.github/workflows')
+  mkdirSync(workflowRoot, { recursive: true })
+  writeFileSync(join(workflowRoot, 'ci.yml'), `jobs:
+  backend:
+    steps:
+      - run: go test ./...
+`)
+
+  const failures = checkArchitecture(root)
+  assert.ok(failures.includes('backend CI must install pnpm 11.1.3 for generator tests'))
+  assert.ok(failures.includes('backend CI must set up Node.js 22.22.3 for generator tests'))
+  assert.ok(failures.includes('backend CI must install the frozen frontend workspace for generator tests'))
+  assert.ok(failures.includes('backend CI must reserve 60 minutes for the three generator test matrices'))
+})
+
 test('rejects frontend task scripts that bypass managed pnpm resolution', () => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
   const scriptRoot = join(root, 'scripts/go-admin-plus-ui')
@@ -196,4 +213,34 @@ test('rejects frontend task scripts that bypass managed pnpm resolution', () => 
   assert.ok(checkArchitecture(root).includes(
     'frontend task script must use managed pnpm resolution: scripts/go-admin-plus-ui/test.sh'
   ))
+})
+
+test('rejects an unpinned root command toolchain and incomplete setup docs', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workflowRoot = join(root, '.github/workflows')
+  const scriptRoot = join(root, 'scripts/go-admin-plus')
+  const docsRoot = join(root, 'docs')
+  mkdirSync(workflowRoot, { recursive: true })
+  mkdirSync(scriptRoot, { recursive: true })
+  mkdirSync(docsRoot, { recursive: true })
+  writeFileSync(join(workflowRoot, 'ci.yml'), `jobs:
+  quality:
+    steps:
+      - run: go install github.com/go-task/task/v3/cmd/task@latest
+`)
+  writeFileSync(join(scriptRoot, 'task-contract.sh'), `#!/bin/sh
+task_command=$(command -v task)
+"$task_command" --list --json
+`)
+  writeFileSync(join(root, 'README.md'), '# Product\n\nRun `task dev`.\n')
+  writeFileSync(join(docsRoot, 'development.md'), '# Development\n\nInstall Node and Rust.\n')
+
+  const failures = checkArchitecture(root)
+  assert.ok(failures.includes('quality CI must install Go Task 3.48.0'))
+  assert.ok(failures.includes('root command contract must require Go Task 3.48.0'))
+  assert.ok(failures.includes('README must declare Go Task 3.48.0'))
+  assert.ok(failures.includes('development guide must install Go Task 3.48.0 reproducibly'))
+  assert.ok(failures.includes('development guide must record the Node.js 22.22.3 CI baseline'))
+  assert.ok(failures.includes('development guide must record the Rust 1.96.0 CI baseline'))
+  assert.ok(failures.includes('development guide must pin pnpm 11.1.3 in the Corepack command'))
 })

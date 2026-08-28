@@ -46,6 +46,7 @@ export const checkArchitecture = root => {
   const failures = []
   const canonicalGoModule = 'github.com/NAMEWTA/go-admin-plus/go-admin-plus'
   const canonicalWorkspaceName = '@go-admin-plus/workspace'
+  const canonicalTaskVersion = '3.48.0'
   const canonicalVerification = {
     test: 'task test',
     typecheck: 'pnpm --dir go-admin-plus-ui typecheck',
@@ -62,6 +63,7 @@ export const checkArchitecture = root => {
     'go-admin-plus-ui/tests/shell/node-tests.mjs',
     'go-admin-plus-ui/apps/admin-web/package.json',
     'go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json',
+    'scripts/go-admin-plus/pnpm.sh',
     'scripts/go-admin-plus-ui/build.sh',
     'scripts/go-admin-plus-ui/package.sh',
     'speculo/.speculo/specdev/config.json'
@@ -156,7 +158,25 @@ export const checkArchitecture = root => {
 
   const ciWorkflowPath = join(root, '.github/workflows/ci.yml')
   if (existsSync(ciWorkflowPath)) {
-    const desktopJob = workflowJob(readFileSync(ciWorkflowPath, 'utf8'), 'desktop-rust')
+    const ciWorkflow = readFileSync(ciWorkflowPath, 'utf8')
+    const qualityJob = workflowJob(ciWorkflow, 'quality')
+    if (!qualityJob.includes(`go install github.com/go-task/task/v3/cmd/task@v${canonicalTaskVersion}`)) {
+      failures.push(`quality CI must install Go Task ${canonicalTaskVersion}`)
+    }
+    const backendJob = workflowJob(ciWorkflow, 'backend')
+    if (!backendJob.includes('pnpm/action-setup') || !/version: 11\.1\.3/.test(backendJob)) {
+      failures.push('backend CI must install pnpm 11.1.3 for generator tests')
+    }
+    if (!/node-version: 22\.22\.3/.test(backendJob)) {
+      failures.push('backend CI must set up Node.js 22.22.3 for generator tests')
+    }
+    if (!/pnpm --dir go-admin-plus-ui install --frozen-lockfile/.test(backendJob)) {
+      failures.push('backend CI must install the frozen frontend workspace for generator tests')
+    }
+    if (!/timeout-minutes: 60/.test(backendJob)) {
+      failures.push('backend CI must reserve 60 minutes for the three generator test matrices')
+    }
+    const desktopJob = workflowJob(ciWorkflow, 'desktop-rust')
     if (!/pnpm --dir go-admin-plus-ui install --frozen-lockfile/.test(desktopJob)) {
       failures.push('Desktop CI must install the frozen frontend workspace')
     }
@@ -165,6 +185,69 @@ export const checkArchitecture = root => {
     }
     if (!/pnpm --dir go-admin-plus-ui --filter @go-admin-plus\/admin-desktop tauri build \\\n+\s+--features custom-protocol --no-bundle/.test(desktopJob)) {
       failures.push('Desktop CI must link the Tauri host without bundling')
+    }
+  }
+
+  const pnpmResolverPath = join(root, 'scripts/go-admin-plus/pnpm.sh')
+  if (existsSync(pnpmResolverPath)) {
+    const pnpmResolver = readFileSync(pnpmResolverPath, 'utf8')
+    const requiredPnpmContracts = [
+      'required_pnpm_version=11.1.3',
+      'exec corepack pnpm@$required_pnpm_version',
+      'test "$installed_pnpm_version" = "$required_pnpm_version"'
+    ]
+    if (requiredPnpmContracts.some(contract => !pnpmResolver.includes(contract))) {
+      failures.push('managed command resolver must require pnpm 11.1.3')
+    }
+  }
+
+  for (const relativePath of ['scripts/go-admin-plus/dev.sh', 'scripts/go-admin-plus/test.sh']) {
+    const path = join(root, relativePath)
+    if (existsSync(path) && !readFileSync(path, 'utf8').includes('require_pnpm')) {
+      failures.push(`${relativePath} must prepare pnpm for the backend generator`)
+    }
+  }
+
+  const taskfilePath = join(root, 'Taskfile.yml')
+  if (existsSync(taskfilePath)) {
+    const taskfile = readFileSync(taskfilePath, 'utf8')
+    if (!taskfile.includes('scripts/contracts/generate.sh verify') ||
+        !taskfile.includes('scripts/contracts/generate.sh generate --check')) {
+      failures.push('contract tasks must use the managed pnpm wrapper')
+    }
+  }
+
+  const taskContractPath = join(root, 'scripts/go-admin-plus/task-contract.sh')
+  if (existsSync(taskContractPath)) {
+    const taskContract = readFileSync(taskContractPath, 'utf8')
+    const requiredTaskChecks = [
+      `required_task_version=${canonicalTaskVersion}`,
+      'task_version=$("$task_command" --version',
+      'test "$task_version" = "$required_task_version"'
+    ]
+    if (requiredTaskChecks.some(contract => !taskContract.includes(contract))) {
+      failures.push(`root command contract must require Go Task ${canonicalTaskVersion}`)
+    }
+  }
+
+  const readDocument = path => existsSync(join(root, path)) ? readFileSync(join(root, path), 'utf8') : ''
+  const readme = readDocument('README.md')
+  if (readme && !readme.includes(`Go Task ${canonicalTaskVersion}`)) {
+    failures.push(`README must declare Go Task ${canonicalTaskVersion}`)
+  }
+  const developmentGuide = readDocument('docs/development.md')
+  if (developmentGuide) {
+    if (!developmentGuide.includes(`go install github.com/go-task/task/v3/cmd/task@v${canonicalTaskVersion}`)) {
+      failures.push(`development guide must install Go Task ${canonicalTaskVersion} reproducibly`)
+    }
+    if (!developmentGuide.includes('Node.js 22.22.3')) {
+      failures.push('development guide must record the Node.js 22.22.3 CI baseline')
+    }
+    if (!developmentGuide.includes('Rust 1.96.0')) {
+      failures.push('development guide must record the Rust 1.96.0 CI baseline')
+    }
+    if (!developmentGuide.includes('corepack pnpm@11.1.3')) {
+      failures.push('development guide must pin pnpm 11.1.3 in the Corepack command')
     }
   }
 

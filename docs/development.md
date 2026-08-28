@@ -2,22 +2,34 @@
 
 ## 前置环境
 
-- Go 1.26.5
-- Node.js 22 或更高版本
-- pnpm 11.1.3，或当前 Node 安装提供的 Corepack；实际版本由 Workspace `packageManager` 固定
-- Desktop：Rust stable、Cargo 和 Tauri 2 当前平台系统依赖
-- PostgreSQL profile：可访问的 PostgreSQL 实例
+| 工具 | 本地合同 | CI 验证基线 |
+|---|---|---|
+| Go | 1.26.5 或更高版本；最低版本由 `go-admin-plus/go.mod` 管理 | 1.26.5 |
+| Go Task | 3.48.0；根命令合同要求精确版本 | 3.48.0 |
+| Node.js | 22 或更高版本；范围由 Workspace `engines` 管理 | Node.js 22.22.3 |
+| pnpm | 11.1.3；由 Workspace `packageManager` 固定 | 11.1.3 |
+| Rust/Cargo | Desktop 最低 Rust 1.88；由 `Cargo.toml` 的 `rust-version` 管理 | Rust 1.96.0 |
+
+Desktop 还需要当前平台的 Tauri 2 系统依赖；PostgreSQL profile 需要可访问的 PostgreSQL 实例。先安装固定的根命令入口，并确保 Go 的 binary 安装目录在 `PATH` 中：
+
+```bash
+go install github.com/go-task/task/v3/cmd/task@v3.48.0
+
+# GOBIN 为空时，Go 默认安装到 GOPATH/bin。
+export PATH="$(go env GOPATH)/bin:$PATH"
+task --version # 必须输出 3.48.0
+```
 
 首次安装前端依赖：
 
 ```bash
 pnpm --dir go-admin-plus-ui install --frozen-lockfile
 
-# 仅安装了 Corepack 时使用等价命令
-corepack pnpm --dir go-admin-plus-ui install --frozen-lockfile
+# 仅安装了 Corepack 时仍显式选择仓库固定版本
+corepack pnpm@11.1.3 --dir go-admin-plus-ui install --frozen-lockfile
 ```
 
-根 Task 优先使用 PATH 中的 pnpm。Node 工具管理器未把 pnpm shim 传给子进程时，命令面会在根 `.artifacts/tool-shims/` 中生成并使用 Corepack shim；该目录不进入源码或发行制品。
+根 Task 优先使用 PATH 中精确匹配 11.1.3 的 pnpm。Node 工具管理器未把 pnpm shim 传给子进程时，命令面会在根 `.artifacts/tool-shims/` 中原子生成并使用固定 `pnpm@11.1.3` 的 Corepack shim；该目录不进入源码或发行制品。Desktop 开发建议使用 CI 基线 Rust 1.96.0；最低版本只表示 Cargo 允许编译，不替代 CI 基线验证。
 
 ## Server 与 Web
 

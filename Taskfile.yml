@@ -46,15 +46,12 @@ tasks:
   contract:lint:
     desc: Lint and test the modular OpenAPI contract policy
     cmds:
-      - node scripts/contracts/cli.mjs lint
-      - node --test --test-concurrency=1 scripts/contracts/*.test.mjs
-      - pnpm --dir go-admin-plus-ui --filter @go-admin-plus/api-client typecheck
-      - pnpm --dir go-admin-plus-ui --filter @go-admin-plus/api-client test
+      - '{{.RUN_SCRIPT}} scripts/contracts/generate.sh verify'
 
   generate:check:
     desc: Reject generated OpenAPI transport drift
     cmds:
-      - node scripts/contracts/cli.mjs generate --check
+      - '{{.RUN_SCRIPT}} scripts/contracts/generate.sh generate --check'
 
   migrate:
     desc: Migrate the selected backend profile database
