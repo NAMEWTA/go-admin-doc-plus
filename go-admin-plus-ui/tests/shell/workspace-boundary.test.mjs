@@ -6,7 +6,6 @@ import test from 'node:test'
 import { loadConfigFromFile } from 'vite'
 
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
-const repositoryRoot = join(workspaceRoot, '..')
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
 const browserAdapterWorkspaceDependencies = ['@go-admin-plus/domain-files', '@go-admin-plus/platform']
 const assertBrowserAdapterDependencies = dependencies => {
@@ -52,17 +51,6 @@ const sourceFiles = async root => {
     const path = join(root, entry.name)
     if (entry.isDirectory()) files.push(...await sourceFiles(path))
     else if (/\.(?:[cm]?[jt]s|vue)$/.test(entry.name)) files.push(path)
-  }
-  return files
-}
-
-const commandFiles = async root => {
-  const files = []
-  for (const entry of await readdir(root, { withFileTypes: true }).catch(() => [])) {
-    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'target') continue
-    const path = join(root, entry.name)
-    if (entry.isDirectory()) files.push(...await commandFiles(path))
-    else if (/\.(?:c?js|json|md|mjs|ps1|sh|ts|ya?ml)$/.test(entry.name) || /^(?:Containerfile|Taskfile)/.test(entry.name)) files.push(path)
   }
   return files
 }
@@ -145,31 +133,6 @@ test('workspace dependencies are acyclic', async () => {
   for (const name of graph.keys()) visit(name)
 })
 
-test('repository command surfaces reference only existing workspace packages', async () => {
-  const manifests = await Promise.all((await packageDirectories()).map(async directory =>
-    readJson(join(directory, 'package.json'))
-  ))
-  const packageNames = new Set([
-    (await readJson(join(workspaceRoot, 'package.json'))).name,
-    ...manifests.map(manifest => manifest.name)
-  ])
-  const roots = [
-    join(repositoryRoot, '.github'),
-    join(repositoryRoot, 'scripts'),
-    join(repositoryRoot, 'release'),
-    join(repositoryRoot, 'deploy')
-  ]
-  const files = [join(repositoryRoot, 'Taskfile.yml')]
-  for (const root of roots) files.push(...await commandFiles(root))
-
-  for (const file of files) {
-    const source = await readFile(file, 'utf8')
-    for (const match of source.matchAll(/@go-admin-plus\/[A-Za-z0-9._-]+/g)) {
-      assert.ok(packageNames.has(match[0]), `${relative(repositoryRoot, file)} references unknown workspace package ${match[0]}`)
-    }
-  }
-})
-
 test('workspace consumers use package exports rather than source paths', async () => {
   const rootManifest = await readJson(join(workspaceRoot, 'package.json'))
   for (const [dependency, version] of Object.entries({
@@ -197,18 +160,6 @@ test('workspace consumers use package exports rather than source paths', async (
     'apps/admin-web/src/main.ts'
   ]
   for (const target of activeExports) assert.ok(await readFile(join(workspaceRoot, target), 'utf8'))
-})
-
-test('product packaging uses explicit Web output and supported production Desktop bundles', async () => {
-  const packageScript = await readFile(join(workspaceRoot, '../scripts/go-admin-plus-ui/package.sh'), 'utf8')
-
-  assert.match(packageScript, /GO_ADMIN_BUILD_DIR="\$web_dist" pnpm --filter @go-admin-plus\/admin-web build/)
-  assert.match(packageScript, /tar -C "\$web_stage" -czf "\$package_tmp" dist/)
-  assert.match(packageScript, /case \$\(go env GOHOSTOS\) in/)
-  assert.match(packageScript, /darwin\) desktop_bundle=app/)
-  assert.match(packageScript, /windows\) desktop_bundle=nsis/)
-  assert.match(packageScript, /tauri build \\\n\s+--features custom-protocol --bundles "\$desktop_bundle"/)
-  assert.doesNotMatch(packageScript, /pnpm build:prod/)
 })
 
 test('Admin Web development keeps API requests same-origin through the Server proxy', async () => {

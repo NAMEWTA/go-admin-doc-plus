@@ -12,10 +12,10 @@
     "shared_path_owner": "explicit"
   },
   "verification": {
-    "test": "(cd go-admin-plus && go test ./... -count=1) && (cd go-admin-ui-plus && pnpm test:unit)",
-    "typecheck": "cd go-admin-ui-plus && pnpm type-check",
-    "lint": "cd go-admin-ui-plus && pnpm lint",
-    "build": "(cd go-admin-plus && make build) && (cd go-admin-ui-plus && pnpm build:prod)"
+    "test": "task test",
+    "typecheck": "pnpm --dir go-admin-plus-ui typecheck",
+    "lint": "task lint",
+    "build": "task build TARGET=all PROFILE=server-sqlite"
   },
   "planning": {
     "default_depth": "standard",
