@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T02:57:51+08:00",
+  "updated_at": "2026-08-29T03:00:51+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -683,6 +683,16 @@
       "approved_at": "2026-08-29T02:53:14+08:00",
       "reason": "The post-D25 Desktop adapter graph audit proved createDesktopDemoClient and its Demo status mapper are exported and tested but have no consumer; production and native-e2e composition both use createDesktopFetch with the Web Domain client, so the dead client alone keeps a Desktop-adapter-to-Demo-domain dependency",
       "resolution": "Delete only the unconsumed Demo-specific Desktop client and its focused dead-code test, remove the now-unused Demo Domain manifest and lock edge, and add a Desktop adapter workspace dependency allowlist; preserve the generic Desktop transport, Session and Stronghold boundary, native-e2e control path, product behavior, API, UI/CSS, database, protected release, and deferred E2E"
+    },
+    {
+      "id": "T21-D27",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T03:00:51+08:00",
+      "reason": "The final 25-workspace verification audit proved adapter-desktop, platform, and ui contain production TypeScript but declare no package-local typecheck; adapter-desktop also owns package specs without a test script, so recursive green checks rely on indirect consumers and the architecture gate only verifies scripts that already exist",
+      "resolution": "Require every non-root workspace package to declare typecheck and every package that owns a spec to declare test, add strict package-local contracts only to adapter-desktop, platform, and ui, update the exact catalog devDependency lock projections, and strengthen the architecture gate with dynamic manifest/spec discovery; do not add empty App tests or change product code, API, UI/CSS, database, release, or deferred E2E"
     }
   ],
   "worktrees": [
