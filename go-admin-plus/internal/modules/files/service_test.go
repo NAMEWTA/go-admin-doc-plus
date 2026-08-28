@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
@@ -60,8 +60,8 @@ func TestFilesUploadAuthorizesBeforeReadingAndAgainBeforeInsert(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = storage.Close() })
-	authorizer := &authorizerStub{scope: ScopeAll, err: authorization.ErrDenied}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer)
+	authorizer := &authorizerStub{scope: ScopeAll, err: ErrDenied}
+	service, err := NewService(db, storage, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestFilesUploadReturnsThePersistedReadyTimestamp(t *testing.T) {
 		}
 		return value
 	}
-	service, err := newServiceWithAuthorizer(db, storage, &authorizerStub{scope: ScopeAll}, WithClock(clock))
+	service, err := NewService(db, storage, &authorizerStub{scope: ScopeAll}, WithClock(clock))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +125,7 @@ func TestFilesObserverEmitsOnlyStableNonSensitiveSignals(t *testing.T) {
 	t.Cleanup(func() { _ = storage.Close() })
 	observer := &observerCapture{}
 	authorizer := &authorizerStub{scope: ScopeAll, err: ErrDenied}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer, WithObserver(observer))
+	service, err := NewService(db, storage, authorizer, WithObserver(observer))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestFilesUploadRepeatsAuthorizationInInsertTransactionAfterStaging(t *testi
 	}
 	t.Cleanup(func() { _ = storage.Close() })
 	authorizer := &revokingAuthorizer{}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer)
+	service, err := NewService(db, storage, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestFilesUploadListDownloadAndDeleteUseFinalAuthorization(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = storage.Close() })
 	authorizer := &authorizerStub{scope: ScopeAll}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer, WithClock(fixedFilesClock))
+	service, err := NewService(db, storage, authorizer, WithClock(fixedFilesClock))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,7 +203,7 @@ func TestFilesUploadListDownloadAndDeleteUseFinalAuthorization(t *testing.T) {
 		t.Fatalf("download content=%q metadata=%#v read=%v close=%v", content, download.Metadata, readErr, closeErr)
 	}
 
-	authorizer.err = authorization.ErrDenied
+	authorizer.err = ErrDenied
 	if _, err := service.Download(context.Background(), "account-a", created.ID); !errors.Is(err, ErrDenied) {
 		t.Fatalf("revoked download = %v", err)
 	}
@@ -225,7 +225,7 @@ func TestFilesScopeAndBatchConflictFailClosedWithoutPartialDelete(t *testing.T) 
 	}
 	t.Cleanup(func() { _ = storage.Close() })
 	authorizer := &authorizerStub{scope: ScopeAll}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer)
+	service, err := NewService(db, storage, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -271,7 +271,7 @@ func TestFilesReconcileCompletesPendingAndDeletingAfterRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	authorizer := &authorizerStub{scope: ScopeAll}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer, WithClock(fixedFilesClock))
+	service, err := NewService(db, storage, authorizer, WithClock(fixedFilesClock))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,7 +315,7 @@ func TestFilesReconcileCompletesPendingAndDeletingAfterRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = storage.Close() })
-	service, err = newServiceWithAuthorizer(db, storage, authorizer, WithClock(fixedFilesClock))
+	service, err = NewService(db, storage, authorizer, WithClock(fixedFilesClock))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -341,10 +341,10 @@ func TestFilesReconcileCompletesPendingAndDeletingAfterRestart(t *testing.T) {
 }
 
 type capabilityCapture struct {
-	capabilities authorization.ModuleCapabilities
+	capabilities capabilities.ModuleCapabilities
 }
 
-func (capture *capabilityCapture) Register(_ context.Context, capabilities authorization.ModuleCapabilities) error {
+func (capture *capabilityCapture) Register(_ context.Context, capabilities capabilities.ModuleCapabilities) error {
 	capture.capabilities = capabilities
 	return nil
 }

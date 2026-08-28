@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -18,16 +18,16 @@ import (
 const rootDepartmentID = "department-root-001"
 
 type authorizerStub struct {
-	scope       authorization.Scope
+	scope       Scope
 	err         error
 	permissions []string
 }
 
 type captureCapabilityRegistrar struct {
-	capabilities authorization.ModuleCapabilities
+	capabilities capabilities.ModuleCapabilities
 }
 
-func (registrar *captureCapabilityRegistrar) Register(_ context.Context, capabilities authorization.ModuleCapabilities) error {
+func (registrar *captureCapabilityRegistrar) Register(_ context.Context, capabilities capabilities.ModuleCapabilities) error {
 	registrar.capabilities = capabilities
 	return nil
 }
@@ -63,29 +63,33 @@ func TestOrganizationDeclaresStableCapabilitiesThroughIAMRegistry(t *testing.T) 
 	}
 }
 
-func TestOrganizationProductionConstructorOwnsAuthorizationForItsDatabase(t *testing.T) {
+func TestOrganizationConstructorRequiresExplicitAuthorization(t *testing.T) {
 	db := organizationDatabase(t)
-	service, err := NewService(db)
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if service.db != db {
 		t.Fatal("service lost its database owner")
 	}
-	if _, ok := service.authorizer.(*authorization.Service); !ok {
-		t.Fatalf("production authorizer=%T", service.authorizer)
+	if service.authorizer != authorizer {
+		t.Fatalf("service lost injected authorizer: %T", service.authorizer)
+	}
+	if _, err := NewService(db, nil); err == nil {
+		t.Fatal("nil authorizer accepted")
 	}
 }
 
-func (stub *authorizerStub) RequireInTx(_ context.Context, _ database.Tx, _, permission string) (authorization.Decision, error) {
+func (stub *authorizerStub) RequireInTx(_ context.Context, _ database.Tx, _, permission string) (AuthorizationDecision, error) {
 	stub.permissions = append(stub.permissions, permission)
-	return authorization.Decision{Scope: stub.scope}, stub.err
+	return AuthorizationDecision{Scope: stub.scope}, stub.err
 }
 
 func TestOrganizationTreePositionAndProjectionLifecycle(t *testing.T) {
 	db := organizationDatabase(t)
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := newServiceWithAuthorizer(db, authorizer, WithClock(func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) }))
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer, WithClock(func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) }))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,8 +172,8 @@ func TestOrganizationTreePositionAndProjectionLifecycle(t *testing.T) {
 
 func TestOrganizationRejectsDuplicateInvalidAndUnauthorizedCommandsWithoutStateChange(t *testing.T) {
 	db := organizationDatabase(t)
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := newServiceWithAuthorizer(db, authorizer)
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,17 +193,17 @@ func TestOrganizationRejectsDuplicateInvalidAndUnauthorizedCommandsWithoutStateC
 		t.Fatalf("unbounded page = %v", err)
 	}
 
-	authorizer.scope = authorization.ScopeSelf
+	authorizer.scope = ScopeSelf
 	if _, err := service.CreatePosition(ctx, actor, PositionInput{Key: "accountant", Name: "Accountant", DepartmentID: created.ID, Enabled: true}); !errors.Is(err, ErrDenied) {
 		t.Fatalf("self-scoped mutation = %v", err)
 	}
-	authorizer.err = authorization.ErrDenied
+	authorizer.err = ErrDenied
 	if _, err := service.ListDepartments(ctx, actor); !errors.Is(err, ErrDenied) {
 		t.Fatalf("permission denial = %v", err)
 	}
 
 	authorizer.err = nil
-	authorizer.scope = authorization.ScopeAll
+	authorizer.scope = ScopeAll
 	page, err := service.ListPositions(ctx, actor, "", 1, 20)
 	if err != nil || page.Total != 0 {
 		t.Fatalf("rejected commands changed positions: %#v, %v", page, err)
@@ -215,8 +219,8 @@ func TestOrganizationRejectsDuplicateInvalidAndUnauthorizedCommandsWithoutStateC
 
 func TestOrganizationContextAndProjectionFailuresStayStable(t *testing.T) {
 	db := organizationDatabase(t)
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := newServiceWithAuthorizer(db, authorizer)
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	settingsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/migrations/0010-settings"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -43,7 +43,7 @@ func sqliteSettings(t *testing.T) (*database.Database, *Service) {
 	if _, err := runner.Up(context.Background(), db); err != nil {
 		t.Fatal(err)
 	}
-	service, err := newService(db, testAuthorizer{dialect: db.Dialect(), scope: ScopeAll})
+	service, err := NewService(db, testAuthorizer{dialect: db.Dialect(), scope: ScopeAll})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -120,7 +120,7 @@ func TestSettingsSQLiteCRUDSearchConflictReferenceAndOptions(t *testing.T) {
 func TestSettingsRejectsSensitiveMaterialAndScopesBeforeMutation(t *testing.T) {
 	db, _ := sqliteSettings(t)
 	observer := &observationCapture{}
-	service, err := newService(db, testAuthorizer{dialect: db.Dialect(), scope: ScopeAll}, WithObserver(observer))
+	service, err := NewService(db, testAuthorizer{dialect: db.Dialect(), scope: ScopeAll}, WithObserver(observer))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,7 +132,7 @@ func TestSettingsRejectsSensitiveMaterialAndScopesBeforeMutation(t *testing.T) {
 			t.Fatalf("accepted sensitive input %#v: %v", input, err)
 		}
 	}
-	denied, err := newService(db, testAuthorizer{dialect: db.Dialect(), scope: Scope("self")})
+	denied, err := NewService(db, testAuthorizer{dialect: db.Dialect(), scope: Scope("self")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -205,14 +205,14 @@ func TestSettingsUnicodeBoundariesAndCapabilities(t *testing.T) {
 }
 
 type capabilityCapture struct {
-	value authorization.ModuleCapabilities
+	value capabilities.ModuleCapabilities
 }
 
 type observationCapture struct{ values []Observation }
 
 func (c *observationCapture) Observe(value Observation) { c.values = append(c.values, value) }
 
-func (c *capabilityCapture) Register(_ context.Context, value authorization.ModuleCapabilities) error {
+func (c *capabilityCapture) Register(_ context.Context, value capabilities.ModuleCapabilities) error {
 	c.value = value
 	return nil
 }

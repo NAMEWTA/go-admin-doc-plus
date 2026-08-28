@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	productsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo/migrations/0010-products"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
@@ -92,19 +93,19 @@ func TestDemoBrowserHarnessServer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		authorizer, err := demo.NewIAMAuthorizationAdapter(db)
+		authorizationAdapters, err := adapters.NewAuthorization(db)
 		if err != nil {
 			t.Fatal(err)
 		}
-		service, err := demo.NewService(db, authorizer)
+		service, err := demo.NewService(db, authorizationAdapters.Demo())
 		if err != nil {
 			t.Fatal(err)
 		}
-		authenticator, err := demo.NewIAMSessionRequestAdapter(sessions)
+		sessionAdapters, err := adapters.NewSession(sessions)
 		if err != nil {
 			t.Fatal(err)
 		}
-		demoHandler, err := demo.NewHTTPHandler(service, authenticator, func(*http.Request) string { return "0123456789abcdef" })
+		demoHandler, err := demo.NewHTTPHandler(service, sessionAdapters.Demo(), func(*http.Request) string { return "0123456789abcdef" })
 		if err != nil {
 			t.Fatal(err)
 		}

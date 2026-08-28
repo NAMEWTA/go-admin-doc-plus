@@ -6,12 +6,15 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"go/parser"
+	"go/token"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -831,5 +834,32 @@ func TestGeneratedOutputHasNoLegacyOrDeepImports(t *testing.T) {
 		if strings.Contains(joined, forbidden) {
 			t.Fatalf("generated legacy/deep import %q", forbidden)
 		}
+	}
+	for _, file := range files {
+		if !strings.HasSuffix(file.Path, ".go") || strings.HasSuffix(file.Path, "_test.go") {
+			continue
+		}
+		parsed, err := parser.ParseFile(token.NewFileSet(), file.Path, file.Content, parser.ImportsOnly)
+		if err != nil {
+			t.Fatalf("parse generated production file %s: %v", file.Path, err)
+		}
+		for _, specification := range parsed.Imports {
+			importPath, err := strconv.Unquote(specification.Path.Value)
+			if err != nil {
+				t.Fatalf("parse generated import in %s: %v", file.Path, err)
+			}
+			const marker = "/internal/modules/"
+			index := strings.Index(importPath, marker)
+			if index < 0 {
+				continue
+			}
+			target := strings.SplitN(importPath[index+len(marker):], "/", 2)[0]
+			if target != model.Module {
+				t.Fatalf("generated production file %s imports module %s", file.Path, target)
+			}
+		}
+	}
+	if containsPath(files, "go-admin-plus/internal/modules/catalog/iam_adapters.go") {
+		t.Fatal("generated output retained provider-specific IAM adapter")
 	}
 }

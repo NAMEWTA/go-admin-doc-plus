@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
@@ -131,7 +132,11 @@ func TestSchedulerBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := scheduler.NewService(db, registry, clock)
+	authorizationAdapters, err := adapters.NewAuthorization(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := scheduler.NewService(db, authorizationAdapters.Scheduler(), registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +162,11 @@ func TestSchedulerBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	schedulerHandler, err := scheduler.NewHTTPHandler(service, sessions, func(*http.Request) string { return "0123456789abcdef" })
+	sessionAdapters, err := adapters.NewSession(sessions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	schedulerHandler, err := scheduler.NewHTTPHandler(service, sessionAdapters.Scheduler(), func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,33 +9,34 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
+const schedulerTestCookie = "scheduler-test-session"
+
 type sessionStub struct {
-	issued   session.Issued
+	identity RequestIdentity
 	err      error
 	mutation bool
 	csrf     string
 }
 
-func (stub *sessionStub) AuthorizeRequest(_ context.Context, _, csrf string, mutation bool) (session.Issued, error) {
+func (*sessionStub) CookieName() string { return schedulerTestCookie }
+
+func (stub *sessionStub) AuthorizeRequest(_ context.Context, _, csrf string, mutation bool) (RequestIdentity, error) {
 	stub.csrf, stub.mutation = csrf, mutation
-	return stub.issued, stub.err
+	return stub.identity, stub.err
 }
 
 func TestSchedulerHTTPContractLifecycle(t *testing.T) {
 	db := schedulerDatabase(t)
 	registry := schedulerRegistry(t, func(context.Context, database.Tx, testParameters) error { return nil })
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, ClockFunc(func() time.Time { return time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC) }))
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer, registry, ClockFunc(func() time.Time { return time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC) }))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions := &sessionStub{issued: session.Issued{Profile: account.Profile{ID: "actor"}, CSRF: "csrf-next"}}
+	sessions := &sessionStub{identity: RequestIdentity{ActorID: "actor", CSRF: "csrf-next"}}
 	handler, err := NewHTTPHandler(service, sessions, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
@@ -66,7 +67,7 @@ func schedulerRequest(handler http.Handler, method, path, body, csrf string) *ht
 	if body != "" {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	request.AddCookie(&http.Cookie{Name: session.CookieName, Value: "session-token"})
+	request.AddCookie(&http.Cookie{Name: schedulerTestCookie, Value: "session-token"})
 	if csrf != "" {
 		request.Header.Set("X-CSRF-Token", csrf)
 	}

@@ -166,7 +166,7 @@ func filesHTTPFixture(t *testing.T, authenticator *requestAuthenticatorStub) (ht
 	}
 	t.Cleanup(func() { _ = storage.Close() })
 	authorizer := &authorizerStub{scope: ScopeAll}
-	service, err := newServiceWithAuthorizer(db, storage, authorizer, WithClock(fixedFilesClock))
+	service, err := NewService(db, storage, authorizer, WithClock(fixedFilesClock))
 	if err != nil {
 		t.Fatal(err)
 	}

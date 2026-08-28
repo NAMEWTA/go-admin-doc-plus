@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/google/uuid"
 )
@@ -29,15 +28,7 @@ func WithObserver(observer Observer) Option {
 	return func(service *Service) { service.observer = observer }
 }
 
-func NewService(db Database, storage Storage, options ...Option) (*Service, error) {
-	adapter, err := NewIAMAuthorizationAdapter(db)
-	if err != nil {
-		return nil, err
-	}
-	return newServiceWithAuthorizer(db, storage, adapter, options...)
-}
-
-func newServiceWithAuthorizer(db Database, storage Storage, authorizer Authorizer, options ...Option) (*Service, error) {
+func NewService(db Database, storage Storage, authorizer Authorizer, options ...Option) (*Service, error) {
 	if db == nil || storage == nil || authorizer == nil || (db.Dialect() != database.DialectSQLite && db.Dialect() != database.DialectPostgres) {
 		return nil, errors.New("files service dependencies are required")
 	}
@@ -321,9 +312,6 @@ func (service *Service) normalize(ctx context.Context, err error) error {
 		if errors.Is(err, stable) {
 			return stable
 		}
-	}
-	if errors.Is(err, authorization.ErrDenied) {
-		return ErrDenied
 	}
 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, ErrStorageNotFound) {
 		return ErrNotFound

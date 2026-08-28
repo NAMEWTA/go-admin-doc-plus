@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -137,8 +138,8 @@ type recordingRegistrar struct {
 	err     error
 }
 
-func (r *recordingRegistrar) Register(_ context.Context, capabilities authorization.ModuleCapabilities) error {
-	module := capabilities.Permissions[0].Code
+func (r *recordingRegistrar) Register(_ context.Context, definitions capabilities.ModuleCapabilities) error {
+	module := definitions.Permissions[0].Code
 	for index, character := range module {
 		if character == '.' {
 			module = module[:index]

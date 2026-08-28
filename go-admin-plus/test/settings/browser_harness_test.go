@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
@@ -89,15 +90,19 @@ func TestSettingsBrowserHarnessServer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		service, err := settings.NewService(db)
+		authorizationAdapters, err := adapters.NewAuthorization(db)
 		if err != nil {
 			t.Fatal(err)
 		}
-		authenticator, err := settings.NewIAMSessionRequestAdapter(sessions)
+		service, err := settings.NewService(db, authorizationAdapters.Settings())
 		if err != nil {
 			t.Fatal(err)
 		}
-		handler, err := settings.NewHTTPHandler(service, authenticator, func(*http.Request) string { return "0123456789abcdef" })
+		sessionAdapters, err := adapters.NewSession(sessions)
+		if err != nil {
+			t.Fatal(err)
+		}
+		handler, err := settings.NewHTTPHandler(service, sessionAdapters.Settings(), func(*http.Request) string { return "0123456789abcdef" })
 		if err != nil {
 			t.Fatal(err)
 		}

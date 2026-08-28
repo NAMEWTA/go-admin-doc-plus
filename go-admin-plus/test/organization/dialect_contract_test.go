@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
@@ -68,7 +69,11 @@ func runOrganizationDialectContract(t *testing.T, db *database.Database) {
 	if err != nil || manifest.Scope != authorization.ScopeAll || !contains(manifest.Permissions, organization.PermissionDepartmentsRead) || !contains(manifest.Permissions, organization.PermissionPositionsWrite) {
 		t.Fatalf("organization manifest=%#v err=%v", manifest, err)
 	}
-	service, err := organization.NewService(db)
+	authorizationAdapters, err := adapters.NewAuthorization(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := organization.NewService(db, authorizationAdapters.Organization())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -70,6 +70,7 @@ type Service struct {
 	db                 Database
 	authorizer         *authorization.Service
 	accounts           *account.Repository
+	organization       OrganizationProjectionPort
 	passwordWork       *account.PasswordWorkBudget
 	now                func() time.Time
 	authorizationProbe func(string)
@@ -83,6 +84,9 @@ func WithPasswordWorkBudget(value *account.PasswordWorkBudget) Option {
 }
 func WithAuthorizationProbe(probe func(string)) Option {
 	return func(s *Service) { s.authorizationProbe = probe }
+}
+func WithOrganizationProjection(projection OrganizationProjectionPort) Option {
+	return func(s *Service) { s.organization = projection }
 }
 
 func NewService(db Database, options ...Option) (*Service, error) {

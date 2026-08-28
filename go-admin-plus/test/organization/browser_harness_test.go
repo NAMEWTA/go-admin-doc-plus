@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
@@ -73,7 +74,15 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := organization.NewService(db)
+	authorizationAdapters, err := adapters.NewAuthorization(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := organization.NewService(db, authorizationAdapters.Organization())
+	if err != nil {
+		t.Fatal(err)
+	}
+	sessionAdapters, err := adapters.NewSession(sessions)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,11 +90,15 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	organizationHandler, err := organization.NewHTTPHandler(service, sessions, func(*http.Request) string { return "0123456789abcdef" })
+	organizationHandler, err := organization.NewHTTPHandler(service, sessionAdapters.Organization(), func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}
-	administrationService, err := administration.NewService(db)
+	organizationProjection, err := organization.NewProjectionAdapter(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	administrationService, err := administration.NewService(db, administration.WithOrganizationProjection(adapters.NewOrganizationProjection(organizationProjection)))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -34,6 +34,11 @@ type RequestAuthenticator interface {
 	AuthorizeRequest(context.Context, string, string, bool) (RequestIdentity, error)
 }
 
+type RequestIdentity struct {
+	ActorID, CSRF     string
+	ReplacementCookie *string
+}
+
 type requestContextKey struct{}
 type requestContext struct {
 	actorID, csrf, trace string

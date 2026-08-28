@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -48,6 +47,12 @@ func (recorder *LoginRecorder) Record(ctx context.Context, tx database.Tx, fact 
 	return recorder.record(ctx, tx, businessID, fact)
 }
 
+// RecordAttempt preserves a caller-owned opaque attempt identifier while Audit owns validation
+// and persistence of the mapped login fact.
+func (recorder *LoginRecorder) RecordAttempt(ctx context.Context, tx database.Tx, attemptID string, fact LoginFact) (bool, error) {
+	return recorder.record(ctx, tx, attemptID, fact)
+}
+
 func (recorder *LoginRecorder) record(ctx context.Context, tx database.Tx, businessID string, fact LoginFact) (bool, error) {
 	if recorder == nil || tx == nil || !opaqueLoginBusinessID.MatchString(businessID) || fact.ActorType != ActorAccount ||
 		fact.Outcome != OutcomeSucceeded && fact.Outcome != OutcomeFailed ||
@@ -80,40 +85,6 @@ func (recorder *LoginRecorder) record(ctx context.Context, tx database.Tx, busin
 		return false, ErrInternal
 	}
 	return true, nil
-}
-
-// SessionLoginFactAdapter is the Audit-owned implementation of Session's module-neutral port.
-// Session creates the opaque attempt ID and never imports Audit.
-type SessionLoginFactAdapter struct{ recorder *LoginRecorder }
-
-func NewSessionLoginFactAdapter(db *database.Database) (*SessionLoginFactAdapter, error) {
-	recorder, err := NewLoginRecorder(db)
-	if err != nil {
-		return nil, err
-	}
-	return &SessionLoginFactAdapter{recorder: recorder}, nil
-}
-
-func (adapter *SessionLoginFactAdapter) RecordLoginFact(ctx context.Context, tx database.Tx, fact session.LoginFact) error {
-	if adapter == nil || adapter.recorder == nil || !fact.AttemptID.Valid() {
-		return ErrInvalidArgument
-	}
-	mapped := LoginFact{ActorType: ActorAccount, Source: Source(fact.Source), OccurredAt: fact.OccurredAt}
-	switch fact.Outcome {
-	case session.LoginSucceeded:
-		actorRef := "account:" + fact.AccountID
-		mapped.Outcome = OutcomeSucceeded
-		mapped.ActorRef = &actorRef
-	case session.LoginFailed:
-		if fact.AccountID != "" {
-			return ErrInvalidArgument
-		}
-		mapped.Outcome = OutcomeFailed
-	default:
-		return ErrInvalidArgument
-	}
-	_, err := adapter.recorder.record(ctx, tx, fact.AttemptID.Opaque(), mapped)
-	return err
 }
 
 type storedLoginFact struct {

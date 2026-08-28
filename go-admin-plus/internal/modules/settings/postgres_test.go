@@ -63,7 +63,7 @@ func TestSettingsPostgresDialectContract(t *testing.T) {
 	if _, err := runner.Up(ctx, db); err != nil {
 		t.Fatal(err)
 	}
-	service, err := newService(db, testAuthorizer{dialect: db.Dialect(), scope: ScopeAll})
+	service, err := NewService(db, testAuthorizer{dialect: db.Dialect(), scope: ScopeAll})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
@@ -83,6 +84,10 @@ func TestFilesBrowserHarnessServer(t *testing.T) {
 			t.Fatal("files harness role seed failed")
 		}
 	}
+	authorizationAdapters, err := adapters.NewAuthorization(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	root := canonicalContentRoot(t)
 	current := &filesSwitchingHandler{}
 	type runtimeState struct {
@@ -104,18 +109,18 @@ func TestFilesBrowserHarnessServer(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		service, err := files.NewService(db, storage)
+		service, err := files.NewService(db, storage, authorizationAdapters.Files())
 		if err != nil {
 			t.Fatal(err)
 		}
 		if err := service.Reconcile(ctx); err != nil {
 			t.Fatal("files harness reconciliation failed")
 		}
-		authenticator, err := files.NewIAMSessionRequestAdapter(sessions)
+		sessionAdapters, err := adapters.NewSession(sessions)
 		if err != nil {
 			t.Fatal(err)
 		}
-		filesHandler, err := files.NewHTTPHandler(service, authenticator, func(*http.Request) string { return "0123456789abcdef" })
+		filesHandler, err := files.NewHTTPHandler(service, sessionAdapters.Files(), func(*http.Request) string { return "0123456789abcdef" })
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -150,7 +155,7 @@ func TestFilesBrowserHarnessServer(t *testing.T) {
 		}
 	})
 	foreignStorage := func() *files.LocalStorage { liveMu.RLock(); defer liveMu.RUnlock(); return live.storage }()
-	foreignService, err := files.NewService(db, foreignStorage)
+	foreignService, err := files.NewService(db, foreignStorage, authorizationAdapters.Files())
 	if err != nil {
 		t.Fatal(err)
 	}

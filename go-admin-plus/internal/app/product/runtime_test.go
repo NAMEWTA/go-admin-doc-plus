@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
@@ -102,6 +103,13 @@ func TestBuildAssemblesEveryHTTPModuleAndWorkerLifecycle(t *testing.T) {
 	issued, err := runtime.Sessions.Login(ctx, "runtime-self", "runtime identity password")
 	if err != nil {
 		t.Fatal(err)
+	}
+	var loginFacts int
+	if err := db.SQL().QueryRowContext(ctx, `SELECT COUNT(*) FROM audit_facts WHERE topic = ? AND actor_ref = ?`, audit.TopicLoginSucceeded, "account:account-runtime-self").Scan(&loginFacts); err != nil {
+		t.Fatal(err)
+	}
+	if loginFacts != 1 {
+		t.Fatalf("successful login audit facts = %d, want 1", loginFacts)
 	}
 	identityRequest := httptest.NewRequest(http.MethodGet, "/api/runtime/identity", nil)
 	identityRequest.AddCookie(&http.Cookie{Name: session.CookieName, Value: issued.Token})

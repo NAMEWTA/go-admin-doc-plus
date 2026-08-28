@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	audit "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	auditmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/migrations/0011-audit"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
@@ -100,10 +100,11 @@ func TestAuditUIFixtureCleanupDeletesOnlyExpiredOperation(t *testing.T) {
 	db := openSQLite(t)
 	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
 	createAuditIAMFixture(t, db, auditUIFixtureTime)
-	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	loginRecorder, err := audit.NewLoginRecorder(db)
 	if err != nil {
 		t.Fatal(err)
 	}
+	loginFacts := adapters.NewLoginFact(loginRecorder)
 	policy, err := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
 	if err != nil {
 		t.Fatal(err)
@@ -178,10 +179,11 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	fixtureTime := auditUIFixtureTime
 	clock := &auditHarnessClock{now: fixtureTime}
 	createAuditIAMFixture(t, db, fixtureTime)
-	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	loginRecorder, err := audit.NewLoginRecorder(db)
 	if err != nil {
 		t.Fatal(err)
 	}
+	loginFacts := adapters.NewLoginFact(loginRecorder)
 	policy, err := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
 	if err != nil {
 		t.Fatal(err)
@@ -196,16 +198,16 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	enqueue(t, db, store, outbox.Event{ID: "audit-ui-event-001", Topic: audit.TopicOperationUpdated, BusinessKey: "resource:demo:ui-record-revision-2:account-00000001", Payload: []byte(`{"source":"web"}`), OccurredAt: auditUIOperationTime})
 	dispatch(t, db, store, mustConsumers(t), fixtureTime)
 
-	permissionAdapter, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
+	authorizationAdapters, err := adapters.NewAuthorization(db)
 	if err != nil {
 		t.Fatal(err)
 	}
-	service := mustServiceWithPolicy(t, db, permissionAdapter, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: clock.current})
-	requestAdapter, err := audit.NewIAMRequestAuthorizer(sessions)
+	service := mustServiceWithPolicy(t, db, authorizationAdapters.Audit(), audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: clock.current})
+	sessionAdapters, err := adapters.NewSession(sessions)
 	if err != nil {
 		t.Fatal(err)
 	}
-	auditAPI, err := audit.NewHTTPHandler(service, requestAdapter, func(*http.Request) string { return "0123456789abcdef" })
+	auditAPI, err := audit.NewHTTPHandler(service, sessionAdapters.Audit(), func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}

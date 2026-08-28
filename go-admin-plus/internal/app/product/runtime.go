@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
@@ -78,21 +79,33 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	if err := RegisterCapabilities(ctx, capabilities); err != nil {
 		return Runtime{}, err
 	}
+	authorizationAdapters, err := adapters.NewAuthorization(db)
+	if err != nil {
+		return Runtime{}, errors.New("product authorization adapter failed")
+	}
 
 	trace := secureTraceID
-	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	loginRecorder, err := audit.NewLoginRecorder(db)
 	if err != nil {
-		return Runtime{}, errors.New("product login audit adapter failed")
+		return Runtime{}, errors.New("product login audit recorder failed")
 	}
-	sessions, err := session.NewService(db, options.SessionPolicy, session.WithLoginFactPort(loginFacts))
+	sessions, err := session.NewService(db, options.SessionPolicy, session.WithLoginFactPort(adapters.NewLoginFact(loginRecorder)))
 	if err != nil {
 		return Runtime{}, errors.New("product session service failed")
+	}
+	sessionAdapters, err := adapters.NewSession(sessions)
+	if err != nil {
+		return Runtime{}, errors.New("product session adapter failed")
 	}
 	sessionHandler, err := session.NewHTTPHandler(sessions, trace)
 	if err != nil {
 		return Runtime{}, errors.New("product session transport failed")
 	}
-	adminService, err := administration.NewService(db)
+	organizationProjection, err := organization.NewProjectionAdapter(db)
+	if err != nil {
+		return Runtime{}, errors.New("product organization projection failed")
+	}
+	adminService, err := administration.NewService(db, administration.WithOrganizationProjection(adapters.NewOrganizationProjection(organizationProjection)))
 	if err != nil {
 		return Runtime{}, errors.New("product administration service failed")
 	}
@@ -102,46 +115,34 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	}
 	shellHandler := newShellRuntimeHandler(sessions, authorization.NewService(db))
 
-	auditAuthorizer, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
-	if err != nil {
-		return Runtime{}, errors.New("product audit authorization adapter failed")
-	}
-	auditService, err := audit.NewService(db, auditAuthorizer, audit.RetentionPolicy{MinimumAge: options.AuditRetentionAge, CleanupLimit: 100})
+	auditService, err := audit.NewService(db, authorizationAdapters.Audit(), audit.RetentionPolicy{MinimumAge: options.AuditRetentionAge, CleanupLimit: 100})
 	if err != nil {
 		return Runtime{}, errors.New("product audit service failed")
 	}
-	auditRequests, err := audit.NewIAMRequestAuthorizer(sessions)
-	if err != nil {
-		return Runtime{}, errors.New("product audit request adapter failed")
-	}
-	auditHandler, err := audit.NewHTTPHandler(auditService, auditRequests, trace)
+	auditHandler, err := audit.NewHTTPHandler(auditService, sessionAdapters.Audit(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product audit transport failed")
 	}
 
-	organizationService, err := organization.NewService(db)
+	organizationService, err := organization.NewService(db, authorizationAdapters.Organization())
 	if err != nil {
 		return Runtime{}, errors.New("product organization service failed")
 	}
-	organizationHandler, err := organization.NewHTTPHandler(organizationService, sessions, trace)
+	organizationHandler, err := organization.NewHTTPHandler(organizationService, sessionAdapters.Organization(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product organization transport failed")
 	}
 
-	settingsService, err := settings.NewService(db)
+	settingsService, err := settings.NewService(db, authorizationAdapters.Settings())
 	if err != nil {
 		return Runtime{}, errors.New("product settings service failed")
 	}
-	settingsSession, err := settings.NewIAMSessionRequestAdapter(sessions)
-	if err != nil {
-		return Runtime{}, errors.New("product settings session adapter failed")
-	}
-	settingsHandler, err := settings.NewHTTPHandler(settingsService, settingsSession, trace)
+	settingsHandler, err := settings.NewHTTPHandler(settingsService, sessionAdapters.Settings(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product settings transport failed")
 	}
 
-	generatorHandler, err := buildGenerator(ctx, db, sessions, trace, options)
+	generatorHandler, err := buildGenerator(ctx, db, authorizationAdapters, sessionAdapters, trace, options)
 	if err != nil {
 		return Runtime{}, err
 	}
@@ -160,11 +161,11 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 		return Runtime{}, errors.New("product scheduler registry failed")
 	}
 	schedulerClock := scheduler.ClockFunc(func() time.Time { return time.Now().UTC() })
-	schedulerService, err := scheduler.NewService(db, schedulerRegistry, schedulerClock)
+	schedulerService, err := scheduler.NewService(db, authorizationAdapters.Scheduler(), schedulerRegistry, schedulerClock)
 	if err != nil {
 		return Runtime{}, errors.New("product scheduler service failed")
 	}
-	schedulerHandler, err := scheduler.NewHTTPHandler(schedulerService, sessions, trace)
+	schedulerHandler, err := scheduler.NewHTTPHandler(schedulerService, sessionAdapters.Scheduler(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product scheduler transport failed")
 	}
@@ -175,19 +176,11 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 		return Runtime{}, errors.New("product scheduler executor failed")
 	}
 
-	demoAuthorizer, err := demo.NewIAMAuthorizationAdapter(db)
-	if err != nil {
-		return Runtime{}, errors.New("product demo authorization adapter failed")
-	}
-	demoService, err := demo.NewService(db, demoAuthorizer)
+	demoService, err := demo.NewService(db, authorizationAdapters.Demo())
 	if err != nil {
 		return Runtime{}, errors.New("product demo service failed")
 	}
-	demoSession, err := demo.NewIAMSessionRequestAdapter(sessions)
-	if err != nil {
-		return Runtime{}, errors.New("product demo session adapter failed")
-	}
-	demoHandler, err := demo.NewHTTPHandler(demoService, demoSession, trace)
+	demoHandler, err := demo.NewHTTPHandler(demoService, sessionAdapters.Demo(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product demo transport failed")
 	}
@@ -202,18 +195,14 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 			_ = storage.Close()
 		}
 	}()
-	filesService, err := files.NewService(db, storage)
+	filesService, err := files.NewService(db, storage, authorizationAdapters.Files())
 	if err != nil {
 		return Runtime{}, errors.New("product files service failed")
 	}
 	if err := filesService.Reconcile(ctx); err != nil {
 		return Runtime{}, errors.New("product files reconciliation failed")
 	}
-	filesSession, err := files.NewIAMSessionRequestAdapter(sessions)
-	if err != nil {
-		return Runtime{}, errors.New("product files session adapter failed")
-	}
-	filesHandler, err := files.NewHTTPHandler(filesService, filesSession, trace)
+	filesHandler, err := files.NewHTTPHandler(filesService, sessionAdapters.Files(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product files transport failed")
 	}
@@ -261,7 +250,7 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	}, nil
 }
 
-func buildGenerator(ctx context.Context, db *database.Database, sessions *session.Service, trace contracts.TraceIDProvider, options Options) (http.Handler, error) {
+func buildGenerator(ctx context.Context, db *database.Database, authorizationAdapters *adapters.Authorization, sessionAdapters *adapters.Session, trace contracts.TraceIDProvider, options Options) (http.Handler, error) {
 	metadata, err := generator.NewSQLMetadataSource(ctx, db, generator.MetadataAllowlist{CurrentSchema: options.GeneratorSchema, Tables: append([]string(nil), options.GeneratorTables...)})
 	if err != nil {
 		return nil, errors.New("product generator metadata failed")
@@ -282,23 +271,15 @@ func buildGenerator(ctx context.Context, db *database.Database, sessions *sessio
 	if err != nil {
 		return nil, errors.New("product generator renderer failed")
 	}
-	authorizer, err := generator.NewIAMAuthorizationAdapter(db)
-	if err != nil {
-		return nil, errors.New("product generator authorization adapter failed")
-	}
 	store, err := generator.NewSQLConfigStore(db)
 	if err != nil {
 		return nil, errors.New("product generator config store failed")
 	}
-	service, err := generator.New(metadata, writer, authorizer, store, renderer, 10*time.Minute)
+	service, err := generator.New(metadata, writer, authorizationAdapters.Generator(), store, renderer, 10*time.Minute)
 	if err != nil {
 		return nil, errors.New("product generator service failed")
 	}
-	authenticator, err := generator.NewIAMSessionRequestAdapter(sessions)
-	if err != nil {
-		return nil, errors.New("product generator session adapter failed")
-	}
-	handler, err := generator.NewHTTPHandler(service, authenticator, trace)
+	handler, err := generator.NewHTTPHandler(service, sessionAdapters.Generator(), trace)
 	if err != nil {
 		return nil, errors.New("product generator HTTP transport failed")
 	}

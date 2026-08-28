@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	auditmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/migrations/0011-audit"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
@@ -14,7 +15,6 @@ import (
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
 	configmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator/migrations/0010-config"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
@@ -56,7 +56,7 @@ type ProfileDefinition struct {
 }
 
 type CapabilityRegistrar interface {
-	Register(context.Context, authorization.ModuleCapabilities) error
+	Register(context.Context, capabilities.ModuleCapabilities) error
 }
 
 type capabilityRegistration struct {

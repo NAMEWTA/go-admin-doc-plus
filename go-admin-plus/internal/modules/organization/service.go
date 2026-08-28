@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -27,7 +26,7 @@ const (
 )
 
 var (
-	ErrDenied     = authorization.ErrDenied
+	ErrDenied     = errors.New("organization authorization denied")
 	ErrNotFound   = errors.New("organization resource not found")
 	ErrValidation = errors.New("organization request invalid")
 	ErrConflict   = errors.New("organization resource conflict")
@@ -41,8 +40,17 @@ type Database interface {
 }
 
 type Authorizer interface {
-	RequireInTx(context.Context, database.Tx, string, string) (authorization.Decision, error)
+	RequireInTx(context.Context, database.Tx, string, string) (AuthorizationDecision, error)
 }
+
+type Scope string
+
+const (
+	ScopeSelf Scope = "self"
+	ScopeAll  Scope = "all"
+)
+
+type AuthorizationDecision struct{ Scope Scope }
 
 type Service struct {
 	db         Database
@@ -55,14 +63,7 @@ type Option func(*Service)
 
 func WithClock(clock func() time.Time) Option { return func(service *Service) { service.now = clock } }
 
-func NewService(db Database, options ...Option) (*Service, error) {
-	if db == nil {
-		return nil, errors.New("organization database is required")
-	}
-	return newServiceWithAuthorizer(db, authorization.NewService(db), options...)
-}
-
-func newServiceWithAuthorizer(db Database, authorizer Authorizer, options ...Option) (*Service, error) {
+func NewService(db Database, authorizer Authorizer, options ...Option) (*Service, error) {
 	if db == nil || authorizer == nil {
 		return nil, errors.New("organization database and authorizer are required")
 	}
@@ -255,7 +256,7 @@ func (s *Service) transact(ctx context.Context, actorID, permission string, oper
 		if err != nil {
 			return err
 		}
-		if decision.Scope != authorization.ScopeAll {
+		if decision.Scope != ScopeAll {
 			return ErrDenied
 		}
 		return operation(ctx, tx)

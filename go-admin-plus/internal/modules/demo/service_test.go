@@ -7,9 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -20,49 +18,11 @@ func (value fakeDatabase) WithinTx(ctx context.Context, callback func(context.Co
 	return callback(ctx, nil)
 }
 
-type fakeSessionRequestService struct {
-	issued session.Issued
-	err    error
-}
-
-func (value fakeSessionRequestService) AuthorizeRequest(context.Context, string, string, bool) (session.Issued, error) {
-	return value.issued, value.err
-}
-
-func TestIAMSessionRequestAdapterUsesCanonicalCookieAndErrors(t *testing.T) {
-	csrf := strings.Repeat("c", 43)
-	adapter, err := NewIAMSessionRequestAdapter(fakeSessionRequestService{issued: session.Issued{Profile: account.Profile{ID: "account-demo-admin"}, Token: "opaque replacement", CSRF: csrf, Rotated: true}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	identity, err := adapter.AuthorizeRequest(context.Background(), "opaque current", csrf, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if adapter.CookieName() != session.CookieName || identity.ActorID != "account-demo-admin" || identity.CSRF != csrf || identity.ReplacementCookie == nil {
-		t.Fatal("session adapter lost canonical identity material")
-	}
-	for _, attribute := range []string{session.CookieName + "=", "Path=/", "HttpOnly", "Secure", "SameSite=Strict"} {
-		if !strings.Contains(*identity.ReplacementCookie, attribute) {
-			t.Fatalf("replacement cookie missing %s", attribute)
-		}
-	}
-	for upstream, expected := range map[error]error{session.ErrAuthentication: ErrAuthentication, session.ErrCSRF: ErrCSRF} {
-		failed, err := NewIAMSessionRequestAdapter(fakeSessionRequestService{err: upstream})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := failed.AuthorizeRequest(context.Background(), "", "", true); !errors.Is(err, expected) {
-			t.Fatalf("mapped error = %v", err)
-		}
-	}
-}
-
 type captureRegistrar struct {
-	capabilities authorization.ModuleCapabilities
+	capabilities capabilities.ModuleCapabilities
 }
 
-func (value *captureRegistrar) Register(_ context.Context, capabilities authorization.ModuleCapabilities) error {
+func (value *captureRegistrar) Register(_ context.Context, capabilities capabilities.ModuleCapabilities) error {
 	value.capabilities = capabilities
 	return nil
 }

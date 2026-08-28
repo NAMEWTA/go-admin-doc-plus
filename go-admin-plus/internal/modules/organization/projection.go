@@ -3,9 +3,13 @@ package organization
 import (
 	"context"
 
-	iamadministration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
+
+type DepartmentLineage struct {
+	DepartmentID string
+	AncestorIDs  []string
+}
 
 type ProjectionAdapter struct {
 	db         Database
@@ -19,11 +23,11 @@ func NewProjectionAdapter(db Database) (*ProjectionAdapter, error) {
 	return &ProjectionAdapter{db: db, repository: repository{dialect: db.Dialect()}}, nil
 }
 
-func (a *ProjectionAdapter) DepartmentLineage(ctx context.Context, id string) (iamadministration.OrganizationDepartmentLineage, error) {
+func (a *ProjectionAdapter) DepartmentLineage(ctx context.Context, id string) (DepartmentLineage, error) {
 	if a == nil || a.db == nil || id == "" {
-		return iamadministration.OrganizationDepartmentLineage{}, ErrNotFound
+		return DepartmentLineage{}, ErrNotFound
 	}
-	result := iamadministration.OrganizationDepartmentLineage{DepartmentID: id, AncestorIDs: []string{}}
+	result := DepartmentLineage{DepartmentID: id, AncestorIDs: []string{}}
 	err := a.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		departments, err := a.repository.departments(ctx, tx, false)
 		if err != nil {
@@ -53,7 +57,7 @@ func (a *ProjectionAdapter) DepartmentLineage(ctx context.Context, id string) (i
 		return nil
 	})
 	if err != nil {
-		return iamadministration.OrganizationDepartmentLineage{}, (&Service{db: a.db}).normalize(ctx, err)
+		return DepartmentLineage{}, (&Service{db: a.db}).normalize(ctx, err)
 	}
 	return result, nil
 }
@@ -76,5 +80,3 @@ func (a *ProjectionAdapter) PositionDepartment(ctx context.Context, id string) (
 	}
 	return departmentID, nil
 }
-
-var _ iamadministration.OrganizationProjectionPort = (*ProjectionAdapter)(nil)

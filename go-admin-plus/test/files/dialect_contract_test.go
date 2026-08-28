@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
@@ -72,11 +73,15 @@ func runFilesContract(t *testing.T, db *database.Database, root string) {
 			t.Fatal(err)
 		}
 	}
+	authorizationAdapters, err := adapters.NewAuthorization(db)
+	if err != nil {
+		t.Fatal(err)
+	}
 	storage, err := files.NewLocalStorage(root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := files.NewService(db, storage)
+	service, err := files.NewService(db, storage, authorizationAdapters.Files())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +143,7 @@ func runFilesContract(t *testing.T, db *database.Database, root string) {
 		t.Fatal(err)
 	}
 	defer storage.Close()
-	service, err = files.NewService(db, storage)
+	service, err = files.NewService(db, storage, authorizationAdapters.Files())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,15 +158,15 @@ func runFilesContract(t *testing.T, db *database.Database, root string) {
 	}
 	if db.Dialect() == database.DialectPostgres {
 		failureStorage := &publishFailureStorage{Storage: storage}
-		failedService, err := files.NewService(db, failureStorage)
+		failedService, err := files.NewService(db, failureStorage, authorizationAdapters.Files())
 		if err != nil {
 			t.Fatal(err)
 		}
 		if _, err := failedService.Upload(ctx, "account-files-owner", files.UploadInput{OriginalName: "recover-concurrently.txt", DeclaredMediaType: "text/plain", Content: strings.NewReader("recover")}); !errors.Is(err, files.ErrInternal) {
 			t.Fatalf("injected publish failure=%v", err)
 		}
-		firstRecovery, _ := files.NewService(db, storage)
-		secondRecovery, _ := files.NewService(db, storage)
+		firstRecovery, _ := files.NewService(db, storage, authorizationAdapters.Files())
+		secondRecovery, _ := files.NewService(db, storage, authorizationAdapters.Files())
 		errorsChannel := make(chan error, 2)
 		go func() { errorsChannel <- firstRecovery.Reconcile(ctx) }()
 		go func() { errorsChannel <- secondRecovery.Reconcile(ctx) }()

@@ -15,7 +15,6 @@ func renderBase(model Model) ([]PreviewFile, error) {
 		fmt.Sprintf("go-admin-plus/internal/modules/%s/mapping.go", model.Module):                                                                      generatedMapping(model),
 		fmt.Sprintf("go-admin-plus/internal/modules/%s/repository.go", model.Module):                                                                   generatedRepository(model),
 		fmt.Sprintf("go-admin-plus/internal/modules/%s/service.go", model.Module):                                                                      generatedService(model),
-		fmt.Sprintf("go-admin-plus/internal/modules/%s/iam_adapters.go", model.Module):                                                                 generatedIAMAdapters(model),
 		fmt.Sprintf("go-admin-plus/internal/modules/%s/http.go", model.Module):                                                                         generatedHTTP(model),
 		fmt.Sprintf("go-admin-plus/internal/modules/%s/http_records.go", model.Module):                                                                 generatedHTTPOperations(model),
 		fmt.Sprintf("go-admin-plus/internal/modules/%s/service_test.go", model.Module):                                                                 generatedServiceTest(model),
@@ -300,30 +299,6 @@ func uniqueConflict(err error) bool {
 		model.Entity, model.Entity, model.Entity, model.Entity, assignments.String(), model.Entity,
 		model.Entity, model.Entity, model.Entity, model.Entity, model.Entity, model.Entity, assignments.String(),
 		model.Entity, validation.String())
-}
-
-func generatedIAMAdapters(model Model) string {
-	return fmt.Sprintf(`package %s
-
-import (
-	"context"
-	"errors"
-	"net/http"
-
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
-)
-type IAMAuthorizationAdapter struct { service *authorization.Service; dialect database.Dialect }
-func NewIAMAuthorizationAdapter(db Database) (*IAMAuthorizationAdapter, error) { if db == nil { return nil, ErrInvalid }; return &IAMAuthorizationAdapter{service: authorization.NewService(db), dialect: db.Dialect()}, nil }
-func (adapter *IAMAuthorizationAdapter) Dialect() database.Dialect { return adapter.dialect }
-func (adapter *IAMAuthorizationAdapter) RequireInTx(ctx context.Context, tx database.Tx, actorID, permission string) error { decision, err := adapter.service.RequireInTx(ctx, tx, actorID, permission); if errors.Is(err, authorization.ErrDenied) || (err == nil && decision.Scope != authorization.ScopeAll) { return ErrDenied }; return err }
-type SessionRequestService interface { AuthorizeRequest(context.Context, string, string, bool) (session.Issued, error) }
-type IAMSessionRequestAdapter struct { service SessionRequestService }
-func NewIAMSessionRequestAdapter(service SessionRequestService) (*IAMSessionRequestAdapter, error) { if service == nil { return nil, ErrInvalid }; return &IAMSessionRequestAdapter{service: service}, nil }
-func (*IAMSessionRequestAdapter) CookieName() string { return session.CookieName }
-func (adapter *IAMSessionRequestAdapter) AuthorizeRequest(ctx context.Context, token, csrf string, mutation bool) (RequestIdentity, error) { grant, err := adapter.service.AuthorizeRequest(ctx, token, csrf, mutation); if err != nil { if errors.Is(err, session.ErrCSRF) { return RequestIdentity{}, ErrCSRF }; if errors.Is(err, session.ErrAuthentication) { return RequestIdentity{}, ErrAuthentication }; return RequestIdentity{}, err }; identity := RequestIdentity{ActorID: grant.Profile.ID, CSRF: grant.CSRF}; if grant.Rotated && grant.Token != "" { cookie := (&http.Cookie{Name: session.CookieName, Value: grant.Token, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode}).String(); identity.ReplacementCookie = &cookie }; return identity, nil }
-`, model.Module)
 }
 
 func generatedHTTP(model Model) string {
@@ -770,7 +745,7 @@ func generatedPermissions(model Model) string {
 import (
 	"context"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 )
 
 const (
@@ -779,16 +754,16 @@ const (
 	PermissionDelete = "%s.%s.delete"
 )
 
-type CapabilityRegistrar interface { Register(context.Context, authorization.ModuleCapabilities) error }
+type CapabilityRegistrar interface { Register(context.Context, capabilities.ModuleCapabilities) error }
 
 func RegisterCapabilities(ctx context.Context, registrar CapabilityRegistrar) error {
-	return registrar.Register(ctx, authorization.ModuleCapabilities{
-		Permissions: []authorization.PermissionDefinition{
+	return registrar.Register(ctx, capabilities.ModuleCapabilities{
+		Permissions: []capabilities.PermissionDefinition{
 			{Code: PermissionRead, Name: "Read %s"},
 			{Code: PermissionWrite, Name: "Manage %s"},
 			{Code: PermissionDelete, Name: "Delete %s"},
 		},
-		Menus: []authorization.MenuDefinition{{ID: "menu-%s-%s", Key: "%s-%s", Label: "%s", Path: "/%s/%s", PermissionCode: PermissionRead, SortOrder: 900}},
+		Menus: []capabilities.MenuDefinition{{ID: "menu-%s-%s", Key: "%s-%s", Label: "%s", Path: "/%s/%s", PermissionCode: PermissionRead, SortOrder: 900}},
 	})
 }
 `, model.Module, model.Module, model.Plural, model.Module, model.Plural, model.Module, model.Plural, model.Plural, model.Plural, model.Plural, model.Module, model.Plural, model.Module, model.Plural, model.Entity, model.Module, model.Plural)

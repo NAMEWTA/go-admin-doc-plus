@@ -33,15 +33,7 @@ type Service struct {
 	observer Observer
 }
 
-// NewService constructs authorization from the same database owner used for business writes.
-func NewService(db Database, options ...Option) (*Service, error) {
-	auth, err := NewIAMAuthorizationAdapter(db)
-	if err != nil {
-		return nil, err
-	}
-	return newService(db, auth, options...)
-}
-func newService(db Database, auth Authorizer, options ...Option) (*Service, error) {
+func NewService(db Database, auth Authorizer, options ...Option) (*Service, error) {
 	if db == nil || auth == nil || db.Dialect() != auth.Dialect() {
 		return nil, errors.New("settings database and authorizer must share a dialect")
 	}

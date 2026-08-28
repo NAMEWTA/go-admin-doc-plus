@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
@@ -77,7 +78,7 @@ func runCapabilityRegistryContract(t *testing.T, db *database.Database) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	definitions := authorization.ModuleCapabilities{Permissions: []authorization.PermissionDefinition{{Code: "demo.products.read", Name: "Read demo products"}, {Code: "demo.products.write", Name: "Manage demo products"}}, Menus: []authorization.MenuDefinition{{ID: "menu-demo-products", Key: "demo-products", Label: "Demo products", Path: "/demo/products", PermissionCode: "demo.products.read", SortOrder: 800}}}
+	definitions := capabilities.ModuleCapabilities{Permissions: []capabilities.PermissionDefinition{{Code: "demo.products.read", Name: "Read demo products"}, {Code: "demo.products.write", Name: "Manage demo products"}}, Menus: []capabilities.MenuDefinition{{ID: "menu-demo-products", Key: "demo-products", Label: "Demo products", Path: "/demo/products", PermissionCode: "demo.products.read", SortOrder: 800}}}
 	if err := registry.Register(context.Background(), definitions); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +104,7 @@ func runCapabilityRegistryContract(t *testing.T, db *database.Database) {
 	if _, err := db.Bun().ExecContext(context.Background(), `INSERT INTO iam_permissions(code, name, protected) VALUES (?, ?, ?)`, "demo.products.delete", "Conflicting name", true); err != nil {
 		t.Fatal(err)
 	}
-	err = registry.Register(context.Background(), authorization.ModuleCapabilities{Permissions: []authorization.PermissionDefinition{{Code: "demo.products.export", Name: "Export demo products"}, {Code: "demo.products.delete", Name: "Delete demo products"}}})
+	err = registry.Register(context.Background(), capabilities.ModuleCapabilities{Permissions: []capabilities.PermissionDefinition{{Code: "demo.products.export", Name: "Export demo products"}, {Code: "demo.products.delete", Name: "Delete demo products"}}})
 	if !errors.Is(err, authorization.ErrCapabilityRegistryConflict) {
 		t.Fatalf("definition conflict = %v", err)
 	}
@@ -111,9 +112,9 @@ func runCapabilityRegistryContract(t *testing.T, db *database.Database) {
 	if err := db.Bun().QueryRowContext(context.Background(), `SELECT COUNT(*) FROM iam_permissions WHERE code = ?`, "demo.products.export").Scan(&rolledBack); err != nil || rolledBack != 0 {
 		t.Fatalf("registry conflict was not atomic count=%d err=%v", rolledBack, err)
 	}
-	menuConflict := authorization.ModuleCapabilities{
-		Permissions: []authorization.PermissionDefinition{{Code: "demo.products.export", Name: "Export demo products"}},
-		Menus:       []authorization.MenuDefinition{{ID: "menu-demo-export01", Key: "demo-products", Label: "Export demo products", Path: "/demo/export", PermissionCode: "demo.products.export", SortOrder: 801}},
+	menuConflict := capabilities.ModuleCapabilities{
+		Permissions: []capabilities.PermissionDefinition{{Code: "demo.products.export", Name: "Export demo products"}},
+		Menus:       []capabilities.MenuDefinition{{ID: "menu-demo-export01", Key: "demo-products", Label: "Export demo products", Path: "/demo/export", PermissionCode: "demo.products.export", SortOrder: 801}},
 	}
 	if err := registry.Register(context.Background(), menuConflict); !errors.Is(err, authorization.ErrCapabilityRegistryConflict) {
 		t.Fatalf("menu metadata conflict = %v", err)
@@ -121,9 +122,9 @@ func runCapabilityRegistryContract(t *testing.T, db *database.Database) {
 	if err := db.Bun().QueryRowContext(context.Background(), `SELECT COUNT(*) FROM iam_permissions WHERE code = ?`, "demo.products.export").Scan(&rolledBack); err != nil || rolledBack != 0 {
 		t.Fatalf("menu conflict was not atomic count=%d err=%v", rolledBack, err)
 	}
-	concurrent := authorization.ModuleCapabilities{
-		Permissions: []authorization.PermissionDefinition{{Code: "demo.products.concurrent", Name: "Concurrent demo capability"}},
-		Menus:       []authorization.MenuDefinition{{ID: "menu-demo-concurrent", Key: "demo-concurrent", Label: "Concurrent demo", Path: "/demo/concurrent", PermissionCode: "demo.products.concurrent", SortOrder: 802}},
+	concurrent := capabilities.ModuleCapabilities{
+		Permissions: []capabilities.PermissionDefinition{{Code: "demo.products.concurrent", Name: "Concurrent demo capability"}},
+		Menus:       []capabilities.MenuDefinition{{ID: "menu-demo-concurrent", Key: "demo-concurrent", Label: "Concurrent demo", Path: "/demo/concurrent", PermissionCode: "demo.products.concurrent", SortOrder: 802}},
 	}
 	start := make(chan struct{})
 	errorsFound := make(chan error, 2)
@@ -144,9 +145,9 @@ func runCapabilityRegistryContract(t *testing.T, db *database.Database) {
 			t.Fatalf("concurrent identical registration = %v", err)
 		}
 	}
-	conflicts := []authorization.ModuleCapabilities{
-		{Permissions: []authorization.PermissionDefinition{{Code: "demo.race.one", Name: "Demo race one"}}, Menus: []authorization.MenuDefinition{{ID: "menu-demo-race-one", Key: "demo-race", Label: "Demo race one", Path: "/demo/race", PermissionCode: "demo.race.one", SortOrder: 803}}},
-		{Permissions: []authorization.PermissionDefinition{{Code: "demo.race.two", Name: "Demo race two"}}, Menus: []authorization.MenuDefinition{{ID: "menu-demo-race-two", Key: "demo-race", Label: "Demo race two", Path: "/demo/race", PermissionCode: "demo.race.two", SortOrder: 803}}},
+	conflicts := []capabilities.ModuleCapabilities{
+		{Permissions: []capabilities.PermissionDefinition{{Code: "demo.race.one", Name: "Demo race one"}}, Menus: []capabilities.MenuDefinition{{ID: "menu-demo-race-one", Key: "demo-race", Label: "Demo race one", Path: "/demo/race", PermissionCode: "demo.race.one", SortOrder: 803}}},
+		{Permissions: []capabilities.PermissionDefinition{{Code: "demo.race.two", Name: "Demo race two"}}, Menus: []capabilities.MenuDefinition{{ID: "menu-demo-race-two", Key: "demo-race", Label: "Demo race two", Path: "/demo/race", PermissionCode: "demo.race.two", SortOrder: 803}}},
 	}
 	start = make(chan struct{})
 	errorsFound = make(chan error, 2)
@@ -186,7 +187,7 @@ func TestCapabilityRegistryRejectsUnstableDefinitions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	values := [][]authorization.PermissionDefinition{
+	values := [][]capabilities.PermissionDefinition{
 		nil,
 		{{Code: "Demo.Products.Read", Name: "Read demo products"}},
 		{{Code: "demo products read", Name: "Read demo products"}},
@@ -195,7 +196,7 @@ func TestCapabilityRegistryRejectsUnstableDefinitions(t *testing.T) {
 		{{Code: "demo.products.read", Name: "Read demo products"}, {Code: "demo.products.read", Name: "Duplicate"}},
 	}
 	for _, value := range values {
-		if err := registry.Register(context.Background(), authorization.ModuleCapabilities{Permissions: value}); !errors.Is(err, authorization.ErrCapabilityRegistryInvalid) {
+		if err := registry.Register(context.Background(), capabilities.ModuleCapabilities{Permissions: value}); !errors.Is(err, authorization.ErrCapabilityRegistryInvalid) {
 			t.Fatalf("invalid definition %#v = %v", value, err)
 		}
 	}
@@ -211,14 +212,14 @@ func TestCapabilityRegistryCountsUnicodeDisplayRunes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	valid := authorization.ModuleCapabilities{
-		Permissions: []authorization.PermissionDefinition{{Code: "demo.unicode.read", Name: strings.Repeat("界", 100)}},
-		Menus:       []authorization.MenuDefinition{{ID: "menu-demo-unicode", Key: "demo-unicode", Label: strings.Repeat("界", 80), Path: "/demo/unicode", PermissionCode: "demo.unicode.read", SortOrder: 900}},
+	valid := capabilities.ModuleCapabilities{
+		Permissions: []capabilities.PermissionDefinition{{Code: "demo.unicode.read", Name: strings.Repeat("界", 100)}},
+		Menus:       []capabilities.MenuDefinition{{ID: "menu-demo-unicode", Key: "demo-unicode", Label: strings.Repeat("界", 80), Path: "/demo/unicode", PermissionCode: "demo.unicode.read", SortOrder: 900}},
 	}
 	if err := registry.Register(context.Background(), valid); err != nil {
 		t.Fatalf("100/80 rune boundary = %v", err)
 	}
-	invalid := authorization.ModuleCapabilities{Permissions: []authorization.PermissionDefinition{{Code: "demo.unicode.write", Name: strings.Repeat("界", 101)}}}
+	invalid := capabilities.ModuleCapabilities{Permissions: []capabilities.PermissionDefinition{{Code: "demo.unicode.write", Name: strings.Repeat("界", 101)}}}
 	if err := registry.Register(context.Background(), invalid); !errors.Is(err, authorization.ErrCapabilityRegistryInvalid) {
 		t.Fatalf("101 rune boundary = %v", err)
 	}
@@ -254,7 +255,7 @@ func TestCapabilityRegistryRejectsMissingOrUnprotectedSystemAdministrator(t *tes
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := registry.Register(context.Background(), authorization.ModuleCapabilities{Permissions: []authorization.PermissionDefinition{{Code: "demo.products.read", Name: "Read demo products"}}}); !errors.Is(err, authorization.ErrCapabilityRegistryConflict) {
+			if err := registry.Register(context.Background(), capabilities.ModuleCapabilities{Permissions: []capabilities.PermissionDefinition{{Code: "demo.products.read", Name: "Read demo products"}}}); !errors.Is(err, authorization.ErrCapabilityRegistryConflict) {
 				t.Fatalf("system administrator invariant = %v", err)
 			}
 			var count int
@@ -290,7 +291,7 @@ func TestCapabilityRegistryPreservesContextSentinelsAndRejectsDialect(t *testing
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = registry.Register(context.Background(), authorization.ModuleCapabilities{Permissions: []authorization.PermissionDefinition{{Code: "demo.products.read", Name: "Read demo products"}}})
+		err = registry.Register(context.Background(), capabilities.ModuleCapabilities{Permissions: []capabilities.PermissionDefinition{{Code: "demo.products.read", Name: "Read demo products"}}})
 		if !errors.Is(err, sentinel) {
 			t.Fatalf("lost context sentinel %v: %v", sentinel, err)
 		}

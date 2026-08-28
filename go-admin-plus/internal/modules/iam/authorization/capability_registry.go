@@ -9,6 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -22,18 +23,6 @@ var (
 	stablePathPattern             = regexp.MustCompile(`^/[a-z0-9][a-z0-9/_-]*$`)
 )
 
-type PermissionDefinition struct{ Code, Name string }
-
-type MenuDefinition struct {
-	ID, Key, Label, Path, PermissionCode string
-	SortOrder                            int
-}
-
-type ModuleCapabilities struct {
-	Permissions []PermissionDefinition
-	Menus       []MenuDefinition
-}
-
 type CapabilityRegistry struct{ db Database }
 
 func NewCapabilityRegistry(db Database) (*CapabilityRegistry, error) {
@@ -44,8 +33,8 @@ func NewCapabilityRegistry(db Database) (*CapabilityRegistry, error) {
 }
 
 // Register atomically owns module permissions, protected navigation and system-admin grants.
-func (r *CapabilityRegistry) Register(ctx context.Context, capabilities ModuleCapabilities) error {
-	capabilities, err := validateModuleCapabilities(capabilities)
+func (r *CapabilityRegistry) Register(ctx context.Context, definitions capabilities.ModuleCapabilities) error {
+	definitions, err := validateModuleCapabilities(definitions)
 	if err != nil {
 		return err
 	}
@@ -62,7 +51,7 @@ func (r *CapabilityRegistry) Register(ctx context.Context, capabilities ModuleCa
 		if !protected || !enabled || roleID == "" {
 			return ErrCapabilityRegistryConflict
 		}
-		for _, definition := range capabilities.Permissions {
+		for _, definition := range definitions.Permissions {
 			if _, err := tx.ExecContext(ctx, `INSERT INTO iam_permissions(code, name, protected) VALUES (?, ?, ?) ON CONFLICT(code) DO NOTHING`, definition.Code, definition.Name, true); err != nil {
 				return err
 			}
@@ -78,7 +67,7 @@ func (r *CapabilityRegistry) Register(ctx context.Context, capabilities ModuleCa
 				return err
 			}
 		}
-		for _, definition := range capabilities.Menus {
+		for _, definition := range definitions.Menus {
 			if _, err := tx.ExecContext(ctx, `INSERT INTO iam_menus(id, menu_key, label, path, permission_code, sort_order, protected, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT DO NOTHING`, definition.ID, definition.Key, definition.Label, definition.Path, definition.PermissionCode, definition.SortOrder, true); err != nil {
 				return err
 			}
@@ -88,7 +77,7 @@ func (r *CapabilityRegistry) Register(ctx context.Context, capabilities ModuleCa
 			}
 			matches := 0
 			for rows.Next() {
-				var existing MenuDefinition
+				var existing capabilities.MenuDefinition
 				var menuProtected bool
 				if err := rows.Scan(&existing.ID, &existing.Key, &existing.Label, &existing.Path, &existing.PermissionCode, &existing.SortOrder, &menuProtected); err != nil {
 					_ = rows.Close()
@@ -121,37 +110,37 @@ func (r *CapabilityRegistry) Register(ctx context.Context, capabilities ModuleCa
 	return sanitize(ctx, err)
 }
 
-func validateModuleCapabilities(capabilities ModuleCapabilities) (ModuleCapabilities, error) {
-	if len(capabilities.Permissions) == 0 || len(capabilities.Permissions) > 100 || len(capabilities.Menus) > 100 {
-		return ModuleCapabilities{}, ErrCapabilityRegistryInvalid
+func validateModuleCapabilities(definitions capabilities.ModuleCapabilities) (capabilities.ModuleCapabilities, error) {
+	if len(definitions.Permissions) == 0 || len(definitions.Permissions) > 100 || len(definitions.Menus) > 100 {
+		return capabilities.ModuleCapabilities{}, ErrCapabilityRegistryInvalid
 	}
-	permissions, permissionCodes := make([]PermissionDefinition, 0, len(capabilities.Permissions)), map[string]struct{}{}
-	for _, definition := range capabilities.Permissions {
+	permissions, permissionCodes := make([]capabilities.PermissionDefinition, 0, len(definitions.Permissions)), map[string]struct{}{}
+	for _, definition := range definitions.Permissions {
 		if len(definition.Code) < 3 || len(definition.Code) > 100 || !permissionCodePattern.MatchString(definition.Code) || !validDisplayText(definition.Name, 100) {
-			return ModuleCapabilities{}, ErrCapabilityRegistryInvalid
+			return capabilities.ModuleCapabilities{}, ErrCapabilityRegistryInvalid
 		}
 		if _, duplicate := permissionCodes[definition.Code]; duplicate {
-			return ModuleCapabilities{}, ErrCapabilityRegistryInvalid
+			return capabilities.ModuleCapabilities{}, ErrCapabilityRegistryInvalid
 		}
 		permissionCodes[definition.Code] = struct{}{}
 		permissions = append(permissions, definition)
 	}
-	menus := make([]MenuDefinition, 0, len(capabilities.Menus))
+	menus := make([]capabilities.MenuDefinition, 0, len(definitions.Menus))
 	menuIDs, menuKeys, menuPaths := map[string]struct{}{}, map[string]struct{}{}, map[string]struct{}{}
-	for _, menu := range capabilities.Menus {
+	for _, menu := range definitions.Menus {
 		_, permissionExists := permissionCodes[menu.PermissionCode]
 		_, duplicateID := menuIDs[menu.ID]
 		_, duplicateKey := menuKeys[menu.Key]
 		_, duplicatePath := menuPaths[menu.Path]
 		if len(menu.ID) < 16 || len(menu.ID) > 64 || !stableKeyPattern.MatchString(menu.ID) || len(menu.Key) < 3 || len(menu.Key) > 64 || !stableKeyPattern.MatchString(menu.Key) || !validDisplayText(menu.Label, 80) || len(menu.Path) > 160 || !stablePathPattern.MatchString(menu.Path) || !permissionExists || menu.SortOrder < 0 || menu.SortOrder > 100000 || duplicateID || duplicateKey || duplicatePath {
-			return ModuleCapabilities{}, ErrCapabilityRegistryInvalid
+			return capabilities.ModuleCapabilities{}, ErrCapabilityRegistryInvalid
 		}
 		menuIDs[menu.ID] = struct{}{}
 		menuKeys[menu.Key] = struct{}{}
 		menuPaths[menu.Path] = struct{}{}
 		menus = append(menus, menu)
 	}
-	return ModuleCapabilities{Permissions: permissions, Menus: menus}, nil
+	return capabilities.ModuleCapabilities{Permissions: permissions, Menus: menus}, nil
 }
 
 func validDisplayText(value string, maximum int) bool {

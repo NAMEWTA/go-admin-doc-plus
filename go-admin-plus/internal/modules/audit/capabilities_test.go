@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
@@ -16,10 +17,10 @@ import (
 )
 
 type capabilityCapture struct {
-	values []authorization.ModuleCapabilities
+	values []capabilities.ModuleCapabilities
 }
 
-func (capture *capabilityCapture) Register(_ context.Context, value authorization.ModuleCapabilities) error {
+func (capture *capabilityCapture) Register(_ context.Context, value capabilities.ModuleCapabilities) error {
 	capture.values = append(capture.values, value)
 	return nil
 }
@@ -29,12 +30,12 @@ func TestRegisterCapabilitiesUsesStableDefinitionsAndOwnedSlices(t *testing.T) {
 	if err := RegisterCapabilities(context.Background(), capture); err != nil {
 		t.Fatal(err)
 	}
-	want := authorization.ModuleCapabilities{
-		Permissions: []authorization.PermissionDefinition{
+	want := capabilities.ModuleCapabilities{
+		Permissions: []capabilities.PermissionDefinition{
 			{Code: "audit.records.read", Name: "Read audit records"},
 			{Code: "audit.records.cleanup", Name: "Clean up audit records"},
 		},
-		Menus: []authorization.MenuDefinition{{
+		Menus: []capabilities.MenuDefinition{{
 			ID: "menu-audit-records", Key: "audit-records", Label: "Audit records", Path: "/audit/records",
 			PermissionCode: "audit.records.read", SortOrder: 500,
 		}},

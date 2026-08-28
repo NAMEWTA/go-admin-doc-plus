@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/transport"
 )
 
@@ -22,8 +21,19 @@ var openAPIDocument []byte
 
 var tracePattern = regexp.MustCompile(`^[a-f0-9]{16,64}$`)
 
-type SessionAuthorizer interface {
-	AuthorizeRequest(context.Context, string, string, bool) (session.Issued, error)
+var (
+	ErrAuthentication = errors.New("scheduler authentication required")
+	ErrCSRF           = errors.New("scheduler csrf rejected")
+)
+
+type RequestIdentity struct {
+	ActorID, CSRF     string
+	ReplacementCookie *string
+}
+
+type RequestAuthenticator interface {
+	CookieName() string
+	AuthorizeRequest(context.Context, string, string, bool) (RequestIdentity, error)
 }
 
 type httpContextKey struct{}
@@ -36,8 +46,8 @@ type httpContext struct {
 
 type HTTPServer struct{ service *Service }
 
-func NewHTTPHandler(service *Service, sessions SessionAuthorizer, traceID contracts.TraceIDProvider) (http.Handler, error) {
-	if service == nil || sessions == nil || traceID == nil {
+func NewHTTPHandler(service *Service, authenticator RequestAuthenticator, traceID contracts.TraceIDProvider) (http.Handler, error) {
+	if service == nil || authenticator == nil || authenticator.CookieName() == "" || traceID == nil {
 		return nil, errors.New("scheduler HTTP dependencies are required")
 	}
 	server := &HTTPServer{service: service}
@@ -58,38 +68,30 @@ func NewHTTPHandler(service *Service, sessions SessionAuthorizer, traceID contra
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		cookie, _ := r.Cookie(session.CookieName)
+		cookie, _ := r.Cookie(authenticator.CookieName())
 		token := ""
 		if cookie != nil {
 			token = cookie.Value
 		}
-		issued, authErr := sessions.AuthorizeRequest(r.Context(), token, r.Header.Get("X-CSRF-Token"), r.Method != http.MethodGet && r.Method != http.MethodHead)
+		identity, authErr := authenticator.AuthorizeRequest(r.Context(), token, r.Header.Get("X-CSRF-Token"), r.Method != http.MethodGet && r.Method != http.MethodHead)
 		if authErr != nil {
 			switch {
-			case errors.Is(authErr, session.ErrCSRF):
+			case errors.Is(authErr, ErrCSRF):
 				writeProblem(w, problem(transport.Authorization, "CSRF_REJECTED", "Request authorization failed", traceID(r), 403))
-			case errors.Is(authErr, session.ErrAuthentication):
+			case errors.Is(authErr, ErrAuthentication):
 				writeProblem(w, problem(transport.Authentication, "SESSION_REQUIRED", "Authentication required", traceID(r), 401))
 			default:
 				writeProblem(w, problem(transport.Internal, "INTERNAL_ERROR", "Internal server error", traceID(r), 500))
 			}
 			return
 		}
-		value := httpContext{actorID: issued.Profile.ID, csrf: issued.CSRF, trace: traceID(r), cookie: replacementCookie(issued)}
+		value := httpContext{actorID: identity.ActorID, csrf: identity.CSRF, trace: traceID(r), cookie: identity.ReplacementCookie}
 		w.Header().Set("X-CSRF-Token", value.csrf)
 		if value.cookie != nil {
 			w.Header().Set("Set-Cookie", *value.cookie)
 		}
 		validated.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), httpContextKey{}, value)))
 	}), nil
-}
-
-func replacementCookie(issued session.Issued) *string {
-	if !issued.Rotated {
-		return nil
-	}
-	value := (&http.Cookie{Name: session.CookieName, Value: issued.Token, Path: "/", Secure: true, HttpOnly: true, SameSite: http.SameSiteStrictMode}).String()
-	return &value
 }
 
 func requestHTTP(ctx context.Context) httpContext {

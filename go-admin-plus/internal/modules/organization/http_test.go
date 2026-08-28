@@ -7,33 +7,34 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 )
 
+const organizationTestCookie = "organization-test-session"
+
 type sessionAuthorizerStub struct {
-	issued   session.Issued
+	identity RequestIdentity
 	err      error
 	mutation bool
 	csrf     string
 	token    string
 }
 
-func (stub *sessionAuthorizerStub) AuthorizeRequest(_ context.Context, token, csrf string, mutation bool) (session.Issued, error) {
+func (*sessionAuthorizerStub) CookieName() string { return organizationTestCookie }
+
+func (stub *sessionAuthorizerStub) AuthorizeRequest(_ context.Context, token, csrf string, mutation bool) (RequestIdentity, error) {
 	stub.token, stub.csrf, stub.mutation = token, csrf, mutation
-	return stub.issued, stub.err
+	return stub.identity, stub.err
 }
 
 func TestOrganizationHTTPStrictBoundaryAndStableProblems(t *testing.T) {
 	db := organizationDatabase(t)
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := newServiceWithAuthorizer(db, authorizer)
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions := &sessionAuthorizerStub{issued: session.Issued{Profile: account.Profile{ID: "account-admin-001"}, CSRF: "csrf-next", Token: "rotated-token", Rotated: true}}
+	replacement := "organization-test-session=rotated-token; Path=/; HttpOnly; Secure; SameSite=Strict"
+	sessions := &sessionAuthorizerStub{identity: RequestIdentity{ActorID: "account-admin-001", CSRF: "csrf-next", ReplacementCookie: &replacement}}
 	handler, err := NewHTTPHandler(service, sessions, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +48,7 @@ func TestOrganizationHTTPStrictBoundaryAndStableProblems(t *testing.T) {
 		t.Fatalf("read boundary mutation=%t token=%q headers=%v", sessions.mutation, sessions.token, response.Header())
 	}
 	setCookie := response.Header().Get("Set-Cookie")
-	if !strings.Contains(setCookie, session.CookieName+"=rotated-token") || !strings.Contains(setCookie, "HttpOnly") || !strings.Contains(setCookie, "Secure") || !strings.Contains(setCookie, "SameSite=Strict") {
+	if !strings.Contains(setCookie, organizationTestCookie+"=rotated-token") || !strings.Contains(setCookie, "HttpOnly") || !strings.Contains(setCookie, "Secure") || !strings.Contains(setCookie, "SameSite=Strict") {
 		t.Fatalf("rotation cookie attributes missing: %q", setCookie)
 	}
 
@@ -73,12 +74,12 @@ func TestOrganizationHTTPStrictBoundaryAndStableProblems(t *testing.T) {
 
 func TestOrganizationHTTPAuthenticationFailsBeforeService(t *testing.T) {
 	db := organizationDatabase(t)
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
-	service, err := newServiceWithAuthorizer(db, authorizer)
+	authorizer := &authorizerStub{scope: ScopeAll}
+	service, err := NewService(db, authorizer)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions := &sessionAuthorizerStub{err: session.ErrAuthentication}
+	sessions := &sessionAuthorizerStub{err: ErrAuthentication}
 	handler, err := NewHTTPHandler(service, sessions, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
@@ -96,7 +97,7 @@ func organizationRequest(handler http.Handler, method, path, body, token, csrf s
 		request.Header.Set("Content-Type", "application/json")
 	}
 	if token != "" {
-		request.AddCookie(&http.Cookie{Name: session.CookieName, Value: token})
+		request.AddCookie(&http.Cookie{Name: organizationTestCookie, Value: token})
 	}
 	if csrf != "" {
 		request.Header.Set("X-CSRF-Token", csrf)

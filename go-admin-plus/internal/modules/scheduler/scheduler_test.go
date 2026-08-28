@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
@@ -29,7 +29,7 @@ type testParameters struct {
 
 type authorizerStub struct {
 	mu          sync.Mutex
-	scope       authorization.Scope
+	scope       Scope
 	err         error
 	permissions []string
 }
@@ -46,15 +46,15 @@ func (value loseBeforeCommit) WithinTx(ctx context.Context, callback func(contex
 }
 
 type capabilityRegistrar struct {
-	value authorization.ModuleCapabilities
+	value capabilities.ModuleCapabilities
 }
 
-func (registrar *capabilityRegistrar) Register(_ context.Context, value authorization.ModuleCapabilities) error {
+func (registrar *capabilityRegistrar) Register(_ context.Context, value capabilities.ModuleCapabilities) error {
 	registrar.value = value
 	return nil
 }
 
-func TestSchedulerDeclaresCapabilitiesAndProductionAuthorization(t *testing.T) {
+func TestSchedulerDeclaresCapabilitiesAndRequiresExplicitAuthorization(t *testing.T) {
 	registrar := &capabilityRegistrar{}
 	if err := RegisterCapabilities(context.Background(), registrar); err != nil {
 		t.Fatal(err)
@@ -69,20 +69,26 @@ func TestSchedulerDeclaresCapabilitiesAndProductionAuthorization(t *testing.T) {
 		}
 	}
 	db := schedulerDatabase(t)
-	service, err := NewService(db, schedulerRegistry(t, func(context.Context, database.Tx, testParameters) error { return nil }), ClockFunc(func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) }))
+	authorizer := &authorizerStub{scope: ScopeAll}
+	registry := schedulerRegistry(t, func(context.Context, database.Tx, testParameters) error { return nil })
+	clock := ClockFunc(func() time.Time { return time.Date(2026, 8, 27, 0, 0, 0, 0, time.UTC) })
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := service.authorizer.(*authorization.Service); !ok {
-		t.Fatalf("production authorizer = %T", service.authorizer)
+	if service.authorizer != authorizer {
+		t.Fatalf("service lost injected authorizer: %T", service.authorizer)
+	}
+	if _, err := NewService(db, nil, registry, clock); err == nil {
+		t.Fatal("nil authorizer accepted")
 	}
 }
 
-func (stub *authorizerStub) RequireInTx(_ context.Context, _ database.Tx, _, permission string) (authorization.Decision, error) {
+func (stub *authorizerStub) RequireInTx(_ context.Context, _ database.Tx, _, permission string) (AuthorizationDecision, error) {
 	stub.mu.Lock()
 	defer stub.mu.Unlock()
 	stub.permissions = append(stub.permissions, permission)
-	return authorization.Decision{Scope: stub.scope}, stub.err
+	return AuthorizationDecision{Scope: stub.scope}, stub.err
 }
 
 func TestRegistryIsCompileTimeTypedStrictAndImmutable(t *testing.T) {
@@ -152,9 +158,9 @@ func TestScheduleNormalizesUTCAndCoalescesMissedOccurrences(t *testing.T) {
 func TestServiceLifecycleAuthorizationRevisionAndLiteralSearch(t *testing.T) {
 	db := schedulerDatabase(t)
 	registry := schedulerRegistry(t, func(context.Context, database.Tx, testParameters) error { return nil })
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	now := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, ClockFunc(func() time.Time { return now }))
+	service, err := NewService(db, authorizer, registry, ClockFunc(func() time.Time { return now }))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,7 +205,7 @@ func TestServiceLifecycleAuthorizationRevisionAndLiteralSearch(t *testing.T) {
 	if err != nil || recreated.ID == created.ID || recreated.Name != created.Name {
 		t.Fatalf("recreated = %#v, %v", recreated, err)
 	}
-	authorizer.scope = authorization.ScopeSelf
+	authorizer.scope = ScopeSelf
 	if _, err := service.ListDefinitions(context.Background(), "actor", DefinitionQuery{Page: 1, PageSize: 20}); !errors.Is(err, ErrDenied) {
 		t.Fatalf("self scope = %v", err)
 	}
@@ -217,10 +223,10 @@ func TestExecutorRollsBackAndRecordsTimeoutWhenHandlerIgnoresContext(t *testing.
 		<-ctx.Done()
 		return nil
 	})
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	current := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
 	clock := ClockFunc(func() time.Time { return current })
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -258,9 +264,9 @@ func TestExecutorCoalescesOccurrencesMissedWhileTaskRuns(t *testing.T) {
 		current = current.Add(5 * time.Minute)
 		return nil
 	})
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	clock := ClockFunc(func() time.Time { return current })
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,10 +305,10 @@ func TestExecutorUsesInjectedLeaseCoalescesAndRollsBackFailedTaskEffects(t *test
 		}
 		return nil
 	})
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	current := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
 	clock := ClockFunc(func() time.Time { return current })
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -387,10 +393,10 @@ func TestLeaseLossBeforeCommitRollsBackTaskEffectAndExecutionRecord(t *testing.T
 		_, err := tx.ExecContext(ctx, `INSERT INTO scheduler_test_effects(value) VALUES (?)`, parameters.Message)
 		return err
 	})
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	current := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
 	clock := ClockFunc(func() time.Time { return current })
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,10 +443,10 @@ func TestTaskExternalEffectUsesSameTransactionOutbox(t *testing.T) {
 		}
 		return nil
 	})
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	current := now
 	clock := ClockFunc(func() time.Time { return current })
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -485,10 +491,10 @@ func TestStopWaitsForCurrentTaskTransactionAndPreventsAnotherExecution(t *testin
 			return ctx.Err()
 		}
 	})
-	authorizer := &authorizerStub{scope: authorization.ScopeAll}
+	authorizer := &authorizerStub{scope: ScopeAll}
 	current := time.Date(2026, 8, 27, 10, 0, 30, 0, time.UTC)
 	clock := ClockFunc(func() time.Time { return current })
-	service, err := newServiceWithAuthorizer(db, authorizer, registry, clock)
+	service, err := NewService(db, authorizer, registry, clock)
 	if err != nil {
 		t.Fatal(err)
 	}

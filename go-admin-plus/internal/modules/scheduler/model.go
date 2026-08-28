@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -23,7 +22,7 @@ const (
 )
 
 var (
-	ErrDenied        = authorization.ErrDenied
+	ErrDenied        = errors.New("scheduler authorization denied")
 	ErrValidation    = errors.New("scheduler request invalid")
 	ErrNotFound      = errors.New("scheduler resource not found")
 	ErrConflict      = errors.New("scheduler resource conflict")
@@ -43,8 +42,17 @@ type Database interface {
 }
 
 type Authorizer interface {
-	RequireInTx(context.Context, database.Tx, string, string) (authorization.Decision, error)
+	RequireInTx(context.Context, database.Tx, string, string) (AuthorizationDecision, error)
 }
+
+type Scope string
+
+const (
+	ScopeSelf Scope = "self"
+	ScopeAll  Scope = "all"
+)
+
+type AuthorizationDecision struct{ Scope Scope }
 
 type Definition struct {
 	ID, Name, TaskType   string

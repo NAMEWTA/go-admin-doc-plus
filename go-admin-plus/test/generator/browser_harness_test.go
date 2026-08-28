@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	productsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo/migrations/0010-products"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
@@ -109,7 +110,7 @@ func TestGeneratorBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	authorizer, err := generator.NewIAMAuthorizationAdapter(db)
+	authorizationAdapters, err := adapters.NewAuthorization(db)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,15 +118,15 @@ func TestGeneratorBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	service, err := generator.New(metadata, writer, authorizer, store, renderer, 10*time.Minute)
+	service, err := generator.New(metadata, writer, authorizationAdapters.Generator(), store, renderer, 10*time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	authenticator, err := generator.NewIAMSessionRequestAdapter(sessions)
+	sessionAdapters, err := adapters.NewSession(sessions)
 	if err != nil {
 		t.Fatal(err)
 	}
-	generatorHandler, err := generator.NewHTTPHandler(service, authenticator, func(*http.Request) string { return "0123456789abcdef" })
+	generatorHandler, err := generator.NewHTTPHandler(service, sessionAdapters.Generator(), func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}

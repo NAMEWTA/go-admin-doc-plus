@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -24,14 +23,7 @@ type Service struct {
 	clock      Clock
 }
 
-func NewService(db Database, registry *Registry, clock Clock) (*Service, error) {
-	if db == nil {
-		return nil, errors.New("scheduler database is required")
-	}
-	return newServiceWithAuthorizer(db, authorization.NewService(db), registry, clock)
-}
-
-func newServiceWithAuthorizer(db Database, authorizer Authorizer, registry *Registry, clock Clock) (*Service, error) {
+func NewService(db Database, authorizer Authorizer, registry *Registry, clock Clock) (*Service, error) {
 	if db == nil || authorizer == nil || registry == nil || clock == nil {
 		return nil, errors.New("scheduler service dependencies are required")
 	}
@@ -235,7 +227,7 @@ func (s *Service) transact(ctx context.Context, actorID, permission string, oper
 		if err != nil {
 			return err
 		}
-		if decision.Scope != authorization.ScopeAll {
+		if decision.Scope != ScopeAll {
 			return ErrDenied
 		}
 		return operation(ctx, tx)

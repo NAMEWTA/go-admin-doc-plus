@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	audit "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	auditmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/migrations/0011-audit"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
@@ -338,10 +338,11 @@ func TestRealIAMAdaptersRecordLoginAndAuthorizeAuditRequests(t *testing.T) {
 	migrate(t, db, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
 	now := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
 	createAuditIAMFixture(t, db, now)
-	loginFacts, err := audit.NewSessionLoginFactAdapter(db)
+	loginRecorder, err := audit.NewLoginRecorder(db)
 	if err != nil {
 		t.Fatal(err)
 	}
+	loginFacts := adapters.NewLoginFact(loginRecorder)
 	policy, err := config.NewSessionPolicy(time.Hour, 8*time.Hour, 30*time.Minute)
 	if err != nil {
 		t.Fatal(err)
@@ -354,16 +355,16 @@ func TestRealIAMAdaptersRecordLoginAndAuthorizeAuditRequests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	permissions, err := audit.NewIAMPermissionAuthorizer(authorization.NewService(db))
+	authorizationAdapters, err := adapters.NewAuthorization(db)
 	if err != nil {
 		t.Fatal(err)
 	}
-	auditService := mustServiceWithPolicy(t, db, permissions, audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
-	requests, err := audit.NewIAMRequestAuthorizer(sessions)
+	auditService := mustServiceWithPolicy(t, db, authorizationAdapters.Audit(), audit.RetentionPolicy{MinimumAge: 30 * 24 * time.Hour, CleanupLimit: 10, Now: func() time.Time { return now }})
+	sessionAdapters, err := adapters.NewSession(sessions)
 	if err != nil {
 		t.Fatal(err)
 	}
-	auditHandler, err := audit.NewHTTPHandler(auditService, requests, func(*http.Request) string { return "0123456789abcdef" })
+	auditHandler, err := audit.NewHTTPHandler(auditService, sessionAdapters.Audit(), func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}
