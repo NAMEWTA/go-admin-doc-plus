@@ -56,6 +56,14 @@ G7 RED 盘点证明旧目录不是全部孤立文件：未被正式入口消费�
 
 根治理收口证明前端公共脚本的 workspace 根、lint 和路径合同仍消费已删除的旧目录，而 Tauri 2 App 内两份 `.gitignore` 会继续形成嵌套 Git 治理。Lead 精确追加开放 `scripts/go-admin-plus-ui/{common,lint,path-contract}.sh` 与两份 Tauri `.gitignore`：脚本统一指向 `<Path>go-admin-plus-ui/</Path>`，忽略规则迁移到根 `<Path>.gitignore</Path>` 后删除嵌套文件。Tauri/Rust/TypeScript 产品源码与其他前端文件继续只读。
 
+### T21-D04（Lead 批准）
+
+最终文档审计证明两份项目 Agent Skills 仍指导未来开发使用已删除架构，且零兼容与文档检查未覆盖 `<Path>.agents/skills/**</Path>`。Lead 精确开放该 Skill 目录与既有 T-21 quality/docs 接缝：以当前实现为权威重写业务模块和列表页工作流，并将 Skill 纳入永久扫描；不修改产品源码或恢复旧能力。
+
+### T21-D05（Lead 批准）
+
+全仓治理审计证明 T-18 冻结后的 `<Path>deploy/compose/runtime/.gitignore</Path>` 与 `<Path>deploy/compose/runtime/secrets/.gitignore</Path>` 仍形成第二层 Git 规则，而原治理扫描只覆盖前后端目录。Lead 在 T-18 implementation result 已进入 `main` 后串行接管这两个精确文件：规则迁移到根 `<Path>.gitignore</Path>` 后删除嵌套文件，并扩展既有 `<Path>scripts/go-admin-plus/governance-check.sh</Path>` 到整个产品仓库；T-18 其他 Compose、发行和运行时合同保持只读。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

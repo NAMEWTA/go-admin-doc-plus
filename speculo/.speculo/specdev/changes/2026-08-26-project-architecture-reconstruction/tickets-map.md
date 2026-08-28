@@ -153,7 +153,8 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 | `<Path>release/shared/sidecar/**</Path>` | T-16 | macOS/Windows 只读打包 |
 | `<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>` packaged release environment | T-19 under `T19-D01` 建立基座；T-20 under `T20-D01` 在 T-19 result 后串行追加 Windows x64 映射 | T-20 不改变 macOS 映射、product proxy/vault、sidecar transport 或生命周期；T-21 只读消费 |
 | product OpenAPI/composition/manifest | T-17 | 发行 Ticket 只读消费 |
-| 根 CI、quality scripts、README/docs | T-21 | 最终收缩专属写入 |
+| 根 CI、quality scripts、README/docs、`.agents/skills` | T-21 | 最终收缩与当前开发指引专属写入 |
+| `deploy/compose/runtime/{.gitignore,secrets/.gitignore}` | T-21 under `T21-D05` after T-18 result | T-18 其他 Compose/发行资产保持只读；两份嵌套规则迁移到根后删除 |
 
 ## 6. Gate、Wave 与集成点
 

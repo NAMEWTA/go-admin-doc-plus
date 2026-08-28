@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T17:08:15+08:00",
+  "updated_at": "2026-08-28T17:13:07+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -423,6 +423,16 @@
       "approved_at": "2026-08-28T17:08:15+08:00",
       "reason": "The final documentation audit proved both project-owned Agent Skills still instructed future changes to use removed backend, frontend, authorization, migration, and composition patterns, while compatibility-zero and docs-check did not scan the skill directory",
       "resolution": "Rewrite both skills against the current dual-dialect OpenAPI, IAM capability, pnpm domain/Web Domain, shared controller, and product-composition architecture; add .agents/skills to compatibility-zero and docs-check with a regression proving stale skill content is rejected, without changing product behavior or executing deferred E2E"
+    },
+    {
+      "id": "T21-D05",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T17:13:07+08:00",
+      "reason": "The full-repository governance audit proved two Compose runtime .gitignore files remained after the frontend and backend cleanup, while governance-check scanned only those two source subtrees and therefore could not enforce repository-wide root ownership",
+      "resolution": "After the T-18 implementation result, transfer only deploy/compose/runtime/.gitignore and deploy/compose/runtime/secrets/.gitignore to T-21, move their runtime and secret ignore rules into the root .gitignore, delete both nested files, and expand governance-check across the product repository while pruning managed tooling and generated output"
     }
   ],
   "worktrees": [
