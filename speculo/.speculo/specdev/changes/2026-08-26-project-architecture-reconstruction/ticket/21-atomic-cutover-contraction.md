@@ -172,6 +172,8 @@ D31 后继续审计其余 ADR-006 command 边界，确认 `<Path>go-admin-plus/c
 
 Lead 以 `main@37c4da5bdd50ddbed32786e553ec8f10d43ec452` 为审计 base，精确开放 `<Path>go-admin-plus/internal/app/product/server*.go</Path>`、`<Path>go-admin-plus/cmd/go-admin-plus/**</Path>`、`<Path>go-admin-plus/internal/application/architecture_test.go</Path>` 及对应 SpecDev 状态/Evidence：由 app/product 唯一完成 Server profile/database/product/Host 组合与运行目录解析，command 仅解析参数/环境、加载 typed config snapshot、调用组合入口并运行 Host；原 command 的 profile mapping 测试随 owner 迁移。新增实际仓库与负向 fixture，拒绝 Server command 恢复额外 production runtime 文件或直接导入 application/modules/database/network runtime。Server PostgreSQL/SQLite、公开 API、schema/migration、产品行为、前端页面 template/style、UI/CSS、发行和暂停 E2E 不变。
 
+D32 授权 checkpoint 为 `00ce6f955776264c8abe6a124783389a8c9b37cc`；implementation/result 为 `d19eff17b82fc7b8f634383ac6f5f19061c139f5`（tree `50000d31faccaab92f1b32e6d34fd4a062e20789`）。Server command 生产 import 已收缩为 product/config，双 profile、数据库、产品和 Host 组合集中到 app/product，并由真实 SQLite 启停测试与负向 command gate 覆盖；普通/SQLite 全量 Go、race、vet、三平台交叉构建、根静态门禁、release policy 和 Server/Web/Tauri 2 全目标 production build 全绿。完整证据见 T-21 Evidence 第 33 节；按用户要求未运行任何 E2E，T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
