@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T18:09:21+08:00",
+  "updated_at": "2026-08-28T18:26:58+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -423,6 +423,16 @@
       "approved_at": "2026-08-28T18:09:21+08:00",
       "reason": "A fourth exact-CSS comparison proved the historical visible TagsView was 34px and sidebar entries were 50px, while T05-D04 had encoded 40px tabs and current domain-scoped styles still overrode the shared compact 20px/34px page contract with 24px padding, width caps, 40px controls, and collapsed table styling",
       "resolution": "Restore the exact 50px sidebar entry and 34px TagsView dimensions, align the content viewport to the resulting 84px header stack, restore omitted established token names, remove domain-scoped base-control/table/page-surface overrides, and add static anti-regression coverage without changing routes, controllers, permissions, deleted capabilities, or executing deferred E2E"
+    },
+    {
+      "id": "T05-D08",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T18:26:58+08:00",
+      "reason": "A fifth baseline interaction audit proved LoginPage had dropped password visibility, terminal output timing, exact terminal dimensions, and a responsive breakpoint, while AccountPage had flattened the established identity-summary plus profile/password tabs and removed password confirmation despite AC-012 retaining profile, avatar metadata, and password management",
+      "resolution": "Restore the retained login interactions and exact terminal presentation, rebuild AccountPage around the established summary and tabs using only current profile fields, reject mismatched password confirmation before the controller, normalize optional avatar metadata clearing, and add static and unit regressions without restoring captcha, legacy account fields, avatar upload compatibility, Element Plus, or deferred E2E"
     },
     {
       "id": "T21-D04",
