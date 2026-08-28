@@ -64,6 +64,10 @@ G7 RED 盘点证明旧目录不是全部孤立文件：未被正式入口消费�
 
 全仓治理审计证明 T-18 冻结后的 `<Path>deploy/compose/runtime/.gitignore</Path>` 与 `<Path>deploy/compose/runtime/secrets/.gitignore</Path>` 仍形成第二层 Git 规则，而原治理扫描只覆盖前后端目录。Lead 在 T-18 implementation result 已进入 `main` 后串行接管这两个精确文件：规则迁移到根 `<Path>.gitignore</Path>` 后删除嵌套文件，并扩展既有 `<Path>scripts/go-admin-plus/governance-check.sh</Path>` 到整个产品仓库；T-18 其他 Compose、发行和运行时合同保持只读。
 
+### T21-D06（Lead 批准）
+
+AC-029 完成审计证明 `compatibility-zero` 只扫描部分治理/文档目录，且没有检测 JWT、refresh token、AutoMigrate 与旧 ORM；因此新增产品源码可以恢复已删除架构而 Gate 仍为绿色。Lead 在 T-21 已有 `<Path>scripts/quality/**</Path>` 所有权内把扫描扩展到全仓文本源码与锁文件，只剪枝 Speculo 历史、Git 数据、依赖、构建/测试产物和二进制；现有许可按“精确文件 + 禁止项类别”限定为许可证说明、安全拒绝、负向测试和发行策略断言，并增加 Go/Rust 失败探针。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

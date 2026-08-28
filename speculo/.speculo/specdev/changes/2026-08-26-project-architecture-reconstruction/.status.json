@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T17:17:46+08:00",
+  "updated_at": "2026-08-28T17:23:22+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -433,6 +433,16 @@
       "approved_at": "2026-08-28T17:13:07+08:00",
       "reason": "The full-repository governance audit proved two Compose runtime .gitignore files remained after the frontend and backend cleanup, while governance-check scanned only those two source subtrees and therefore could not enforce repository-wide root ownership",
       "resolution": "After the T-18 implementation result, transfer only deploy/compose/runtime/.gitignore and deploy/compose/runtime/secrets/.gitignore to T-21, move their runtime and secret ignore rules into the root .gitignore, delete both nested files, and expand governance-check across the product repository while pruning managed tooling and generated output"
+    },
+    {
+      "id": "T21-D06",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T17:23:22+08:00",
+      "reason": "The AC-029 completion audit proved compatibility-zero scanned only selected governance and documentation roots and omitted JWT, refresh token, AutoMigrate, and GORM, so a new product source file could restore removed architecture while the gate remained green",
+      "resolution": "Scan all repository text source and lock formats while pruning Speculo history, Git data, generated output, dependencies, and binary files; add the four missing forbidden categories and an exact path-plus-category allowlist only for license attribution, security rejection, negative tests, and release policy assertions, with Go and Rust regression probes"
     }
   ],
   "worktrees": [
