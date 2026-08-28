@@ -5,7 +5,11 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { verifyDesktopProductionAssets } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
+import {
+  desktopNativeControlMarkers,
+  verifyDesktopProductionAssets,
+  verifyDesktopProductionFiles
+} from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
@@ -44,6 +48,8 @@ test('production Desktop entry contains no native E2E controls', () => {
   assert.match(main, /import App from '@desktop-entry'/)
   assert.match(vite, /mode === 'native-e2e' \? '\.\/src\/native-e2e\/App\.vue' : '\.\/src\/App\.vue'/)
   assert.match(runner, /'--mode', 'native-e2e'/)
+  assert.match(runner, /verifyDesktopProductionFiles\(\[sidecarBinary, hostBinary\]\)/)
+  assert.doesNotMatch(runner, /fileContains/)
   assert.match(manifest.scripts.build, /vite build[^&]+&& node scripts\/verify-production\.mjs/)
 })
 
@@ -54,8 +60,23 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
   writeFileSync(join(root, 'index.html'), '<main>Go Admin Plus</main>')
   writeFileSync(join(root, 'assets/app.css'), '.product-shell{display:grid}')
   await assert.doesNotReject(verifyDesktopProductionAssets(root))
-  writeFileSync(join(root, 'assets/app.css'), '.native-e2e{display:flex}')
-  await assert.rejects(verifyDesktopProductionAssets(root), /native test control: native-e2e/)
+  assert.deepEqual(desktopNativeControlMarkers, [
+    '/__desktop/test-control',
+    'native-e2e',
+    'VITE_GO_ADMIN_NATIVE_E2E',
+    'GO_ADMIN_DESKTOP_E2E',
+    'desktop_native_e2e',
+    'E2E ',
+    'E2E-'
+  ])
+  for (const marker of desktopNativeControlMarkers) {
+    writeFileSync(join(root, 'assets/app.css'), `.product-shell{content:${JSON.stringify(marker)}}`)
+    await assert.rejects(verifyDesktopProductionAssets(root), new RegExp(`native test control: ${marker.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')}`))
+  }
+  writeFileSync(join(root, 'assets/app.css'), '.product-shell{display:grid}')
+  await assert.doesNotReject(verifyDesktopProductionFiles([join(root, 'index.html'), join(root, 'assets/app.css')]))
+  writeFileSync(join(root, 'assets/app.css'), '.product-shell{content:"E2E permissions on"}')
+  await assert.rejects(verifyDesktopProductionFiles([join(root, 'assets/app.css')]), /native test control: E2E /)
 })
 
 test('native runner stops polling after an early host exit', () => {

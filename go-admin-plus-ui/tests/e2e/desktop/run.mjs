@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, mkdtemp, open, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { createHash, randomBytes } from 'node:crypto'
 import { createConnection } from 'node:net'
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
-import { verifyDesktopProductionAssets } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
+import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
 const maxOutput = 16 * 1024
@@ -90,25 +90,6 @@ const assertLoopbackOnly = async pid => {
 
 const hashFile = async path => createHash('sha256').update(await readFile(path)).digest('hex')
 
-const fileContains = async (path, needle) => {
-  const file = await open(path, 'r')
-  const target = Buffer.from(needle)
-  const chunk = Buffer.alloc(64 * 1024 + target.length)
-  let overlap = 0
-  try {
-    for (;;) {
-      const { bytesRead } = await file.read(chunk, overlap, 64 * 1024, null)
-      if (bytesRead === 0) return false
-      const length = overlap + bytesRead
-      if (chunk.subarray(0, length).includes(target)) return true
-      overlap = Math.min(target.length - 1, length)
-      chunk.copy(chunk, 0, length - overlap, length)
-    }
-  } finally {
-    await file.close()
-  }
-}
-
 const restoreProductionArtifacts = async () => {
   await Promise.all([
     rm(sidecarBinary, { force: true }),
@@ -121,10 +102,7 @@ const restoreProductionArtifacts = async () => {
   })
   await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'custom-protocol'], { cwd: rustRoot, timeout: 300_000 })
   await verifyDesktopProductionAssets(join(appRoot, 'dist'))
-  if (await fileContains(sidecarBinary, '/__desktop/test-control') ||
-    await fileContains(hostBinary, '/__desktop/test-control')) {
-    throw new Error('production desktop artifacts retained native test controls')
-  }
+  await verifyDesktopProductionFiles([sidecarBinary, hostBinary])
 }
 
 const assertSafeDiagnostics = (output, protectedRoots) => {

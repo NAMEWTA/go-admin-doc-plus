@@ -4,13 +4,15 @@ import { lstat, readFile, readdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const forbiddenMarkers = [
+export const desktopNativeControlMarkers = Object.freeze([
   '/__desktop/test-control',
   'native-e2e',
-  'E2E scope self',
-  'E2E permissions off',
-  'E2E revoke session'
-]
+  'VITE_GO_ADMIN_NATIVE_E2E',
+  'GO_ADMIN_DESKTOP_E2E',
+  'desktop_native_e2e',
+  'E2E ',
+  'E2E-'
+])
 
 const filesBelow = async directory => {
   const files = []
@@ -30,9 +32,17 @@ export const verifyDesktopProductionAssets = async directory => {
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('desktop production assets directory is invalid')
   const files = await filesBelow(root)
   if (files.length === 0) throw new Error('desktop production assets are empty')
-  for (const path of files) {
+  await verifyDesktopProductionFiles(files)
+}
+
+export const verifyDesktopProductionFiles = async paths => {
+  if (!Array.isArray(paths) || paths.length === 0) throw new Error('desktop production file list is empty')
+  for (const unresolvedPath of paths) {
+    const path = resolve(unresolvedPath)
+    const info = await lstat(path)
+    if (!info.isFile() || info.isSymbolicLink()) throw new Error('desktop production artifact is invalid')
     const content = await readFile(path)
-    for (const marker of forbiddenMarkers) {
+    for (const marker of desktopNativeControlMarkers) {
       if (content.includes(Buffer.from(marker))) {
         throw new Error(`desktop production assets contain native test control: ${marker}`)
       }
