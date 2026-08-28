@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T16:08:07+08:00",
+  "updated_at": "2026-08-28T16:52:13+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -403,6 +403,16 @@
       "approved_at": "2026-08-28T16:08:07+08:00",
       "reason": "A second baseline audit proved T05-D04 restored the shell and login composition but left retained management pages with English labels, temporary green palette overrides, 20px shell padding, and inconsistent search, table, editor, action, and pagination presentation",
       "resolution": "Localize retained routes and management pages, remove obsolete scoped palette overrides, restore the established 12px page-container spacing and dense management presentation through the shared UI theme, correct the Web development port, and add static visual contracts without restoring deleted features or compatibility paths"
+    },
+    {
+      "id": "T05-D06",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T16:52:13+08:00",
+      "reason": "A third interaction audit proved retained CRUD pages had replaced the established toolbar plus create/edit dialog workflow with permanently visible editors, while paused browser and native drivers still targeted superseded English labels and the Scheduler page could not close a successful dialog because its settle helper discarded command results",
+      "resolution": "Restore explicit toolbar actions and bounded create/edit dialogs across IAM, Organization, Demo, Settings, and Scheduler; clear cancelled form state, localize displayed enums, return Scheduler command results, synchronize paused browser/native drivers, and add static visual contracts without Element Plus, compatibility paths, restored deleted capabilities, or execution of deferred E2E"
     }
   ],
   "worktrees": [
