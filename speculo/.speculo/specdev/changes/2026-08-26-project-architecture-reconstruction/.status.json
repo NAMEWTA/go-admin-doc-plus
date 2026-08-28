@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T20:57:55+08:00",
+  "updated_at": "2026-08-28T21:31:28+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -523,6 +523,16 @@
       "approved_at": "2026-08-28T20:57:55+08:00",
       "reason": "The final command and documentation audit proved the Web development guide promised a local Server connection and every generated client used relative /api URLs, but the Admin Web Vite server had no proxy, so task dev TARGET=web sent API requests to port 5173 instead of the Server on port 8080; command surfaces also had no regression rejecting filters for nonexistent workspace packages",
       "resolution": "Add a fixed loopback /api development proxy without path rewriting, load the actual Vite config in the workspace boundary suite, scan root Task/CI/script/release/deploy command surfaces against all 25 real workspace manifests, and document current build/package outputs and protected release ownership without changing UI, CSS, product behavior, or executing deferred E2E"
+    },
+    {
+      "id": "T21-D11",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T21:31:28+08:00",
+      "reason": "The completion audit proved the current SpecDev runtime verification config still invoked the removed frontend directory and legacy Make build, while the D09/D10 repository-root package and command assertions were placed in a workspace suite that the Generator intentionally copies without root Task or scripts, causing the canonical real-generation test to fail after 190.97 seconds",
+      "resolution": "Point SpecDev verification at the canonical root Task command plane and current pnpm workspace; make architecture-check enforce those exact commands, all workspace filters, and local packaging contracts; keep the independently copied workspace suite self-contained, with negative root regressions and full normal/SQLite Generator verification, without skipping checks or changing UI, CSS, product behavior, or deferred E2E"
     }
   ],
   "worktrees": [
