@@ -98,6 +98,10 @@ D20 的二进制扫描只由暂停的 native runner 在恢复 production 制品�
 
 实现/result 为 `aa502221356f7bbd9c3d7619ea10272f4a5971cf`（tree `bb167a772d714b427f1503e6cf69a579a1097bb5`）；完整 RED/GREEN、安全边界、构建和未执行范围记录于 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>` 第 23 节。T-21 继续保持 `implemented-pending-final-e2e`。
 
+### T21-D23（Lead 批准）
+
+D22 后继续反查 Desktop Files 二进制数据路径，确认 Files strict OpenAPI handler 对成功下载固定输出 `application/octet-stream`，而 Tauri Rust proxy 只接受 PNG/JPEG/PDF/TXT 业务 MIME，导致所有 Desktop 下载在进入 Blob/原生保存前确定性失败。Lead 只开放 Desktop proxy/adapter 及其聚焦测试与对应 Evidence：统一使用唯一 `application/octet-stream` envelope，WebView 边界再次校验 exact keys、canonical base64 和 10 MiB 上限；不新增 MIME 兼容分支，不修改 Files API/OpenAPI、数据库、页面标记、UI/CSS、受保护发行或暂停 E2E。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
