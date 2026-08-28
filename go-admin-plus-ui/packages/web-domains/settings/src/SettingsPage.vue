@@ -46,5 +46,5 @@ onMounted(()=>{void settle(()=>props.controller.settings.refresh())})
   </section>
 </template>
 <style scoped>
-.settings-page{display:grid;gap:16px;color:var(--ga-text-1)}header,nav,.search{display:flex;align-items:end;justify-content:space-between;gap:10px}h1,h2,p{margin:0}.workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid var(--ga-border-light);text-align:left}form{display:grid;align-content:start;gap:8px}label{display:grid;gap:4px}button,input,textarea{font:inherit}[role=alert]{padding:8px;border-left:3px solid var(--ga-danger);background:#fff1f0}.items{display:grid;gap:10px;border-top:1px solid var(--ga-border-light);padding-top:14px}@media(max-width:720px){header,nav,.search{flex-wrap:wrap}}
+.settings-page{display:grid;gap:16px;color:var(--ga-text-1)}header,nav,.search{display:flex;align-items:end;justify-content:space-between;gap:10px}h1,h2,p{margin:0}.workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}.table{overflow:auto}form{display:grid;align-content:start;gap:8px}label{display:grid;gap:4px}.items{display:grid;gap:10px;border-top:1px solid var(--ga-border-light);padding-top:14px}@media(max-width:720px){header,nav,.search{flex-wrap:wrap}}
 </style>

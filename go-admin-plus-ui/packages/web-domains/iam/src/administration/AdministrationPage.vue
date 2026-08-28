@@ -172,17 +172,11 @@ onBeforeUnmount(() => { closeDialogs(); user.password = ''; replacementPassword.
 </template>
 
 <style scoped>
-.administration-page { display: grid; gap: 20px; max-width: 1200px; padding: 24px; }
+.administration-page { display: grid; gap: 20px; }
 h1, h2, h3 { margin: 0; letter-spacing: 0; }
 .tabs, .toolbar, .pagination { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
 .tabs button[aria-pressed="true"] { border-bottom-color: var(--ga-brand); color: var(--ga-brand); }
 section { display: grid; gap: 16px; }
 label { display: grid; gap: 6px; }
-input, select, button { min-height: 40px; font: inherit; }
-button { border: 1px solid var(--ga-border); background: var(--ga-bg-container); padding: 6px 12px; }
-button:disabled { opacity: .5; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border-bottom: 1px solid var(--ga-border-light); padding: 10px; text-align: left; }
-th { color: var(--ga-text-2); font-size: 14px; }
-@media (max-width: 640px) { .administration-page { padding: 16px; overflow-x: auto; } table { min-width: 680px; } }
+@media (max-width: 640px) { .administration-page { overflow-x: auto; } table { min-width: 680px; } }
 </style>

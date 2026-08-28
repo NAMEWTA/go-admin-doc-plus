@@ -53,7 +53,6 @@ const logout = async () => {
 
 <style scoped>
 .account-page, form { display: grid; gap: 16px; }
-.account-page { width: min(100%, 720px); padding: 24px; }
+.account-page > form { width: min(100%, 720px); }
 label { display: grid; gap: 6px; }
-input, button { min-height: 40px; font: inherit; }
 </style>

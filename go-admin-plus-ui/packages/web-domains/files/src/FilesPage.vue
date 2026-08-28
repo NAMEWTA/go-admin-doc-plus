@@ -124,15 +124,10 @@ onMounted(() => settle(() => props.controller.list.refresh()))
 
 <style scoped>
 .files-page { display: grid; gap: 16px; color: var(--ga-text-1); }
-.files-page__header, .files-page__search, .files-page__upload, .files-page__actions, nav { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+.files-page__header { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
 h1, p { margin: 0; }
 label { display: grid; gap: 4px; }
 .files-page__table { min-width: 0; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px; border-bottom: 1px solid var(--ga-border-light); text-align: left; }
 td:last-child { display: flex; gap: 8px; }
-input, select, button { font: inherit; }
-button { min-height: 34px; }
-[role="alert"] { padding: 8px; border-left: 3px solid var(--ga-danger); background: #fff1f0; }
 @media (max-width: 720px) { .files-page__header, .files-page__search, .files-page__upload, .files-page__actions, nav { align-items: stretch; flex-direction: column; } }
 </style>

@@ -103,17 +103,14 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
 </template>
 
 <style scoped>
-.audit-page { display: grid; gap: 20px; max-width: 1200px; padding: 24px; }
+.audit-page { display: grid; gap: 20px; }
 h1, h2 { margin: 0; letter-spacing: 0; }
 .filters { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; align-items: end; }
 label { display: grid; gap: 6px; }
-select, input, button { min-height: 36px; font: inherit; }
 .commands, .paging, .cleanup { display: flex; gap: 10px; align-items: end; }
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 10px 8px; border-bottom: 1px solid var(--ga-border-light); text-align: left; white-space: nowrap; }
+.table-wrap :is(th, td) { white-space: nowrap; }
 .long-text { max-width: 360px; overflow-wrap: anywhere; white-space: normal; }
-th { color: var(--ga-text-2); font-size: 13px; }
 .cleanup { border-top: 1px solid var(--ga-border-light); padding-top: 20px; }
 dialog { width: min(520px, calc(100% - 32px)); border: 1px solid var(--ga-border); border-radius: var(--ga-radius); }
 dl { display: grid; grid-template-columns: 100px 1fr; gap: 10px; }

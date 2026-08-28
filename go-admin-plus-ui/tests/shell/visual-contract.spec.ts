@@ -19,8 +19,11 @@ describe('admin visual contract', () => {
     ]) expect(shell).toContain(region)
 
     expect(shell).toMatch(/grid-template-columns:\s*210px/)
-    expect(shell).toMatch(/height:\s*50px/)
-    expect(shell).toMatch(/height:\s*40px/)
+    expect(shell).toMatch(/product-shell__header\s*\{[^}]*height:\s*50px/s)
+    expect(shell).toMatch(/product-shell__nav-heading\s*\{[^}]*min-height:\s*50px/s)
+    expect(shell).toMatch(/product-shell__navigation button\s*\{[^}]*min-height:\s*50px/s)
+    expect(shell).toMatch(/product-shell__tags\s*\{[^}]*height:\s*34px/s)
+    expect(shell).toMatch(/product-shell__content\s*\{[^}]*height:\s*calc\(100vh - 84px\)/s)
     expect(shell).toMatch(/grid-template-columns:\s*54px/)
     expect(shell).toMatch(/product-shell__content\s*\{[^}]*padding:\s*12px/s)
     expect(shell).toContain('@media (max-width: 760px)')
@@ -37,6 +40,9 @@ describe('admin visual contract', () => {
     for (const token of ['--ga-brand', '--ga-sidebar-bg', '--ga-bg-container', '--ga-border-light']) {
       expect(theme).toContain(token)
     }
+    for (const token of ['--ga-info', '--ga-bg-elevated', '--ga-text-inverse', '--ga-sidebar-light-bg']) {
+      expect(theme).toContain(token)
+    }
     expect(theme).toContain('.product-shell__content')
     for (const selector of ['.toolbar', '.filters', '.editor', '.pagination', '[data-action="delete"]']) {
       expect(theme).toContain(selector)
@@ -47,6 +53,26 @@ describe('admin visual contract', () => {
     expect(web).toContain("@go-admin/ui/admin-theme.css")
     expect(desktop).toContain("@go-admin/ui/admin-theme.css")
     expect(uiManifest).toContain('"./admin-theme.css"')
+  })
+
+  it('does not let domain-scoped styles override the shared compact page surface', async () => {
+    const pages = await Promise.all([
+      source('packages/web-domains/iam/src/administration/AdministrationPage.vue'),
+      source('packages/web-domains/audit/src/AuditPage.vue'),
+      source('packages/web-domains/organization/src/OrganizationPage.vue'),
+      source('packages/web-domains/settings/src/SettingsPage.vue'),
+      source('packages/web-domains/generator/src/GeneratorWizardPage.vue'),
+      source('packages/web-domains/scheduler/src/SchedulerPage.vue'),
+      source('packages/web-domains/demo/src/DemoProductsPage.vue'),
+      source('packages/web-domains/files/src/FilesPage.vue'),
+      source('packages/web-domains/iam/src/session/AccountPage.vue')
+    ])
+
+    for (const page of pages) {
+      expect(page).not.toMatch(/\.(?:administration-page|audit-page|organization-page|settings-page|generator-wizard|scheduler-page|demo-products|files-page|account-page)\s*\{[^}]*(?:max-width|padding):/s)
+      expect(page).not.toMatch(/(?:input|select|button)[^{]*\{[^}]*min-height:\s*40px/s)
+      expect(page).not.toMatch(/table\s*\{[^}]*border-collapse:\s*collapse/s)
+    }
   })
 
   it('keeps the retained administration surface localized and on shared tokens', async () => {

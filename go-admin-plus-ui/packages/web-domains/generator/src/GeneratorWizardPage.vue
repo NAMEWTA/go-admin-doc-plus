@@ -52,18 +52,14 @@ onMounted(() => { void settle(() => props.controller.tables.refresh()) })
 
 <style scoped>
 .generator-wizard { display: grid; gap: 16px; color: var(--ga-text-1); }
-header, .toolbar, footer, .names { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header, footer, .names { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 h1, h2, p { margin: 0; }
 .wizard-panel { display: grid; gap: 14px; }
 label { display: grid; gap: 4px; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px; border-bottom: 1px solid var(--ga-border-light); text-align: left; }
 .preview-grid { grid-template-columns: minmax(220px, 32%) minmax(0, 1fr); }
 .preview-grid nav { display: grid; align-content: start; gap: 4px; max-height: 520px; overflow: auto; }
 .preview-grid nav button { text-align: left; overflow-wrap: anywhere; }
 .preview-grid pre { margin: 0; padding: 12px; max-height: 520px; overflow: auto; background: var(--ga-bg-subtle); border: 1px solid var(--ga-border-light); }
 .preview-grid footer { grid-column: 1 / -1; }
-input, button { font: inherit; min-height: 34px; }
-[role="alert"] { padding: 8px; border-left: 3px solid var(--ga-danger); background: #fff1f0; }
 @media (max-width: 720px) { .preview-grid { grid-template-columns: 1fr; } .preview-grid footer { grid-column: auto; } }
 </style>

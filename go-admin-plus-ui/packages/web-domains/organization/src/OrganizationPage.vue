@@ -126,7 +126,7 @@ onMounted(() => run(async () => {
 </template>
 
 <style scoped>
-.organization-page { display: grid; gap: 20px; max-width: 1120px; padding: 24px; }
+.organization-page { display: grid; gap: 20px; }
 h1, h2, h3 { margin: 0; letter-spacing: 0; }
 .tabs, .toolbar, .pagination { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 .tabs button[aria-pressed="true"] { border-bottom-color: var(--ga-brand); color: var(--ga-brand); }
@@ -135,11 +135,5 @@ section { display: grid; gap: 16px; }
 .tree li { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(100px, 1fr) auto auto; align-items: center; gap: 8px; min-height: 42px; border-bottom: 1px solid var(--ga-border-light); }
 label { display: grid; gap: 6px; }
 .choice { grid-template-columns: auto 1fr; align-items: center; }
-input, select, button { min-height: 40px; font: inherit; }
-button { border: 1px solid var(--ga-border); background: var(--ga-bg-container); padding: 6px 12px; }
-button:disabled { opacity: .5; }
-table { width: 100%; border-collapse: collapse; }
-th, td { border-bottom: 1px solid var(--ga-border-light); padding: 10px; text-align: left; }
-th { color: var(--ga-text-2); font-size: 14px; }
-@media (max-width: 640px) { .organization-page { padding: 16px; overflow-x: auto; } table { min-width: 680px; } .tree li { grid-template-columns: minmax(120px, 1fr) auto; } }
+@media (max-width: 640px) { .organization-page { overflow-x: auto; } table { min-width: 680px; } .tree li { grid-template-columns: minmax(120px, 1fr) auto; } }
 </style>

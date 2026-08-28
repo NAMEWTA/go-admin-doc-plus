@@ -88,17 +88,12 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
 
 <style scoped>
 .demo-products { display: grid; gap: 16px; color: var(--ga-text-1); }
-.demo-products__header, .demo-products__actions, nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.demo-products__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 h1, h2, p { margin: 0; }
 .demo-products__search { display: flex; align-items: end; gap: 8px; }
 .demo-products__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .demo-products__table { min-width: 0; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px; border-bottom: 1px solid var(--ga-border-light); text-align: left; }
 .demo-products__form { display: grid; align-content: start; }
 label { display: grid; gap: 4px; }
-input, textarea, select, button { font: inherit; }
-button { min-height: 34px; }
-[role="alert"] { padding: 8px; border-left: 3px solid var(--ga-danger); background: #fff1f0; }
 @media (max-width: 720px) { .demo-products__search { flex-wrap: wrap; } }
 </style>
