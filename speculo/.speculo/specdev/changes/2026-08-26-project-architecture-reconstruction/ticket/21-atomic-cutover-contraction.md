@@ -164,6 +164,8 @@ D30 后继续按 ADR-006 审计正式命令入口，确认 `<Path>go-admin-plus/
 
 Lead 以 `main@b70a406b6ce19ad377d779d6e91109e6eec24031` 为审计 base，基于用户已批准的零兼容完整重构，精确开放 `<Path>go-admin-plus/internal/host/desktop/**</Path>`、`<Path>go-admin-plus/internal/app/product/desktop*.go</Path>`、`<Path>go-admin-plus/internal/application/architecture_test.go</Path>`、`<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>` 及对应 SpecDev 状态/Evidence：由 host/desktop 拥有 Desktop 资源与 HTTP 生命周期，通过 application-facing Builder 端口接收产品运行时；app/product 作为高层 composition 实现 Builder，并把 native 测试控制隔离到显式 build tag；command 只保留 launch material、signal/parent-pipe、listening status 与 Host 调用。删除旧 command runtime/test-control 文件，不保留转发或别名；新增负向 fixture 拒绝 Desktop command 恢复非入口生产文件。API、schema/migration、产品行为、页面 template/style、UI/CSS、发行链路和暂停的 E2E 均不变。
 
+D31 授权 checkpoint 为 `b606246de71ed3b1bbb3f5d6f69ce24c1c82ffd5`；implementation/result 为 `a2ef44a52f2b7e7e53ab6928dd26632afee25c02`（tree `edc623028d1310f86c8fd8727bc61a834416fc01`）。Desktop 实例锁、SQLite 恢复、listener、HTTP/Application 生命周期和 shutdown 已由 `<Path>go-admin-plus/internal/host/desktop</Path>` 唯一拥有，product composition 通过 Builder 注入，command 生产源码只剩入口；普通/SQLite 全量 Go、race、vet、真实 Generator、合同生成/lint、根静态门禁、三平台 sidecar marker 扫描及 Server/Web/Tauri 2 全目标 production build 全绿。完整证据见 T-21 Evidence 第 32 节；按用户要求未运行任何 E2E，T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
