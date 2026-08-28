@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T22:44:25+08:00",
+  "updated_at": "2026-08-28T23:04:52+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -563,6 +563,16 @@
       "approved_at": "2026-08-28T22:44:25+08:00",
       "reason": "The final CI build-completeness audit proved the macOS Desktop job staged the Go sidecar but did not install the frozen pnpm workspace and ended with cargo check, so CI never ran the Tauri CLI beforeBuildCommand or linked the release Desktop executable that the canonical local build now requires",
       "resolution": "Install the pinned pnpm workspace in the Desktop CI job, retain sidecar staging plus locked Rust tests and strict clippy, replace release cargo check with custom-protocol Tauri build --no-bundle, and enforce all three job-local contracts in the architecture gate without bundling, signing, publishing, changing product behavior, or running E2E"
+    },
+    {
+      "id": "T21-D15",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T23:04:52+08:00",
+      "reason": "The final local command-plane audit proved a Volta-launched Node runner removed its sibling pnpm shim from child PATH, so canonical root frontend tasks failed even though pnpm 11.1.3 was installed; directly invoking Corepack fixed only the outer command because nested workspace scripts still could not resolve pnpm",
+      "resolution": "Prefer an installed pnpm command, otherwise generate a standard Corepack pnpm shim under the ignored root artifacts directory, export it for nested package scripts, route every root frontend task through one resolver with exact exec status propagation, enforce the routing in architecture and Task contract tests, and document the current setup without changing product behavior or running E2E"
     }
   ],
   "worktrees": [
