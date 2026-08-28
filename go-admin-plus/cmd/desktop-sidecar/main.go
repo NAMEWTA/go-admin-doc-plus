@@ -10,8 +10,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
+	desktophost "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/host/desktop"
 	desktopplatform "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/desktop"
+)
+
+const (
+	shutdownTimeout = 5 * time.Second
+	version         = "0.1.0-dev"
 )
 
 func main() {
@@ -31,32 +39,34 @@ func run() error {
 	defer cancelSignals()
 	runCtx, stop := context.WithCancel(parent)
 	go cancelWhenParentPipeCloses(parentPipe, stop)
-	runtime, err := newSidecarRuntime(material, stop)
+	host, err := desktophost.New(desktophost.Config{
+		Launch: material, Version: version, Stop: stop, Build: product.BuildDesktop,
+	})
 	if err != nil {
 		return err
 	}
-	if err := runtime.owner.Start(runCtx); err != nil {
+	if err := host.Start(runCtx); err != nil {
 		return err
 	}
 	status := struct {
 		State string `json:"state"`
 		Port  uint16 `json:"port"`
-	}{State: "listening", Port: runtime.port()}
+	}{State: "listening", Port: host.Port()}
 	if err := json.NewEncoder(os.Stdout).Encode(status); err != nil {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
-		return errors.Join(err, runtime.owner.Drain(shutdownCtx))
+		return errors.Join(err, host.Drain(shutdownCtx))
 	}
 	select {
 	case <-runCtx.Done():
-	case serveErr := <-runtime.serveErr:
+	case serveErr := <-host.ServeErrors():
 		if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
 			err = errors.New("desktop sidecar server stopped")
 		}
 	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
-	return errors.Join(err, runtime.owner.Drain(shutdownCtx))
+	return errors.Join(err, host.Drain(shutdownCtx))
 }
 
 func cancelWhenParentPipeCloses(reader io.Reader, stop context.CancelFunc) {

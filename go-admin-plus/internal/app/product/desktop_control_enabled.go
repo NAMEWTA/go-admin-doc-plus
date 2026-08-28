@@ -1,6 +1,6 @@
 //go:build desktop_native_e2e
 
-package main
+package product
 
 import (
 	"context"
@@ -9,33 +9,48 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
+	desktophost "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/host/desktop"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
-type nativeE2EAction struct {
+const desktopControlTimeout = 15 * time.Second
+
+type desktopNativeAction struct {
 	Action string `json:"action"`
 }
 
-var (
-	errNativeE2EDependencies  = errors.New("desktop test control dependencies unavailable")
-	errNativeE2EScopeSentinel = errors.New("desktop test control scope sentinel failed")
-	errNativeE2EScopeUpdate   = errors.New("desktop test control scope update failed")
-	errNativeE2EScopeRows     = errors.New("desktop test control scope rows failed")
-)
-
-func (runtime *sidecarRuntime) registerNativeE2EControl(mux *http.ServeMux) {
-	mux.Handle("POST /__desktop/test-control", runtime.requireControl(http.HandlerFunc(runtime.nativeE2EControl)))
+type desktopNativeControl struct {
+	database *database.Database
+	sessions *session.Service
 }
 
-func decodeNativeE2EAction(request *http.Request) (string, error) {
+var (
+	errDesktopControlDependencies = errors.New("desktop test control dependencies unavailable")
+	errDesktopControlSentinel     = errors.New("desktop test control scope sentinel failed")
+	errDesktopControlScopeUpdate  = errors.New("desktop test control scope update failed")
+	errDesktopControlScopeRows    = errors.New("desktop test control scope rows failed")
+)
+
+func desktopPrivateRoute(db *database.Database, sessions *session.Service) *desktophost.PrivateRoute {
+	control := &desktopNativeControl{database: db, sessions: sessions}
+	return &desktophost.PrivateRoute{
+		Pattern: "POST /__desktop/test-control",
+		Handler: http.HandlerFunc(control.serveHTTP),
+	}
+}
+
+func decodeDesktopNativeAction(request *http.Request) (string, error) {
 	if request.Header.Get("Content-Type") != "application/json" {
 		return "", errors.New("invalid desktop test control request")
 	}
 	decoder := json.NewDecoder(io.LimitReader(request.Body, 129))
 	decoder.DisallowUnknownFields()
-	var value nativeE2EAction
+	var value desktopNativeAction
 	if err := decoder.Decode(&value); err != nil {
 		return "", errors.New("invalid desktop test control request")
 	}
@@ -51,25 +66,24 @@ func decodeNativeE2EAction(request *http.Request) (string, error) {
 	}
 }
 
-func (runtime *sidecarRuntime) nativeE2EControl(writer http.ResponseWriter, request *http.Request) {
-	action, err := decodeNativeE2EAction(request)
+func (control *desktopNativeControl) serveHTTP(writer http.ResponseWriter, request *http.Request) {
+	action, err := decodeDesktopNativeAction(request)
 	if err != nil {
 		writer.WriteHeader(http.StatusGatewayTimeout)
 		return
 	}
-	ctx, cancel := context.WithTimeout(request.Context(), requestTimeout)
+	ctx, cancel := context.WithTimeout(request.Context(), desktopControlTimeout)
 	defer cancel()
-	err = runtime.applyNativeE2EAction(ctx, action)
-	if err != nil {
+	if err := control.apply(ctx, action); err != nil {
 		status := http.StatusInternalServerError
 		switch {
-		case errors.Is(err, errNativeE2EDependencies):
+		case errors.Is(err, errDesktopControlDependencies):
 			status = http.StatusHTTPVersionNotSupported
-		case errors.Is(err, errNativeE2EScopeSentinel):
+		case errors.Is(err, errDesktopControlSentinel):
 			status = http.StatusNotImplemented
-		case errors.Is(err, errNativeE2EScopeUpdate):
+		case errors.Is(err, errDesktopControlScopeUpdate):
 			status = http.StatusBadGateway
-		case errors.Is(err, errNativeE2EScopeRows):
+		case errors.Is(err, errDesktopControlScopeRows):
 			status = http.StatusServiceUnavailable
 		}
 		writer.WriteHeader(status)
@@ -78,33 +92,33 @@ func (runtime *sidecarRuntime) nativeE2EControl(writer http.ResponseWriter, requ
 	writer.WriteHeader(http.StatusNoContent)
 }
 
-func (runtime *sidecarRuntime) applyNativeE2EAction(ctx context.Context, action string) error {
-	if runtime.database == nil || runtime.sessions == nil {
-		return errNativeE2EDependencies
+func (control *desktopNativeControl) apply(ctx context.Context, action string) error {
+	if control.database == nil || control.sessions == nil {
+		return errDesktopControlDependencies
 	}
 	switch action {
 	case "scope-self", "scope-all":
 		scope := strings.TrimPrefix(action, "scope-")
 		if action == "scope-self" {
-			if _, err := runtime.database.Bun().ExecContext(ctx, `INSERT INTO demo_products
+			if _, err := control.database.Bun().ExecContext(ctx, `INSERT INTO demo_products
 				(id, owner_account_id, sku, name, name_key, description, price_cents, status, revision, created_at, updated_at)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 				ON CONFLICT(id) DO NOTHING`, "00000000-0000-4000-8000-000000000001", "account-native-other",
 				"E2E-FOREIGN", "Foreign product", "foreign product", "native scope sentinel", 1, "active", 1); err != nil {
-				return errNativeE2EScopeSentinel
+				return errDesktopControlSentinel
 			}
 		}
-		result, err := runtime.database.Bun().ExecContext(ctx, `UPDATE iam_roles SET data_scope = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, scope, "role-system-admin")
+		result, err := control.database.Bun().ExecContext(ctx, `UPDATE iam_roles SET data_scope = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`, scope, "role-system-admin")
 		if err != nil {
-			return errNativeE2EScopeUpdate
+			return errDesktopControlScopeUpdate
 		}
 		count, err := result.RowsAffected()
 		if err != nil || count != 1 {
-			return errNativeE2EScopeRows
+			return errDesktopControlScopeRows
 		}
 		return nil
 	case "permissions-off":
-		result, err := runtime.database.Bun().ExecContext(ctx, `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code IN (?, ?, ?)`, "role-system-admin", demo.PermissionProductsRead, demo.PermissionProductsWrite, demo.PermissionProductsDelete)
+		result, err := control.database.Bun().ExecContext(ctx, `DELETE FROM iam_role_permissions WHERE role_id = ? AND permission_code IN (?, ?, ?)`, "role-system-admin", demo.PermissionProductsRead, demo.PermissionProductsWrite, demo.PermissionProductsDelete)
 		if err != nil {
 			return errors.New("desktop test control failed")
 		}
@@ -114,7 +128,7 @@ func (runtime *sidecarRuntime) applyNativeE2EAction(ctx context.Context, action 
 		}
 		return nil
 	case "permissions-on":
-		registry, err := authorization.NewCapabilityRegistry(runtime.database)
+		registry, err := authorization.NewCapabilityRegistry(control.database)
 		if err != nil {
 			return errors.New("desktop test control failed")
 		}
@@ -123,7 +137,7 @@ func (runtime *sidecarRuntime) applyNativeE2EAction(ctx context.Context, action 
 		}
 		return nil
 	case "session-revoke":
-		if err := runtime.sessions.RevokeAccount(ctx, "account-desktop-e2e"); err != nil {
+		if err := control.sessions.RevokeAccount(ctx, "account-desktop-e2e"); err != nil {
 			return errors.New("desktop test control failed")
 		}
 		return nil

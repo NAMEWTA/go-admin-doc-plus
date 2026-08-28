@@ -1,6 +1,6 @@
 //go:build desktop_native_e2e
 
-package main
+package product
 
 import (
 	"context"
@@ -10,17 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
-func TestNativeE2EControlRequestIsExactAndBounded(t *testing.T) {
+func TestDesktopNativeControlRequestIsExactAndBounded(t *testing.T) {
 	for _, action := range []string{"scope-self", "scope-all", "permissions-off", "permissions-on", "session-revoke"} {
 		request := httptest.NewRequest(http.MethodPost, "/__desktop/test-control", strings.NewReader(`{"action":"`+action+`"}`))
 		request.Header.Set("Content-Type", "application/json")
-		got, err := decodeNativeE2EAction(request)
+		got, err := decodeDesktopNativeAction(request)
 		if err != nil || got != action {
 			t.Fatalf("action %q = %q, %v", action, got, err)
 		}
@@ -33,36 +32,35 @@ func TestNativeE2EControlRequestIsExactAndBounded(t *testing.T) {
 	} {
 		request := httptest.NewRequest(http.MethodPost, "/__desktop/test-control", strings.NewReader(body))
 		request.Header.Set("Content-Type", "application/json")
-		if _, err := decodeNativeE2EAction(request); err == nil {
+		if _, err := decodeDesktopNativeAction(request); err == nil {
 			t.Fatalf("accepted invalid body %q", body)
 		}
 	}
 	request := httptest.NewRequest(http.MethodPost, "/__desktop/test-control", strings.NewReader(`{"action":"scope-all"}`))
-	if _, err := decodeNativeE2EAction(request); err == nil {
+	if _, err := decodeDesktopNativeAction(request); err == nil {
 		t.Fatal("accepted request without exact JSON content type")
 	}
 }
 
-func TestNativeE2EScopeControlEnforcesAndRestoresOwnership(t *testing.T) {
+func TestDesktopNativeScopeControlEnforcesAndRestoresOwnership(t *testing.T) {
 	ctx := context.Background()
-	process := database.NewProcess()
-	db, err := process.Open(ctx, database.Config{
+	db, err := database.NewProcess().Open(ctx, database.Config{
 		Profile: config.ProfileDesktopSQLite, SQLitePath: filepath.Join(t.TempDir(), "desktop.db"),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	runner, err := product.NewMigrationRunner()
+	runner, err := NewMigrationRunner()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := runner.Up(ctx, db); err != nil {
 		t.Fatal(err)
 	}
-	runtime := &sidecarRuntime{database: db, sessions: &session.Service{}}
+	control := &desktopNativeControl{database: db, sessions: &session.Service{}}
 	for _, action := range []string{"scope-self", "scope-self", "scope-all"} {
-		if err := runtime.applyNativeE2EAction(ctx, action); err != nil {
+		if err := control.apply(ctx, action); err != nil {
 			t.Fatalf("%s: %v", action, err)
 		}
 	}

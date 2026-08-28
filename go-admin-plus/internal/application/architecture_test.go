@@ -124,6 +124,105 @@ func TestBackendLayerFixtureRejectsReverseDependencies(t *testing.T) {
 	}
 }
 
+func TestDesktopSidecarCommandContainsOnlyProcessEntry(t *testing.T) {
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve architecture test path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
+	violations, err := desktopSidecarCommandViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatalf("inspect Desktop sidecar command: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("cmd/desktop-sidecar may contain only its process entry; runtime ownership belongs under internal/host:\n%s", strings.Join(violations, "\n"))
+	}
+}
+
+func TestDesktopSidecarCommandFixtureRejectsRuntimeOwnership(t *testing.T) {
+	root := t.TempDir()
+	writeFixture := func(name, content string) {
+		t.Helper()
+		filename := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filename, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeFixture("cmd/desktop-sidecar/main.go", "package main\nimport _ \"example.test/product/internal/platform/database\"\nfunc main() {}\n")
+	writeFixture("cmd/desktop-sidecar/main_test.go", "package main\n")
+	writeFixture("cmd/desktop-sidecar/runtime.go", "package main\n")
+
+	violations, err := desktopSidecarCommandViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"cmd/desktop-sidecar/main.go: Desktop entry imports runtime dependency example.test/product/internal/platform/database",
+		"cmd/desktop-sidecar/runtime.go: Desktop command owns non-entry production code",
+	}
+	if fmt.Sprint(violations) != fmt.Sprint(want) {
+		t.Fatalf("violations = %v, want %v", violations, want)
+	}
+}
+
+func desktopSidecarCommandViolations(root fs.FS) ([]string, error) {
+	const commandDirectory = "cmd/desktop-sidecar"
+	var violations []string
+	mainFilename := commandDirectory + "/main.go"
+	content, err := fs.ReadFile(root, mainFilename)
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := parser.ParseFile(token.NewFileSet(), mainFilename, content, parser.ImportsOnly)
+	if err != nil {
+		return nil, err
+	}
+	for _, specification := range parsed.Imports {
+		importPath, err := strconv.Unquote(specification.Path.Value)
+		if err != nil {
+			return nil, err
+		}
+		if desktopEntryRuntimeImport(importPath) {
+			violations = append(violations, fmt.Sprintf("%s: Desktop entry imports runtime dependency %s", mainFilename, importPath))
+		}
+	}
+	err = fs.WalkDir(root, commandDirectory, func(filename string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || path.Ext(filename) != ".go" || strings.HasSuffix(filename, "_test.go") || filename == commandDirectory+"/main.go" {
+			return nil
+		}
+		violations = append(violations, filename+": Desktop command owns non-entry production code")
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(violations)
+	return violations, nil
+}
+
+func desktopEntryRuntimeImport(importPath string) bool {
+	if importPath == "net" || importPath == "net/http" {
+		return true
+	}
+	for _, marker := range []string{
+		"/internal/application",
+		"/internal/host/lifecycle",
+		"/internal/modules/",
+		"/internal/platform/database",
+	} {
+		if strings.Contains(importPath, marker) {
+			return true
+		}
+	}
+	return false
+}
+
 func productionBackendLayerViolations(root fs.FS) ([]string, error) {
 	allowedTargets := map[string]map[string]struct{}{
 		"application": {"application": {}, "contracts": {}},
