@@ -11,7 +11,6 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 type commandOptions struct {
@@ -49,20 +48,7 @@ func run(ctx context.Context, arguments []string, environmentValues map[string]s
 	if err != nil {
 		return errors.New("migration configuration failed")
 	}
-	databaseConfig, err := databaseConfig(snapshot)
-	if err != nil {
-		return err
-	}
-	db, err := database.NewProcess().Open(ctx, databaseConfig)
-	if err != nil {
-		return errors.New("migration database startup failed")
-	}
-	defer func() { _ = db.Close() }()
-	runner, err := product.NewMigrationRunner()
-	if err != nil {
-		return errors.New("migration composition failed")
-	}
-	result, err := runner.Up(ctx, db)
+	result, err := product.Migrate(ctx, snapshot)
 	if err != nil {
 		return err
 	}
@@ -86,16 +72,6 @@ func parseOptions(arguments []string) (commandOptions, error) {
 		return commandOptions{}, errors.New("unexpected positional arguments")
 	}
 	return options, nil
-}
-
-func databaseConfig(snapshot config.Snapshot) (database.Config, error) {
-	if profile, ok := snapshot.ServerSQLite(); ok {
-		return database.Config{Profile: config.ProfileServerSQLite, SQLitePath: profile.DatabasePath()}, nil
-	}
-	if profile, ok := snapshot.ServerPostgres(); ok {
-		return database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: profile.DatabaseDSN()}, nil
-	}
-	return database.Config{}, errors.New("migration runtime profile is invalid")
 }
 
 func environment() map[string]string {
