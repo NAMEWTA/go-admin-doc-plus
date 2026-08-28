@@ -144,6 +144,10 @@ D28 授权 checkpoint 为 `cb3a428d3805723d58f3fe40022d6aaa78fbf516`，D28-A01 �
 
 D28 后继续按 ADR-012/ADR-016 审计数据库边界，确认当前八模块生产 SQL 未发现跨模块表访问，但现有 architecture gate、quality scripts 与测试都没有从模块 migration 推导表所有权，也无法拒绝模块新增对其他模块表的 SQL 字面量。一次人工零命中不能证明“模块不能访问其他模块 repository/table”长期成立。Lead 以 `main@5e76dee3a8c1f600d0b32fc865ed11a896b61b06` 为审计 base，精确开放 `<Path>go-admin-plus/internal/application/architecture_test.go</Path>` 与对应 SpecDev 状态/Evidence：从双方言 module migration 提取 `CREATE TABLE` 所有权，扫描非测试生产 Go 字符串并拒绝跨顶层模块表名，增加 own-table/foreign-table/`_test.go` 负向 fixture；重复方言声明必须归属同一模块，动态 Generator metadata 与 platform-owned reliable runtime 不改变。产品实现、数据库 schema/migration、API/OpenAPI、前端、页面 template/style、UI/CSS、发行和暂停的 E2E 均不修改。
 
+#### T21-D29-A01（Lead 批准）
+
+表 owner gate GREEN 后反查 T-15 “生成物通过架构边界检查”接缝，确认 `<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>` 只运行新模块自身的 Go test/build 与前端/合同检查，不执行包含 import/table owner 规则的 `<Path>go-admin-plus/internal/application</Path>` 测试；因此 Generator 仍可能在架构门禁未运行时报告写入成功。Lead 以 `main@cba2cec93eaab9a4ae5e7c8bd1c827283d4c784f` 为审计 base，追加开放 Generator compile gate 与既有 test：把固定命令清单提取为可测试函数，要求生成后先运行 application architecture package，再运行目标模块 test/build；任何失败继续拒绝写入且不产生部分成功。生成模板/内容、自动产品注册 OUT 边界、API、schema/migration、前端与 UI/CSS 不变，不运行暂停 E2E。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

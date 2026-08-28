@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T04:03:43+08:00",
+  "updated_at": "2026-08-29T04:08:32+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -723,6 +723,16 @@
       "approved_at": "2026-08-29T04:03:43+08:00",
       "reason": "The ADR-012/ADR-016 database-boundary audit found no current cross-module table access but proved no automated gate derives module table ownership from migrations or rejects future foreign-table SQL in production modules",
       "resolution": "Derive table ownership from module CREATE TABLE migrations, scan non-test production Go string literals for foreign module tables, and add own-table, foreign-table, test-file, and conflicting-owner fixtures only in the application architecture test; do not change product code, schema, migrations, API, frontend, release, or deferred E2E"
+    },
+    {
+      "id": "T21-D29-A01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T04:08:32+08:00",
+      "reason": "The post-gate Generator audit proved its pre-publish compile gate tests and builds only the generated module and never runs the repository application architecture package, so generated output can report success without executing import or table-ownership boundaries",
+      "resolution": "Extract the fixed Generator gate command list into a testable function and require the application architecture package before generated-module test/build, preserving fail-closed publication and leaving templates, output, API, schema, frontend, release, and deferred E2E unchanged"
     }
   ],
   "worktrees": [
