@@ -2,6 +2,7 @@ package product_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -69,6 +72,54 @@ func TestBuildAssemblesEveryHTTPModuleAndWorkerLifecycle(t *testing.T) {
 		if response.Code != http.StatusUnauthorized {
 			t.Errorf("GET %s status = %d, want authentication rejection", path, response.Code)
 		}
+	}
+
+	passwordHash, err := account.HashPassword("runtime identity password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO iam_roles(id, role_key, name, data_scope, enabled, protected, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, "role-runtime-self", "runtime-self", "Runtime self scope", "self", true, false); err != nil {
+			return err
+		}
+		for _, permission := range []string{"demo.products.read", "iam.manifest.read"} {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO iam_role_permissions(role_id, permission_code) VALUES (?, ?)`, "role-runtime-self", permission); err != nil {
+				return err
+			}
+		}
+		if err := account.NewRepository(db.Dialect()).Create(ctx, tx, account.Credential{
+			Profile:      account.Profile{ID: "account-runtime-self", Username: "runtime-self", DisplayName: "Runtime Self", Email: "runtime-self@example.test"},
+			PasswordHash: passwordHash,
+		}, time.Now().UTC()); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, "account-runtime-self", "role-runtime-self")
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	issued, err := runtime.Sessions.Login(ctx, "runtime-self", "runtime identity password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityRequest := httptest.NewRequest(http.MethodGet, "/api/runtime/identity", nil)
+	identityRequest.AddCookie(&http.Cookie{Name: session.CookieName, Value: issued.Token})
+	identityResponse := httptest.NewRecorder()
+	runtime.Application.Handler().ServeHTTP(identityResponse, identityRequest)
+	if identityResponse.Code != http.StatusOK {
+		t.Fatalf("identity status = %d, body = %s", identityResponse.Code, identityResponse.Body.String())
+	}
+	var identity struct {
+		Kind      string `json:"kind"`
+		SubjectID string `json:"subjectId"`
+		DataScope string `json:"dataScope"`
+	}
+	if err := json.Unmarshal(identityResponse.Body.Bytes(), &identity); err != nil {
+		t.Fatal(err)
+	}
+	if identity.Kind != "authenticated" || identity.SubjectID != "account-runtime-self" || identity.DataScope != "self" {
+		t.Fatalf("identity = %#v", identity)
 	}
 
 	if err := runtime.Application.Stop(ctx); err != nil {

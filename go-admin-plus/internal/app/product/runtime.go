@@ -363,7 +363,8 @@ func (handler *shellRuntimeHandler) ServeHTTP(response http.ResponseWriter, requ
 			Kind        string   `json:"kind"`
 			SubjectID   string   `json:"subjectId"`
 			Permissions []string `json:"permissions"`
-		}{Kind: "authenticated", SubjectID: issued.Profile.ID, Permissions: manifest.Permissions})
+			DataScope   string   `json:"dataScope"`
+		}{Kind: "authenticated", SubjectID: issued.Profile.ID, Permissions: manifest.Permissions, DataScope: string(manifest.Scope)})
 	case "/runtime/navigation":
 		type navigation struct {
 			Path       string `json:"path"`

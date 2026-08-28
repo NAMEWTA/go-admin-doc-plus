@@ -27,9 +27,10 @@ const parseIdentity = (value: unknown): RuntimeIdentity => {
   }
   if (
     record.kind !== 'authenticated'
-    || !hasExactKeys(record, ['kind', 'permissions', 'subjectId'])
+    || !hasExactKeys(record, ['dataScope', 'kind', 'permissions', 'subjectId'])
     || typeof record.subjectId !== 'string'
     || record.subjectId.length === 0
+    || (record.dataScope !== 'self' && record.dataScope !== 'all')
     || !Array.isArray(record.permissions)
     || !record.permissions.every(permission =>
       typeof permission === 'string' && permissionPattern.test(permission)
@@ -40,7 +41,8 @@ const parseIdentity = (value: unknown): RuntimeIdentity => {
   return {
     kind: 'authenticated',
     subjectId: record.subjectId,
-    permissions: record.permissions as PermissionCode[]
+    permissions: record.permissions as PermissionCode[],
+    dataScope: record.dataScope
   }
 }
 

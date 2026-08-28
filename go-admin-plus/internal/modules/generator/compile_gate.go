@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"os/exec"
@@ -261,19 +262,25 @@ func minimalCommandEnvironment(safeHome string) []string {
 }
 
 func toolchainPath(path string) string {
-	pnpm, err := exec.LookPath(pnpmExecutable())
-	if err != nil {
-		return path
+	prefixes := make([]string, 0, 2)
+	if node, err := resolveToolExecutable("node"); err == nil {
+		prefixes = append(prefixes, filepath.Dir(node))
 	}
-	clean := filepath.ToSlash(filepath.Clean(pnpm))
-	marker := "/.volta/bin/"
-	if index := strings.Index(clean, marker); index >= 0 {
-		candidate := filepath.FromSlash(clean[:index] + "/.volta/tools/image/packages/pnpm/bin")
-		if info, statErr := os.Stat(filepath.Join(candidate, pnpmExecutable())); statErr == nil && !info.IsDir() {
-			return candidate + string(os.PathListSeparator) + path
+	pnpm, err := exec.LookPath(pnpmExecutable())
+	if err == nil {
+		clean := filepath.ToSlash(filepath.Clean(pnpm))
+		marker := "/.volta/bin/"
+		if index := strings.Index(clean, marker); index >= 0 {
+			candidate := filepath.FromSlash(clean[:index] + "/.volta/tools/image/packages/pnpm/bin")
+			if info, statErr := os.Stat(filepath.Join(candidate, pnpmExecutable())); statErr == nil && !info.IsDir() {
+				prefixes = append(prefixes, candidate)
+			}
 		}
 	}
-	return path
+	if len(prefixes) == 0 {
+		return path
+	}
+	return strings.Join(prefixes, string(os.PathListSeparator)) + string(os.PathListSeparator) + path
 }
 
 func resolveToolExecutable(name string) (string, error) {
@@ -289,6 +296,8 @@ func resolveToolExecutable(name string) (string, error) {
 				path = candidate
 			}
 		}
+	} else if name == "node" {
+		path = resolveVoltaNodeExecutable(path)
 	}
 	absolute, err := filepath.Abs(path)
 	if err != nil {
@@ -299,6 +308,35 @@ func resolveToolExecutable(name string) (string, error) {
 		return "", ErrInvalid
 	}
 	return absolute, nil
+}
+
+func resolveVoltaNodeExecutable(path string) string {
+	if runtime.GOOS == "windows" {
+		return path
+	}
+	voltaHome := filepath.Dir(filepath.Dir(filepath.Clean(path)))
+	metadata, err := os.ReadFile(filepath.Join(voltaHome, "tools", "user", "platform.json"))
+	if err != nil {
+		return path
+	}
+	var platform struct {
+		Node struct {
+			Runtime string `json:"runtime"`
+		} `json:"node"`
+	}
+	if json.Unmarshal(metadata, &platform) != nil || !validVoltaRuntime(platform.Node.Runtime) {
+		return path
+	}
+	candidate := filepath.Join(voltaHome, "tools", "image", "node", platform.Node.Runtime, "bin", "node")
+	info, err := os.Stat(candidate)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0o111 == 0 {
+		return path
+	}
+	return candidate
+}
+
+func validVoltaRuntime(version string) bool {
+	return version != "" && version != "." && version != ".." && filepath.Base(version) == version
 }
 
 func replaceEnvironmentValue(environment []string, key, value string) []string {

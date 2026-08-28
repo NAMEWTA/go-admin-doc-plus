@@ -2,7 +2,7 @@ import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 
 import { DemoRequestError, type DemoClient, type DemoFailure, type Product, type ProductPage } from '@go-admin-plus/domain-demo'
 import { SessionRequestError, type AccountProfile, type SessionClient } from '@go-admin-plus/domain-iam/session'
-import type { NavigationEntry, PermissionCode, RuntimeIdentity, ShellRuntimePort } from '@go-admin-plus/platform'
+import type { DataScope, NavigationEntry, PermissionCode, RuntimeIdentity, ShellRuntimePort } from '@go-admin-plus/platform'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -20,8 +20,8 @@ interface PublicProfile {
   readonly avatarRef?: string | null
 }
 
-export type DesktopDataScope = 'self' | 'all'
-export type DesktopIdentity = RuntimeIdentity & { readonly dataScope?: DesktopDataScope }
+export type DesktopDataScope = DataScope
+export type DesktopIdentity = RuntimeIdentity
 export interface DesktopRuntime extends Omit<ShellRuntimePort, 'loadIdentity'> {
   loadIdentity(request?: { readonly signal?: AbortSignal }): Promise<DesktopIdentity>
 }

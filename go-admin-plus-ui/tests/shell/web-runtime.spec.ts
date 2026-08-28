@@ -13,14 +13,16 @@ describe('web runtime adapter', () => {
     const fetch = vi.fn(async () => response(200, {
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo.products.read']
+      permissions: ['demo.products.read'],
+      dataScope: 'self'
     }))
     const runtime = createWebRuntime(fetch as typeof globalThis.fetch)
 
     await expect(runtime.loadIdentity()).resolves.toEqual({
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo.products.read']
+      permissions: ['demo.products.read'],
+      dataScope: 'self'
     })
     expect(fetch).toHaveBeenCalledWith('/api/runtime/identity', {
       credentials: 'include',
@@ -53,7 +55,8 @@ describe('web runtime adapter', () => {
     const valid = {
       kind: 'authenticated',
       subjectId: 'user-1',
-      permissions: ['demo.products.read']
+      permissions: ['demo.products.read'],
+      dataScope: 'all'
     }
     await expect(createWebRuntime(async () => response(200, valid) as never).loadIdentity())
       .resolves.toEqual(valid)

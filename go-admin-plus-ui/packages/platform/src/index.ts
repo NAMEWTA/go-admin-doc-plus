@@ -1,4 +1,5 @@
 export type PermissionCode = `${string}.${string}` | `${string}.${string}.${string}`
+export type DataScope = 'self' | 'all'
 
 export type RuntimeIdentity =
   | { readonly kind: 'unauthenticated' }
@@ -6,6 +7,7 @@ export type RuntimeIdentity =
       readonly kind: 'authenticated'
       readonly subjectId: string
       readonly permissions: ReadonlyArray<PermissionCode>
+      readonly dataScope: DataScope
     }
 
 export interface NavigationEntry {

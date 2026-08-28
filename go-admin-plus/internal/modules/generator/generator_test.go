@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -301,7 +302,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		}
 		cliURL := (&url.URL{Scheme: "file", Path: filepath.Join(repositoryRoot, "scripts/contracts/cli.mjs")}).String()
 		script := `const { generate, lintContracts } = await import(process.argv[1]); lintContracts([process.argv[3]]); generate(process.argv[2], [process.argv[3]]);`
-		command := exec.CommandContext(ctx, "node", "--input-type=module", "-e", script, cliURL, outputRoot, contractPath)
+		command := exec.CommandContext(ctx, requireToolExecutable(t, "node"), "--input-type=module", "-e", script, cliURL, outputRoot, contractPath)
 		command.Dir = repositoryRoot
 		command.Env = minimalCommandEnvironment(filepath.Join(diagnosticRoot, "home"))
 		output, _ := command.CombinedOutput()
@@ -335,7 +336,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	lockCommand := exec.CommandContext(ctx, pnpmExecutable(), "install", "--lockfile-only", "--no-frozen-lockfile", "--ignore-scripts")
+	lockCommand := exec.CommandContext(ctx, requireToolExecutable(t, pnpmExecutable()), "install", "--lockfile-only", "--no-frozen-lockfile", "--ignore-scripts")
 	lockCommand.Dir = filepath.Join(fixture, "go-admin-plus-ui")
 	lockCommand.Env = environment
 	if output, err := lockCommand.CombinedOutput(); err != nil {
@@ -346,7 +347,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		{"scripts/contracts/cli.mjs", "generate"},
 		{"scripts/contracts/cli.mjs", "generate", "--check"},
 	} {
-		command := exec.CommandContext(ctx, "node", arguments...)
+		command := exec.CommandContext(ctx, requireToolExecutable(t, "node"), arguments...)
 		command.Dir = fixture
 		command.Env = environment
 		if output, err := command.CombinedOutput(); err != nil {
@@ -384,7 +385,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		{"--filter", "@go-admin-plus/web-domain-catalog", "test"},
 		{"check:workspace"},
 	} {
-		command := exec.CommandContext(ctx, pnpmExecutable(), arguments...)
+		command := exec.CommandContext(ctx, requireToolExecutable(t, pnpmExecutable()), arguments...)
 		command.Dir = uiRoot
 		command.Env = environment
 		if output, err := command.CombinedOutput(); err != nil {
@@ -401,6 +402,48 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 	if err := gate.Check(gateCtx, t.TempDir(), preview); err != nil {
 		t.Fatalf("production compile gate: %v", err)
 	}
+}
+
+func TestResolveVoltaNodeExecutable(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Volta uses a different shim layout on Windows")
+	}
+	voltaHome := t.TempDir()
+	shim := filepath.Join(voltaHome, "bin", "node")
+	runtimeNode := filepath.Join(voltaHome, "tools", "image", "node", "22.22.3", "bin", "node")
+	for _, path := range []string{shim, runtimeNode} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("#!/bin/sh\n"), 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	metadata := filepath.Join(voltaHome, "tools", "user", "platform.json")
+	if err := os.MkdirAll(filepath.Dir(metadata), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(metadata, []byte(`{"node":{"runtime":"22.22.3","npm":null}}`), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if got := resolveVoltaNodeExecutable(shim); got != runtimeNode {
+		t.Fatalf("resolved Node = %q, want %q", got, runtimeNode)
+	}
+	if err := os.WriteFile(metadata, []byte(`{"node":{"runtime":".."}}`), 0o640); err != nil {
+		t.Fatal(err)
+	}
+	if got := resolveVoltaNodeExecutable(shim); got != shim {
+		t.Fatalf("unsafe runtime resolved to %q, want shim %q", got, shim)
+	}
+}
+
+func requireToolExecutable(t *testing.T, name string) string {
+	t.Helper()
+	executable, err := resolveToolExecutable(name)
+	if err != nil {
+		t.Fatalf("resolve %s: %v", name, err)
+	}
+	return executable
 }
 
 func TestCompileSkeletonRejectsEnvironmentFiles(t *testing.T) {

@@ -197,6 +197,14 @@ test('apps select adapters without owning runtime transport', async () => {
     assert.match(productShell, new RegExp(`@go-admin-plus/web-domain-${module}`), `product shell must compose ${module}`)
   }
   assert.match(productShell, /productRoutesFor\(props\.host\)/)
+  assert.match(productShell, /dataScope\.value\s*=\s*identity\.dataScope/)
+  assert.doesNotMatch(productShell, /dataScope[^\n]*(?:\?|\|\|)\s*['"]all['"]/)
+
+  const platformSource = await readFile(join(workspaceRoot, 'packages/platform/src/index.ts'), 'utf8')
+  assert.match(platformSource, /readonly dataScope:\s*DataScope/)
+  const browserRuntime = await readFile(join(workspaceRoot, 'packages/adapters/browser/src/index.ts'), 'utf8')
+  assert.match(browserRuntime, /hasExactKeys\(record, \['dataScope', 'kind', 'permissions', 'subjectId'\]\)/)
+  assert.match(browserRuntime, /record\.dataScope !== 'self' && record\.dataScope !== 'all'/)
 
   const appSource = (await sourceFiles(join(workspaceRoot, 'apps/admin-web/src')))
   for (const file of appSource) {

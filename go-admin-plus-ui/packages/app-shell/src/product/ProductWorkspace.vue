@@ -137,9 +137,7 @@ const loadRuntime = async () => {
       return
     }
     permissions.value = new Set(identity.permissions)
-    dataScope.value = 'dataScope' in identity && (identity.dataScope === 'self' || identity.dataScope === 'all')
-      ? identity.dataScope
-      : 'all'
+    dataScope.value = identity.dataScope
     const navigation = await props.runtime.loadNavigation()
     navigationPaths.value = new Set(navigation.map(entry => entry.path))
     resolveView()
