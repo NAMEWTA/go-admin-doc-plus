@@ -84,6 +84,10 @@ AC-029 完成审计证明 `compatibility-zero` 只扫描部分治理/文档目�
 
 最终 Desktop production artifact 反向审计发现，原 `<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>` 以环境分支包裹原生测试控件；Vite 虽能摇除 JavaScript 分支，却仍把 scoped `.native-e2e` CSS 写入 production bundle。既有 native restore 只搜索 `E2E scope self` 一项文本，无法证明 production WebView 资源不存在测试路由或其他控件。Lead 精确开放 Desktop App/入口/Vite/package 与原生 runner 静态测试路径：production App 只组合 `ProductWorkspace`；所有测试 UI 移入显式 `native-e2e` mode 的独立入口；默认 production build 完成后逐字节扫描全部产物，原生 runner 恢复 production 制品时复用同一 verifier。产品 UI/CSS、运行时行为、数据库、公共合同和受保护发行保持不变。
 
+### T21-D20（Lead 批准）
+
+对 D19 门禁做反向完备性审计后确认，WebView verifier 只列出五项选定 marker，漏掉其余边界/授权文案、fixture、旧环境开关和 native feature 身份；sidecar/host restore 仍另行只搜索 `/__desktop/test-control`。Lead 把 `<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>` 定为唯一 production marker 合同：目录资源与普通二进制都使用同一不可变集合，覆盖 route、mode/feature/env、全部 `E2E ` 文案和 `E2E-` fixture；原生恢复删除自定义单路由扫描并复用普通文件 verifier。测试逐项注入全部 marker，且静态拒绝 runner 恢复两份实现。产品代码、UI/CSS、数据库与公共合同不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

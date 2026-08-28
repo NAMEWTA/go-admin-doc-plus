@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T01:06:58+08:00",
+  "updated_at": "2026-08-29T01:16:04+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -613,6 +613,16 @@
       "approved_at": "2026-08-29T01:06:58+08:00",
       "reason": "The final production-artifact audit proved Vite removed the native E2E JavaScript branch but retained its scoped native-e2e CSS in the Desktop production bundle, while the existing restore check searched only one visible button label and therefore could not prove that production assets contained no test controls",
       "resolution": "Move native test controls into a dedicated native-e2e build entry selected only by an explicit Vite mode, keep the production App limited to ProductWorkspace composition, make every Desktop production build byte-scan all emitted assets for native control routes and markers, reuse that verifier during native artifact restoration, and leave product UI/CSS, runtime behavior, protected release, and deferred E2E unchanged"
+    },
+    {
+      "id": "T21-D20",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T01:16:04+08:00",
+      "reason": "The follow-up production boundary audit proved the new WebView verifier listed only five selected native control strings while the production sidecar and host restore path still scanned only the test-control route, leaving the remaining boundary, authorization, fixture, environment, and feature markers outside one authoritative rejection contract",
+      "resolution": "Define one immutable marker set covering the route, build modes, environment and feature identities, all E2E messages, and fixture prefixes; apply it to both emitted WebView trees and explicit production binaries; require functional rejection tests for every marker and static proof that native restoration uses the shared file verifier; leave product code, UI/CSS, database, public contracts, and deferred E2E unchanged"
     }
   ],
   "worktrees": [
