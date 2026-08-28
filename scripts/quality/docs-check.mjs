@@ -5,7 +5,7 @@ import { dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const documents = ['README.md', 'docs', 'deploy/README.md', 'database/README.md', 'release/README.md', 'go-admin-plus/README.md', 'go-admin-plus/config/README.md']
+const documents = ['README.md', '.agents/skills', 'docs', 'deploy/README.md', 'database/README.md', 'release/README.md', 'go-admin-plus/README.md', 'go-admin-plus/config/README.md']
 const walk = path => {
   if (!existsSync(path)) return []
   try {

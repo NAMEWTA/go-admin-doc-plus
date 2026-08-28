@@ -31,7 +31,7 @@ export const checkCompatibility = root => {
   const failures = []
   for (const path of removedPaths) if (existsSync(join(root, path))) failures.push(`removed path still exists: ${path}`)
   const scanRoots = [
-    'Taskfile.yml', '.github', 'scripts/go-admin-plus', 'scripts/go-admin-plus-ui',
+    'Taskfile.yml', '.github', '.agents/skills', 'scripts/go-admin-plus', 'scripts/go-admin-plus-ui',
     'release/manifest', 'README.md', 'docs', 'deploy/README.md', 'database/README.md',
     'release/README.md', 'go-admin-plus/README.md', 'go-admin-plus/config/README.md', 'go-admin-plus/go.mod'
   ]
