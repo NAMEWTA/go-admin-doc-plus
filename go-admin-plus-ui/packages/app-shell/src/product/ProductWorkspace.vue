@@ -4,10 +4,9 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { AccountProfile, SessionClient, SessionState } from '@go-admin-plus/domain-iam/session'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import type { PlatformPort, ShellRuntimePort } from '@go-admin-plus/platform'
-import { createBrowserFilesClient } from '@go-admin-plus/adapter-browser'
 import { AuditPage, createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
 import { createDemoController, createWebDemoClient, DemoProductsPage } from '@go-admin-plus/web-domain-demo'
-import { createFilesController, FilesPage } from '@go-admin-plus/web-domain-files'
+import { createFilesController, createWebFilesClient, FilesPage } from '@go-admin-plus/web-domain-files'
 import { createGeneratorController, createWebGeneratorClient, GeneratorWizardPage } from '@go-admin-plus/web-domain-generator'
 import { AccountPage, createWebSessionClient, LoginPage } from '@go-admin-plus/web-domain-iam/session'
 import { AdministrationPage, createAdministrationController, createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
@@ -59,7 +58,7 @@ const settings = createSettingsController(createWebSettingsClient(fetcher), conf
 const generator = createGeneratorController(createWebGeneratorClient(fetcher), capability)
 const scheduler = createSchedulerController(createWebSchedulerClient(fetcher), capability, confirmRemoval)
 const demo = createDemoController(createWebDemoClient(fetcher), confirmRemoval, capability)
-const files = createFilesController(createBrowserFilesClient(fetcher), confirmRemoval, capability)
+const files = createFilesController(createWebFilesClient(fetcher), confirmRemoval, capability)
 
 const routes = computed(() => productRoutesFor(props.host).filter(route =>
   navigationPaths.value.has(route.path) && permissions.value.has(route.permission)

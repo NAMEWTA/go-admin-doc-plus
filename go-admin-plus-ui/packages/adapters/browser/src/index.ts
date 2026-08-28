@@ -9,7 +9,6 @@ import type {
   ShellRuntimePort
 } from '@go-admin-plus/platform'
 
-export { createBrowserFilesClient } from './files'
 export { createBrowserSessionFetch } from './session-fetch'
 
 type Fetch = typeof globalThis.fetch

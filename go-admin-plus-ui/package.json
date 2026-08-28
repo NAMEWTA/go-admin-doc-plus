@@ -14,7 +14,7 @@
     "build": "pnpm --filter @go-admin-plus/admin-web build && pnpm --filter @go-admin-plus/admin-desktop build",
     "build:prod": "pnpm build",
     "lint": "oxlint --ignore-pattern '**/node_modules/**' --ignore-pattern '**/dist/**' --deny-warnings apps packages tests",
-    "typecheck": "pnpm --recursive --if-present typecheck && pnpm --filter @go-admin-plus/adapter-browser typecheck:files && vue-tsc -p tests/shell/tsconfig.json && vue-tsc -p tests/e2e/audit/tsconfig.json && vue-tsc -p tests/e2e/demo/tsconfig.json && vue-tsc -p tests/e2e/files/tsconfig.json && vue-tsc -p tests/e2e/generator/tsconfig.json && vue-tsc -p tests/e2e/iam/administration/tsconfig.json && vue-tsc -p tests/e2e/iam/session/tsconfig.json && vue-tsc -p tests/e2e/organization/tsconfig.json && vue-tsc -p tests/e2e/scheduler/tsconfig.json && vue-tsc -p tests/e2e/settings/tsconfig.json",
+    "typecheck": "pnpm --recursive --if-present typecheck && vue-tsc -p tests/shell/tsconfig.json && vue-tsc -p tests/e2e/audit/tsconfig.json && vue-tsc -p tests/e2e/demo/tsconfig.json && vue-tsc -p tests/e2e/files/tsconfig.json && vue-tsc -p tests/e2e/generator/tsconfig.json && vue-tsc -p tests/e2e/iam/administration/tsconfig.json && vue-tsc -p tests/e2e/iam/session/tsconfig.json && vue-tsc -p tests/e2e/organization/tsconfig.json && vue-tsc -p tests/e2e/scheduler/tsconfig.json && vue-tsc -p tests/e2e/settings/tsconfig.json",
     "type-check": "pnpm typecheck",
     "test": "vitest run --config tests/shell/vitest.config.ts && node tests/shell/node-tests.mjs",
     "test:unit": "pnpm test",

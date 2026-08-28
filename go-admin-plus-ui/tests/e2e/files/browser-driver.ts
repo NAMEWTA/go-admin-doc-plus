@@ -2,10 +2,10 @@ import { createApp, h, type Component } from 'vue'
 import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import { FilesRequestError, filesPermissions } from '@go-admin-plus/domain-files'
-import { createBrowserFilesClient, createBrowserSessionFetch } from '@go-admin-plus/adapter-browser'
+import { createBrowserSessionFetch } from '@go-admin-plus/adapter-browser'
 import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
-import { createFilesController, FilesPage } from '@go-admin-plus/web-domain-files'
+import { createFilesController, createWebFilesClient, FilesPage } from '@go-admin-plus/web-domain-files'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
 const waitUntil = async (condition: () => boolean, message: string, timeout = 15_000) => {
@@ -54,7 +54,7 @@ const scenario = async () => {
   const capabilities = createCapabilityController(createWebAdministrationClient(sessionFetch, '/api'))
   await capabilities.refresh()
   assert(capabilities.can(filesPermissions.read) && capabilities.can(filesPermissions.write) && capabilities.can(filesPermissions.delete), 'files capability manifest incomplete')
-  const client = createBrowserFilesClient(sessionFetch, '/api')
+  const client = createWebFilesClient(sessionFetch, '/api')
 
   await control('scope', { scope: 'self' })
   await capabilities.refresh()

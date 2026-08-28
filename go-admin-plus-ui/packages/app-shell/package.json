@@ -12,7 +12,6 @@
     "typecheck": "vue-tsc --noEmit -p src/product/tsconfig.json"
   },
   "dependencies": {
-    "@go-admin-plus/adapter-browser": "workspace:*",
     "@go-admin-plus/domain-iam": "workspace:*",
     "@go-admin-plus/platform": "workspace:*",
     "@go-admin-plus/web-domain-audit": "workspace:*",

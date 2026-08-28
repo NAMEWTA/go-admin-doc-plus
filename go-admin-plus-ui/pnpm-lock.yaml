@@ -152,9 +152,6 @@ importers:
 
   packages/adapters/browser:
     dependencies:
-      '@go-admin-plus/domain-files':
-        specifier: workspace:*
-        version: link:../../domains/files
       '@go-admin-plus/platform':
         specifier: workspace:*
         version: link:../../platform
@@ -202,9 +199,6 @@ importers:
 
   packages/app-shell:
     dependencies:
-      '@go-admin-plus/adapter-browser':
-        specifier: workspace:*
-        version: link:../adapters/browser
       '@go-admin-plus/domain-iam':
         specifier: workspace:*
         version: link:../domains/iam

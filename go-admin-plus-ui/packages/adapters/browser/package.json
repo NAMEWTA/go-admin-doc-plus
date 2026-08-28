@@ -7,12 +7,11 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@go-admin-plus/domain-files": "workspace:*",
     "@go-admin-plus/platform": "workspace:*"
   },
   "scripts": {
-    "test:files": "vitest run src/files.spec.ts",
-    "typecheck:files": "tsc --noEmit --strict --target ES2024 --module ESNext --moduleResolution Bundler --lib ES2024,DOM,DOM.Iterable src/files.ts src/files.spec.ts"
+    "test": "vitest run src",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -7,7 +7,7 @@ import { loadConfigFromFile } from 'vite'
 
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
-const browserAdapterWorkspaceDependencies = ['@go-admin-plus/domain-files', '@go-admin-plus/platform']
+const browserAdapterWorkspaceDependencies = ['@go-admin-plus/platform']
 const assertBrowserAdapterDependencies = dependencies => {
   for (const dependency of browserAdapterWorkspaceDependencies) {
     assert.equal(dependencies[dependency], 'workspace:*')
@@ -15,7 +15,7 @@ const assertBrowserAdapterDependencies = dependencies => {
   assert.deepEqual(
     Object.keys(dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
     browserAdapterWorkspaceDependencies,
-    'browser adapter may only depend on its platform and Files domain ports'
+    'browser adapter may only depend on the platform port'
   )
 }
 const requiredPackageNames = [
@@ -185,6 +185,10 @@ test('apps select adapters without owning runtime transport', async () => {
   const browserAdapter = await readJson(join(workspaceRoot, 'packages/adapters/browser/package.json'))
   assertBrowserAdapterDependencies(browserAdapter.dependencies)
 
+  const appShell = await readJson(join(workspaceRoot, 'packages/app-shell/package.json'))
+  assert.equal(appShell.dependencies['@go-admin-plus/adapter-browser'], undefined)
+  assert.equal(appShell.dependencies['@go-admin-plus/adapter-desktop'], undefined)
+
   const adminDesktop = await readJson(join(workspaceRoot, 'apps/admin-desktop/package.json'))
   assert.equal(adminDesktop.dependencies['@go-admin-plus/adapter-desktop'], 'workspace:*')
   assert.deepEqual(
@@ -193,6 +197,7 @@ test('apps select adapters without owning runtime transport', async () => {
   )
 
   const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
+  assert.doesNotMatch(productShell, /@go-admin-plus\/adapter-(?:browser|desktop)/)
   for (const module of ['iam', 'audit', 'organization', 'settings', 'generator', 'scheduler', 'demo', 'files']) {
     assert.match(productShell, new RegExp(`@go-admin-plus/web-domain-${module}`), `product shell must compose ${module}`)
   }
@@ -237,7 +242,6 @@ test('dual Apps inject one Platform Port and Desktop host commands remain explic
 test('browser adapter dependency allowlist rejects additional workspace packages', () => {
   assert.throws(
     () => assertBrowserAdapterDependencies({
-      '@go-admin-plus/domain-files': 'workspace:*',
       '@go-admin-plus/platform': 'workspace:*',
       '@go-admin-plus/app-shell': 'workspace:*'
     }),
