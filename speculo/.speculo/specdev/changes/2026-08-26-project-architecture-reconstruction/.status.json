@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T01:28:26+08:00",
+  "updated_at": "2026-08-29T01:37:27+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -633,6 +633,16 @@
       "approved_at": "2026-08-29T01:28:26+08:00",
       "reason": "The final production-build audit proved D20 scanned sidecar and host binaries only while the paused native runner restored artifacts; canonical local build and package, Desktop CI, and protected macOS and Windows release paths could complete without applying the shared production marker contract to their final binaries",
       "resolution": "Add one cross-platform verifier that derives exact host and sidecar paths from the existing target-triple contract; invoke it after local Desktop build and package and in Desktop CI, scan the protected macOS and Windows host and sidecar before signing or staging, replace collision-prone four-byte wildcard markers with exact current test-control strings, and enforce all wiring with negative architecture and release-policy tests without running E2E"
+    },
+    {
+      "id": "T21-D22",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T01:37:27+08:00",
+      "reason": "The final Spec-to-source adapter audit proved CONTEXT requires Browser and Desktop Runtime Adapters to implement the Platform Port and the Spec requires Desktop file selection/download, clipboard, and notification host capabilities, but PlatformPort is declaration-only, both adapters omit it, product composition does not inject it, and Desktop Files still relies on browser DOM file and download behavior",
+      "resolution": "Authorize only the existing platform, Browser/Desktop adapter, dual App composition, shared Files page, Tauri host capability/permission/dependency, focused frontend test, workspace manifest/lock, and architecture gate paths needed to implement one explicit PlatformPort; keep Web file-input presentation unchanged, route Desktop file pick/save through bounded custom Rust commands without exposing native paths or generic filesystem access, expose write-only clipboard and notification operations, and leave business APIs, databases, removed capabilities, visible product styling, protected release, and deferred E2E unchanged"
     }
   ],
   "worktrees": [

@@ -92,6 +92,10 @@ AC-029 完成审计证明 `compatibility-zero` 只扫描部分治理/文档目�
 
 D20 的二进制扫描只由暂停的 native runner 在恢复 production 制品时调用，常规 Desktop build/package、CI 和受保护 macOS/Windows 发行仍可在不扫描最终 sidecar/host 的情况下成功；同时四字节 `E2E ` / `E2E-` 通配 marker 对已签名或压缩二进制存在随机碰撞风险。Lead 新增唯一跨平台 build verifier，复用现有 target-triple/sidecar 命名合同解析精确制品路径，并在本地 build/package、Desktop CI 及两平台受保护发行链路自动执行；marker 改为覆盖全部当前控件的精确长字符串，负向 architecture/release policy 和逐 marker 功能测试阻止接线或覆盖回退。产品代码、UI/CSS、数据库、公共合同、签名授权与暂停的 E2E 均不变。
 
+### T21-D22（Lead 批准）
+
+最终 Spec-to-source adapter 审计证明 `<Path>go-admin-plus-ui/packages/platform/src/index.ts</Path>` 的 `PlatformPort` 只有声明且全仓零实现/零消费，Browser/Desktop Runtime Adapter 均未提供宿主能力；Desktop Files 仍直接使用浏览器 DOM 文件输入和下载链接。这与 CONTEXT 的双 adapter 实现合同及 Spec 的 Desktop 文件选择/下载、剪贴板、通知要求冲突。Lead 精确开放现有 platform、双 adapter、双 App 产品接线、共享 Files 页、Tauri host/capability/dependency、对应 package/lock/test 与 architecture gate 路径：以一个显式 Port 注入双 App，Web 保持现有文件输入外观，Desktop 文件选择/保存只通过有界自定义 Rust command 且不向 WebView 暴露路径或通用文件系统权限；剪贴板仅写、通知仅发送。业务 API、数据库、已删能力、可见产品样式、受保护发行和暂停 E2E 不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
