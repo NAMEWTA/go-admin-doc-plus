@@ -108,6 +108,8 @@ D22 后继续反查 Desktop Files 二进制数据路径，确认 Files strict Op
 
 最终 Desktop source graph 审计确认 `<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/demo_contract.rs</Path>` 在 T-17 切换到全产品 `<Path>product_contract.rs</Path>` 后仍保留 525 行旧 Demo-only validator/test，但 `main.rs` 不再声明该 module，Cargo 永远不编译它；该死源码还单独保留 `time` 与 `uuid` 两个 Desktop 直接依赖。Lead 只开放删除该文件、移除两项无用直接依赖及 lock 投影、并把精确旧路径加入 compatibility-zero 负向门禁；不修改现行 product contract、运行行为、API、数据库、UI/CSS、受保护发行或暂停 E2E。
 
+授权 checkpoint 为 `5f9878fa5de308d36f9118630c959a4ecd820ca4`；implementation/result 为 `a1f61f66b05a6beb4f68455f03f952909dfda269`（tree `cf38d7be04ec335d6f87936592ad6ef927805558`）。死源码已删除，Desktop 一级依赖树不再包含 `time`/`uuid`，两者仍按 Tauri 传递图保留在 lock 中；compatibility-zero 会精确拒绝旧路径恢复。完整证据见 T-21 Evidence 第 25 节；T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
