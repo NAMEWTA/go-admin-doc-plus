@@ -110,6 +110,10 @@ D22 后继续反查 Desktop Files 二进制数据路径，确认 Files strict Op
 
 授权 checkpoint 为 `5f9878fa5de308d36f9118630c959a4ecd820ca4`；implementation/result 为 `a1f61f66b05a6beb4f68455f03f952909dfda269`（tree `cf38d7be04ec335d6f87936592ad6ef927805558`）。死源码已删除，Desktop 一级依赖树不再包含 `time`/`uuid`，两者仍按 Tauri 传递图保留在 lock 中；compatibility-zero 会精确拒绝旧路径恢复。完整证据见 T-21 Evidence 第 25 节；T-21 状态不变。
 
+### T21-D25（Lead 批准）
+
+最终前端依赖图审计确认共享 `<Path>go-admin-plus-ui/packages/app-shell</Path>` 直接导入并依赖 Browser adapter 中的 Files HTTP client，因此 Desktop App 经共享产品组合间接消费 Browser runtime adapter；这违反双 App 各自选择 adapter、共享 Shell 只组合 Web Domain 的既定边界。Lead 精确开放 Browser adapter、Files Web Domain、app-shell 产品接线、对应 package/lock、根 typecheck 与 workspace boundary test：把现有 fetch-compatible Files client 及聚焦测试按原行为迁入 Files Web Domain，删除 Shell→Browser adapter 和 Browser adapter→Files Domain 两条反向边，并把 Browser adapter 统一到标准 package test/typecheck。API、请求语义、数据库、页面、UI/CSS、受保护发行和暂停 E2E 不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
