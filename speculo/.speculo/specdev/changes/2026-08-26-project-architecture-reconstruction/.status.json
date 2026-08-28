@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T18:32:38+08:00",
+  "updated_at": "2026-08-28T18:48:19+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -433,6 +433,16 @@
       "approved_at": "2026-08-28T18:26:58+08:00",
       "reason": "A fifth baseline interaction audit proved LoginPage had dropped password visibility, terminal output timing, exact terminal dimensions, and a responsive breakpoint, while AccountPage had flattened the established identity-summary plus profile/password tabs and removed password confirmation despite AC-012 retaining profile, avatar metadata, and password management",
       "resolution": "Restore the retained login interactions and exact terminal presentation, rebuild AccountPage around the established summary and tabs using only current profile fields, reject mismatched password confirmation before the controller, normalize optional avatar metadata clearing, and add static and unit regressions without restoring captcha, legacy account fields, avatar upload compatibility, Element Plus, or deferred E2E"
+    },
+    {
+      "id": "T05-D09",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T18:48:19+08:00",
+      "reason": "A sixth retained-page interaction audit proved destructive confirmations remained in English, Settings routed non-destructive saves through deletion confirmation, Audit detail used an inconsistent native dialog, Settings and Generator hid later pages of real paginated projections, and Generator retained a stale preview-file index across restart or a new preview",
+      "resolution": "Localize generic and domain-specific destructive confirmation, invoke Settings confirmation only for stable delete target kinds, move Audit detail into the shared accessible management-dialog contract with focus restoration, expose every Settings and Generator pagination controller, reset Generator preview selection at lifecycle boundaries, and add unit/static regressions without changing APIs, permissions, deleted capabilities, compatibility paths, or executing deferred E2E"
     },
     {
       "id": "T21-D04",
