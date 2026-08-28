@@ -120,6 +120,8 @@ D22 后继续反查 Desktop Files 二进制数据路径，确认 Files strict Op
 
 D25 后继续审计 Desktop adapter graph，确认 `createDesktopDemoClient` 与其 Demo status mapper 只有公开导出和自测、全仓零消费者；生产和 native-e2e 产品组合都已统一以 `createDesktopFetch` 注入 Files/Demo 等 Web Domain clients，该死实现单独保留 Desktop adapter→Demo Domain 依赖。Lead 只开放 Desktop adapter 源码/测试、manifest/lock 与 workspace boundary：删除未消费 Demo client/test 和依赖边，并新增 Desktop adapter workspace dependency allowlist。通用 Desktop transport、Session/Stronghold、native-e2e control、产品/API/数据库/UI/CSS、受保护发行和暂停 E2E 均不变。
 
+授权 checkpoint 为 `8abc93446b6aefebce2f74be54a811b42ac56238`；implementation/result 为 `124dd32344f000fab655783782d6e54c5f4fbecb`（tree `3f3cc2a823966f9cf2402e87e6d2c04f91e8132b`）。未消费 Demo client/status mapper 及其自测已删除，Desktop adapter manifest/lock 不再依赖 Demo Domain；通用 transport 自测与 native-e2e control 保留。完整证据见 T-21 Evidence 第 27 节，T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
