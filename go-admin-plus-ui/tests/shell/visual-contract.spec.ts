@@ -184,14 +184,24 @@ describe('admin visual contract', () => {
     expect(audit).not.toContain('<dialog')
   })
 
-  it('exposes navigation for every retained paginated Settings and Generator projection', async () => {
-    const [settings, generator] = await Promise.all([
+  it('exposes complete navigation for every retained paginated projection', async () => {
+    const [settings, generator, audit, administration, organization, scheduler, demo, files] = await Promise.all([
       source('packages/web-domains/settings/src/SettingsPage.vue'),
-      source('packages/web-domains/generator/src/GeneratorWizardPage.vue')
+      source('packages/web-domains/generator/src/GeneratorWizardPage.vue'),
+      source('packages/web-domains/audit/src/AuditPage.vue'),
+      source('packages/web-domains/iam/src/administration/AdministrationPage.vue'),
+      source('packages/web-domains/organization/src/OrganizationPage.vue'),
+      source('packages/web-domains/scheduler/src/SchedulerPage.vue'),
+      source('packages/web-domains/demo/src/DemoProductsPage.vue'),
+      source('packages/web-domains/files/src/FilesPage.vue')
     ])
 
     for (const testId of ['settings-pagination', 'dictionaries-pagination', 'items-pagination']) {
       expect(settings).toContain(`data-testid="${testId}"`)
+    }
+    expect(settings).not.toContain("outcome==='failed'")
+    for (const constraint of ['minlength="3"', 'maxlength="80"', 'maxlength="120"', 'maxlength="500"', 'max="100000" required']) {
+      expect(settings).toContain(constraint)
     }
     for (const list of ['settings', 'dictionaries', 'items']) {
       expect(settings).toContain(`controller.${list}.setPage(`)
@@ -202,6 +212,32 @@ describe('admin visual contract', () => {
     expect(generator).toContain('controller.tables.setPageSize(')
     expect(generator).toContain("if (await props.controller.createPreview() === 'completed') selectedFile.value = 0")
     expect(generator).toContain('props.controller.reset(); selectedFile.value = 0; confirmed.value = false')
+    for (const pattern of ['[a-z][a-z0-9]{1,31}', '[A-Z][A-Za-z0-9]{0,63}', '[a-z][a-z0-9-]{1,63}']) {
+      expect(generator).toContain(`pattern="${pattern}"`)
+    }
+    for (const [page, testIds, lists] of [
+      [audit, ['audit-pagination'], ['list']],
+      [administration, ['iam-users-pagination'], ['users']],
+      [organization, ['organization-positions-pagination'], ['positions']],
+      [scheduler, ['scheduler-definitions-pagination', 'scheduler-executions-pagination'], ['definitions', 'executions']]
+    ] as const) {
+      for (const testId of testIds) expect(page).toContain(`data-testid="${testId}"`)
+      for (const list of lists) {
+        expect(page).toContain(`controller.${list}.setPage(`)
+        expect(page).toContain(`controller.${list}.setPageSize(`)
+      }
+    }
+    for (const page of [demo, files]) {
+      expect(page).toContain('controller.list.setSort(')
+      expect(page).toContain(':aria-sort="sortDirection(')
+      expect(page).toContain("? 'descending' : 'ascending'")
+    }
+    expect(demo).toContain('pattern="[A-Za-z0-9][A-Za-z0-9_-]{2,31}"')
+    expect(demo).toContain('required minlength="3" maxlength="120"')
+    expect(files).toContain('formatDate(row.createdAt)')
+    expect(files).not.toContain('{{ row.updatedAt }}')
+    expect(scheduler).toContain('taskTypeLabel(item.taskType)')
+    expect(scheduler).toContain('formatDate(item.scheduledFor)')
   })
 
   it('keeps paused browser and desktop drivers synchronized with localized UI labels', async () => {

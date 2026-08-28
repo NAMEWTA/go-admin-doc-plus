@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { filesPermissions, type FileMetadata, type UploadCandidate } from '@go-admin/domain-files'
+import { filesPermissions, type FileMetadata, type FileQuery, type UploadCandidate } from '@go-admin/domain-files'
 import type { FilesController } from './files-controller'
 
 const props = defineProps<{ controller: FilesController }>()
@@ -29,6 +29,12 @@ const canRead = computed(() => can(filesPermissions.read))
 const canWrite = computed(() => can(filesPermissions.write))
 const canDelete = computed(() => can(filesPermissions.delete))
 const selectedRows = computed(() => snapshot.value.rows.filter(row => snapshot.value.selectedKeys.includes(row.id)))
+type FileSortKey = FileQuery['sort']
+const currentSort = computed(() => snapshot.value.sort ?? { key: 'createdAt', direction: 'descending' as const })
+const sortDirection = (key: FileSortKey) => currentSort.value.key === key ? currentSort.value.direction : 'none'
+const sortMarker = (key: FileSortKey) => currentSort.value.key === key ? currentSort.value.direction === 'ascending' ? '↑' : '↓' : ''
+const sortBy = (key: FileSortKey) => settle(() => props.controller.list.setSort({ key, direction: currentSort.value.key === key && currentSort.value.direction === 'ascending' ? 'descending' : 'ascending' }))
+const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value))
 
 const chooseFile = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0]
@@ -103,10 +109,10 @@ onMounted(() => settle(() => props.controller.list.refresh()))
       </div>
       <div class="files-page__table">
         <table>
-          <thead><tr><th v-if="canDelete" scope="col">选择</th><th scope="col">文件名称</th><th scope="col">类型</th><th scope="col">大小</th><th scope="col">更新时间</th><th scope="col">操作</th></tr></thead>
+          <thead><tr><th v-if="canDelete" scope="col">选择</th><th scope="col" :aria-sort="sortDirection('name')"><button type="button" :disabled="blocked" @click="sortBy('name')">文件名称 <span aria-hidden="true">{{ sortMarker('name') }}</span></button></th><th scope="col">类型</th><th scope="col" :aria-sort="sortDirection('sizeBytes')"><button type="button" :disabled="blocked" @click="sortBy('sizeBytes')">大小 <span aria-hidden="true">{{ sortMarker('sizeBytes') }}</span></button></th><th scope="col" :aria-sort="sortDirection('createdAt')"><button type="button" :disabled="blocked" @click="sortBy('createdAt')">创建时间 <span aria-hidden="true">{{ sortMarker('createdAt') }}</span></button></th><th scope="col">操作</th></tr></thead>
           <tbody><tr v-for="row in snapshot.rows" :key="row.id" :data-file-id="row.id">
             <td v-if="canDelete"><input type="checkbox" :checked="snapshot.selectedKeys.includes(row.id)" :aria-label="`选择 ${row.originalName}`" :disabled="blocked" @change="toggle(row, ($event.target as HTMLInputElement).checked)"></td>
-            <td>{{ row.originalName }}</td><td>{{ row.mediaType }}</td><td>{{ row.sizeBytes }}</td><td>{{ row.updatedAt }}</td>
+            <td>{{ row.originalName }}</td><td>{{ row.mediaType }}</td><td>{{ row.sizeBytes }}</td><td>{{ formatDate(row.createdAt) }}</td>
             <td><button type="button" :disabled="blocked" @click="download(row)">下载</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove([row])">删除</button></td>
           </tr></tbody>
         </table>

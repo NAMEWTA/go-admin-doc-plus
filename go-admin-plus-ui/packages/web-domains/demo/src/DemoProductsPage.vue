@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { demoPermissions, validateProduct, type Product, type ProductInput } from '@go-admin/domain-demo'
+import { demoPermissions, validateProduct, type Product, type ProductInput, type ProductQuery } from '@go-admin/domain-demo'
 import type { DemoController } from './demo-controller'
 
 const props = defineProps<{ controller: DemoController }>()
@@ -47,6 +47,11 @@ const save = () => settle(async () => {
 })
 const remove = (products: ReadonlyArray<Product>) => settle(() => props.controller.remove(products))
 const selected = computed(() => snapshot.value.rows.filter(row => snapshot.value.selectedKeys.includes(row.id)))
+type ProductSortKey = ProductQuery['sort']
+const currentSort = computed(() => snapshot.value.sort ?? { key: 'updatedAt', direction: 'descending' as const })
+const sortDirection = (key: ProductSortKey) => currentSort.value.key === key ? currentSort.value.direction : 'none'
+const sortMarker = (key: ProductSortKey) => currentSort.value.key === key ? currentSort.value.direction === 'ascending' ? '↑' : '↓' : ''
+const sortBy = (key: ProductSortKey) => settle(() => props.controller.list.setSort({ key, direction: currentSort.value.key === key && currentSort.value.direction === 'ascending' ? 'descending' : 'ascending' }))
 const toggle = (product: Product, checked: boolean) => {
   const ids = new Set(snapshot.value.selectedKeys)
   if (checked) ids.add(product.id)
@@ -72,7 +77,7 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
     <div v-if="projectionVisible && canRead" class="demo-products__grid">
       <div class="demo-products__table">
         <div v-if="canWrite || canDelete" class="demo-products__actions"><button v-if="canWrite" type="button" data-testid="open-product-form" @click="create">新增</button><button v-if="canDelete" type="button" data-testid="delete-selected-products" :disabled="blocked || selected.length === 0" @click="remove(selected)">批量删除</button></div>
-        <table><thead><tr><th aria-label="选择"></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'sku', direction: 'ascending' }))">SKU</button></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'name', direction: 'ascending' }))">名称</button></th><th><button type="button" :disabled="blocked" @click="settle(() => controller.list.setSort({ key: 'priceCents', direction: 'ascending' }))">价格</button></th><th>状态</th><th>操作</th></tr></thead>
+        <table><thead><tr><th aria-label="选择"></th><th :aria-sort="sortDirection('sku')"><button type="button" :disabled="blocked" @click="sortBy('sku')">SKU <span aria-hidden="true">{{ sortMarker('sku') }}</span></button></th><th :aria-sort="sortDirection('name')"><button type="button" :disabled="blocked" @click="sortBy('name')">名称 <span aria-hidden="true">{{ sortMarker('name') }}</span></button></th><th :aria-sort="sortDirection('priceCents')"><button type="button" :disabled="blocked" @click="sortBy('priceCents')">价格 <span aria-hidden="true">{{ sortMarker('priceCents') }}</span></button></th><th>状态</th><th>操作</th></tr></thead>
           <tbody><tr v-for="product in snapshot.rows" :key="product.id">
             <td><input v-if="canDelete" type="checkbox" :checked="snapshot.selectedKeys.includes(product.id)" :aria-label="`选择 ${product.sku}`" @change="toggle(product, ($event.target as HTMLInputElement).checked)"></td>
             <td>{{ product.sku }}</td><td>{{ product.name }}</td><td>{{ product.priceCents }}</td><td>{{ product.status === 'active' ? '启用' : '停用' }}</td>
@@ -82,7 +87,7 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
         <nav aria-label="分页"><button type="button" :disabled="blocked || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">上一页</button><span>第 {{ snapshot.page }} 页</span><label>每页<select :value="snapshot.pageSize" :disabled="blocked" @change="settle(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label><button type="button" :disabled="blocked || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.list.setPage(snapshot.page + 1))">下一页</button></nav>
       </div>
     </div>
-    <div v-if="formOpen && canWrite" class="management-dialog-backdrop" @click.self="closeForm" @keydown.esc="closeForm"><form class="management-dialog demo-products__form" role="dialog" aria-modal="true" :aria-labelledby="editing ? 'edit-product-title' : 'create-product-title'" @submit.prevent="save"><header class="management-dialog__header"><h2 :id="editing ? 'edit-product-title' : 'create-product-title'">{{ editing ? '修改产品' : '新增产品' }}</h2><button type="button" aria-label="关闭" :disabled="controller.busy" @click="closeForm">×</button></header><div class="management-dialog__body"><p v-if="formError" role="alert">{{ formError }}</p><label>SKU<input v-model="form.sku" name="sku" autofocus maxlength="32" required></label><label>名称<input v-model="form.name" name="name" required></label><label>描述<textarea v-model="form.description" name="description"></textarea></label><label>价格（分）<input v-model.number="form.priceCents" name="priceCents" type="number" min="0" max="100000000" required></label><label>状态<select v-model="form.status" name="status"><option value="active">启用</option><option value="inactive">停用</option></select></label></div><footer class="management-dialog__footer"><button type="button" :disabled="controller.busy" @click="closeForm">取消</button><button type="submit" :disabled="blocked">保存</button></footer></form></div>
+    <div v-if="formOpen && canWrite" class="management-dialog-backdrop" @click.self="closeForm" @keydown.esc="closeForm"><form class="management-dialog demo-products__form" role="dialog" aria-modal="true" :aria-labelledby="editing ? 'edit-product-title' : 'create-product-title'" @submit.prevent="save"><header class="management-dialog__header"><h2 :id="editing ? 'edit-product-title' : 'create-product-title'">{{ editing ? '修改产品' : '新增产品' }}</h2><button type="button" aria-label="关闭" :disabled="controller.busy" @click="closeForm">×</button></header><div class="management-dialog__body"><p v-if="formError" role="alert">{{ formError }}</p><label>SKU<input v-model="form.sku" name="sku" autofocus required minlength="3" maxlength="32" pattern="[A-Za-z0-9][A-Za-z0-9_-]{2,31}"></label><label>名称<input v-model="form.name" name="name" required minlength="3" maxlength="120"></label><label>描述<textarea v-model="form.description" name="description" maxlength="500"></textarea></label><label>价格（分）<input v-model.number="form.priceCents" name="priceCents" type="number" min="0" max="100000000" required></label><label>状态<select v-model="form.status" name="status"><option value="active">启用</option><option value="inactive">停用</option></select></label></div><footer class="management-dialog__footer"><button type="button" :disabled="controller.busy" @click="closeForm">取消</button><button type="submit" :disabled="blocked">保存</button></footer></form></div>
   </section>
 </template>
 

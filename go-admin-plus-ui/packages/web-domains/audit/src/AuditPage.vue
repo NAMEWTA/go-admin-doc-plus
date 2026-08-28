@@ -104,7 +104,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
         </tbody>
       </table>
     </div>
-    <footer class="paging"><span>共 {{ snapshot.total }} 条</span><button type="button" :disabled="busy || snapshot.page <= 1" @click="run(() => controller.list.setPage(snapshot.page - 1))">上一页</button><span>第 {{ snapshot.page }} 页</span><button type="button" :disabled="busy || snapshot.page * snapshot.pageSize >= snapshot.total" @click="run(() => controller.list.setPage(snapshot.page + 1))">下一页</button></footer>
+    <footer class="paging" data-testid="audit-pagination"><span>共 {{ snapshot.total }} 条</span><button type="button" :disabled="busy || snapshot.page <= 1" @click="run(() => controller.list.setPage(snapshot.page - 1))">上一页</button><span>第 {{ snapshot.page }} 页</span><label>每页<select :value="snapshot.pageSize" :disabled="busy" @change="run(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label><button type="button" :disabled="busy || snapshot.page * snapshot.pageSize >= snapshot.total" @click="run(() => controller.list.setPage(snapshot.page + 1))">下一页</button></footer>
     <section class="cleanup" aria-labelledby="cleanup-title">
       <h2 id="cleanup-title">日志清理</h2>
       <label>删除此日期前的记录<input v-model="cleanupBefore" data-testid="audit-cleanup-before" type="date" required></label>
