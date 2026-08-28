@@ -111,9 +111,9 @@ shared_path_owners: ["<Path>go-admin-plus/internal/app/kernel/**</Path> => T-03"
 
 ## 10. 验收标准
 
-- [ ] `AC-005`：所有无效配置在监听或开窗前失败且诊断脱敏。
-- [ ] `AC-026`：运维端点在各生命周期状态下语义正确。
-- [ ] `AC-027`：三 profile schema、precedence、secret 和 Desktop 来源边界可验证。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-03.md</Path>`。
-- [ ] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 状态一致且无未批准偏差。
+- [x] `AC-005`：所有无效配置在监听或开窗前失败且诊断脱敏。
+- [x] `AC-026`：运维端点在各生命周期状态下语义正确。
+- [x] `AC-027`：三 profile schema、precedence、secret 和 Desktop 来源边界可验证。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-03.md</Path>`。
+- [x] 修改未超出 `writable_paths`，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 状态一致且无未批准偏差。

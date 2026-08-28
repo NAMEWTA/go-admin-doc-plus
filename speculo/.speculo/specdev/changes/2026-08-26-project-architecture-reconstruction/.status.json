@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T18:48:19+08:00",
+  "updated_at": "2026-08-28T19:07:49+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -443,6 +443,16 @@
       "approved_at": "2026-08-28T18:48:19+08:00",
       "reason": "A sixth retained-page interaction audit proved destructive confirmations remained in English, Settings routed non-destructive saves through deletion confirmation, Audit detail used an inconsistent native dialog, Settings and Generator hid later pages of real paginated projections, and Generator retained a stale preview-file index across restart or a new preview",
       "resolution": "Localize generic and domain-specific destructive confirmation, invoke Settings confirmation only for stable delete target kinds, move Audit detail into the shared accessible management-dialog contract with focus restoration, expose every Settings and Generator pagination controller, reset Generator preview selection at lifecycle boundaries, and add unit/static regressions without changing APIs, permissions, deleted capabilities, compatibility paths, or executing deferred E2E"
+    },
+    {
+      "id": "T05-D10",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-05",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T19:07:49+08:00",
+      "reason": "A seventh AC-035/source-to-contract audit proved five paginated projections hid page-size control, Files hid supported sorting, Demo could only force ascending sort, Files displayed updatedAt under a createdAt sort contract, raw transport timestamps and Scheduler task keys leaked to the UI, Settings validation erased input and lacked native constraints and busy locks, and Generator and Demo lacked existing domain-native validation constraints",
+      "resolution": "Restore complete retained pagination, accessible bidirectional sorting, contract-aligned Files time semantics, localized time and task labels, failure-preserving Settings forms and native contract validation and busy locks, and Generator and Demo native validation; add static regressions without API, controller, permission, deleted capability, compatibility, or E2E changes"
     },
     {
       "id": "T21-D04",
