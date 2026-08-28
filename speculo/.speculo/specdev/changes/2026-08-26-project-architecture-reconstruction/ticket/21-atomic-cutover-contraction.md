@@ -148,6 +148,8 @@ D28 后继续按 ADR-012/ADR-016 审计数据库边界，确认当前八模块�
 
 表 owner gate GREEN 后反查 T-15 “生成物通过架构边界检查”接缝，确认 `<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>` 只运行新模块自身的 Go test/build 与前端/合同检查，不执行包含 import/table owner 规则的 `<Path>go-admin-plus/internal/application</Path>` 测试；因此 Generator 仍可能在架构门禁未运行时报告写入成功。Lead 以 `main@cba2cec93eaab9a4ae5e7c8bd1c827283d4c784f` 为审计 base，追加开放 Generator compile gate 与既有 test：把固定命令清单提取为可测试函数，要求生成后先运行 application architecture package，再运行目标模块 test/build；任何失败继续拒绝写入且不产生部分成功。生成模板/内容、自动产品注册 OUT 边界、API、schema/migration、前端与 UI/CSS 不变，不运行暂停 E2E。
 
+D29 授权 checkpoint 为 `cba2cec93eaab9a4ae5e7c8bd1c827283d4c784f`，D29-A01 授权 checkpoint 为 `15c58d8cc9293190bae819a6d4f13b22f832b257`；implementation/result 为 `e6c300c1fdd891602ddf2b4303596b1917989e4e`（tree `f9c8d3cab05d0a440db1a47a7f47643408e7d254`）。双方言 migration owner、静态 SQL table-position 边界和 Generator application architecture 接线已建立；普通/SQLite 全量 Go、race、vet、真实 Generator 隔离编译、根 architecture/compatibility-zero 与 Server/Web/Tauri 2 全目标 production build 通过。完整证据见 T-21 Evidence 第 30 节；T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
