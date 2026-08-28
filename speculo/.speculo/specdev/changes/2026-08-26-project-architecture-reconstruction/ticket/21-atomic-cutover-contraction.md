@@ -166,6 +166,12 @@ Lead 以 `main@b70a406b6ce19ad377d779d6e91109e6eec24031` 为审计 base，基于
 
 D31 授权 checkpoint 为 `b606246de71ed3b1bbb3f5d6f69ce24c1c82ffd5`；implementation/result 为 `a2ef44a52f2b7e7e53ab6928dd26632afee25c02`（tree `edc623028d1310f86c8fd8727bc61a834416fc01`）。Desktop 实例锁、SQLite 恢复、listener、HTTP/Application 生命周期和 shutdown 已由 `<Path>go-admin-plus/internal/host/desktop</Path>` 唯一拥有，product composition 通过 Builder 注入，command 生产源码只剩入口；普通/SQLite 全量 Go、race、vet、真实 Generator、合同生成/lint、根静态门禁、三平台 sidecar marker 扫描及 Server/Web/Tauri 2 全目标 production build 全绿。完整证据见 T-21 Evidence 第 32 节；按用户要求未运行任何 E2E，T-21 状态不变。
 
+### T21-D32（Lead 批准）
+
+D31 后继续审计其余 ADR-006 command 边界，确认 `<Path>go-admin-plus/cmd/go-admin-plus/main.go</Path>` 仍直接导入 application health 与 platform database，在 command 内创建/解析运行目录、映射数据库 profile、打开数据库、构造完整 `product.Options` 并调用具体 `product.Build`。现有 command gate 只覆盖 Desktop，因此 Server command 仍不是“仅入口”，也没有自动化阻止数据库或运行时组合回归。
+
+Lead 以 `main@37c4da5bdd50ddbed32786e553ec8f10d43ec452` 为审计 base，精确开放 `<Path>go-admin-plus/internal/app/product/server*.go</Path>`、`<Path>go-admin-plus/cmd/go-admin-plus/**</Path>`、`<Path>go-admin-plus/internal/application/architecture_test.go</Path>` 及对应 SpecDev 状态/Evidence：由 app/product 唯一完成 Server profile/database/product/Host 组合与运行目录解析，command 仅解析参数/环境、加载 typed config snapshot、调用组合入口并运行 Host；原 command 的 profile mapping 测试随 owner 迁移。新增实际仓库与负向 fixture，拒绝 Server command 恢复额外 production runtime 文件或直接导入 application/modules/database/network runtime。Server PostgreSQL/SQLite、公开 API、schema/migration、产品行为、前端页面 template/style、UI/CSS、发行和暂停 E2E 不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。

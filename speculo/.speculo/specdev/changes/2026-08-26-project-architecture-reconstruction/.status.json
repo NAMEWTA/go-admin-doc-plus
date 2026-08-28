@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T05:58:03+08:00",
+  "updated_at": "2026-08-29T06:01:11+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -753,6 +753,16 @@
       "approved_at": "2026-08-29T05:25:25+08:00",
       "reason": "The post-D30 ADR-006 command-boundary audit proved cmd/desktop-sidecar still owns instance locking, database recovery, listener and application lifecycle, while build-tag native control remains in the command package and the untagged runtime exposes a concrete IAM Session dependency",
       "resolution": "Move Desktop resource and HTTP lifecycle into internal/host/desktop behind an application-facing Builder, implement that Builder and build-tag private control in app/product, reduce cmd/desktop-sidecar to process entry concerns, delete command runtime forwarding, and add a negative command-boundary fixture; preserve API, schema, product behavior, UI/CSS, release, and deferred E2E"
+    },
+    {
+      "id": "T21-D32",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T06:01:11+08:00",
+      "reason": "The post-D31 ADR-006 command audit proved cmd/go-admin-plus still imports application health and platform database, canonicalizes runtime roots, maps database profiles, opens the database, and invokes the concrete product builder, while the command-boundary gate covers only Desktop",
+      "resolution": "Move Server database/profile/product composition into internal/app/product behind one Server Host constructor, retain only argument/environment/config launch material and Host execution in cmd/go-admin-plus, move composition tests with their owner, and add a negative Server command import/runtime ownership gate; preserve both Server database profiles, APIs, schema, UI/CSS, release, and deferred E2E"
     }
   ],
   "worktrees": [
