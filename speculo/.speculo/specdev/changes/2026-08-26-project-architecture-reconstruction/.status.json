@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T22:28:22+08:00",
+  "updated_at": "2026-08-28T22:44:25+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -553,6 +553,16 @@
       "approved_at": "2026-08-28T22:28:22+08:00",
       "reason": "The final build-completeness audit proved task build TARGET=desktop compiled only Vite WebView assets, while TARGET=all built only the Server command plus Web/Desktop assets and omitted both the host Go sidecar and Rust/Tauri executable despite current documentation and Evidence describing complete Server/sidecar/Web/Desktop builds",
       "resolution": "Make the Desktop build stage the approved host sidecar and run a custom-protocol Tauri release build with --no-bundle; route both desktop and all through that native build, keep package/signing/notarization in the existing package and protected release commands, document the macOS/Windows host constraint, and enforce the build wiring in architecture tests without running E2E"
+    },
+    {
+      "id": "T21-D14",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T22:44:25+08:00",
+      "reason": "The final CI build-completeness audit proved the macOS Desktop job staged the Go sidecar but did not install the frozen pnpm workspace and ended with cargo check, so CI never ran the Tauri CLI beforeBuildCommand or linked the release Desktop executable that the canonical local build now requires",
+      "resolution": "Install the pinned pnpm workspace in the Desktop CI job, retain sidecar staging plus locked Rust tests and strict clippy, replace release cargo check with custom-protocol Tauri build --no-bundle, and enforce all three job-local contracts in the architecture gate without bundling, signing, publishing, changing product behavior, or running E2E"
     }
   ],
   "worktrees": [
