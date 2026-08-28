@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
+import { verifyDesktopProductionAssets } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
 const maxOutput = 16 * 1024
@@ -108,14 +109,6 @@ const fileContains = async (path, needle) => {
   }
 }
 
-const directoryContains = async (directory, needle) => {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const path = join(directory, entry.name)
-    if (entry.isDirectory() ? await directoryContains(path, needle) : entry.isFile() && await fileContains(path, needle)) return true
-  }
-  return false
-}
-
 const restoreProductionArtifacts = async () => {
   await Promise.all([
     rm(sidecarBinary, { force: true }),
@@ -127,9 +120,9 @@ const restoreProductionArtifacts = async () => {
     cwd: appRoot, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
   })
   await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'custom-protocol'], { cwd: rustRoot, timeout: 300_000 })
+  await verifyDesktopProductionAssets(join(appRoot, 'dist'))
   if (await fileContains(sidecarBinary, '/__desktop/test-control') ||
-    await fileContains(hostBinary, '/__desktop/test-control') ||
-    await directoryContains(join(appRoot, 'dist'), 'E2E scope self')) {
+    await fileContains(hostBinary, '/__desktop/test-control')) {
     throw new Error('production desktop artifacts retained native test controls')
   }
 }
@@ -351,9 +344,9 @@ const main = async () => {
     phase = 'native-sidecar-build'
     await execute(process.execPath, [join(root, 'release/shared/sidecar/build.mjs'), '--native-e2e', '--target', 'aarch64-apple-darwin'], { cwd: root })
     phase = 'native-ui-build'
-    await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts'], {
+    await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts', '--mode', 'native-e2e'], {
       cwd: appRoot,
-      env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', VITE_GO_ADMIN_NATIVE_E2E: '1' }
+      env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
     })
     phase = 'native-host-build'
     await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'native-e2e'], { cwd: rustRoot, timeout: 600_000 })

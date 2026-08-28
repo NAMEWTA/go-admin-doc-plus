@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { verifyDesktopProductionAssets } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
@@ -28,6 +30,32 @@ test('native runner accessibility labels match the current Session UI', () => {
   assert.match(runner, /clickButtonScript\(pid, '\u9000\u51fa\u767b\u5f55'\)/)
   assert.match(runner, /poll\('native logout', \(\) => windowContains\(app\.child\.pid, '\u4f7f\u7528\u7ba1\u7406\u5458\u8d26\u53f7\u767b\u5f55\u63a7\u5236\u53f0'\), 90_000\)/)
   assert.doesNotMatch(runner, /name: '(?:Username|Password)'|, 'Sign in'\)\)|, 'Sign out'\)\)|windowContains\([^\n]+, '(?:Sign in|Sign out)'\)/)
+})
+
+test('production Desktop entry contains no native E2E controls', () => {
+  const appRoot = join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop')
+  const app = readFileSync(join(appRoot, 'src/App.vue'), 'utf8')
+  const main = readFileSync(join(appRoot, 'src/main.ts'), 'utf8')
+  const vite = readFileSync(join(appRoot, 'vite.config.ts'), 'utf8')
+  const manifest = JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8'))
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  assert.doesNotMatch(app, /VITE_GO_ADMIN_NATIVE_E2E|__desktop\/test-control|native-e2e|window\.confirm\s*=|E2E scope self/)
+  assert.match(app, /<ProductWorkspace/)
+  assert.match(main, /import App from '@desktop-entry'/)
+  assert.match(vite, /mode === 'native-e2e' \? '\.\/src\/native-e2e\/App\.vue' : '\.\/src\/App\.vue'/)
+  assert.match(runner, /'--mode', 'native-e2e'/)
+  assert.match(manifest.scripts.build, /vite build[^&]+&& node scripts\/verify-production\.mjs/)
+})
+
+test('production Desktop asset verifier rejects native E2E bytes', async t => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-desktop-production-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  mkdirSync(join(root, 'assets'))
+  writeFileSync(join(root, 'index.html'), '<main>Go Admin Plus</main>')
+  writeFileSync(join(root, 'assets/app.css'), '.product-shell{display:grid}')
+  await assert.doesNotReject(verifyDesktopProductionAssets(root))
+  writeFileSync(join(root, 'assets/app.css'), '.native-e2e{display:flex}')
+  await assert.rejects(verifyDesktopProductionAssets(root), /native test control: native-e2e/)
 })
 
 test('native runner stops polling after an early host exit', () => {
@@ -62,11 +90,11 @@ test('native runner verifies SQLite only while the sidecar is stopped', () => {
 
 test('native delete uses the uniquely named product action and a test-only confirmation port', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  const app = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/App.vue'), 'utf8')
+  const app = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue'), 'utf8')
   const page = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/demo/src/DemoProductsPage.vue'), 'utf8')
   assert.match(runner, /clickButton\(pid, '\u5220\u9664 E2E-001'\)/)
   assert.match(runner, /phase = 'product-create'[\s\S]*clickButton\(app\.child\.pid, '\u65b0\u589e'\)[\s\S]*windowContains\(app\.child\.pid, '\u65b0\u589e\u4ea7\u54c1'\)/)
-  assert.match(app, /if \(!nativeE2E\) return\n  nativeConfirm = window\.confirm\n  window\.confirm = \(\) => true/)
+  assert.match(app, /nativeConfirm = window\.confirm\n  window\.confirm = \(\) => true/)
   assert.match(page, /:aria-label="`\u5220\u9664 \$\{product\.sku\}`"/)
   assert.doesNotMatch(runner, /first button whose name is "Delete"/)
   assert.doesNotMatch(runner, /tell sheet 1 of window 1 to click button "OK"/)
