@@ -14,6 +14,10 @@
 task release VERSION=0.1.0
 ```
 
+`task package TARGET=desktop` 只生成当前宿主的本地未签名构建：macOS 为 `.app`，Windows
+为 NSIS。macOS Universal App/DMG、Windows Authenticode NSIS 及其安装证据只能由受保护
+workflow 生成；本地 package 不能替代发行 Gate。
+
 平台构建、安装验证和制品收集必须由 `.github/workflows/product-release.yml` 的受保护 jobs 执行。最终产品 manifest 只有在三个平台结果、摘要、SBOM、签名状态和来源完全一致时才可形成。
 
 平台细节见 [Linux](../release/linux/README.md)、[macOS](../release/macos/README.md) 和 [Windows](../release/windows/README.md)。

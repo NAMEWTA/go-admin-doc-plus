@@ -49,6 +49,21 @@ task migrate PROFILE=server-sqlite
 GO_ADMIN_DATABASE_DSN_FILE=/absolute/path/to/dsn task migrate PROFILE=server-postgres
 ```
 
+## 构建与本地打包
+
+`build` 验证可编译目标，`package` 生成当前宿主可用的本地制品：
+
+```bash
+task build TARGET=all PROFILE=server-sqlite
+task package TARGET=server PROFILE=server-sqlite
+task package TARGET=web
+task package TARGET=desktop
+```
+
+Server 和 Web 制品写入根 `.artifacts/packages/`。Desktop 使用 Tauri 2 的目标目录：macOS
+生成 `.app`，Windows 生成 NSIS；不支持 Linux Desktop。本地 Desktop package 只用于构建验证，
+不构成已签名发行候选。
+
 ## 验证
 
 ```bash

@@ -48,6 +48,12 @@ task governance:check
 task architecture:check
 task compatibility:zero
 task docs:check
+
+# 构建全部目标并生成当前宿主的本地制品
+task build TARGET=all PROFILE=server-sqlite
+task package TARGET=server PROFILE=server-sqlite
+task package TARGET=web
+task package TARGET=desktop
 ```
 
 详细说明见 [开发指南](docs/development.md)、[仓库架构](docs/repository-architecture.md) 和 [发行指南](docs/release.md)。
