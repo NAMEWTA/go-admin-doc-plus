@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { DemoRequestError } from '@go-admin-plus/domain-demo'
-
-import { createDesktopDemoClient, createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
+import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
 
 afterEach(() => { vi.unstubAllGlobals() })
 
@@ -102,23 +100,6 @@ describe('desktop adapter security boundary', () => {
     expect(calls).toEqual([['desktop_request', {
       request: { path: '/demo/products?page=1', method: 'GET', body: undefined }
     }]])
-  })
-
-  it('maps stable host statuses and serializes Demo operations', async () => {
-    const calls: string[] = []
-    const client = createDesktopDemoClient({
-      async request(path) {
-        calls.push(path)
-        return calls.length === 1 ? { status: 403, body: {} } : { status: 200, body: { rows: [], total: 0 } }
-      }
-    })
-    const query = { search: '%_', page: 1, pageSize: 20, sort: 'sku', direction: 'ascending' } as const
-    await expect(client.list(query)).rejects.toMatchObject({ category: 'forbidden' } satisfies Partial<DemoRequestError>)
-    await expect(client.list(query)).resolves.toEqual({ rows: [], total: 0 })
-    expect(calls).toEqual([
-      '/demo/products?search=%25_&page=1&pageSize=20&sort=sku&direction=ascending',
-      '/demo/products?search=%25_&page=1&pageSize=20&sort=sku&direction=ascending'
-    ])
   })
 
   it('uses dedicated typed commands for login and logout', async () => {

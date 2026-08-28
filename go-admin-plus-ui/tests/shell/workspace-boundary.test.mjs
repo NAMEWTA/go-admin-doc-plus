@@ -8,6 +8,7 @@ import { loadConfigFromFile } from 'vite'
 const workspaceRoot = join(dirname(fileURLToPath(import.meta.url)), '../..')
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
 const browserAdapterWorkspaceDependencies = ['@go-admin-plus/platform']
+const desktopAdapterWorkspaceDependencies = ['@go-admin-plus/domain-iam', '@go-admin-plus/platform']
 const assertBrowserAdapterDependencies = dependencies => {
   for (const dependency of browserAdapterWorkspaceDependencies) {
     assert.equal(dependencies[dependency], 'workspace:*')
@@ -16,6 +17,16 @@ const assertBrowserAdapterDependencies = dependencies => {
     Object.keys(dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
     browserAdapterWorkspaceDependencies,
     'browser adapter may only depend on the platform port'
+  )
+}
+const assertDesktopAdapterDependencies = dependencies => {
+  for (const dependency of desktopAdapterWorkspaceDependencies) {
+    assert.equal(dependencies[dependency], 'workspace:*')
+  }
+  assert.deepEqual(
+    Object.keys(dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
+    desktopAdapterWorkspaceDependencies,
+    'desktop adapter may only depend on Session and platform ports'
   )
 }
 const requiredPackageNames = [
@@ -195,6 +206,8 @@ test('apps select adapters without owning runtime transport', async () => {
     Object.keys(adminDesktop.dependencies).filter(name => name.startsWith('@go-admin-plus/')).sort(),
     ['@go-admin-plus/adapter-desktop', '@go-admin-plus/app-shell', '@go-admin-plus/ui']
   )
+  const desktopAdapter = await readJson(join(workspaceRoot, 'packages/adapters/desktop/package.json'))
+  assertDesktopAdapterDependencies(desktopAdapter.dependencies)
 
   const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
   assert.doesNotMatch(productShell, /@go-admin-plus\/adapter-(?:browser|desktop)/)
@@ -246,6 +259,17 @@ test('browser adapter dependency allowlist rejects additional workspace packages
       '@go-admin-plus/app-shell': 'workspace:*'
     }),
     /browser adapter may only depend/
+  )
+})
+
+test('desktop adapter dependency allowlist rejects business Web Domain duplicates', () => {
+  assert.throws(
+    () => assertDesktopAdapterDependencies({
+      '@go-admin-plus/domain-iam': 'workspace:*',
+      '@go-admin-plus/platform': 'workspace:*',
+      '@go-admin-plus/domain-demo': 'workspace:*'
+    }),
+    /desktop adapter may only depend/
   )
 })
 

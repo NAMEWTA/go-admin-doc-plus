@@ -1,6 +1,5 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core'
 
-import { DemoRequestError, type DemoClient, type DemoFailure, type Product, type ProductPage } from '@go-admin-plus/domain-demo'
 import { SessionRequestError, type AccountProfile, type SessionClient } from '@go-admin-plus/domain-iam/session'
 import type { DataScope, HostFile, HostFileSaveResult, NavigationEntry, PermissionCode, PlatformPort, RuntimeIdentity, ShellRuntimePort } from '@go-admin-plus/platform'
 
@@ -302,39 +301,5 @@ export const createDesktopSessionClient = (invoke: Invoke = tauriInvoke): Sessio
         method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword })
       })
     }
-  }
-}
-
-const failure = (status: number): DemoFailure => {
-  if (status === 401) return 'relogin'
-  if (status === 403) return 'forbidden'
-  if (status === 400 || status === 422) return 'validation'
-  if (status === 404) return 'not-found'
-  if (status === 409) return 'conflict'
-  return 'unavailable'
-}
-
-/** Demo client backed by the Rust allowlisted bridge. Host response schemas are rechecked in Rust. */
-export const createDesktopDemoClient = (transport: DesktopTransport = createDesktopTransport()): DemoClient => {
-  let tail: Promise<void> = Promise.resolve()
-  const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
-    const result = tail.then(operation, operation)
-    tail = result.then(() => undefined, () => undefined)
-    return result
-  }
-  const required = async <T>(path: string, method: Method, body?: unknown): Promise<T> => {
-    const response = await transport.request(path, method, body)
-    if (response.status < 200 || response.status >= 300) throw new DemoRequestError(failure(response.status))
-    return response.body as T
-  }
-  return {
-    list: query => serialized(() => required<ProductPage>(`/demo/products?${new URLSearchParams({
-      search: query.search, page: String(query.page), pageSize: String(query.pageSize),
-      sort: query.sort, direction: query.direction
-    })}`, 'GET')),
-    get: id => serialized(() => required<Product>(`/demo/products/${encodeURIComponent(id)}`, 'GET')),
-    create: input => serialized(() => required<Product>('/demo/products', 'POST', input)),
-    update: (id, input) => serialized(() => required<Product>(`/demo/products/${encodeURIComponent(id)}`, 'PATCH', input)),
-    delete: products => serialized(async () => { await required<null>('/demo/products/batch-delete', 'POST', { products: [...products] }) })
   }
 }

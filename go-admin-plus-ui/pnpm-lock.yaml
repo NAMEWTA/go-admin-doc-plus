@@ -165,9 +165,6 @@ importers:
 
   packages/adapters/desktop:
     dependencies:
-      '@go-admin-plus/domain-demo':
-        specifier: workspace:*
-        version: link:../../domains/demo
       '@go-admin-plus/domain-iam':
         specifier: workspace:*
         version: link:../../domains/iam
