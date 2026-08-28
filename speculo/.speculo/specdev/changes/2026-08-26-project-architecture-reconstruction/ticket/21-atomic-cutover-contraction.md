@@ -126,6 +126,8 @@ D25 后继续审计 Desktop adapter graph，确认 `createDesktopDemoClient` 与
 
 最终 25-workspace 验证集合审计确认 `adapter-desktop`、`platform` 与 `ui` 含生产 TypeScript 却没有 package-local typecheck，`adapter-desktop` 还拥有 package spec 但没有 test script；根递归检查因此只执行“已经声明”的 package，依赖 App/Web Domain 间接导入不能证明 package 可独立验证。Lead 只开放三个 package manifest/tsconfig、精确 lock projection 与 architecture gate/tests：动态要求每个非根 package 声明 typecheck、拥有 spec 的 package 声明 test，并补齐三个 strict package contract；没有 spec 的双 App/platform/ui 不增加空 test。产品源码、API、数据库、页面与 UI/CSS、受保护发行和暂停 E2E 不变。
 
+授权 checkpoint 为 `c16a2e3b90cde3b21ad592763801c90abb0d9048`；implementation/result 为 `b20e56c771d08d47da25c68dde251d1a38c07ae5`（tree `c1ae58477ebc0065f8c5577a55f536e3eb8d13a8`）。三个 package 已拥有 strict typecheck，Desktop adapter 同时拥有标准 test；architecture gate 动态拒绝缺失 contract。完整证据见 T-21 Evidence 第 28 节，T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
