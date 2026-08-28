@@ -134,7 +134,7 @@ func generatedRepository(model Model) string {
 		}
 	}
 	var out strings.Builder
-	fmt.Fprintf(&out, "package %s\n\nimport (\n\t\"context\"\n\t\"database/sql\"\n\t\"errors\"\n\n\t\"go-admin/internal/platform/database\"\n)\n\n", model.Module)
+	fmt.Fprintf(&out, "package %s\n\nimport (\n\t\"context\"\n\t\"database/sql\"\n\t\"errors\"\n\n\t\"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database\"\n)\n\n", model.Module)
 	out.WriteString("type Repository struct{ dialect database.Dialect }\n\nfunc (Repository) bind(query string) string { return query }\nfunc (repository Repository) sortExpression(column string, textual bool) string { if !textual { return column }; if repository.dialect == database.DialectPostgres { return column + ` COLLATE \"C\"` }; return column + \" COLLATE BINARY\" }\n\n")
 	fmt.Fprintf(&out, "func (repository Repository) Create(ctx context.Context, tx database.Tx, value %s) error {\n\trecord := map%s(value)\n", model.Entity, model.Entity)
 	fmt.Fprintf(&out, "\t_, err := tx.ExecContext(ctx, repository.bind(%q)", "INSERT INTO "+quoteIdentifier(model.TableName)+" ("+strings.Join(columnNames, ", ")+") VALUES ("+strings.Join(placeholders, ", ")+")")
@@ -227,7 +227,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 type Database interface { WithinTx(context.Context, func(context.Context, database.Tx) error) error; Dialect() database.Dialect }
@@ -310,9 +310,9 @@ import (
 	"errors"
 	"net/http"
 
-	"go-admin/internal/modules/iam/authorization"
-	"go-admin/internal/modules/iam/session"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 type IAMAuthorizationAdapter struct { service *authorization.Service; dialect database.Dialect }
 func NewIAMAuthorizationAdapter(db Database) (*IAMAuthorizationAdapter, error) { if db == nil { return nil, ErrInvalid }; return &IAMAuthorizationAdapter{service: authorization.NewService(db), dialect: db.Dialect()}, nil }
@@ -346,8 +346,8 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/google/uuid"
-	"go-admin/internal/contracts"
-	transport "go-admin/internal/modules/%s/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/%s/transport"
 )
 //go:embed transport/openapi.json
 var openAPIDocument []byte
@@ -411,7 +411,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/%s/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/%s/transport"
 )
 func (server *HTTPServer) List%s%sRecords(ctx context.Context, request transport.List%s%sRecordsRequestObject) (transport.List%s%sRecordsResponseObject, error) {
 	page, pageSize, search, sortKey, direction := 1, 20, "", "id", "ascending"; if request.Params.Page != nil { page = *request.Params.Page }; if request.Params.PageSize != nil { pageSize = *request.Params.PageSize }; if request.Params.Search != nil { search = *request.Params.Search }; if request.Params.Sort != nil { sortKey = *request.Params.Sort }; if request.Params.Direction != nil { direction = string(*request.Params.Direction) }
@@ -516,7 +516,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	_ "modernc.org/sqlite"
 )
 
@@ -615,7 +615,7 @@ import (
   "time"
   "github.com/uptrace/bun"
   "github.com/uptrace/bun/dialect/pgdialect"
-  "go-admin/internal/platform/database"
+  "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
   _ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -770,7 +770,7 @@ func generatedPermissions(model Model) string {
 import (
 	"context"
 
-	"go-admin/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 )
 
 const (
@@ -802,7 +802,7 @@ import (
 	"errors"
 	"io/fs"
 
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 //go:embed postgres/*.sql sqlite/*.sql

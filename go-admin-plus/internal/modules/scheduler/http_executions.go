@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
-	transport "go-admin/internal/modules/scheduler/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/transport"
 )
 
 func (s *HTTPServer) ListSchedulerExecutions(ctx context.Context, request transport.ListSchedulerExecutionsRequestObject) (transport.ListSchedulerExecutionsResponseObject, error) {

@@ -3,7 +3,7 @@ package audit
 import (
 	"strings"
 
-	"go-admin/internal/platform/outbox"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 // TransactionalConsumers builds the only consumers allowed to mutate Audit-owned tables.

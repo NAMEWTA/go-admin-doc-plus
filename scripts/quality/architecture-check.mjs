@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 export const checkArchitecture = root => {
   const failures = []
+  const canonicalGoModule = 'github.com/NAMEWTA/go-admin-plus/go-admin-plus'
   const required = [
     'Taskfile.yml', '.github/workflows/ci.yml', 'go-admin-plus/go.mod',
     'go-admin-plus/cmd/go-admin-plus/main.go', 'go-admin-plus/cmd/desktop-sidecar/main.go',
@@ -18,6 +19,12 @@ export const checkArchitecture = root => {
   const forbidden = ['go-admin-ui-plus', 'go-admin-plus/app', 'go-admin-plus/common', 'go-admin-plus/api', 'go-admin-plus/cmd/go-admin-desktop']
   for (const path of required) if (!existsSync(join(root, path))) failures.push(`missing canonical path: ${path}`)
   for (const path of forbidden) if (existsSync(join(root, path))) failures.push(`removed path still exists: ${path}`)
+
+  const goModulePath = join(root, 'go-admin-plus/go.mod')
+  if (existsSync(goModulePath)) {
+    const declaration = readFileSync(goModulePath, 'utf8').match(/^module\s+(\S+)$/m)?.[1]
+    if (declaration !== canonicalGoModule) failures.push(`Go module path must be ${canonicalGoModule}`)
+  }
 
   const internalRoot = join(root, 'go-admin-plus/internal')
   if (existsSync(internalRoot)) {

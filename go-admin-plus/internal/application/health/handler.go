@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go-admin/internal/application"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
 )
 
 const (

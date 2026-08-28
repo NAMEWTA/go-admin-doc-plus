@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/uptrace/bun"
-	"go-admin/internal/platform/database"
 )
 
 var databaseIdentifierPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,62}$`)

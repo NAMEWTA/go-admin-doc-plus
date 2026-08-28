@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"go-admin/internal/modules/demo"
-	"go-admin/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 )
 
 type nativeE2EAction struct {

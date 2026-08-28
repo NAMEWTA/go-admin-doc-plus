@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	runtimeconfig "go-admin/internal/platform/config"
+	runtimeconfig "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 )
 
 func TestSessionPolicyDefaultsAndPrecedenceAcrossProfiles(t *testing.T) {

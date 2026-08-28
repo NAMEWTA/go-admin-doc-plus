@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/app/kernel"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/kernel"
 )
 
 func TestKernelStartsThenDrainsInDeterministicOrder(t *testing.T) {

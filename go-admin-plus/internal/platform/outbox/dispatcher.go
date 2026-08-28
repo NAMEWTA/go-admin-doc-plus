@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"go-admin/internal/platform/coordination"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 type transactionExecutor interface {

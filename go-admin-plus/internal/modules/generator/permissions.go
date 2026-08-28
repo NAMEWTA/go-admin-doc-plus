@@ -3,7 +3,7 @@ package generator
 import (
 	"context"
 
-	"go-admin/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 )
 
 var moduleCapabilities = authorization.ModuleCapabilities{

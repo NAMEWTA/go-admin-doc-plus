@@ -13,8 +13,8 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 
-	"go-admin/internal/contracts"
-	transport "go-admin/internal/modules/audit/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/transport"
 )
 
 //go:embed transport/openapi.json

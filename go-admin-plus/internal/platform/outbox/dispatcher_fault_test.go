@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/coordination"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
-	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
+	reliablemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations/reliable-runtime"
 )
 
 func TestLeaseLossAfterTransactionalConsumerRollsBackAndStops(t *testing.T) {

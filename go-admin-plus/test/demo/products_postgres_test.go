@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	productsmigration "go-admin/internal/modules/demo/migrations/0010-products"
-	"go-admin/internal/platform/migrations"
+	productsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo/migrations/0010-products"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 // TestPostgresCRUDContract is an environment-gated real-dialect asset. Source runs skip it;

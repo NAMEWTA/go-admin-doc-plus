@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/demo/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo/transport"
 )
 
 func (server *HTTPServer) ListDemoProducts(ctx context.Context, request transport.ListDemoProductsRequestObject) (transport.ListDemoProductsResponseObject, error) {

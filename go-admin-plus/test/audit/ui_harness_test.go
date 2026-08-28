@@ -12,16 +12,16 @@ import (
 	"testing"
 	"time"
 
-	audit "go-admin/internal/modules/audit"
-	auditmigration "go-admin/internal/modules/audit/migrations/0011-audit"
-	"go-admin/internal/modules/iam/authorization"
-	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
-	administrationmigration "go-admin/internal/modules/iam/migrations/0020-administration-schema"
-	"go-admin/internal/modules/iam/session"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
-	"go-admin/internal/platform/outbox"
+	audit "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
+	auditmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/migrations/0011-audit"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	reliablemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations/reliable-runtime"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 const (

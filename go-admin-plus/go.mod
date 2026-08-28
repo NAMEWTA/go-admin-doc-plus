@@ -1,4 +1,4 @@
-module go-admin
+module github.com/NAMEWTA/go-admin-plus/go-admin-plus
 
 go 1.26.5
 

@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	desktopplatform "go-admin/internal/platform/desktop"
+	desktopplatform "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/desktop"
 )
 
 func main() {

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	audit "go-admin/internal/modules/audit"
-	auditmigration "go-admin/internal/modules/audit/migrations/0011-audit"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
-	"go-admin/internal/platform/outbox"
+	audit "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
+	auditmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/migrations/0011-audit"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	reliablemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations/reliable-runtime"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 const auditPostgresEnv = "GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN"

@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"go-admin/internal/app/kernel"
-	"go-admin/internal/platform/observability"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/kernel"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/observability"
 )
 
 type statusSource struct {

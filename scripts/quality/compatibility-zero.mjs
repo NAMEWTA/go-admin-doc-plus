@@ -10,6 +10,7 @@ const removedPaths = [
 ]
 const forbidden = [
   ['old frontend name', /go-admin-ui-plus/], ['Wails runtime', /\bwails(?:app)?\b/i],
+  ['old Go module path', /(?:^|\n)\s*module\s+go-admin\s*(?:\n|$)|["']go-admin\/internal\//],
   ['old upstream core', /go-admin-core/], ['Casbin', /\bcasbin\b/i],
   ['Redis', /\bredis\b/i], ['tenant feature', /\btenant(?:s|_id)?\b/i],
   ['MySQL', /\bmysql\b/i], ['SQL Server', /\bsqlserver\b|\bsql server\b/i],
@@ -20,7 +21,7 @@ const forbidden = [
 ]
 const textExtensions = new Set([
   '', '.cjs', '.cmd', '.css', '.env', '.example', '.go', '.html', '.js', '.json', '.lock',
-  '.md', '.mjs', '.ps1', '.rs', '.sh', '.sql', '.sum', '.toml', '.ts', '.tsx', '.txt', '.vue',
+  '.md', '.mjs', '.mod', '.ps1', '.rs', '.sh', '.sql', '.sum', '.toml', '.ts', '.tsx', '.txt', '.vue',
   '.xml', '.yaml', '.yml'
 ])
 const ignoredDirectories = new Set([

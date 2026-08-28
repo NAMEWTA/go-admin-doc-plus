@@ -7,8 +7,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/google/uuid"
-	"go-admin/internal/platform/database"
 )
 
 type ConfigDatabase interface {

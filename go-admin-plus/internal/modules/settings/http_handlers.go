@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/settings/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/transport"
 )
 
 func (s *HTTPServer) ListSettingValues(ctx context.Context, r transport.ListSettingValuesRequestObject) (transport.ListSettingValuesResponseObject, error) {

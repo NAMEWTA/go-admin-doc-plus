@@ -3,8 +3,8 @@ package organization
 import (
 	"context"
 
-	iamadministration "go-admin/internal/modules/iam/administration"
-	"go-admin/internal/platform/database"
+	iamadministration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 type ProjectionAdapter struct {

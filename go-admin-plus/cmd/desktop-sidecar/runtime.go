@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"go-admin/internal/app/kernel"
-	"go-admin/internal/app/product"
-	"go-admin/internal/application"
-	"go-admin/internal/modules/iam/session"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	desktopplatform "go-admin/internal/platform/desktop"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/kernel"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	desktopplatform "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/desktop"
 )
 
 const (

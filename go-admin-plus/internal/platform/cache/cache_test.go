@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"go-admin/internal/platform/cache"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/cache"
 )
 
 func TestDisabledCachePreservesSourceOfTruthSemantics(t *testing.T) {

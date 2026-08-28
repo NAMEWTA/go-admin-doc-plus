@@ -1,6 +1,6 @@
 package audit
 
-import "go-admin/internal/platform/outbox"
+import "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 
 const (
 	TopicLoginSucceeded   = "iam.login.succeeded"

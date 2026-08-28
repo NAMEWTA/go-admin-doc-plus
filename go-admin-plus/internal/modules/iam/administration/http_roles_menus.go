@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/iam/administration/transport"
-	"go-admin/internal/modules/iam/authorization"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 )
 
 func (s *HTTPServer) GetIamCapabilityManifest(ctx context.Context, _ transport.GetIamCapabilityManifestRequestObject) (transport.GetIamCapabilityManifestResponseObject, error) {

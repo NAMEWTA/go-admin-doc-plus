@@ -22,7 +22,7 @@ import (
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	_ "modernc.org/sqlite"
 
-	"go-admin/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 )
 
 // Dialect identifies the SQL grammar selected for this process.

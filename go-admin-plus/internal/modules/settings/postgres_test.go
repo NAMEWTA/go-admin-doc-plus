@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	settingsmigration "go-admin/internal/modules/settings/migrations/0010-settings"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
+	settingsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/migrations/0010-settings"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 const postgresTestDSN = "GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN"

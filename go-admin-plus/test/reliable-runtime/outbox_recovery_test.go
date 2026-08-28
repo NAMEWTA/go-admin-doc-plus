@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/outbox"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 func TestOutboxBusinessKeyIsIdempotentAndImmutable(t *testing.T) {

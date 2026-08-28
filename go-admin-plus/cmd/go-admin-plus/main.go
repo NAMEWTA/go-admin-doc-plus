@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"go-admin/internal/app/product"
-	"go-admin/internal/application/health"
-	serverhost "go-admin/internal/host/server"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
+	serverhost "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/host/server"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 const version = "0.1.0-dev"

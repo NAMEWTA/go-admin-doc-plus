@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	desktopplatform "go-admin/internal/platform/desktop"
+	desktopplatform "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/desktop"
 )
 
 func TestDatabaseStartupFailureAlwaysClosesBeforeRestoreAndReportsRecoveryFault(t *testing.T) {

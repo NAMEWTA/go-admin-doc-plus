@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/modules/iam/administration"
-	"go-admin/internal/modules/iam/authorization"
-	"go-admin/internal/modules/iam/session"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 type authorizationHTTPLoginFactNoop struct{}

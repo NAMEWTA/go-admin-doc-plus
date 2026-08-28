@@ -3,9 +3,9 @@ package reliableruntime_test
 import (
 	"testing"
 
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
-	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
+	reliablemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations/reliable-runtime"
 )
 
 func TestReliableRuntimeMigrationComposesForBothDialects(t *testing.T) {

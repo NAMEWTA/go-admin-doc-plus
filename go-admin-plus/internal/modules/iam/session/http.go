@@ -12,9 +12,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"go-admin/internal/contracts"
-	"go-admin/internal/modules/iam/account"
-	transport "go-admin/internal/modules/iam/session/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session/transport"
 )
 
 const CookieName = "__Host-go-admin-session"

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"io/fs"
 
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 //go:embed postgres/*.sql sqlite/*.sql

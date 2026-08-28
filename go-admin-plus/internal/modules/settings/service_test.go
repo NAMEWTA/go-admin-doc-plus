@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"go-admin/internal/modules/iam/authorization"
-	settingsmigration "go-admin/internal/modules/settings/migrations/0010-settings"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	settingsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/migrations/0010-settings"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 type testAuthorizer struct {

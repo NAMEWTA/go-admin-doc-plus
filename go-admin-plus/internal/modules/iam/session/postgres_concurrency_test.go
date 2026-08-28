@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/modules/iam/account"
-	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 const postgresDisposableDSNEnv = "GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN"

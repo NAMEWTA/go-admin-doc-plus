@@ -12,16 +12,16 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/modules/files"
-	filesmigration "go-admin/internal/modules/files/migrations/0010-files"
-	"go-admin/internal/modules/iam/administration"
-	"go-admin/internal/modules/iam/authorization"
-	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
-	administrationmigration "go-admin/internal/modules/iam/migrations/0020-administration-schema"
-	"go-admin/internal/modules/iam/session"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
+	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 const (

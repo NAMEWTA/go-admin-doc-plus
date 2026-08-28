@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/platform/localcache"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/localcache"
 )
 
 func TestLocalCacheIsBoundedClearableAndDisableable(t *testing.T) {

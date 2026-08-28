@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"go-admin/internal/application"
-	"go-admin/internal/application/health"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
 )
 
 func TestLiveReadyAndCapabilitiesHaveDistinctPublicSemantics(t *testing.T) {

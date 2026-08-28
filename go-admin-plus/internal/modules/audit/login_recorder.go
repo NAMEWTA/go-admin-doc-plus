@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"go-admin/internal/modules/iam/session"
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 var stableKeyPart = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)

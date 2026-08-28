@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"go-admin/internal/modules/demo"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 )
 
 type requestAuthenticator struct{}

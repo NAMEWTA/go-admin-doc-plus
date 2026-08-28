@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 const (

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/uptrace/bun"
-	"go-admin/internal/platform/database"
 )
 
 var (

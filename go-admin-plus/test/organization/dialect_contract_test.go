@@ -11,15 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/modules/iam/account"
-	"go-admin/internal/modules/iam/authorization"
-	sessionmigration "go-admin/internal/modules/iam/migrations/0010-session-schema"
-	administrationmigration "go-admin/internal/modules/iam/migrations/0020-administration-schema"
-	"go-admin/internal/modules/organization"
-	organizationmigration "go-admin/internal/modules/organization/migrations"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
+	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 func TestOrganizationSQLiteDialectContract(t *testing.T) {

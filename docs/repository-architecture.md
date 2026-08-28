@@ -21,6 +21,8 @@ internal/
 
 模块拥有自己的领域、存储、传输、权限声明和迁移。模块之间通过端口或产品组合根协作，不直接导入其他模块的私有实现。Server 支持 SQLite 与 PostgreSQL；Desktop profile 只映射 SQLite。
 
+Go module 固定为 `github.com/NAMEWTA/go-admin-plus/go-admin-plus`，所有内部 import 使用该仓库路径，不保留重构前的短 module path。
+
 ## 前端
 
 `go-admin-plus-ui/` 是 pnpm workspace：

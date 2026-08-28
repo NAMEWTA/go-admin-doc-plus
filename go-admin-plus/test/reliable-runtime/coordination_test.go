@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"go-admin/internal/platform/coordination"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
 )
 
 func TestCoordinationConfigCannotSelectAnotherAdvisoryKey(t *testing.T) {

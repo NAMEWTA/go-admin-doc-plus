@@ -19,7 +19,7 @@ import (
 	"github.com/pressly/goose/v3"
 	gooselock "github.com/pressly/goose/v3/lock"
 
-	platformdb "go-admin/internal/platform/database"
+	platformdb "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 var (

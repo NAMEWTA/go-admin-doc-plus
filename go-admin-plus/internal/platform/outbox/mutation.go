@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 type EventField uint8

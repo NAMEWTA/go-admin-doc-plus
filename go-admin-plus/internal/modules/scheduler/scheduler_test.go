@@ -11,14 +11,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-admin/internal/modules/iam/authorization"
-	schedulermigration "go-admin/internal/modules/scheduler/migrations"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/coordination"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
-	reliablemigration "go-admin/internal/platform/migrations/reliable-runtime"
-	"go-admin/internal/platform/outbox"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
+	reliablemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations/reliable-runtime"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 type testParameters struct {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/scheduler/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/transport"
 )
 
 func (s *HTTPServer) ListSchedulerTaskTypes(ctx context.Context, _ transport.ListSchedulerTaskTypesRequestObject) (transport.ListSchedulerTaskTypesResponseObject, error) {

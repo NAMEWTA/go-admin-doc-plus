@@ -12,10 +12,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"go-admin/internal/contracts"
-	transport "go-admin/internal/modules/iam/administration/transport"
-	"go-admin/internal/modules/iam/authorization"
-	"go-admin/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 )
 
 //go:embed transport/openapi.json

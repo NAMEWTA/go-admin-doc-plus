@@ -15,8 +15,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/google/uuid"
 
-	"go-admin/internal/contracts"
-	transport "go-admin/internal/modules/files/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/transport"
 )
 
 const maximumMultipartOverheadBytes int64 = 64 * 1024

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/iam/administration/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration/transport"
 )
 
 func (s *HTTPServer) ListIamUsers(ctx context.Context, request transport.ListIamUsersRequestObject) (transport.ListIamUsersResponseObject, error) {

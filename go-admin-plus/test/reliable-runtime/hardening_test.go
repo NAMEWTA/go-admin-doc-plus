@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"go-admin/internal/platform/coordination"
-	"go-admin/internal/platform/outbox"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 func TestStoreExecutionMethodsAreNotPublic(t *testing.T) {

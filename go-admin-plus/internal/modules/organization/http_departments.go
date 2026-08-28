@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/organization/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/transport"
 )
 
 func (s *HTTPServer) ListOrganizationDepartments(ctx context.Context, _ transport.ListOrganizationDepartmentsRequestObject) (transport.ListOrganizationDepartmentsResponseObject, error) {

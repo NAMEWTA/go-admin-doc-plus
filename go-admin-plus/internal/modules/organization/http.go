@@ -11,9 +11,9 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 
-	"go-admin/internal/contracts"
-	"go-admin/internal/modules/iam/session"
-	transport "go-admin/internal/modules/organization/transport"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/transport"
 )
 
 //go:embed transport/openapi.json

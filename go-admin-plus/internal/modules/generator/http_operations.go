@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	transport "go-admin/internal/modules/generator/transport"
+	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator/transport"
 )
 
 func (server *HTTPServer) GetGeneratorConfig(ctx context.Context, request transport.GetGeneratorConfigRequestObject) (transport.GetGeneratorConfigResponseObject, error) {

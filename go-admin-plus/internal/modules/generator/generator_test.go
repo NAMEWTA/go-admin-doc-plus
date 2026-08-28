@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
-	"go-admin/internal/platform/database"
 	_ "modernc.org/sqlite"
 )
 

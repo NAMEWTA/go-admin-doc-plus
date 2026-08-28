@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"go-admin/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 // productRecord is private persistence state; transport/domain types never reach SQL directly.

@@ -15,12 +15,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"go-admin/internal/modules/scheduler"
-	schedulermigration "go-admin/internal/modules/scheduler/migrations"
-	"go-admin/internal/platform/config"
-	"go-admin/internal/platform/coordination"
-	"go-admin/internal/platform/database"
-	"go-admin/internal/platform/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
+	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
 )
 
 type runtimeParameters struct {

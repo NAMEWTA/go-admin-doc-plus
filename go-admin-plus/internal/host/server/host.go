@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go-admin/internal/application"
-	"go-admin/internal/application/health"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
 )
 
 // ErrAlreadyRun reports an attempt to start the same single-use Host twice.
