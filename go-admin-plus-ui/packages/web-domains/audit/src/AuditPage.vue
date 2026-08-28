@@ -62,39 +62,39 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
 
 <template>
   <main class="audit-page">
-    <header><h1>Audit</h1></header>
+    <header><h1>审计日志</h1></header>
     <form class="filters" aria-label="Audit filters" @submit.prevent="search">
-			<label>Kind<select v-model="filters.kind"><option value="">All</option><option value="login">Login</option><option value="operation">Operation</option></select></label>
-			<label>Action<select v-model="filters.action" data-testid="audit-action"><option value="">All</option><option value="login">Login</option><option value="create">Create</option><option value="update">Update</option><option value="delete">Delete</option></select></label>
-			<label>Outcome<select v-model="filters.outcome"><option value="">All</option><option value="succeeded">Succeeded</option><option value="failed">Failed</option></select></label>
-			<label>Source<select v-model="filters.source" data-testid="audit-source"><option value="">All</option><option value="web">Web</option><option value="desktop">Desktop</option><option value="server">Server</option></select></label>
-		<label>From<input v-model="filters.from" type="datetime-local"></label>
-		<label>To<input v-model="filters.to" type="datetime-local"></label>
-			<div class="commands"><button type="submit" data-testid="audit-search" :disabled="busy">Search</button><button type="button" :disabled="busy" @click="reset">Reset</button></div>
+      <label>日志类型<select v-model="filters.kind"><option value="">全部</option><option value="login">登录日志</option><option value="operation">操作日志</option></select></label>
+      <label>操作<select v-model="filters.action" data-testid="audit-action"><option value="">全部</option><option value="login">登录</option><option value="create">新增</option><option value="update">修改</option><option value="delete">删除</option></select></label>
+      <label>结果<select v-model="filters.outcome"><option value="">全部</option><option value="succeeded">成功</option><option value="failed">失败</option></select></label>
+      <label>来源<select v-model="filters.source" data-testid="audit-source"><option value="">全部</option><option value="web">Web</option><option value="desktop">桌面端</option><option value="server">服务端</option></select></label>
+      <label>开始时间<input v-model="filters.from" type="datetime-local"></label>
+      <label>结束时间<input v-model="filters.to" type="datetime-local"></label>
+      <div class="commands"><button type="submit" data-testid="audit-search" :disabled="busy">搜索</button><button type="button" :disabled="busy" @click="reset">重置</button></div>
     </form>
-		<p v-if="failure === 'relogin'" role="alert">Your session has expired. Sign in again.</p>
-		<p v-else-if="failure === 'forbidden'" role="alert">You do not have permission to use this audit operation.</p>
-		<p v-else-if="failure" role="alert">The audit service is temporarily unavailable.</p>
+    <p v-if="failure === 'relogin'" role="alert">会话已失效，请重新登录。</p>
+    <p v-else-if="failure === 'forbidden'" role="alert">没有执行该审计操作的权限。</p>
+    <p v-else-if="failure" role="alert">审计服务暂不可用。</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Time</th><th>Kind</th><th>Action</th><th>Outcome</th><th>Subject</th><th>Source</th><th></th></tr></thead>
+        <thead><tr><th>时间</th><th>类型</th><th>操作</th><th>结果</th><th>对象</th><th>来源</th><th>操作</th></tr></thead>
         <tbody>
 					<tr v-for="fact in snapshot.rows" :key="fact.id" data-testid="audit-row">
 						<td>{{ formatDate(fact.occurredAt) }}</td><td>{{ fact.kind }}</td><td>{{ fact.action }}</td><td>{{ fact.outcome }}</td><td class="long-text">{{ fact.subject }}</td><td>{{ fact.source }}</td>
-							<td><button type="button" data-testid="audit-view" @click="detail(fact.id)">View</button></td>
+              <td><button type="button" data-testid="audit-view" @click="detail(fact.id)">详情</button></td>
           </tr>
         </tbody>
       </table>
     </div>
-		<footer class="paging"><span>{{ snapshot.total }} records</span><button type="button" :disabled="busy || snapshot.page <= 1" @click="run(() => controller.list.setPage(snapshot.page - 1))">Previous</button><span>Page {{ snapshot.page }}</span><button type="button" :disabled="busy || snapshot.page * snapshot.pageSize >= snapshot.total" @click="run(() => controller.list.setPage(snapshot.page + 1))">Next</button></footer>
+    <footer class="paging"><span>共 {{ snapshot.total }} 条</span><button type="button" :disabled="busy || snapshot.page <= 1" @click="run(() => controller.list.setPage(snapshot.page - 1))">上一页</button><span>第 {{ snapshot.page }} 页</span><button type="button" :disabled="busy || snapshot.page * snapshot.pageSize >= snapshot.total" @click="run(() => controller.list.setPage(snapshot.page + 1))">下一页</button></footer>
     <section class="cleanup" aria-labelledby="cleanup-title">
-      <h2 id="cleanup-title">Retention cleanup</h2>
-			<label>Delete records before<input v-model="cleanupBefore" data-testid="audit-cleanup-before" type="date" required></label>
-			<button type="button" data-testid="audit-cleanup" :disabled="busy || !cleanupBefore" @click="cleanup">Delete eligible records</button>
+      <h2 id="cleanup-title">日志清理</h2>
+      <label>删除此日期前的记录<input v-model="cleanupBefore" data-testid="audit-cleanup-before" type="date" required></label>
+      <button type="button" data-testid="audit-cleanup" :disabled="busy || !cleanupBefore" @click="cleanup">清理符合条件的记录</button>
     </section>
-		<p v-if="cleanupStatus === 'completed'" role="status" data-testid="audit-cleanup-status">Deleted {{ controller.lastCleanup()?.deleted ?? 0 }} records.<span v-if="controller.lastCleanup()?.moreEligible"> More eligible records remain.</span></p>
-		<p v-else-if="cleanupStatus === 'refresh-failed' || cleanupStatus === 'repair-required'" role="status">Cleanup completed, but the list must be refreshed before another cleanup.<button type="button" data-testid="audit-cleanup-repair" :disabled="busy" @click="repairCleanup">Retry refresh</button></p>
-		<dialog :open="selected !== null"><template v-if="selected"><h2>Audit detail</h2><dl><dt>Subject</dt><dd class="long-text">{{ selected.subject }}</dd><dt>Actor</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>Outcome</dt><dd>{{ selected.outcome }}</dd><dt>Occurred</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl><button type="button" @click="selected = null">Close</button></template></dialog>
+    <p v-if="cleanupStatus === 'completed'" role="status" data-testid="audit-cleanup-status">已删除 {{ controller.lastCleanup()?.deleted ?? 0 }} 条记录。<span v-if="controller.lastCleanup()?.moreEligible">仍有符合条件的记录。</span></p>
+    <p v-else-if="cleanupStatus === 'refresh-failed' || cleanupStatus === 'repair-required'" role="status">清理已完成，继续操作前需要刷新列表。<button type="button" data-testid="audit-cleanup-repair" :disabled="busy" @click="repairCleanup">重试刷新</button></p>
+    <dialog :open="selected !== null"><template v-if="selected"><h2>审计详情</h2><dl><dt>对象</dt><dd class="long-text">{{ selected.subject }}</dd><dt>操作者</dt><dd class="long-text">{{ selected.actorRef ?? selected.actorType }}</dd><dt>结果</dt><dd>{{ selected.outcome }}</dd><dt>发生时间</dt><dd>{{ formatDate(selected.occurredAt) }}</dd></dl><button type="button" @click="selected = null">关闭</button></template></dialog>
   </main>
 </template>
 
@@ -107,11 +107,11 @@ select, input, button { min-height: 36px; font: inherit; }
 .commands, .paging, .cleanup { display: flex; gap: 10px; align-items: end; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 10px 8px; border-bottom: 1px solid #d7dce2; text-align: left; white-space: nowrap; }
+th, td { padding: 10px 8px; border-bottom: 1px solid var(--ga-border-light); text-align: left; white-space: nowrap; }
 .long-text { max-width: 360px; overflow-wrap: anywhere; white-space: normal; }
-th { color: #4a5561; font-size: 13px; }
-.cleanup { border-top: 1px solid #d7dce2; padding-top: 20px; }
-dialog { width: min(520px, calc(100% - 32px)); border: 1px solid #b7c0ca; border-radius: 6px; }
+th { color: var(--ga-text-2); font-size: 13px; }
+.cleanup { border-top: 1px solid var(--ga-border-light); padding-top: 20px; }
+dialog { width: min(520px, calc(100% - 32px)); border: 1px solid var(--ga-border); border-radius: var(--ga-radius); }
 dl { display: grid; grid-template-columns: 100px 1fr; gap: 10px; }
 @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } .commands { grid-column: 1 / -1; } .cleanup { align-items: stretch; flex-direction: column; } }
 </style>

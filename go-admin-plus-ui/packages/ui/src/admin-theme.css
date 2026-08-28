@@ -54,6 +54,19 @@ a { color: inherit; text-decoration: none; }
   box-shadow: var(--ga-shadow-sm);
 }
 
+.product-shell__content :is(
+  .administration-page, .audit-page, .organization-page, .settings-page,
+  .generator-wizard, .scheduler-page, .demo-products, .files-page, .account-page
+) > header {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ga-border-light);
+}
+
 .product-shell__content :is(h1, h2, h3) {
   color: var(--ga-text-1);
   font-weight: 600;
@@ -106,6 +119,39 @@ a { color: inherit; text-decoration: none; }
   background: var(--ga-brand);
   border-color: var(--ga-brand);
 }
+.product-shell__content :is([data-action="edit"], [data-action="toggle"], [data-action="delete"]) {
+  min-height: 28px;
+  padding: 2px 5px;
+  color: var(--ga-brand);
+  background: transparent;
+  border-color: transparent;
+}
+.product-shell__content :is([data-action="delete"], [data-testid^="delete-"]) {
+  color: var(--ga-danger);
+}
+.product-shell__content :is([data-action="delete"], [data-testid^="delete-"]):hover:not(:disabled) {
+  color: var(--ga-danger);
+  border-color: transparent;
+  background: color-mix(in srgb, var(--ga-danger), transparent 94%);
+}
+
+.product-shell__content :is(
+  .toolbar, .filters, .search, .demo-products__search, .files-page__search,
+  .files-page__upload, .commands, .demo-products__actions, .files-page__actions
+) {
+  display: flex;
+  align-items: end;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.product-shell__content :is(.toolbar, .filters, .search, .demo-products__search, .files-page__search) {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ga-border-light);
+}
+.product-shell__content :is(.toolbar, .filters, .search, .demo-products__search, .files-page__search) label {
+  min-width: 180px;
+}
 
 .product-shell__content :is(table) {
   width: 100%;
@@ -130,6 +176,37 @@ a { color: inherit; text-decoration: none; }
 }
 .product-shell__content tbody tr:hover { background: var(--ga-bg-hover); }
 .product-shell__content tbody tr:last-child td { border-bottom: 0; }
+.product-shell__content td:last-child {
+  white-space: nowrap;
+}
+
+.product-shell__content :is(.editor, .demo-products__form, .workspace > form, .account-page > form) {
+  padding-top: 16px;
+  border-top: 1px solid var(--ga-border-light);
+}
+.product-shell__content .editor fieldset {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--ga-border-light);
+  border-radius: var(--ga-radius);
+}
+.product-shell__content :is(.choice) {
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 7px;
+}
+.product-shell__content :is(.pagination, .paging, nav[aria-label="Pagination"], nav[aria-label="分页"]) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 36px;
+}
+.product-shell__content :is(.table-wrap, .table, .demo-products__table, .files-page__table) {
+  min-width: 0;
+  overflow-x: auto;
+}
 
 .product-shell__content :is(.tabs) {
   padding-bottom: 0;
@@ -166,4 +243,11 @@ a { color: inherit; text-decoration: none; }
     .administration-page, .audit-page, .organization-page, .settings-page,
     .generator-wizard, .scheduler-page, .demo-products, .files-page, .account-page
   ) { padding: 16px; border-radius: 0; box-shadow: none; }
+  .product-shell__content :is(
+    .toolbar, .filters, .search, .demo-products__search, .files-page__search,
+    .files-page__upload, .commands, .demo-products__actions, .files-page__actions
+  ) { align-items: stretch; }
+  .product-shell__content :is(.toolbar, .filters, .search, .demo-products__search, .files-page__search) label {
+    min-width: min(100%, 180px);
+  }
 }

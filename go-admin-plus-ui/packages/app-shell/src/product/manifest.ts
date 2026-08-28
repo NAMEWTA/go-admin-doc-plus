@@ -31,61 +31,61 @@ export const productModules = [
     id: 'iam',
     hosts: bothHosts,
     routes: [
-      { key: 'iam-users', label: 'Users', path: '/iam/users', permission: 'iam.users.read', order: 10 },
-      { key: 'iam-roles', label: 'Roles', path: '/iam/roles', permission: 'iam.roles.read', order: 20 },
-      { key: 'iam-menus', label: 'Menus', path: '/iam/menus', permission: 'iam.menus.read', order: 30 }
+      { key: 'iam-users', label: '用户管理', path: '/iam/users', permission: 'iam.users.read', order: 10 },
+      { key: 'iam-roles', label: '角色管理', path: '/iam/roles', permission: 'iam.roles.read', order: 20 },
+      { key: 'iam-menus', label: '菜单管理', path: '/iam/menus', permission: 'iam.menus.read', order: 30 }
     ]
   },
   {
     id: 'audit',
     hosts: bothHosts,
     routes: [
-      { key: 'audit-records', label: 'Audit records', path: '/audit/records', permission: 'audit.records.read', order: 500 }
+      { key: 'audit-records', label: '审计日志', path: '/audit/records', permission: 'audit.records.read', order: 500 }
     ]
   },
   {
     id: 'organization',
     hosts: bothHosts,
     routes: [
-      { key: 'organization-departments', label: 'Departments', path: '/organization/departments', permission: 'organization.departments.read', order: 600 },
-      { key: 'organization-positions', label: 'Positions', path: '/organization/positions', permission: 'organization.positions.read', order: 610 }
+      { key: 'organization-departments', label: '部门管理', path: '/organization/departments', permission: 'organization.departments.read', order: 600 },
+      { key: 'organization-positions', label: '岗位管理', path: '/organization/positions', permission: 'organization.positions.read', order: 610 }
     ]
   },
   {
     id: 'settings',
     hosts: bothHosts,
     routes: [
-      { key: 'settings-values', label: 'Settings', path: '/settings/values', permission: 'settings.values.read', order: 600 },
-      { key: 'settings-dictionaries', label: 'Dictionaries', path: '/settings/dictionaries', permission: 'settings.dictionaries.read', order: 610 }
+      { key: 'settings-values', label: '参数设置', path: '/settings/values', permission: 'settings.values.read', order: 600 },
+      { key: 'settings-dictionaries', label: '字典管理', path: '/settings/dictionaries', permission: 'settings.dictionaries.read', order: 610 }
     ]
   },
   {
     id: 'generator',
     hosts: bothHosts,
     routes: [
-      { key: 'code-generator', label: 'Code generator', path: '/generator', permission: 'generator.metadata.read', order: 700 }
+      { key: 'code-generator', label: '代码生成', path: '/generator', permission: 'generator.metadata.read', order: 700 }
     ]
   },
   {
     id: 'scheduler',
     hosts: bothHosts,
     routes: [
-      { key: 'scheduler-definitions', label: 'Task schedules', path: '/scheduler/definitions', permission: 'scheduler.definitions.read', order: 700 },
-      { key: 'scheduler-executions', label: 'Task executions', path: '/scheduler/executions', permission: 'scheduler.executions.read', order: 710 }
+      { key: 'scheduler-definitions', label: '任务调度', path: '/scheduler/definitions', permission: 'scheduler.definitions.read', order: 700 },
+      { key: 'scheduler-executions', label: '执行记录', path: '/scheduler/executions', permission: 'scheduler.executions.read', order: 710 }
     ]
   },
   {
     id: 'demo',
     hosts: bothHosts,
     routes: [
-      { key: 'demo-products', label: 'Demo products', path: '/demo/products', permission: 'demo.products.read', order: 800 }
+      { key: 'demo-products', label: '产品示例', path: '/demo/products', permission: 'demo.products.read', order: 800 }
     ]
   },
   {
     id: 'files',
     hosts: bothHosts,
     routes: [
-      { key: 'files-objects', label: 'Files', path: '/files', permission: 'files.objects.read', order: 900 }
+      { key: 'files-objects', label: '文件管理', path: '/files', permission: 'files.objects.read', order: 900 }
     ]
   }
 ] as const satisfies readonly ProductModule[]

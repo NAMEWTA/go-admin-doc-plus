@@ -32,7 +32,7 @@ const submit = async () => {
           <pre><code><span><b>$</b> task dev <em>TARGET=server PROFILE=server-sqlite</em></span>
 <span class="success">✓ server ready on http://localhost:8000</span>
 <span><b>$</b> task dev <em>TARGET=web</em></span>
-<span class="success">✓ web ready on http://localhost:3000</span>
+<span class="success">✓ web ready on http://localhost:5173</span>
 <span><b>$</b> task dev <em>TARGET=desktop</em></span>
 <span class="success">✓ Tauri 2 desktop host ready</span>
 <span><b>$</b> <i class="login-page__caret" /></span></code></pre>

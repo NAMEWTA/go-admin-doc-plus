@@ -25,7 +25,7 @@ describe('generator controller', () => {
     expect(await controller.confirmWrite(true)).toBe('completed')
     expect(controller.step).toBe('complete')
     expect(client.write).toHaveBeenCalledTimes(1)
-    expect(pageSource).toContain('Confirm isolated output')
+    expect(pageSource).toContain('我已检查隔离目录中的生成结果')
   })
   it('fails closed when capability is withdrawn', async () => {
     const granted = new Set<string>(Object.values(generatorPermissions))

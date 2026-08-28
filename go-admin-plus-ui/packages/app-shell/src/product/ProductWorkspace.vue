@@ -304,7 +304,7 @@ onUnmounted(() => {
 .product-shell__tag > button { height: 100%; padding: 0; color: inherit; background: transparent; border: 0; cursor: pointer; }
 .product-shell__tag-close { display: grid; width: 18px; height: 18px !important; margin-left: 4px; place-items: center; border-radius: 50% !important; line-height: 1; }
 .product-shell__tag-close:hover { color: #fff; background: var(--ga-text-3); }
-.product-shell__content { min-width: 0; height: calc(100vh - 90px); padding: 20px; overflow: auto; }
+.product-shell__content { min-width: 0; height: calc(100vh - 90px); padding: 12px; overflow: auto; }
 .product-shell__state { display: grid; min-height: 100vh; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; }
 .product-shell__spinner { width: 28px; height: 28px; border: 3px solid var(--ga-border); border-top-color: var(--ga-brand); border-radius: 50%; animation: spin .8s linear infinite; }
 .product-shell__code { font-weight: 700; color: var(--ga-text-3); }

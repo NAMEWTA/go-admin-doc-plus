@@ -36,9 +36,9 @@ const chooseFile = (event: Event) => {
   localError.value = null
 }
 const upload = async () => {
-  if (!selectedUpload.value) { localError.value = 'Select a file'; return }
+  if (!selectedUpload.value) { localError.value = '请选择文件'; return }
   const result = await props.controller.upload(selectedUpload.value)
-  if (result === 'invalid') localError.value = 'File is not accepted'
+  if (result === 'invalid') localError.value = '不支持该文件或文件不符合上传规则'
   if (result === 'completed') { props.controller.takeCompletion(); clearUpload() }
   revision.value += 1
   if (props.controller.failure() === 'relogin') emit('sessionRequired')
@@ -80,59 +80,59 @@ onMounted(() => settle(() => props.controller.list.refresh()))
 <template>
   <section class="files-page" aria-labelledby="files-title">
     <header class="files-page__header">
-      <div><h1 id="files-title">Files</h1><p>{{ snapshot.total }} objects</p></div>
-      <button v-if="controller.pendingRepair" type="button" data-testid="files-repair" :disabled="controller.busy" @click="repair">Retry refresh</button>
+      <div><h1 id="files-title">文件管理</h1><p>共 {{ snapshot.total }} 个文件</p></div>
+      <button v-if="controller.pendingRepair" type="button" data-testid="files-repair" :disabled="controller.busy" @click="repair">重试刷新</button>
     </header>
-    <p v-if="failure === 'relogin'" role="alert">Session required</p>
-    <p v-else-if="failure === 'forbidden'" role="alert">Permission denied</p>
-    <p v-else-if="failure === 'unavailable'" role="alert">Files are unavailable</p>
-    <p v-else-if="failure === 'conflict'" role="alert">File state changed</p>
+    <p v-if="failure === 'relogin'" role="alert">会话已失效，请重新登录。</p>
+    <p v-else-if="failure === 'forbidden'" role="alert">没有文件操作权限。</p>
+    <p v-else-if="failure === 'unavailable'" role="alert">文件服务暂不可用。</p>
+    <p v-else-if="failure === 'conflict'" role="alert">文件状态已发生变化，请刷新后重试。</p>
     <template v-if="projectionVisible && canRead">
       <form class="files-page__search" @submit.prevent="settle(() => controller.list.search({ search }))">
-        <label>Search <input v-model="search" name="search" maxlength="100"></label>
-        <button type="submit" :disabled="blocked">Search</button>
-        <button type="button" :disabled="blocked" @click="search = ''; settle(() => controller.list.reset())">Reset</button>
+        <label>文件名称<input v-model="search" name="search" maxlength="100" placeholder="请输入文件名称"></label>
+        <button type="submit" :disabled="blocked">搜索</button>
+        <button type="button" :disabled="blocked" @click="search = ''; settle(() => controller.list.reset())">重置</button>
       </form>
       <div v-if="canWrite" class="files-page__upload" data-testid="files-upload">
-        <label>File <input ref="fileInput" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.txt,application/pdf,image/jpeg,image/png,text/plain" :disabled="blocked" @change="chooseFile"></label>
-        <button type="button" :disabled="blocked || !selectedUpload" @click="upload">Upload</button>
+        <label>选择文件<input ref="fileInput" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.txt,application/pdf,image/jpeg,image/png,text/plain" :disabled="blocked" @change="chooseFile"></label>
+        <button type="button" :disabled="blocked || !selectedUpload" @click="upload">上传</button>
         <p v-if="localError" role="alert">{{ localError }}</p>
       </div>
       <div class="files-page__actions">
-        <button v-if="canDelete" type="button" data-testid="files-delete-selected" :disabled="blocked || selectedRows.length === 0" @click="remove(selectedRows)">Delete selected</button>
+        <button v-if="canDelete" type="button" data-testid="files-delete-selected" :disabled="blocked || selectedRows.length === 0" @click="remove(selectedRows)">批量删除</button>
       </div>
       <div class="files-page__table">
         <table>
-          <thead><tr><th v-if="canDelete" scope="col">Select</th><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Size</th><th scope="col">Updated</th><th scope="col">Actions</th></tr></thead>
+          <thead><tr><th v-if="canDelete" scope="col">选择</th><th scope="col">文件名称</th><th scope="col">类型</th><th scope="col">大小</th><th scope="col">更新时间</th><th scope="col">操作</th></tr></thead>
           <tbody><tr v-for="row in snapshot.rows" :key="row.id" :data-file-id="row.id">
             <td v-if="canDelete"><input type="checkbox" :checked="snapshot.selectedKeys.includes(row.id)" :aria-label="`Select ${row.originalName}`" :disabled="blocked" @change="toggle(row, ($event.target as HTMLInputElement).checked)"></td>
             <td>{{ row.originalName }}</td><td>{{ row.mediaType }}</td><td>{{ row.sizeBytes }}</td><td>{{ row.updatedAt }}</td>
-            <td><button type="button" :disabled="blocked" @click="download(row)">Download</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove([row])">Delete</button></td>
+            <td><button type="button" :disabled="blocked" @click="download(row)">下载</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove([row])">删除</button></td>
           </tr></tbody>
         </table>
       </div>
       <nav aria-label="Pagination">
-        <button type="button" :disabled="blocked || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">Previous</button>
-        <span>Page {{ snapshot.page }}</span>
-        <label>Rows <select :value="snapshot.pageSize" :disabled="blocked" @change="settle(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label>
-        <button type="button" :disabled="blocked || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.list.setPage(snapshot.page + 1))">Next</button>
+        <button type="button" :disabled="blocked || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">上一页</button>
+        <span>第 {{ snapshot.page }} 页</span>
+        <label>每页<select :value="snapshot.pageSize" :disabled="blocked" @change="settle(() => controller.list.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label>
+        <button type="button" :disabled="blocked || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.list.setPage(snapshot.page + 1))">下一页</button>
       </nav>
     </template>
-    <button v-else-if="failure === 'unavailable'" type="button" @click="settle(() => controller.list.refresh())">Retry</button>
+    <button v-else-if="failure === 'unavailable'" type="button" @click="settle(() => controller.list.refresh())">重试</button>
   </section>
 </template>
 
 <style scoped>
-.files-page { display: grid; gap: 16px; color: #17202a; }
+.files-page { display: grid; gap: 16px; color: var(--ga-text-1); }
 .files-page__header, .files-page__search, .files-page__upload, .files-page__actions, nav { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
 h1, p { margin: 0; }
 label { display: grid; gap: 4px; }
 .files-page__table { min-width: 0; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px; border-bottom: 1px solid #dfe6e9; text-align: left; }
+th, td { padding: 8px; border-bottom: 1px solid var(--ga-border-light); text-align: left; }
 td:last-child { display: flex; gap: 8px; }
 input, select, button { font: inherit; }
 button { min-height: 34px; }
-[role="alert"] { padding: 8px; border-left: 3px solid #b42318; background: #fff1f0; }
+[role="alert"] { padding: 8px; border-left: 3px solid var(--ga-danger); background: #fff1f0; }
 @media (max-width: 720px) { .files-page__header, .files-page__search, .files-page__upload, .files-page__actions, nav { align-items: stretch; flex-direction: column; } }
 </style>
