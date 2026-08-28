@@ -1,6 +1,6 @@
 ---
 name: new-list-page
-description: Scaffold or extend a current Go Admin Plus Vue 3 CRUD list page across a headless domain package, generated OpenAPI client adapter, shared list controller, Element Plus search/table/management dialog UI, permissions, product composition, and tests. Use for a standard business list and form workflow in the go-admin-plus-ui pnpm workspace.
+description: Scaffold or extend a current Go Admin Plus Vue 3 CRUD list page across a headless domain package, generated OpenAPI client adapter, shared list controller, admin search/table/management dialog UI, permissions, product composition, and tests. Use for a standard business list and form workflow in the go-admin-plus-ui pnpm workspace.
 ---
 
 # 新增列表页
@@ -30,7 +30,7 @@ description: Scaffold or extend a current Go Admin Plus Vue 3 CRUD list page acr
 - permission constants；
 - 与框架无关的 client port 和错误分类。
 
-Domain 不得依赖 Vue、DOM、Element Plus 或 App Shell。不要直接把 generated transport 类型传播到页面，也不要使用 `any` 绕过边界。
+Domain 不得依赖 Vue、DOM、组件库或 App Shell。不要直接把 generated transport 类型传播到页面，也不要使用 `any` 绕过边界。
 
 ## 3. 实现 Web Domain
 
