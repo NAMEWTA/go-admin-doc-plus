@@ -1,15 +1,38 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import type { AccountProfile, SessionController } from '@go-admin/domain-iam/session'
+import { computed, reactive, ref, watch } from 'vue'
+import type { AccountProfile, SessionController, UpdateProfile } from '@go-admin/domain-iam/session'
+import { passwordsMatch } from './account-form'
 
 const props = defineProps<{ controller: SessionController; profile: AccountProfile }>()
 const emit = defineEmits<{ signedOut: [] }>()
 const form = reactive({ displayName: props.profile.displayName, email: props.profile.email, avatarRef: props.profile.avatarRef })
-const password = reactive({ currentPassword: '', newPassword: '' })
+const password = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
 const busy = ref(false)
-const save = async () => { if (busy.value) return; busy.value = true; try { await props.controller.updateProfile(form) } finally { busy.value = false } }
+const activeTab = ref<'profile' | 'password'>('profile')
+const passwordMismatch = ref(false)
+const profileMark = computed(() => (props.profile.displayName.trim().charAt(0) || props.profile.username.charAt(0) || 'A').toUpperCase())
+
+watch(() => props.profile, profile => {
+  form.displayName = profile.displayName
+  form.email = profile.email
+  form.avatarRef = profile.avatarRef
+})
+
+const save = async () => {
+  if (busy.value) return
+  const avatarRef = form.avatarRef?.trim()
+  const update: UpdateProfile = {
+    displayName: form.displayName.trim(),
+    email: form.email.trim(),
+    ...(avatarRef ? { avatarRef } : {})
+  }
+  busy.value = true
+  try { await props.controller.updateProfile(update) } finally { busy.value = false }
+}
 const changePassword = async () => {
   if (busy.value) return
+  passwordMismatch.value = !passwordsMatch(password.newPassword, password.confirmPassword)
+  if (passwordMismatch.value) return
   busy.value = true
   try {
     await props.controller.changePassword(password.currentPassword, password.newPassword)
@@ -17,6 +40,7 @@ const changePassword = async () => {
   } finally {
     password.currentPassword = ''
     password.newPassword = ''
+    password.confirmPassword = ''
     busy.value = false
   }
 }
@@ -32,27 +56,106 @@ const logout = async () => {
 
 <template>
   <main class="account-page">
-    <h1>个人中心</h1>
+    <header><h1>个人中心</h1></header>
     <p v-if="controller.state().status === 'error'" role="alert">请求未能完成，请稍后重试。</p>
-    <form @submit.prevent="save">
-      <h2>基本资料</h2>
-      <label>用户昵称<input v-model.trim="form.displayName" required maxlength="80"></label>
-      <label>邮箱<input v-model.trim="form.email" type="email" required></label>
-      <label>头像引用<input v-model.trim="form.avatarRef" pattern="files/.+"></label>
-      <button type="submit" :disabled="busy">保存资料</button>
-    </form>
-    <form @submit.prevent="changePassword">
-      <h2>修改密码</h2>
-      <label>当前密码<input v-model="password.currentPassword" type="password" autocomplete="current-password" required minlength="12"></label>
-      <label>新密码<input v-model="password.newPassword" type="password" autocomplete="new-password" required minlength="12"></label>
-      <button type="submit" :disabled="busy">修改密码</button>
-    </form>
-    <button type="button" :disabled="busy" @click="logout">退出登录</button>
+    <div class="account-page__workspace">
+      <aside class="account-page__summary" aria-labelledby="account-summary-title">
+        <h2 id="account-summary-title">个人信息</h2>
+        <div class="account-page__identity">
+          <span class="account-page__avatar" aria-hidden="true">{{ profileMark }}</span>
+          <strong>{{ profile.displayName }}</strong>
+          <span>@{{ profile.username }}</span>
+        </div>
+        <dl>
+          <div><dt>用户名称</dt><dd>{{ profile.username }}</dd></div>
+          <div><dt>用户昵称</dt><dd>{{ profile.displayName }}</dd></div>
+          <div><dt>用户邮箱</dt><dd>{{ profile.email }}</dd></div>
+          <div><dt>头像元数据</dt><dd>{{ profile.avatarRef ? '已设置' : '未设置' }}</dd></div>
+        </dl>
+        <button class="account-page__logout" type="button" :disabled="busy" @click="logout">退出登录</button>
+      </aside>
+
+      <section class="account-page__detail" aria-labelledby="account-detail-title">
+        <h2 id="account-detail-title">基本资料</h2>
+        <nav class="tabs" role="tablist" aria-label="账户设置">
+          <button
+            id="account-profile-tab"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'profile'"
+            aria-controls="account-profile-panel"
+            :tabindex="activeTab === 'profile' ? 0 : -1"
+            @click="activeTab = 'profile'"
+          >基本资料</button>
+          <button
+            id="account-password-tab"
+            type="button"
+            role="tab"
+            :aria-selected="activeTab === 'password'"
+            aria-controls="account-password-panel"
+            :tabindex="activeTab === 'password' ? 0 : -1"
+            @click="activeTab = 'password'"
+          >修改密码</button>
+        </nav>
+
+        <form
+          v-if="activeTab === 'profile'"
+          id="account-profile-panel"
+          role="tabpanel"
+          aria-labelledby="account-profile-tab"
+          @submit.prevent="save"
+        >
+          <label>用户昵称<input v-model.trim="form.displayName" required maxlength="80"></label>
+          <label>邮箱<input v-model.trim="form.email" type="email" autocomplete="email" required maxlength="254"></label>
+          <label>头像引用<input v-model.trim="form.avatarRef" autocomplete="off" maxlength="261" pattern="files/[A-Za-z0-9][A-Za-z0-9._/-]{0,254}"></label>
+          <div class="account-page__actions"><button type="submit" :disabled="busy">保存资料</button></div>
+        </form>
+
+        <form
+          v-else
+          id="account-password-panel"
+          role="tabpanel"
+          aria-labelledby="account-password-tab"
+          @submit.prevent="changePassword"
+        >
+          <label>当前密码<input v-model="password.currentPassword" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label>
+          <label>新密码<input v-model="password.newPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128" @input="passwordMismatch = false"></label>
+          <label>确认密码<input v-model="password.confirmPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128" @input="passwordMismatch = false"></label>
+          <p v-if="passwordMismatch" role="alert">两次输入的密码不一致。</p>
+          <div class="account-page__actions"><button type="submit" :disabled="busy">修改密码</button></div>
+        </form>
+      </section>
+    </div>
   </main>
 </template>
 
 <style scoped>
-.account-page, form { display: grid; gap: 16px; }
-.account-page > form { width: min(100%, 720px); }
-label { display: grid; gap: 6px; }
+.account-page { display: grid; align-content: start; gap: 16px; }
+.account-page h1, .account-page h2 { margin: 0; }
+.account-page__workspace { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 12px; }
+.account-page__summary, .account-page__detail { min-width: 0; background: var(--ga-bg-container); border: 1px solid var(--ga-border-light); border-radius: var(--ga-radius); }
+.account-page__summary > h2, .account-page__detail > h2 { min-height: 48px; padding: 15px 18px; border-bottom: 1px solid var(--ga-border-light); font-size: 15px; }
+.account-page__identity { display: grid; justify-items: center; gap: 6px; padding: 22px 18px 16px; text-align: center; }
+.account-page__identity > span:last-child { color: var(--ga-text-3); font-size: 12px; }
+.account-page__avatar { display: grid; width: 88px; height: 88px; place-items: center; color: var(--ga-text-inverse); background: var(--ga-brand); border: 4px solid color-mix(in srgb, var(--ga-brand), white 76%); border-radius: 50%; font-size: 30px; font-weight: 700; }
+.account-page dl { margin: 0; padding: 0 18px; }
+.account-page dl > div { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--ga-border-light); font-size: 13px; }
+.account-page dt { color: var(--ga-text-2); }
+.account-page dd { margin: 0; overflow-wrap: anywhere; color: var(--ga-text-1); text-align: right; }
+.account-page__logout { width: calc(100% - 36px); margin: 16px 18px 18px; color: var(--ga-danger) !important; }
+.account-page__detail > .tabs { display: flex; gap: 4px; margin: 0 18px; }
+.account-page__detail > .tabs button { min-height: 42px; padding: 8px 14px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.account-page__detail > .tabs button[aria-selected="true"] { color: var(--ga-brand); border-bottom-color: var(--ga-brand); }
+.account-page form { display: grid; width: min(100%, 600px); gap: 18px; padding: 22px 18px; }
+.account-page label { display: grid; gap: 7px; }
+.account-page label input { width: 100%; }
+.account-page__actions { display: flex; padding-top: 4px; }
+.account-page__actions button { min-width: 96px; }
+.account-page form [role="alert"] { margin: 0; }
+@media (max-width: 760px) {
+  .account-page__workspace { grid-template-columns: 1fr; }
+  .account-page__identity { grid-template-columns: auto 1fr; justify-items: start; text-align: left; }
+  .account-page__avatar { width: 58px; height: 58px; grid-row: 1 / 3; font-size: 20px; }
+  .account-page__detail > .tabs { overflow-x: auto; }
+}
 </style>
