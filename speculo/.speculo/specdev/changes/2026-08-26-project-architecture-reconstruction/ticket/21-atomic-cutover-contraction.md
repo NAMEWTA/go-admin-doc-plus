@@ -158,6 +158,12 @@ Lead 以 `main@638e2a0a43cbc4fc8994ddbce9b6d37eaffe83c4` 为审计 base，精确
 
 D30 授权 checkpoint 为 `de98a1f58f532812d0f4bc997eb16d04ccf9d15f`；implementation/result 为 `6c01fd983e2f26b4fb01c71be8ffcd7a11fdcb81`（tree `364840919749cb3ab736a7e18c05b6c63486ae7f`）。唯一 application health handler 已覆盖五端点和三 profile，Server/Desktop 复用同一 readiness/status 合同；旧 platform observability 删除，host lifecycle 离开 app，低层反向依赖与旧路径恢复均由 Go AST gate 拒绝。普通/SQLite 全量 Go、race、vet、真实 Generator、根静态门禁和 Server/Web/Tauri 2 全目标 production build 通过。完整证据见 T-21 Evidence 第 31 节；T-21 状态不变。
 
+### T21-D31（Lead 批准）
+
+D30 后继续按 ADR-006 审计正式命令入口，确认 `<Path>go-admin-plus/cmd/desktop-sidecar/runtime.go</Path>` 仍直接拥有实例锁、SQLite 备份/恢复、listener/HTTP server、product Application 生命周期与 shutdown 编排；带 `desktop_native_e2e` 标签的生产源文件也位于 command package，并让无标签 runtime 字段直接暴露 IAM Session 具体类型。`cmd` 因而不是“仅入口”，且现有 backend layer gate 不扫描 command-owned runtime，无法阻止该结构恢复。
+
+Lead 以 `main@b70a406b6ce19ad377d779d6e91109e6eec24031` 为审计 base，基于用户已批准的零兼容完整重构，精确开放 `<Path>go-admin-plus/internal/host/desktop/**</Path>`、`<Path>go-admin-plus/internal/app/product/desktop*.go</Path>`、`<Path>go-admin-plus/internal/application/architecture_test.go</Path>`、`<Path>go-admin-plus/cmd/desktop-sidecar/**</Path>` 及对应 SpecDev 状态/Evidence：由 host/desktop 拥有 Desktop 资源与 HTTP 生命周期，通过 application-facing Builder 端口接收产品运行时；app/product 作为高层 composition 实现 Builder，并把 native 测试控制隔离到显式 build tag；command 只保留 launch material、signal/parent-pipe、listening status 与 Host 调用。删除旧 command runtime/test-control 文件，不保留转发或别名；新增负向 fixture 拒绝 Desktop command 恢复非入口生产文件。API、schema/migration、产品行为、页面 template/style、UI/CSS、发行链路和暂停的 E2E 均不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
