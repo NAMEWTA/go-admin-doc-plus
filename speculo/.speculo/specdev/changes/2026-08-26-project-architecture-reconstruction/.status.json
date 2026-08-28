@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T03:05:35+08:00",
+  "updated_at": "2026-08-29T03:59:15+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -693,6 +693,26 @@
       "approved_at": "2026-08-29T03:00:51+08:00",
       "reason": "The final 25-workspace verification audit proved adapter-desktop, platform, and ui contain production TypeScript but declare no package-local typecheck; adapter-desktop also owns package specs without a test script, so recursive green checks rely on indirect consumers and the architecture gate only verifies scripts that already exist",
       "resolution": "Require every non-root workspace package to declare typecheck and every package that owns a spec to declare test, add strict package-local contracts only to adapter-desktop, platform, and ui, update the exact catalog devDependency lock projections, and strengthen the architecture gate with dynamic manifest/spec discovery; do not add empty App tests or change product code, API, UI/CSS, database, release, or deferred E2E"
+    },
+    {
+      "id": "T21-D28",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T03:12:48+08:00",
+      "reason": "The final Go production import-graph audit proved the architecture gate did not implement ADR-006/ADR-012 import direction or a forbidden-dependency fixture; seven non-IAM modules imported IAM concrete packages and Generator reproduced the same structure",
+      "resolution": "Add a Go AST production-module boundary gate and negative fixture, move only truly shared capability values into contracts, keep consumer-owned minimal ports, move concrete Session, Authorization, Organization Projection, and Login Fact mappings into app-owned adapters, update product composition and Generator, and delete module-local IAM adapters and implicit defaults without compatibility forwarding"
+    },
+    {
+      "id": "T21-D28-A01",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T03:30:41+08:00",
+      "reason": "The constructor contraction audit proved tracked dual-dialect and browser harnesses are alternate composition roots that must compile against the same IAM provider, while keeping adapters private to product would force duplicated security mappings",
+      "resolution": "Own typed cross-module mappings once under internal/app/adapters and allow only affected tracked test composition call sites to reuse them; keep internal/app/product as the sole production composition root and do not restore module-local adapters, add a service locator, or run deferred E2E"
     }
   ],
   "worktrees": [

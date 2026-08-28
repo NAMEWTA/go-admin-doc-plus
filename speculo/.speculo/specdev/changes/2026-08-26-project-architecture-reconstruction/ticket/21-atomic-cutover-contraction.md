@@ -138,6 +138,8 @@ Lead 以 `main@f76649efa829a209b91bb9729ce5c90d4dec0371` 为审计 base，基于
 
 构造函数收缩后的全仓调用点审计证明 `<Path>go-admin-plus/test/{files,organization,settings,scheduler}/**</Path>` 等受跟踪双数据库/浏览器 harness 也是替代组合根，仍需编译并装配同一 IAM provider；若 adapter 只作为 product 私有类型，这些非 E2E 测试无法编译，在各 harness 复制映射又会形成多份安全边界。Lead 精确追加开放 `<Path>go-admin-plus/internal/app/adapters/**</Path>` 与受影响的 `<Path>go-admin-plus/test/**</Path>` 调用点：把 IAM 具体映射集中为 app-owned、按消费者接口返回的类型化 adapter 集合，正式 product 与测试组合根共同复用；`internal/app/product` 仍是正式产品唯一组合点，测试目录不得成为生产依赖。该修正不恢复模块内构造、不新增共享 service locator，也不运行被用户暂停的 E2E。
 
+D28 授权 checkpoint 为 `cb3a428d3805723d58f3fe40022d6aaa78fbf516`，D28-A01 授权 checkpoint 为 `fe4345ff00b6065426b7473cc85eb962c3dc057c`；implementation/result 为 `c648a32ad5e20efe2059fe7993af3fa751ce5887`（tree `bb8320f5179ea9c4a04d7762986ac06f961cffa9`）。生产跨顶层模块 import edge、旧 `NewIAM*` adapter 和隐式 IAM 默认构造均已归零；普通/SQLite 全量 Go、race、vet、Generator 真实隔离编译、根 architecture/compatibility-zero 与 Server/Web/Tauri 2 全目标 production build 通过。完整证据见 T-21 Evidence 第 29 节；T-21 状态不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
