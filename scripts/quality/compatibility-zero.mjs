@@ -13,15 +13,45 @@ const forbidden = [
   ['old upstream core', /go-admin-core/], ['Casbin', /\bcasbin\b/i],
   ['Redis', /\bredis\b/i], ['tenant feature', /\btenant(?:s|_id)?\b/i],
   ['MySQL', /\bmysql\b/i], ['SQL Server', /\bsqlserver\b|\bsql server\b/i],
+  ['JWT', /\bjwts?\b/i], ['refresh token', /\brefresh[_ -]?tokens?\b/i],
+  ['AutoMigrate', /\bauto[_ -]?migrate\b/i], ['GORM', /gorm\.io\/|\bgorm\b/i],
   ['old SQLite build tag', /(?:-tags[= ]+|build:?)sqlite3\b/i],
   ['old release class', /unsigned-self-use/i]
 ]
-const textExtensions = new Set(['', '.go', '.json', '.md', '.mjs', '.sh', '.ts', '.yaml', '.yml'])
+const textExtensions = new Set([
+  '', '.cjs', '.cmd', '.css', '.env', '.example', '.go', '.html', '.js', '.json', '.lock',
+  '.md', '.mjs', '.ps1', '.rs', '.sh', '.sql', '.sum', '.toml', '.ts', '.tsx', '.txt', '.vue',
+  '.xml', '.yaml', '.yml'
+])
+const ignoredDirectories = new Set([
+  '.artifacts', '.data', '.git', '.playwright', 'coverage', 'dist', 'node_modules', 'speculo', 'target', 'vendor'
+])
+const allowedMatches = new Map(Object.entries({
+  'NOTICE.md': ['old upstream core'],
+  'go-admin-plus-ui/apps/admin-desktop/src-tauri/src/proxy.rs': ['MySQL', 'refresh token'],
+  'go-admin-plus/internal/application/architecture_test.go': ['Wails runtime'],
+  'go-admin-plus/internal/modules/files/migrations/0010-files/provider_test.go': ['tenant feature'],
+  'go-admin-plus/internal/modules/generator/generator_test.go': ['Casbin', 'Redis', 'tenant feature', 'GORM'],
+  'go-admin-plus/internal/modules/generator/writer.go': ['Casbin', 'Redis', 'tenant feature', 'GORM'],
+  'go-admin-plus/internal/modules/iam/authorization/capability_registry_test.go': ['MySQL'],
+  'go-admin-plus/internal/modules/organization/migrations/provider_test.go': ['Casbin', 'tenant feature', 'JWT'],
+  'go-admin-plus/internal/modules/settings/security.go': ['MySQL', 'refresh token'],
+  'go-admin-plus/internal/modules/settings/service_test.go': ['JWT'],
+  'go-admin-plus/test/demo/products_sqlite_test.go': ['tenant feature'],
+  'go-admin-plus/test/iam/authorization/administration_test.go': ['Casbin', 'tenant feature', 'JWT'],
+  'release/macos/README.md': ['Wails runtime'],
+  'scripts/quality/architecture-check.mjs': ['old frontend name'],
+  'scripts/release/linux/verify-policy.mjs': ['old frontend name'],
+  'scripts/release/macos/verify-policy.mjs': ['Wails runtime', 'old release class'],
+  'scripts/release/macos/verify-policy.test.mjs': ['old release class'],
+  'scripts/release/windows/verify-policy.mjs': ['old frontend name', 'Wails runtime', 'old release class'],
+  'scripts/release/windows/verify-policy.test.mjs': ['Wails runtime', 'old release class']
+}).map(([path, names]) => [path, new Set(names)]))
 
 const walk = directory => {
   if (!existsSync(directory)) return []
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
-    if (['node_modules', 'dist', 'target', '.git'].includes(entry.name)) return []
+    if (ignoredDirectories.has(entry.name)) return []
     const path = join(directory, entry.name)
     return entry.isDirectory() ? walk(path) : [path]
   })
@@ -30,11 +60,7 @@ const walk = directory => {
 export const checkCompatibility = root => {
   const failures = []
   for (const path of removedPaths) if (existsSync(join(root, path))) failures.push(`removed path still exists: ${path}`)
-  const scanRoots = [
-    'Taskfile.yml', '.github', '.agents/skills', 'scripts/go-admin-plus', 'scripts/go-admin-plus-ui',
-    'release/manifest', 'README.md', 'docs', 'deploy/README.md', 'database/README.md',
-    'release/README.md', 'go-admin-plus/README.md', 'go-admin-plus/config/README.md', 'go-admin-plus/go.mod'
-  ]
+  const scanRoots = ['.']
   const ownFiles = new Set(['scripts/quality/compatibility-zero.mjs', 'scripts/quality/compatibility-zero.test.mjs'])
   for (const rootPath of scanRoots) {
     const absolute = join(root, rootPath)
@@ -42,8 +68,12 @@ export const checkCompatibility = root => {
     for (const file of files) {
       const path = relative(root, file)
       if (ownFiles.has(path) || !textExtensions.has(extname(file))) continue
-      const source = readFileSync(file, 'utf8')
-      for (const [name, pattern] of forbidden) if (pattern.test(source)) failures.push(`${name} remains in ${path}`)
+      const content = readFileSync(file)
+      if (content.includes(0)) continue
+      const source = content.toString('utf8')
+      for (const [name, pattern] of forbidden) {
+        if (pattern.test(source) && !allowedMatches.get(path)?.has(name)) failures.push(`${name} remains in ${path}`)
+      }
     }
   }
   return failures
