@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T19:07:49+08:00",
+  "updated_at": "2026-08-28T19:48:29+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -483,6 +483,16 @@
       "approved_at": "2026-08-28T17:23:22+08:00",
       "reason": "The AC-029 completion audit proved compatibility-zero scanned only selected governance and documentation roots and omitted JWT, refresh token, AutoMigrate, and GORM, so a new product source file could restore removed architecture while the gate remained green",
       "resolution": "Scan all repository text source and lock formats while pruning Speculo history, Git data, generated output, dependencies, and binary files; add the four missing forbidden categories and an exact path-plus-category allowlist only for license attribution, security rejection, negative tests, and release policy assertions, with Go and Rust regression probes"
+    },
+    {
+      "id": "T21-D07",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T19:48:29+08:00",
+      "reason": "The final repository audit proved the backend still declared the pre-reconstruction short module path go-admin and all internal imports retained it, while AC-029 explicitly requires old module paths to reach zero and compatibility-zero did not scan .mod files or reject that path",
+      "resolution": "Adopt github.com/NAMEWTA/go-admin-plus/go-admin-plus as the canonical backend module, mechanically migrate every current source, test, fixture, and Generator template import, document and assert the exact declaration, scan .mod files, and reject both historical declarations and imports without adding aliases, replace directives, compatibility shims, or product behavior changes"
     }
   ],
   "worktrees": [
