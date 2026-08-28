@@ -4,7 +4,7 @@
 
 - Go 1.26.5
 - Node.js 22 或更高版本
-- pnpm 11 或更高版本
+- pnpm 11.1.3，或当前 Node 安装提供的 Corepack；实际版本由 Workspace `packageManager` 固定
 - Desktop：Rust stable、Cargo 和 Tauri 2 当前平台系统依赖
 - PostgreSQL profile：可访问的 PostgreSQL 实例
 
@@ -12,7 +12,12 @@
 
 ```bash
 pnpm --dir go-admin-plus-ui install --frozen-lockfile
+
+# 仅安装了 Corepack 时使用等价命令
+corepack pnpm --dir go-admin-plus-ui install --frozen-lockfile
 ```
+
+根 Task 优先使用 PATH 中的 pnpm。Node 工具管理器未把 pnpm shim 传给子进程时，命令面会在根 `.artifacts/tool-shims/` 中生成并使用 Corepack shim；该目录不进入源码或发行制品。
 
 ## Server 与 Web
 

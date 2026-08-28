@@ -112,7 +112,7 @@ export const checkArchitecture = root => {
   if (existsSync(packageScriptPath)) {
     const packageScript = readFileSync(packageScriptPath, 'utf8')
     const requiredPackageContracts = [
-      [/GO_ADMIN_BUILD_DIR="\$web_dist" pnpm --filter @go-admin-plus\/admin-web build/, 'local package script must build Web into the artifacts staging directory'],
+      [/GO_ADMIN_BUILD_DIR="\$web_dist" run_pnpm --filter @go-admin-plus\/admin-web build/, 'local package script must build Web into the artifacts staging directory'],
       [/tar -C "\$web_stage" -czf "\$package_tmp" dist/, 'local package script must archive the staged Web dist'],
       [/case \$\(go env GOHOSTOS\) in/, 'local package script must select Desktop bundles from GOHOSTOS'],
       [/darwin\) desktop_bundle=app/, 'local package script must support the macOS app bundle'],
@@ -131,7 +131,7 @@ export const checkArchitecture = root => {
     if (!/node "\$repo_root\/release\/shared\/sidecar\/build\.mjs" --host/.test(buildScript)) {
       failures.push('Desktop build must stage the host Go sidecar')
     }
-    if (!/pnpm --filter @go-admin-plus\/admin-desktop tauri build \\\n\s+--features custom-protocol --no-bundle/.test(buildScript)) {
+    if (!/run_pnpm --filter @go-admin-plus\/admin-desktop tauri build[\s\\]+--features custom-protocol --no-bundle/.test(buildScript)) {
       failures.push('Desktop build must compile the Tauri host without bundling')
     }
     if (!/all\)\s*\n\s*build_web\s*\n\s*build_desktop/.test(buildScript)) {
@@ -141,6 +141,17 @@ export const checkArchitecture = root => {
       failures.push('Desktop target must use the native build')
     }
     if (/pnpm build:prod/.test(buildScript)) failures.push('product build must not stop at aggregate WebView assets')
+  }
+
+  const frontendTaskScriptRoot = join(root, 'scripts/go-admin-plus-ui')
+  if (existsSync(frontendTaskScriptRoot)) {
+    for (const entry of readdirSync(frontendTaskScriptRoot, { withFileTypes: true })) {
+      if (!entry.isFile() || extname(entry.name) !== '.sh' || entry.name === 'common.sh') continue
+      const path = join(frontendTaskScriptRoot, entry.name)
+      if (/\b(?:exec\s+)?pnpm\s/.test(readFileSync(path, 'utf8'))) {
+        failures.push('frontend task script must use managed pnpm resolution: ' + relative(root, path).replaceAll('\\', '/'))
+      }
+    }
   }
 
   const ciWorkflowPath = join(root, '.github/workflows/ci.yml')

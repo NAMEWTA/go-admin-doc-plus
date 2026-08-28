@@ -2,7 +2,7 @@
 set -eu
 . "$(dirname "$0")/common.sh"
 
-require_tool pnpm
+require_pnpm
 cd "$frontend_root"
-pnpm lint
-exec pnpm type-check
+run_pnpm lint
+exec_pnpm type-check

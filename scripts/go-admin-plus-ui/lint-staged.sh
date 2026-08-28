@@ -2,6 +2,6 @@
 set -eu
 . "$(dirname "$0")/common.sh"
 
-require_tool pnpm
+require_pnpm
 cd "$frontend_root"
-exec pnpm exec lint-staged
+exec_pnpm exec lint-staged

@@ -11,6 +11,8 @@ fail() {
 task_command=$(command -v task 2>/dev/null) || fail 'Go Task is required to verify the command contract'
 node_command=$(command -v node 2>/dev/null) || fail 'Node.js is required to verify the command contract'
 
+"$node_command" --test "$repo_root/scripts/go-admin-plus-ui/common.test.mjs" || exit 1
+
 task_list=$("$task_command" --list --json)
 printf '%s' "$task_list" | "$node_command" -e '
   const { tasks } = JSON.parse(require("node:fs").readFileSync(0, "utf8"))

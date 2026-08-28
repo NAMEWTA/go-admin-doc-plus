@@ -2,11 +2,11 @@
 set -eu
 . "$(dirname "$0")/common.sh"
 
-require_tool pnpm
+require_pnpm
 
 build_web() {
   cd "$frontend_root"
-  pnpm --filter @go-admin-plus/admin-web build
+  run_pnpm --filter @go-admin-plus/admin-web build
 }
 
 build_desktop() {
@@ -16,7 +16,7 @@ build_desktop() {
   require_desktop_workspace
   cd "$frontend_root"
   node "$repo_root/release/shared/sidecar/build.mjs" --host
-  pnpm --filter @go-admin-plus/admin-desktop tauri build \
+  run_pnpm --filter @go-admin-plus/admin-desktop tauri build \
     --features custom-protocol --no-bundle
 }
 

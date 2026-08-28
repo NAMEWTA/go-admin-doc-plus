@@ -186,3 +186,14 @@ test('rejects Desktop CI that checks Rust without linking the native host', () =
   assert.ok(failures.includes('Desktop CI must stage the host Go sidecar'))
   assert.ok(failures.includes('Desktop CI must link the Tauri host without bundling'))
 })
+
+test('rejects frontend task scripts that bypass managed pnpm resolution', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const scriptRoot = join(root, 'scripts/go-admin-plus-ui')
+  mkdirSync(scriptRoot, { recursive: true })
+  writeFileSync(join(scriptRoot, 'test.sh'), 'exec pnpm test\n')
+
+  assert.ok(checkArchitecture(root).includes(
+    'frontend task script must use managed pnpm resolution: scripts/go-admin-plus-ui/test.sh'
+  ))
+})

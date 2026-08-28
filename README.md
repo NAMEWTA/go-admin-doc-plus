@@ -16,7 +16,7 @@ Go Admin Plus 是一个单仓库管理系统产品，包含 Go Server、Vue Web 
 
 ## 开发启动
 
-安装 Go 1.26.5、Node.js 22+、pnpm 11+。Desktop 还需要 Rust stable 与当前平台的 Tauri 2 系统依赖。
+安装 Go 1.26.5、Node.js 22+、pnpm 11.1.3，或使用当前 Node 安装提供的 Corepack。Workspace 的 `packageManager` 固定实际 pnpm 版本；根任务在 pnpm shim 对 Node 子进程不可见时，会在已忽略的 `.artifacts/tool-shims/` 中生成 Corepack shim。Desktop 还需要 Rust stable 与当前平台的 Tauri 2 系统依赖。
 
 ```bash
 # 终端 1：Server SQLite
