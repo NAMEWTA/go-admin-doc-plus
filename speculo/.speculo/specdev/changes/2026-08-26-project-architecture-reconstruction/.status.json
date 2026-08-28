@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T22:15:21+08:00",
+  "updated_at": "2026-08-28T22:28:22+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -543,6 +543,16 @@
       "approved_at": "2026-08-28T22:15:21+08:00",
       "reason": "The final verification-coverage audit proved the root frontend typecheck manually omitted three packages that declared typecheck and six of ten test projects, while the central Vitest allowlist omitted eight unit spec files and the standard task test command omitted 29 Node unit tests for browser/native harness diagnostics and lifecycle helpers",
       "resolution": "Run every declared workspace typecheck recursively, compile every discovered test tsconfig, discover every package and harness unit spec, add a self-contained Node unit-test runner under the Generator-copied shell skeleton, and enforce all four coverage contracts in the root architecture gate without running E2E or changing UI, CSS, product behavior, contracts, schema, or release behavior"
+    },
+    {
+      "id": "T21-D13",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-28T22:28:22+08:00",
+      "reason": "The final build-completeness audit proved task build TARGET=desktop compiled only Vite WebView assets, while TARGET=all built only the Server command plus Web/Desktop assets and omitted both the host Go sidecar and Rust/Tauri executable despite current documentation and Evidence describing complete Server/sidecar/Web/Desktop builds",
+      "resolution": "Make the Desktop build stage the approved host sidecar and run a custom-protocol Tauri release build with --no-bundle; route both desktop and all through that native build, keep package/signing/notarization in the existing package and protected release commands, document the macOS/Windows host constraint, and enforce the build wiring in architecture tests without running E2E"
     }
   ],
   "worktrees": [
