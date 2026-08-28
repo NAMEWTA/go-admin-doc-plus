@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-28T23:52:00+08:00",
+  "updated_at": "2026-08-29T00:43:03+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -593,6 +593,16 @@
       "approved_at": "2026-08-28T23:52:00+08:00",
       "reason": "A real full task test under the unmodified Volta environment proved the Go generator's Node child still failed with spawnSync pnpm ENOENT, while an unversioned Corepack call from the repository root selected pnpm 10.34.5 instead of the workspace's required 11.1.3",
       "resolution": "Share one exact pnpm 11.1.3 resolver across backend and frontend scripts, prepare its inherited shim before server tests, development, and contract generation, install the frozen cross-language generator workspace in backend CI, reject direct version drift, and preserve deterministic failure and exit propagation without compatibility fallback"
+    },
+    {
+      "id": "T21-D18",
+      "level": "ticket",
+      "status": "approved",
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "approved_at": "2026-08-29T00:43:03+08:00",
+      "reason": "The final AC-011/AC-022 audit proved the Web runtime omitted IAM dataScope and the Shell widened a missing scope to all, while two real concurrent Go test runs proved the Generator could fail through the Volta Node shim with Resource temporarily unavailable even though the isolated 339-second generation gate passed",
+      "resolution": "Authorize only the twelve recorded product runtime, shared platform, Web/Desktop adapter, Shell regression, and Generator resolver files; require one explicit self-or-all identity contract with no compatibility default, resolve Volta to its installed Node runtime for deterministic concurrent generation, and leave UI/CSS, modular OpenAPI, schema, migrations, removed capabilities, protected release, and deferred E2E unchanged"
     }
   ],
   "worktrees": [

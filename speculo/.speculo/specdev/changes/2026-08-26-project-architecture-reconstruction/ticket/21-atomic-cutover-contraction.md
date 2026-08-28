@@ -76,6 +76,10 @@ AC-029 完成审计证明 `compatibility-zero` 只扫描部分治理/文档目�
 
 真实原始 Volta 环境执行完整 `task test` 时，后端 Generator 的 Node 子进程因 PATH 中没有 pnpm 以 `spawnSync pnpm ENOENT` 失败，证明 D15 只闭合了前端 shell 命令面；同时从仓库根直接执行未带版本的 Corepack 会选择 `10.34.5`，不能满足 Workspace 固定的 `11.1.3`。Lead 精确开放 `<Path>scripts/contracts/generate.sh</Path>` 与 resolver 回归文件：前后端脚本共用唯一 `pnpm@11.1.3` resolver，后端 dev/test 和合同 wrapper 在进入 Generator 前准备可继承的标准 shim，后端 CI 安装 Node、pnpm 与 frozen frontend workspace；所有失败和退出码继续向根 Task 传播，不保留漂移版本 fallback。
 
+### T21-D18（Lead 批准）
+
+最终 AC-011/AC-022 非 E2E 审计证明 Web `/api/runtime/identity` 丢失 IAM manifest 的 `dataScope`，共享 `RuntimeIdentity` 没有该字段，而 Shell 会把缺失值默认为 `all`；因此 `self` 账号在 Web 中会错误显示只允许全部数据范围的控制项。真实完整 Go 并发测试又两次证明 Generator 直接启动 Volta Node shim 会以 `Resource temporarily unavailable (os error 35)` 失败，而同一生成器隔离运行 339 秒通过。Lead 基于用户已批准的零兼容完整重构和先完成编码/构建要求，精确开放 `<Path>go-admin-plus/internal/app/product/runtime.go</Path>`、`<Path>go-admin-plus/internal/app/product/runtime_test.go</Path>`、`<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>`、`<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>`、`<Path>go-admin-plus-ui/packages/platform/src/index.ts</Path>`、`<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>`、`<Path>go-admin-plus-ui/packages/adapters/browser/src/index.spec.ts</Path>`、`<Path>go-admin-plus-ui/packages/adapters/desktop/src/index.ts</Path>`、`<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>`、`<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>`、`<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>` 与 `<Path>go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs</Path>`：Web 与 Desktop 统一使用必填 `self|all` 数据范围且不提供兼容默认值；Generator 在 Volta 下解析已安装的真实 Node runtime，并让临时 Workspace 的 PATH 继承该实体目录。公共模块 OpenAPI、数据库 schema、UI/CSS、已删能力和受保护发行行为保持不变。
+
 ### 已采用的低影响假设
 
 - 零兼容扫描使用明确 allowlist，仅允许 SpecDev 历史工件和必要否定性测试文本。
