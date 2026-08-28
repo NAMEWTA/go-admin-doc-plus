@@ -24,7 +24,7 @@ var ErrAlreadyRun = errors.New("server host has already run")
 const defaultShutdownTimeout = 5 * time.Second
 
 // Application is the complete interface the ServerHost needs from the
-// host-neutral application kernel.
+// host-neutral application runtime.
 type Application interface {
 	Handler() http.Handler
 	Start(context.Context) error
@@ -91,8 +91,8 @@ func New(config Config, build Builder) (*Host, error) {
 	if config.ShutdownTimeout == 0 {
 		config.ShutdownTimeout = defaultShutdownTimeout
 	}
-	if strings.TrimSpace(config.Capabilities.HostProfile) == "" {
-		return nil, errors.New("server host profile capability is required")
+	if err := config.Capabilities.Validate(); err != nil {
+		return nil, errors.New("server host capabilities are invalid")
 	}
 	return &Host{
 		config:  config,
@@ -129,7 +129,7 @@ func (host *Host) Run(parent context.Context) (runErr error) {
 	}()
 
 	operations, err := health.New(
-		func() application.State { return runtime.Application.State().State },
+		func() application.Snapshot { return runtime.Application.State() },
 		host.config.Capabilities,
 		runtime.Readiness...,
 	)

@@ -60,7 +60,7 @@ func TestControlBoundaryRejectsOriginAndMissingSecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := runtime.kernel.Start(ctx); err != nil {
+	if err := runtime.owner.Start(ctx); err != nil {
 		t.Fatal(err)
 	}
 	port := runtime.port()
@@ -70,7 +70,7 @@ func TestControlBoundaryRejectsOriginAndMissingSecret(t *testing.T) {
 	defer func() {
 		shutdown, stop := context.WithTimeout(context.Background(), 3*time.Second)
 		defer stop()
-		if err := runtime.kernel.Drain(shutdown); err != nil {
+		if err := runtime.owner.Drain(shutdown); err != nil {
 			t.Fatal(err)
 		}
 	}()
@@ -103,6 +103,26 @@ func TestControlBoundaryRejectsOriginAndMissingSecret(t *testing.T) {
 		t.Fatalf("replayed readiness status=%v err=%v", responseStatus(response), err)
 	}
 	_ = response.Body.Close()
+	metrics, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:"+desktopplatformPort(port)+"/metrics", nil)
+	response, err = client.Do(metrics)
+	if err != nil || response.StatusCode != http.StatusForbidden {
+		t.Fatalf("uncontrolled metrics status=%v err=%v", responseStatus(response), err)
+	}
+	_ = response.Body.Close()
+	metrics, _ = http.NewRequest(http.MethodGet, "http://127.0.0.1:"+desktopplatformPort(port)+"/metrics", nil)
+	metrics.Header.Set(desktopplatform.ControlHeader, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+	response, err = client.Do(metrics)
+	if err != nil || response.StatusCode != http.StatusOK {
+		t.Fatalf("controlled metrics status=%v err=%v", responseStatus(response), err)
+	}
+	_ = response.Body.Close()
+	status, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:"+desktopplatformPort(port)+"/api/v1/runtime/status", nil)
+	status.Header.Set(desktopplatform.ControlHeader, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ")
+	response, err = client.Do(status)
+	if err != nil || response.StatusCode != http.StatusOK {
+		t.Fatalf("controlled runtime status=%v err=%v", responseStatus(response), err)
+	}
+	_ = response.Body.Close()
 }
 
 func TestSidecarRuntimeHoldsInstanceLockUntilDrain(t *testing.T) {
@@ -118,7 +138,7 @@ func TestSidecarRuntimeHoldsInstanceLockUntilDrain(t *testing.T) {
 		ControlToken:   "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ",
 	}
 	first, err := newSidecarRuntime(material, cancel)
-	if err != nil || first.kernel.Start(ctx) != nil {
+	if err != nil || first.owner.Start(ctx) != nil {
 		t.Fatalf("start first runtime: %v", err)
 	}
 	secondMaterial := material
@@ -128,19 +148,19 @@ func TestSidecarRuntimeHoldsInstanceLockUntilDrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := second.kernel.Start(ctx); err == nil {
+	if err := second.owner.Start(ctx); err == nil {
 		t.Fatal("second runtime acquired the same data-root lock")
 	}
 	shutdown, stop := context.WithTimeout(context.Background(), 3*time.Second)
 	defer stop()
-	if err := first.kernel.Drain(shutdown); err != nil {
+	if err := first.owner.Drain(shutdown); err != nil {
 		t.Fatal(err)
 	}
 	restarted, err := newSidecarRuntime(secondMaterial, cancel)
-	if err != nil || restarted.kernel.Start(ctx) != nil {
+	if err != nil || restarted.owner.Start(ctx) != nil {
 		t.Fatalf("instance lock was not released after drain: %v", err)
 	}
-	if err := restarted.kernel.Drain(shutdown); err != nil {
+	if err := restarted.owner.Drain(shutdown); err != nil {
 		t.Fatal(err)
 	}
 }

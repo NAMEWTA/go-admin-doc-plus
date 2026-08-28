@@ -1,5 +1,5 @@
-// Package kernel owns the host-neutral application lifecycle state machine.
-package kernel
+// Package lifecycle owns the host resource lifecycle state machine.
+package lifecycle
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrAlreadyStarted = errors.New("kernel has already started")
-	ErrNotReady       = errors.New("kernel is not ready")
+	ErrAlreadyStarted = errors.New("lifecycle manager has already started")
+	ErrNotReady       = errors.New("lifecycle manager is not ready")
 )
 
 // State is the externally observable application lifecycle state.
@@ -43,17 +43,17 @@ type Lifecycle struct {
 	Stop  func(context.Context) error
 }
 
-// Snapshot is a point-in-time copy. Mutating Started cannot affect the kernel.
+// Snapshot is a point-in-time copy. Mutating Started cannot affect the manager.
 type Snapshot struct {
 	State   State
 	Failure Failure
 	Started []string
 }
 
-// Kernel is single-start and safe for concurrent status reads and lifecycle
+// Manager is single-start and safe for concurrent status reads and lifecycle
 // requests. Lifecycle callbacks may read Snapshot but must not re-enter Start,
 // Drain, or DependencyFailed.
-type Kernel struct {
+type Manager struct {
 	lifecycleMu sync.Mutex
 	stateMu     sync.RWMutex
 	state       State
@@ -62,9 +62,9 @@ type Kernel struct {
 	started     []Lifecycle
 }
 
-// New validates and snapshots lifecycle definitions. The returned kernel is in
+// New validates and snapshots lifecycle definitions. The returned manager is in
 // StateStarting and owns all further lifecycle transitions.
-func New(units ...Lifecycle) (*Kernel, error) {
+func New(units ...Lifecycle) (*Manager, error) {
 	owned := append([]Lifecycle(nil), units...)
 	seen := make(map[string]struct{}, len(owned))
 	for index := range owned {
@@ -80,11 +80,11 @@ func New(units ...Lifecycle) (*Kernel, error) {
 			return nil, fmt.Errorf("lifecycle %q requires start, drain, and stop functions", owned[index].Name)
 		}
 	}
-	return &Kernel{state: StateStarting, units: owned}, nil
+	return &Manager{state: StateStarting, units: owned}, nil
 }
 
 // Snapshot returns an owned status copy suitable for observability handlers.
-func (runtime *Kernel) Snapshot() Snapshot {
+func (runtime *Manager) Snapshot() Snapshot {
 	runtime.stateMu.RLock()
 	defer runtime.stateMu.RUnlock()
 	started := make([]string, 0, len(runtime.started))
@@ -94,9 +94,9 @@ func (runtime *Kernel) Snapshot() Snapshot {
 	return Snapshot{State: runtime.state, Failure: runtime.failure, Started: started}
 }
 
-// Start starts every lifecycle in declaration order and marks the kernel ready
+// Start starts every lifecycle in declaration order and marks the manager ready
 // only after all starts succeed. A failure stops already-started lifecycles.
-func (runtime *Kernel) Start(ctx context.Context) error {
+func (runtime *Manager) Start(ctx context.Context) error {
 	if ctx == nil {
 		return errors.New("start context is required")
 	}
@@ -121,7 +121,7 @@ func (runtime *Kernel) Start(ctx context.Context) error {
 	return nil
 }
 
-func (runtime *Kernel) failStart(ctx context.Context, name string, cause error) error {
+func (runtime *Manager) failStart(ctx context.Context, name string, cause error) error {
 	runtime.setStatus(StateFailed, FailureStartup)
 	cleanupErr := runtime.stopStarted(context.WithoutCancel(ctx), false)
 	startErr := lifecycleError{operation: "start", name: name, cause: cause}
@@ -130,7 +130,7 @@ func (runtime *Kernel) failStart(ctx context.Context, name string, cause error) 
 
 // Drain makes readiness false before draining and stopping resources in reverse
 // order. Every resource receives Stop even when an earlier callback fails.
-func (runtime *Kernel) Drain(ctx context.Context) error {
+func (runtime *Manager) Drain(ctx context.Context) error {
 	if ctx == nil {
 		return errors.New("drain context is required")
 	}
@@ -147,7 +147,7 @@ func (runtime *Kernel) Drain(ctx context.Context) error {
 
 // DependencyFailed makes readiness false before cleanup and retains StateFailed
 // after resources stop. The triggering dependency detail is never stored.
-func (runtime *Kernel) DependencyFailed(ctx context.Context) error {
+func (runtime *Manager) DependencyFailed(ctx context.Context) error {
 	if ctx == nil {
 		return errors.New("dependency failure context is required")
 	}
@@ -160,7 +160,7 @@ func (runtime *Kernel) DependencyFailed(ctx context.Context) error {
 	return runtime.stopStarted(ctx, true)
 }
 
-func (runtime *Kernel) stopStarted(ctx context.Context, drain bool) error {
+func (runtime *Manager) stopStarted(ctx context.Context, drain bool) error {
 	runtime.stateMu.RLock()
 	started := append([]Lifecycle(nil), runtime.started...)
 	runtime.stateMu.RUnlock()
@@ -182,20 +182,20 @@ func (runtime *Kernel) stopStarted(ctx context.Context, drain bool) error {
 	return errors.Join(cleanupErrors...)
 }
 
-func (runtime *Kernel) currentState() State {
+func (runtime *Manager) currentState() State {
 	runtime.stateMu.RLock()
 	defer runtime.stateMu.RUnlock()
 	return runtime.state
 }
 
-func (runtime *Kernel) setStatus(state State, failure Failure) {
+func (runtime *Manager) setStatus(state State, failure Failure) {
 	runtime.stateMu.Lock()
 	runtime.state = state
 	runtime.failure = failure
 	runtime.stateMu.Unlock()
 }
 
-func (runtime *Kernel) appendStarted(unit Lifecycle) {
+func (runtime *Manager) appendStarted(unit Lifecycle) {
 	runtime.stateMu.Lock()
 	runtime.started = append(runtime.started, unit)
 	runtime.stateMu.Unlock()

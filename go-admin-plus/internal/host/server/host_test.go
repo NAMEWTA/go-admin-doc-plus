@@ -58,6 +58,8 @@ func TestHostServesOperationsAndStopsEveryOwnedResource(t *testing.T) {
 	assertHTTPStatus(t, baseURL+"/health/live", http.StatusOK)
 	assertHTTPStatus(t, baseURL+"/health/ready", http.StatusOK)
 	assertHTTPStatus(t, baseURL+"/api/v1/runtime/capabilities", http.StatusOK)
+	assertHTTPStatus(t, baseURL+"/api/v1/runtime/status", http.StatusOK)
+	assertHTTPStatus(t, baseURL+"/metrics", http.StatusOK)
 	assertHTTPStatus(t, baseURL+"/business", http.StatusNoContent)
 
 	dependencyDown.Store(true)
@@ -182,6 +184,19 @@ func TestHostValidatesTLSFilesAsAPair(t *testing.T) {
 	_, err := New(config, func(context.Context) (Runtime, error) { return Runtime{}, nil })
 	if err == nil || !strings.Contains(err.Error(), "configured together") {
 		t.Fatalf("New with incomplete TLS configuration = %v", err)
+	}
+}
+
+func TestHostRejectsInconsistentCapabilitiesBeforeBuild(t *testing.T) {
+	config := testConfig("127.0.0.1:0")
+	config.Capabilities.Database = "postgres"
+	var builds atomic.Int32
+	_, err := New(config, func(context.Context) (Runtime, error) {
+		builds.Add(1)
+		return Runtime{}, nil
+	})
+	if err == nil || builds.Load() != 0 {
+		t.Fatalf("New capabilities error = %v, build calls = %d", err, builds.Load())
 	}
 }
 
@@ -338,8 +353,9 @@ func testConfig(address string) Config {
 	return Config{
 		Address: address,
 		Capabilities: health.Capabilities{
-			HostProfile: "server",
-			Version:     "host-test",
+			Profile:  "server-sqlite",
+			Version:  "host-test",
+			Database: "sqlite",
 		},
 	}
 }

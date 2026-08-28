@@ -35,7 +35,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err := runtime.kernel.Start(runCtx); err != nil {
+	if err := runtime.owner.Start(runCtx); err != nil {
 		return err
 	}
 	status := struct {
@@ -45,7 +45,7 @@ func run() error {
 	if err := json.NewEncoder(os.Stdout).Encode(status); err != nil {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
-		return errors.Join(err, runtime.kernel.Drain(shutdownCtx))
+		return errors.Join(err, runtime.owner.Drain(shutdownCtx))
 	}
 	select {
 	case <-runCtx.Done():
@@ -56,7 +56,7 @@ func run() error {
 	}
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
-	return errors.Join(err, runtime.kernel.Drain(shutdownCtx))
+	return errors.Join(err, runtime.owner.Drain(shutdownCtx))
 }
 
 func cancelWhenParentPipeCloses(reader io.Reader, stop context.CancelFunc) {

@@ -17,7 +17,10 @@ import (
 	"testing"
 )
 
-const moduleImportMarker = "/internal/modules/"
+const (
+	internalImportMarker = "/internal/"
+	moduleImportMarker   = "/internal/modules/"
+)
 
 var (
 	createTablePattern   = regexp.MustCompile("(?i)\\bCREATE\\s+TABLE(?:\\s+IF\\s+NOT\\s+EXISTS)?\\s+[`\"]?([a-z_][a-z0-9_]*)[`\"]?")
@@ -69,6 +72,138 @@ func TestProductionModulesDoNotImportOtherModules(t *testing.T) {
 	if len(violations) != 0 {
 		t.Fatalf("production modules must collaborate through consumer ports injected by internal/app; cross-module imports:\n%s", strings.Join(violations, "\n"))
 	}
+}
+
+func TestLowLevelBackendPackagesDoNotDependOnHigherLayers(t *testing.T) {
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve architecture test path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
+	violations, err := productionBackendLayerViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatalf("inspect backend layers: %v", err)
+	}
+	if len(violations) != 0 {
+		t.Fatalf("backend low-level packages must not depend on higher layers and app may contain only composition packages:\n%s", strings.Join(violations, "\n"))
+	}
+}
+
+func TestBackendLayerFixtureRejectsReverseDependencies(t *testing.T) {
+	root := t.TempDir()
+	writeFixture := func(name, content string) {
+		t.Helper()
+		filename := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filename, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeFixture("internal/contracts/shared/value.go", "package shared\nimport _ \"example.test/product/internal/modules/orders\"\n")
+	writeFixture("internal/application/service.go", "package application\nimport _ \"example.test/product/internal/platform/database\"\n")
+	writeFixture("internal/platform/client.go", "package platform\nimport _ \"example.test/product/internal/app/product\"\n")
+	writeFixture("internal/platform/observability/handler.go", "package observability\n")
+	writeFixture("internal/app/runtime/runtime.go", "package runtime\n")
+	writeFixture("internal/app/product/product.go", "package product\nimport _ \"example.test/product/internal/modules/orders\"\n")
+
+	violations, err := productionBackendLayerViolations(os.DirFS(root))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"internal/app/runtime/runtime.go: app package runtime is not a composition package",
+		"internal/application/service.go: application imports platform",
+		"internal/contracts/shared/value.go: contracts imports modules",
+		"internal/platform/client.go: platform imports app",
+		"internal/platform/observability/handler.go: obsolete backend package platform/observability",
+	}
+	if fmt.Sprint(violations) != fmt.Sprint(want) {
+		t.Fatalf("violations = %v, want %v", violations, want)
+	}
+}
+
+func productionBackendLayerViolations(root fs.FS) ([]string, error) {
+	allowedTargets := map[string]map[string]struct{}{
+		"application": {"application": {}, "contracts": {}},
+		"contracts":   {"contracts": {}},
+		"host":        {"application": {}, "contracts": {}, "host": {}, "platform": {}},
+		"platform":    {"contracts": {}, "platform": {}},
+	}
+	compositionPackages := map[string]struct{}{"adapters": {}, "product": {}}
+	obsoletePackages := map[string]struct{}{"platform/observability": {}}
+	var violations []string
+	err := fs.WalkDir(root, "internal", func(filename string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || path.Ext(filename) != ".go" || strings.HasSuffix(filename, "_test.go") {
+			return nil
+		}
+		parts := strings.Split(filename, "/")
+		if len(parts) < 3 {
+			return nil
+		}
+		sourceLayer := parts[1]
+		if len(parts) >= 4 {
+			packagePath := parts[1] + "/" + parts[2]
+			if _, obsolete := obsoletePackages[packagePath]; obsolete {
+				violations = append(violations, fmt.Sprintf("%s: obsolete backend package %s", filename, packagePath))
+			}
+		}
+		if sourceLayer == "app" && len(parts) >= 4 {
+			if _, allowed := compositionPackages[parts[2]]; !allowed {
+				violations = append(violations, fmt.Sprintf("%s: app package %s is not a composition package", filename, parts[2]))
+			}
+		}
+		allowed, constrained := allowedTargets[sourceLayer]
+		if !constrained {
+			return nil
+		}
+		content, err := fs.ReadFile(root, filename)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", filename, err)
+		}
+		parsed, err := parser.ParseFile(token.NewFileSet(), filename, content, parser.ImportsOnly)
+		if err != nil {
+			return fmt.Errorf("parse %s: %w", filename, err)
+		}
+		for _, specification := range parsed.Imports {
+			targetLayer, err := importedInternalLayer(specification)
+			if err != nil {
+				return fmt.Errorf("parse import in %s: %w", filename, err)
+			}
+			if targetLayer == "" {
+				continue
+			}
+			if _, ok := allowed[targetLayer]; !ok {
+				violations = append(violations, fmt.Sprintf("%s: %s imports %s", filename, sourceLayer, targetLayer))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(violations)
+	return violations, nil
+}
+
+func importedInternalLayer(specification *ast.ImportSpec) (string, error) {
+	importPath, err := strconv.Unquote(specification.Path.Value)
+	if err != nil {
+		return "", err
+	}
+	marker := strings.Index(importPath, internalImportMarker)
+	if marker < 0 {
+		return "", nil
+	}
+	remainder := strings.TrimPrefix(importPath[marker+len(internalImportMarker):], "/")
+	if remainder == "" {
+		return "", nil
+	}
+	return strings.SplitN(remainder, "/", 2)[0], nil
 }
 
 func TestProductionModuleImportFixtureRejectsCrossModuleDependency(t *testing.T) {

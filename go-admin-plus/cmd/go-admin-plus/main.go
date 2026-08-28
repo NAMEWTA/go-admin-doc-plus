@@ -76,10 +76,14 @@ func run(arguments []string) error {
 	if err != nil {
 		return err
 	}
+	databaseCapability := "sqlite"
+	if profile == config.ProfileServerPostgres {
+		databaseCapability = "postgres"
+	}
 
 	host, err := serverhost.New(serverhost.Config{
 		Address: address, ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second, ShutdownTimeout: 10 * time.Second,
-		Capabilities: health.Capabilities{HostProfile: "server", Version: version},
+		Capabilities: health.Capabilities{Profile: string(profile), Version: version, Database: databaseCapability},
 	}, func(ctx context.Context) (serverhost.Runtime, error) {
 		db, err := database.NewProcess().Open(ctx, databaseConfig)
 		if err != nil {

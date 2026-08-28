@@ -12,9 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/kernel"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/host/lifecycle"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -24,11 +25,12 @@ import (
 const (
 	requestTimeout  = 15 * time.Second
 	shutdownTimeout = 5 * time.Second
+	version         = "0.1.0-dev"
 )
 
 type sidecarRuntime struct {
 	material desktopplatform.LaunchMaterial
-	kernel   *kernel.Kernel
+	owner    *lifecycle.Manager
 	database *database.Database
 	backup   desktopplatform.DatabaseBackup
 	instance *desktopplatform.InstanceLock
@@ -46,15 +48,15 @@ func newSidecarRuntime(material desktopplatform.LaunchMaterial, stop context.Can
 		return nil, errors.New("desktop sidecar dependencies are invalid")
 	}
 	runtime := &sidecarRuntime{material: material, serveErr: make(chan error, 1), stop: stop}
-	owner, err := kernel.New(
-		kernel.Lifecycle{Name: "desktop-instance", Start: runtime.startInstance, Drain: noopLifecycle, Stop: runtime.stopInstance},
-		kernel.Lifecycle{Name: "desktop-database", Start: runtime.startDatabase, Drain: noopLifecycle, Stop: runtime.stopDatabase},
-		kernel.Lifecycle{Name: "desktop-http", Start: runtime.startHTTP, Drain: runtime.drainHTTP, Stop: runtime.stopHTTP},
+	owner, err := lifecycle.New(
+		lifecycle.Lifecycle{Name: "desktop-instance", Start: runtime.startInstance, Drain: noopLifecycle, Stop: runtime.stopInstance},
+		lifecycle.Lifecycle{Name: "desktop-database", Start: runtime.startDatabase, Drain: noopLifecycle, Stop: runtime.stopDatabase},
+		lifecycle.Lifecycle{Name: "desktop-http", Start: runtime.startHTTP, Drain: runtime.drainHTTP, Stop: runtime.stopHTTP},
 	)
 	if err != nil {
 		return nil, err
 	}
-	runtime.kernel = owner
+	runtime.owner = owner
 	return runtime, nil
 }
 
@@ -182,6 +184,17 @@ func (runtime *sidecarRuntime) buildHandler() (http.Handler, error) {
 	}
 	runtime.app = built.Application
 	runtime.sessions = built.Sessions
+	operations, err := health.New(
+		func() application.Snapshot { return built.Application.State() },
+		health.Capabilities{
+			Profile: "desktop-sqlite", Version: version, Database: "sqlite",
+			Desktop: true, Offline: true, NativeDialogs: true,
+		},
+		built.Readiness...,
+	)
+	if err != nil {
+		return nil, runtime.abortHTTPStart("desktop operations handler failed")
+	}
 
 	readiness, err := desktopplatform.NewNonceGate(runtime.material.ReadinessNonce)
 	if err != nil {
@@ -197,7 +210,10 @@ func (runtime *sidecarRuntime) buildHandler() (http.Handler, error) {
 		writer.Header().Set("Content-Type", "application/json")
 		_, _ = writer.Write([]byte(`{"state":"ready"}`))
 	})
-	mux.Handle("/api/", runtime.requireControl(built.Application.Handler()))
+	controlled := runtime.requireControl(operations.Wrap(built.Application.Handler()))
+	mux.Handle("/api/", controlled)
+	mux.Handle("/health/", controlled)
+	mux.Handle("/metrics", controlled)
 	mux.Handle("POST /__desktop/shutdown", runtime.requireControl(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		writer.WriteHeader(http.StatusNoContent)
 		runtime.stopOnce.Do(runtime.stop)
