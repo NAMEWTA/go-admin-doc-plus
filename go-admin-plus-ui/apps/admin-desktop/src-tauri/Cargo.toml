@@ -10,7 +10,7 @@ custom-protocol = ["tauri/custom-protocol"]
 native-e2e = ["custom-protocol"]
 
 [build-dependencies]
-tauri-build = "=2.6.3"
+tauri-build = { version = "=2.6.3", features = [] }
 
 [dependencies]
 base64 = "=0.23.1"

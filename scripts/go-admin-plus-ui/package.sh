@@ -6,17 +6,31 @@ target=${1:-}
 case $target in
   web)
     require_tool pnpm
+    web_stage=$artifacts_root/package-staging/web
+    web_dist=$web_stage/dist
+    package_output=$artifacts_root/packages/go-admin-web.tar.gz
+    package_tmp=$package_output.tmp
+    mkdir -p "$web_stage" "$artifacts_root/packages"
     cd "$frontend_root"
-    pnpm build:prod
-    mkdir -p "$artifacts_root/packages"
-    tar -C "$frontend_root" -czf "$artifacts_root/packages/go-admin-web.tar.gz" dist
+    GO_ADMIN_BUILD_DIR="$web_dist" pnpm --filter @go-admin-plus/admin-web build
+    trap 'rm -f "$package_tmp"' EXIT HUP INT TERM
+    tar -C "$web_stage" -czf "$package_tmp" dist
+    mv "$package_tmp" "$package_output"
+    trap - EXIT HUP INT TERM
     ;;
   desktop)
     require_tool pnpm
+    require_tool go
     require_desktop_workspace
+    case $(go env GOHOSTOS) in
+      darwin) desktop_bundle=app ;;
+      windows) desktop_bundle=nsis ;;
+      *) fail 'desktop packaging is supported only on macOS and Windows' ;;
+    esac
     cd "$frontend_root"
     node "$repo_root/release/shared/sidecar/build.mjs" --host
-    exec pnpm --filter @go-admin-plus/admin-desktop tauri build
+    exec pnpm --filter @go-admin-plus/admin-desktop tauri build \
+      --features custom-protocol --bundles "$desktop_bundle"
     ;;
   *)
     fail "unsupported frontend package target: $target (expected web or desktop)"

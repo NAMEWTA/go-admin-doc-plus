@@ -161,6 +161,18 @@ test('workspace consumers use package exports rather than source paths', async (
   for (const target of activeExports) assert.ok(await readFile(join(workspaceRoot, target), 'utf8'))
 })
 
+test('product packaging uses explicit Web output and supported production Desktop bundles', async () => {
+  const packageScript = await readFile(join(workspaceRoot, '../scripts/go-admin-plus-ui/package.sh'), 'utf8')
+
+  assert.match(packageScript, /GO_ADMIN_BUILD_DIR="\$web_dist" pnpm --filter @go-admin-plus\/admin-web build/)
+  assert.match(packageScript, /tar -C "\$web_stage" -czf "\$package_tmp" dist/)
+  assert.match(packageScript, /case \$\(go env GOHOSTOS\) in/)
+  assert.match(packageScript, /darwin\) desktop_bundle=app/)
+  assert.match(packageScript, /windows\) desktop_bundle=nsis/)
+  assert.match(packageScript, /tauri build \\\n\s+--features custom-protocol --bundles "\$desktop_bundle"/)
+  assert.doesNotMatch(packageScript, /pnpm build:prod/)
+})
+
 test('apps select adapters without owning runtime transport', async () => {
   const adminWeb = await readJson(join(workspaceRoot, 'apps/admin-web/package.json'))
   assert.equal(adminWeb.dependencies['@go-admin-plus/adapter-browser'], 'workspace:*')
