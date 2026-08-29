@@ -1,7 +1,16 @@
 const nativeFailurePattern = /^(desktop native (?:startup|login|logout|request|identity) failed: [A-Za-z ]{1,96})$/gm
+const accessibilityFailurePattern = /native (submit button|process|button|field) unavailable/
+const accessibilityFieldActionPattern = /native field action unavailable: ([0-9])/
 
 export const nativeFailureDiagnostic = output =>
   [...output.matchAll(nativeFailurePattern)].at(-1)?.[1]
+
+export const nativeAccessibilityFailure = output => {
+  const fieldAction = output.match(accessibilityFieldActionPattern)?.[1]
+  if (fieldAction !== undefined) return `desktop native accessibility field-action-${fieldAction} unavailable`
+  const category = output.match(accessibilityFailurePattern)?.[1]
+  return category ? `desktop native accessibility ${category.replace(' ', '-')} unavailable` : undefined
+}
 
 export const nativePhaseFailure = (phase, output) => {
   const diagnostic = nativeFailureDiagnostic(output)

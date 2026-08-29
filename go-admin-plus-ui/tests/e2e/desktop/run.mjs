@@ -8,7 +8,7 @@ import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
-import { nativePhaseFailure } from './diagnostics.mjs'
+import { nativeAccessibilityFailure, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 
@@ -149,7 +149,7 @@ const runAppleScript = script => new Promise((resolveScript, rejectScript) => {
       return
     }
     const failure = Buffer.concat(stderr).toString('utf8')
-    const controlled = failure.match(/native (?:process|button|field|submit button) unavailable:?[ A-Za-z0-9-]*/)?.[0]?.trim()
+    const controlled = nativeAccessibilityFailure(failure)
     const codeMatch = failure.match(/\(-?\d+\)/)?.[0]
     finish(new Error(controlled ?? `desktop native accessibility command failed${codeMatch ? ` ${codeMatch}` : ''}`))
   })
@@ -221,7 +221,7 @@ const pollControl = async (pid, description, success, timeout = 30_000) => {
 const pollRestoredIdentity = async (pid, timeout = 90_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
-    if (await windowContains(pid, 'Administrator')) return
+    if (await windowContains(pid, '账户菜单')) return
     if (await windowContains(pid, '使用管理员账号登录控制台')) throw new Error('Stronghold session was not restored')
     if (await windowContains(pid, '服务暂不可用')) throw new Error('Stronghold identity restore was unavailable')
     await delay(100)
@@ -369,7 +369,7 @@ const main = async () => {
     phase = 'login-submit'
     await login(app.child.pid, 'admin', fixturePassword)
     phase = 'login-workspace'
-    await poll('native authenticated workspace', () => windowContains(app.child.pid, 'Administrator'))
+    await poll('native authenticated workspace', () => windowContains(app.child.pid, '账户菜单'))
     phase = 'login-navigation'
     await poll('native Demo navigation', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
@@ -390,13 +390,37 @@ const main = async () => {
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
     await clickButton(app.child.pid, 'E2E permissions on')
     await poll('permission capability restored', () => windowContains(app.child.pid, '产品搜索'))
-    phase = 'session-revocation'
+    phase = 'session-revocation-control'
     await clickButton(app.child.pid, 'E2E revoke session')
+    phase = 'session-revocation-login-window'
     await poll('session revoke requires login', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
+    phase = 'session-revocation-relogin-submit'
     await login(app.child.pid, 'admin', fixturePassword)
-    await poll('native authenticated workspace after relogin', () => windowContains(app.child.pid, 'Administrator'))
+    phase = 'session-revocation-workspace-timeout'
+    const reloginDeadline = Date.now() + 30_000
+    while (Date.now() < reloginDeadline) {
+      if (await windowContains(app.child.pid, '账户菜单')) break
+      if (await windowContains(app.child.pid, '账号或密码无法验证，请重试。')) {
+        phase = 'session-revocation-workspace-authentication'
+        throw new Error('native relogin was rejected')
+      }
+      if (await windowContains(app.child.pid, '服务暂不可用')) {
+        phase = 'session-revocation-workspace-unavailable'
+        throw new Error('native relogin runtime was unavailable')
+      }
+      await delay(100)
+    }
+    if (!(await windowContains(app.child.pid, '账户菜单'))) {
+      if (await windowContains(app.child.pid, '使用管理员账号登录控制台')) phase = 'session-revocation-workspace-login-stalled'
+      else if (await windowContains(app.child.pid, '正在加载')) phase = 'session-revocation-workspace-loading-stalled'
+      else if (await windowContains(app.child.pid, '无权访问')) phase = 'session-revocation-workspace-forbidden'
+      else if (await windowContains(app.child.pid, '页面不存在')) phase = 'session-revocation-workspace-not-found'
+      throw new Error('native authenticated workspace after relogin timed out')
+    }
+    phase = 'session-revocation-navigation'
     await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
+    phase = 'session-revocation-demo'
     await poll('native Demo page after relogin', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'single-instance'
     const firstSidecar = await newSidecarPid(sidecarBaseline)
@@ -443,7 +467,7 @@ const main = async () => {
     await deleteProduct(app.child.pid)
     await poll('native product delete', async () => !(await windowContains(app.child.pid, 'E2E-001')))
     phase = 'logout-navigation'
-    await clickButton(app.child.pid, 'Administrator')
+    await clickButton(app.child.pid, '账户菜单')
     await poll('native account page', () => windowContains(app.child.pid, '退出登录'))
     phase = 'logout'
     await logout(app.child.pid)
@@ -462,7 +486,7 @@ const main = async () => {
       throw new Error('native E2E created a production credential')
     }
   } catch (error) {
-    failure = error instanceof Error && error.message.startsWith('desktop native command ')
+    failure = error instanceof Error && (error.message.startsWith('desktop native command ') || error.message.startsWith('desktop native accessibility '))
       ? qualifyCommandFailure(error, phase)
       : nativePhaseFailure(phase, app?.output() ?? '')
   } finally {

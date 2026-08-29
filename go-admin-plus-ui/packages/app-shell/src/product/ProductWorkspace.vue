@@ -228,7 +228,7 @@ onUnmounted(() => {
           </nav>
           <div class="product-shell__identity">
             <span class="product-shell__host">{{ host === 'desktop' ? 'Desktop' : 'Web' }}</span>
-            <button v-if="profile" class="product-shell__profile" type="button" :aria-expanded="accountMenuOpen" @click="accountMenuOpen = !accountMenuOpen">
+            <button v-if="profile" class="product-shell__profile" type="button" aria-label="账户菜单" :aria-expanded="accountMenuOpen" @click="accountMenuOpen = !accountMenuOpen">
               <span class="product-shell__avatar">{{ profileMark }}</span><span>{{ profile.displayName }}</span><span aria-hidden="true">⌄</span>
             </button>
             <div v-if="accountMenuOpen" class="product-shell__account-menu">

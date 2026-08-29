@@ -20,28 +20,41 @@ return "clicked"
 end tell`
 
 export const fillAndClickScript = (pid, fields, button) => {
-  const declarations = fields.map((_, index) => `  set targetField${index} to missing value`).join('\n')
-  const matches = fields.map(({ name, role = 'AXTextField' }, index) => `      if role of currentElement is ${quoteAppleScript(role)} and name of currentElement is ${quoteAppleScript(name)} then set targetField${index} to contents of currentElement`).join('\n')
-  const actions = fields.map(({ name, value }, index) => `  if targetField${index} is missing value then error ${quoteAppleScript(`native field unavailable: ${name}`)}
-  set focused of targetField${index} to true
-  delay 0.2
-  keystroke "a" using command down
-  keystroke ${quoteAppleScript(value)}
-  delay 0.2`).join('\n')
+  const actions = fields.map(({ name, role = 'AXTextField', value }, index) => `  set targetField${index} to missing value
+  set elementsToScan to entire contents of window 1
+  repeat with currentElement in elementsToScan
+    try
+      if role of currentElement is ${quoteAppleScript(role)} and name of currentElement is ${quoteAppleScript(name)} then
+        set targetField${index} to contents of currentElement
+        exit repeat
+      end if
+    end try
+  end repeat
+  if targetField${index} is missing value then error ${quoteAppleScript(`native field unavailable: ${name}`)}
+  try
+    set focused of targetField${index} to true
+    delay 0.2
+    keystroke "a" using command down
+    keystroke ${quoteAppleScript(value)}
+    delay 0.2
+  on error
+    error ${quoteAppleScript(`native field action unavailable: ${index}`)}
+  end try`).join('\n')
   return `tell application "System Events"
 if not (exists (first process whose unix id is ${pid})) then error "native process unavailable"
 tell (first process whose unix id is ${pid})
   set frontmost to true
-${declarations}
+${actions}
   set submitControl to missing value
   set elementsToScan to entire contents of window 1
   repeat with currentElement in elementsToScan
     try
-${matches}
-      if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(button)} then set submitControl to contents of currentElement
+      if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(button)} then
+        set submitControl to contents of currentElement
+        exit repeat
+      end if
     end try
   end repeat
-${actions}
   if submitControl is missing value then error ${quoteAppleScript(`native submit button unavailable: ${button}`)}
   click submitControl
 end tell

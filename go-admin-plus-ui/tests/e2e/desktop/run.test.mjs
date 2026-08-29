@@ -12,7 +12,7 @@ import {
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
 import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
-import { nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
+import { nativeAccessibilityFailure, nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
@@ -28,10 +28,17 @@ test('native runner accessibility labels match the current Session UI', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   const login = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue'), 'utf8')
   const account = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue'), 'utf8')
+  const demo = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/web-domains/demo/src/DemoProductsPage.vue'), 'utf8')
   assert.match(login, /'\u767b\u5f55'/)
+  assert.match(login, /aria-label="\u8d26\u53f7"/)
+  assert.match(login, /aria-label="\u5bc6\u7801"/)
+  for (const label of ['SKU', '\u540d\u79f0', '\u63cf\u8ff0', '\u4ef7\u683c\uff08\u5206\uff09']) assert.match(demo, new RegExp(`aria-label="${label}"`))
   assert.match(account, />\u9000\u51fa\u767b\u5f55<\/button>/)
   assert.match(runner, /\], '\u767b\u5f55'\)\)/)
-  assert.match(runner, /clickButton\(app\.child\.pid, 'Administrator'\)[\s\S]*windowContains\(app\.child\.pid, '\u9000\u51fa\u767b\u5f55'\)/)
+  assert.match(runner, /clickButton\(app\.child\.pid, '\u8d26\u6237\u83dc\u5355'\)[\s\S]*windowContains\(app\.child\.pid, '\u9000\u51fa\u767b\u5f55'\)/)
+  assert.doesNotMatch(runner, /windowContains\([^\n]+, 'Administrator'\)/)
+  assert.match(runner, /windowContains\([^\n]+, '\u8d26\u6237\u83dc\u5355'\)/)
+  assert.match(readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8'), /aria-label="\u8d26\u6237\u83dc\u5355"/)
   assert.match(runner, /clickButtonScript\(pid, '\u9000\u51fa\u767b\u5f55'\)/)
   assert.match(runner, /poll\('native logout', \(\) => windowContains\(app\.child\.pid, '\u4f7f\u7528\u7ba1\u7406\u5458\u8d26\u53f7\u767b\u5f55\u63a7\u5236\u53f0'\), 90_000\)/)
   assert.doesNotMatch(runner, /name: '(?:Username|Password)'|, 'Sign in'\)\)|, 'Sign out'\)\)|windowContains\([^\n]+, '(?:Sign in|Sign out)'\)/)
@@ -126,12 +133,26 @@ test('native diagnostics preserve the failing phase and ignore state transitions
   )
 })
 
+test('native accessibility diagnostics expose only a fixed unavailable category', () => {
+  assert.equal(nativeAccessibilityFailure('native field unavailable: 密码 (-2700)'), 'desktop native accessibility field unavailable')
+  assert.equal(nativeAccessibilityFailure('native field action unavailable: 2 (-1719)'), 'desktop native accessibility field-action-2 unavailable')
+  assert.equal(nativeAccessibilityFailure('native submit button unavailable: 登录 (-2700)'), 'desktop native accessibility submit-button unavailable')
+  assert.equal(nativeAccessibilityFailure('arbitrary AppleScript failure'), undefined)
+})
+
 test('native runner verifies SQLite only while the sidecar is stopped', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   const stopped = runner.indexOf('await assertNoNewSidecars(sidecarBaseline)', runner.indexOf("phase = 'product-update'"))
   const verified = runner.indexOf("phase = 'persistence-verification'", stopped)
   const restarted = runner.indexOf("phase = 'stronghold-restart'", verified)
   assert.ok(stopped > 0 && stopped < verified && verified < restarted)
+})
+
+test('native session revocation exposes bounded lifecycle phases', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  for (const phase of ['control', 'login-window', 'relogin-submit', 'workspace-timeout', 'workspace-authentication', 'workspace-unavailable', 'workspace-login-stalled', 'workspace-loading-stalled', 'workspace-forbidden', 'workspace-not-found', 'navigation', 'demo']) {
+    assert.match(runner, new RegExp(`phase = 'session-revocation-${phase}'`))
+  }
 })
 
 test('native delete uses the uniquely named product action and a test-only confirmation port', () => {
@@ -159,6 +180,7 @@ test('accessibility query walks the native flattened element collection', () => 
   assert.match(form, /name of currentElement is "\u540d\u79f0"/)
   assert.match(form, /keystroke "Native product"/)
   assert.match(form, /name of currentElement is "\u4fdd\u5b58"/)
+  assert.equal((form.match(/set elementsToScan to entire contents of window 1/g) ?? []).length, 2)
   assert.match(windowValueScript(42, 'E2E boundary blocked:'), /observedName starts with "E2E boundary blocked:"/)
 })
 
