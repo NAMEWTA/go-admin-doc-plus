@@ -87,7 +87,7 @@ try {
   const edit = productRow('TRACE-01')?.querySelector<HTMLButtonElement>('[data-action="edit"]')
   if (!edit) throw new Error('product edit action is missing')
   edit.click()
-  await waitUntil(() => element<HTMLInputElement>('[name="name"]').value === 'Tracer product one', 'edit form did not open')
+  await waitUntil(() => document.querySelector<HTMLInputElement>('[name="name"]')?.value === 'Tracer product one', 'edit form did not open')
   input('name', 'Tracer product updated'); element<HTMLButtonElement>('.demo-products__form button[type="submit"]').click()
   await waitUntil(() => controller.list.snapshot().rows.some(row => row.name === 'Tracer product updated') && productRow('TRACE-01')?.textContent?.includes('Tracer product updated') === true, 'updated product did not appear')
   await waitUntil(() => document.querySelector('.demo-products__form') === null, 'product edit form did not close')
