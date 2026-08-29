@@ -8,7 +8,7 @@ import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
-import { nativePhaseFailure } from './diagnostics.mjs'
+import { nativeAccessibilityFailure, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 
@@ -149,7 +149,7 @@ const runAppleScript = script => new Promise((resolveScript, rejectScript) => {
       return
     }
     const failure = Buffer.concat(stderr).toString('utf8')
-    const controlled = failure.match(/native (?:process|button|field|submit button) unavailable:?[ A-Za-z0-9-]*/)?.[0]?.trim()
+    const controlled = nativeAccessibilityFailure(failure)
     const codeMatch = failure.match(/\(-?\d+\)/)?.[0]
     finish(new Error(controlled ?? `desktop native accessibility command failed${codeMatch ? ` ${codeMatch}` : ''}`))
   })
@@ -462,7 +462,7 @@ const main = async () => {
       throw new Error('native E2E created a production credential')
     }
   } catch (error) {
-    failure = error instanceof Error && error.message.startsWith('desktop native command ')
+    failure = error instanceof Error && (error.message.startsWith('desktop native command ') || error.message.startsWith('desktop native accessibility '))
       ? qualifyCommandFailure(error, phase)
       : nativePhaseFailure(phase, app?.output() ?? '')
   } finally {

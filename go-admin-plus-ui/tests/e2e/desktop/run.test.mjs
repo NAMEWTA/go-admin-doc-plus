@@ -12,7 +12,7 @@ import {
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
 import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
-import { nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
+import { nativeAccessibilityFailure, nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
@@ -124,6 +124,12 @@ test('native diagnostics preserve the failing phase and ignore state transitions
     nativePhaseFailure('login-workspace', failed).message,
     'desktop native login-workspace failed: desktop native login failed: desktop login rejected'
   )
+})
+
+test('native accessibility diagnostics expose only a fixed unavailable category', () => {
+  assert.equal(nativeAccessibilityFailure('native field unavailable: 密码 (-2700)'), 'desktop native accessibility field unavailable')
+  assert.equal(nativeAccessibilityFailure('native submit button unavailable: 登录 (-2700)'), 'desktop native accessibility submit-button unavailable')
+  assert.equal(nativeAccessibilityFailure('arbitrary AppleScript failure'), undefined)
 })
 
 test('native runner verifies SQLite only while the sidecar is stopped', () => {
