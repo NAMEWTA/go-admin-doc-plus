@@ -116,6 +116,7 @@ const assertChildHealthy = (child, label) => {
   if (state?.closed || child.exitCode !== null) {
     const category = /static directory is unavailable/.test(state?.output ?? '') ? ' static fixture unavailable'
       : /migration failed/.test(state?.output ?? '') ? ' migration failed'
+        : /parse PostgreSQL browser harness connection failed/.test(state?.output ?? '') ? ' PostgreSQL DSN invalid'
         : /readiness (?:directory|file) is unavailable/.test(state?.output ?? '') ? ' readiness unavailable'
           : /profile is invalid/.test(state?.output ?? '') ? ' profile invalid' : ''
     fail(`${label} exited unexpectedly${category}`)
