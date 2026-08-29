@@ -221,7 +221,7 @@ const pollControl = async (pid, description, success, timeout = 30_000) => {
 const pollRestoredIdentity = async (pid, timeout = 90_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
-    if (await windowContains(pid, 'Administrator')) return
+    if (await windowContains(pid, '账户菜单')) return
     if (await windowContains(pid, '使用管理员账号登录控制台')) throw new Error('Stronghold session was not restored')
     if (await windowContains(pid, '服务暂不可用')) throw new Error('Stronghold identity restore was unavailable')
     await delay(100)
@@ -369,7 +369,7 @@ const main = async () => {
     phase = 'login-submit'
     await login(app.child.pid, 'admin', fixturePassword)
     phase = 'login-workspace'
-    await poll('native authenticated workspace', () => windowContains(app.child.pid, 'Administrator'))
+    await poll('native authenticated workspace', () => windowContains(app.child.pid, '账户菜单'))
     phase = 'login-navigation'
     await poll('native Demo navigation', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
@@ -399,7 +399,7 @@ const main = async () => {
     phase = 'session-revocation-workspace-timeout'
     const reloginDeadline = Date.now() + 30_000
     while (Date.now() < reloginDeadline) {
-      if (await windowContains(app.child.pid, 'Administrator')) break
+      if (await windowContains(app.child.pid, '账户菜单')) break
       if (await windowContains(app.child.pid, '账号或密码无法验证，请重试。')) {
         phase = 'session-revocation-workspace-authentication'
         throw new Error('native relogin was rejected')
@@ -410,7 +410,7 @@ const main = async () => {
       }
       await delay(100)
     }
-    if (!(await windowContains(app.child.pid, 'Administrator'))) {
+    if (!(await windowContains(app.child.pid, '账户菜单'))) {
       if (await windowContains(app.child.pid, '使用管理员账号登录控制台')) phase = 'session-revocation-workspace-login-stalled'
       else if (await windowContains(app.child.pid, '正在加载')) phase = 'session-revocation-workspace-loading-stalled'
       else if (await windowContains(app.child.pid, '无权访问')) phase = 'session-revocation-workspace-forbidden'

@@ -36,6 +36,8 @@ test('native runner accessibility labels match the current Session UI', () => {
   assert.match(account, />\u9000\u51fa\u767b\u5f55<\/button>/)
   assert.match(runner, /\], '\u767b\u5f55'\)\)/)
   assert.match(runner, /clickButton\(app\.child\.pid, '\u8d26\u6237\u83dc\u5355'\)[\s\S]*windowContains\(app\.child\.pid, '\u9000\u51fa\u767b\u5f55'\)/)
+  assert.doesNotMatch(runner, /windowContains\([^\n]+, 'Administrator'\)/)
+  assert.match(runner, /windowContains\([^\n]+, '\u8d26\u6237\u83dc\u5355'\)/)
   assert.match(readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8'), /aria-label="\u8d26\u6237\u83dc\u5355"/)
   assert.match(runner, /clickButtonScript\(pid, '\u9000\u51fa\u767b\u5f55'\)/)
   assert.match(runner, /poll\('native logout', \(\) => windowContains\(app\.child\.pid, '\u4f7f\u7528\u7ba1\u7406\u5458\u8d26\u53f7\u767b\u5f55\u63a7\u5236\u53f0'\), 90_000\)/)
