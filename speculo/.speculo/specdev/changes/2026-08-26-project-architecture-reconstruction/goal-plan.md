@@ -489,6 +489,12 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 - 最终 tree 的 frontend lint、24 workspace 与 E2E typecheck、37 files / 195 tests、44 Node runner tests、10 workspace boundaries 和双 App production build 全绿。完成记录只累积最终候选及同 tree 的门禁，不累积失效候选结果。
 - Linux 双架构 OCI/Compose 仍等待 Docker-capable Linux runner；macOS 签名/公证/安装与 Windows x64 NSIS 签名/安装仍等待对应原生受保护 runner、凭据和独立授权。故当前只闭合本地 G8 范围，T-18 至 T-21、统一 G8 与 change 不得标记 complete。
 
+## 2026-08-29 Personal-use Completion Amendment
+
+用户在查看最终本地 G8 结果后明确决定：项目仅供本人使用，不要求生产签名、公证或受保护安装验证，用户自行安装打开；并要求 commit/push 后归档本 change。该决定将 Linux Docker 实机 smoke、macOS Developer ID/notary/Gatekeeper/DMG install 和 Windows Authenticode/NSIS native install/trust 从本 change 的 required completion gate 调整为 `not-required`，不删除其已实现 workflow、构建、policy 或未来手动运行能力。
+
+Lead 依据该最终验收范围关闭 G8：业务模块的 SQLite/PostgreSQL browser 矩阵、PostgreSQL backend termination/recovery、真实 macOS Tauri 2 native SQLite、完整非 E2E/production build 与零兼容门禁均已通过；平台实现与 policy 证据已存在，未执行的保护动作以用户决定明确豁免而非伪记 passed。T-10、T-12、T-13、T-15 至 T-21 转为 done，所有 source/result 已在 `main`，worktree/branch/临时资源已清理，无 blocker 或未批准 deviation。
+
 ## Assumptions
 
 - 低影响假设：父分支逻辑名称继续使用 `main`；实际 Git 分支经实测为 `main`。

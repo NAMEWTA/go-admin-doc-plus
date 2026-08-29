@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-13
 title: Files 本地存储安全垂直切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 文件写入、授权下载、路径和符号链接逃逸属于关键安全与数据完整性边界
 ready: true
@@ -116,12 +116,12 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/files/package.json
 
 ## 10. 验收标准
 
-- [ ] `AC-020`：合法文件闭环和全部逃逸/越权负向合同通过。
-- [ ] `AC-035`：文件列表/上传/删除确认和刷新符合共享交互。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] 非 E2E 实现 Gate 已执行、E2E 已登记到最终统一矩阵且 shared path 无越权写入。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-020`：合法文件闭环和全部逃逸/越权负向合同通过。
+- [x] `AC-035`：文件列表/上传/删除确认和刷新符合共享交互。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] 非 E2E 实现 Gate 已执行、E2E 已登记到最终统一矩阵且 shared path 无越权写入。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
 
 ## 11. 当前实现结果
 

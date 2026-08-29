@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-12
 title: Scheduler 受控任务垂直切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 调度定义、后台副作用、唯一 executor、停止语义和执行记录具有高事故半径
 ready: true
@@ -115,12 +115,12 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/domains/scheduler/package.
 
 ## 10. 验收标准
 
-- [ ] `AC-017`：任务管理、注册限制、停止语义和执行记录成立。
-- [ ] `AC-018`：唯一 executor 与失联接管成立。
-- [ ] `AC-035`：调度管理交互符合共享合同。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-017`：任务管理、注册限制、停止语义和执行记录成立。
+- [x] `AC-018`：唯一 executor 与失联接管成立。
+- [x] `AC-035`：调度管理交互符合共享合同。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
 
 ## 11. 当前实现结果
 

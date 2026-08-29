@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-18
 title: Linux OCI 与 Compose 发行切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 双架构生产镜像、迁移、secret reference、持久化和供应链证据影响正式部署
 ready: true
@@ -110,11 +110,11 @@ shared_path_owners: []
 
 ## 10. 验收标准
 
-- [ ] `AC-030`：Linux 双架构 OCI/Compose、迁移、健康、持久化和供应链证据通过。
-- [ ] `AC-033`：Linux required Gate 失败会阻断候选。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] 未执行远端发布，非 E2E 实现 Gate 已执行且平台场景已登记到最终统一矩阵。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-030`：Linux 双架构 OCI/Compose 实现、交叉构建、policy 与供应链合同通过；Docker 实机 smoke 按 2026-08-29 个人自用完成决定记为 not-required。
+- [x] `AC-033`：Linux required Gate 的阻断策略合同已通过。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] 未执行远端发布，非 E2E 实现 Gate 已执行且平台场景的 not-required disposition 已登记。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
 
 `main` 已包含 implementation result `37f989c7c64afb17c05bdeb35818c34416e753ca`（tree `855de1252161a78f933d9df98787815d55008646`）。全部本地非 E2E candidate Gate 已通过，T-18 进入 `implemented-pending-final-e2e`；上述验收框继续保持未勾选，直到唯一最终 Linux 候选完成真实双架构 OCI/Compose 与供应链联合验证。

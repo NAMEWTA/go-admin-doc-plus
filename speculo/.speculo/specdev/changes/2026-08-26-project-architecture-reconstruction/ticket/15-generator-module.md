@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-15
 title: Generator 新架构代码生成闭环
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 生成器读取数据库元数据并产出公共合同、后端模块和前端包，影响共享架构边界
 ready: true
@@ -112,12 +112,12 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-15 under T
 
 ## 10. 验收标准
 
-- [ ] `AC-019`：导入、配置、预览、生成与编译闭环成立。
-- [ ] `AC-023/AC-028`：生成物合同确定且通过架构边界检查。
-- [ ] `AC-035`：向导校验、确认和状态刷新符合共享交互。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-019`：导入、配置、预览、生成与编译闭环成立。
+- [x] `AC-023/AC-028`：生成物合同确定且通过架构边界检查。
+- [x] `AC-035`：向导校验、确认和状态刷新符合共享交互。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
 
 ## 11. 当前实现结果
 

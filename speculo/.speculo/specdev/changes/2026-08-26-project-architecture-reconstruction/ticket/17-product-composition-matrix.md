@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-17
 title: 产品组合与三 Profile 全链路汇合
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 八模块、公共合同、三数据库 Profile 和双 App 在共享产品注册点汇合
 ready: true
@@ -112,11 +112,11 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path
 
 ## 10. 验收标准
 
-- [ ] `AC-003/004/024/034`：三 profile 迁移、业务、缓存禁用和双方言矩阵通过。
-- [ ] `AC-011/021/022/035/036`：权限、Demo、双 App manifest、交互和导航一致。
-- [ ] `AC-025/028`：负向错误脱敏且架构边界无违规。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-003/004/024/034`：三 profile 迁移、业务、缓存禁用和双方言矩阵通过。
+- [x] `AC-011/021/022/035/036`：权限、Demo、双 App manifest、交互和导航一致。
+- [x] `AC-025/028`：负向错误脱敏且架构边界无违规。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
 
 `main` 已包含 implementation result `04d7bdfe5aa26583c4101dd4e7dfbe8c67a864e8`（tree `779f538fbae8e983caa2fd67b55821e798ad8f2d`）。全部非 E2E candidate Gate 已通过，T-17 进入 `implemented-pending-final-e2e`；上述验收框继续保持未勾选，直到唯一最终系统候选完成三 Profile、Web/Desktop、权限、可靠运行时、文件系统和完整业务联合验证。

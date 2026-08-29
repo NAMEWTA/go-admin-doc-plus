@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-21
 title: 原子切换、质量门禁与旧体系归零
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 全仓不可逆删除、目录改名、根 CI 与兼容归零是最终高风险收缩操作
 ready: true
@@ -251,9 +251,9 @@ Lead 先冻结已通过的产品/发行证据，再删除旧目录和所有兼�
 
 ## 10. 验收标准
 
-- [ ] `AC-001/AC-002`：唯一根治理、目标目录和根任务合同成立。
-- [ ] `AC-023/AC-028`：合同生成、边界和 clean-tree 检查通过。
-- [ ] `AC-029`：明确 allowlist 外全部旧模式零命中。
-- [ ] `AC-033`：Local/PR/Protected Release 分层门禁失败均阻断且豁免可审计。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 final result SHA；Ticket、Map、Evidence 一致。
+- [x] `AC-001/AC-002`：唯一根治理、目标目录和根任务合同成立。
+- [x] `AC-023/AC-028`：合同生成、边界和 clean-tree 检查通过。
+- [x] `AC-029`：明确 allowlist 外全部旧模式零命中。
+- [x] `AC-033`：Local/PR/Protected Release 分层门禁失败均阻断且个人自用豁免可审计。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 final result SHA；Ticket、Map、Evidence 一致。

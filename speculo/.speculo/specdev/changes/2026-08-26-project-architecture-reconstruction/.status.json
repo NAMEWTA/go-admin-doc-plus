@@ -2,13 +2,14 @@
   "schema_version": 6,
   "artifact": "change-status",
   "change": "2026-08-26-project-architecture-reconstruction",
-  "change_status": "active",
-  "current_work": "specdev/implement",
+  "change_status": "completed",
+  "current_work": "specdev/archive-and-consolidate",
   "works_run": [
     "specdev/grill-with-docs",
     "specdev/spec",
     "specdev/tickets",
-    "specdev/goal-plan"
+    "specdev/goal-plan",
+    "specdev/implement"
   ],
   "claimed_investigations": [],
   "execution_authorization": {
@@ -38,8 +39,8 @@
     "history": []
   },
   "created_at": "2026-08-26T03:31:01Z",
-  "updated_at": "2026-08-29T06:42:01+08:00",
-  "completed_at": null,
+  "updated_at": "2026-08-29T11:58:03+08:00",
+  "completed_at": "2026-08-29T11:58:03+08:00",
   "archived": false,
   "archive_path": null,
   "blockers": [],
@@ -1267,8 +1268,8 @@
       "source_sha": "fdfa4afbe342edbd5b6feb00a8699780dd04caf4",
       "candidate_sha": "cd50bfdbd24517c8b3e8f3565d75fae8c3f6a22a",
       "candidate_tree_sha": "901fdbb2d967164178da02faabba7e1811af6caf",
-        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
-        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-16-attempt-3",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-16",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-16",
       "result_sha": "cd50bfdbd24517c8b3e8f3565d75fae8c3f6a22a",
         "method": "merge-commit",
         "conflict_paths": [],
@@ -1281,16 +1282,16 @@
         },
         "e2e": {
           "required": true,
-        "status": "pending",
-        "reason": "Required native scenarios are deferred by the latest user decision and will run once on the unified final system candidate after all T-01 through T-21 implementations are integrated",
+        "status": "passed",
+        "reason": "Attempt 7 passed the real macOS Tauri 2 native SQLite lifecycle, migration recovery, Session revoke/relogin, single-instance, Demo CRUD, persistence, Stronghold restart, logout, and cleanup scenarios",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>",
         "attempts": 4,
       "promotion_status": "applied"
       },
-    "status": "review",
-    "updated_at": "2026-08-28T14:17:06+08:00"
+    "status": "removed",
+    "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-15",
@@ -1324,16 +1325,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "Web wizard and cross-profile scenarios are deferred to the single unified final system E2E after all T-01 through T-21 implementations are integrated",
+          "status": "passed",
+          "reason": "Attempt 7 passed SQLite/PostgreSQL Generator browser workflows, deterministic generation and compile gates, and PostgreSQL generated runtime verification",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-15.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-10",
@@ -1367,16 +1368,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "PostgreSQL and SQLite Settings API/UI, authorization, options, reference conflicts, and runtime secret rejection are deferred to the single unified final system E2E after all implementations are integrated",
+          "status": "passed",
+          "reason": "Attempt 7 passed the SQLite/PostgreSQL Settings API/UI, authorization, options, reference conflict, validation-input, and runtime secret rejection matrix",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-12",
@@ -1410,16 +1411,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "SQLite and PostgreSQL multi-instance uniqueness, lease-loss rollback, takeover, stop linearization, Outbox coupling, and browser records are deferred to the single unified final system E2E after all implementations are integrated",
+          "status": "passed",
+          "reason": "Attempt 7 passed SQLite/PostgreSQL Scheduler browser workflows and the final PostgreSQL dispatcher backend-termination recovery test; lease, stop, Outbox, and race contracts passed in the final non-E2E matrix",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-12.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-13",
@@ -1453,16 +1454,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "Real filesystem upload/download/restart across supported profiles plus traversal, symlink, TOCTOU, interruption, and authorization failures are deferred to the single unified final system E2E after all implementations are integrated",
+          "status": "passed",
+          "reason": "Attempt 7 passed real SQLite/PostgreSQL Files browser upload/download/delete workflows; traversal, symlink, TOCTOU, interruption, authorization, and restart contracts passed in the final implementation matrix",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-13.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-17",
@@ -1482,8 +1483,8 @@
         "source_sha": "e3abed759ac47f8f154c4638aaeab9eac9a41b7d",
         "candidate_sha": "04d7bdfe5aa26583c4101dd4e7dfbe8c67a864e8",
         "candidate_tree_sha": "779f538fbae8e983caa2fd67b55821e798ad8f2d",
-        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-17-attempt-1",
-        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-17-attempt-1",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-17",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-17",
         "result_sha": "04d7bdfe5aa26583c4101dd4e7dfbe8c67a864e8",
         "method": "merge-commit",
         "conflict_paths": [],
@@ -1496,16 +1497,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "Three profiles, Web/Desktop, permissions, filesystem, reliable runtime, and complete business workflows are deferred to the single unified final system E2E after T-21 implementation integration",
+          "status": "passed",
+          "reason": "Attempt 7 passed the final local product composition across server SQLite/PostgreSQL browser modules, permissions and Session, filesystem, reliable runtime fault recovery, and Desktop SQLite native workflows",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-17.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-18",
@@ -1525,8 +1526,8 @@
         "source_sha": "e815b16ae8ac7ca73a72f99200ef004ad9b187e4",
         "candidate_sha": "37f989c7c64afb17c05bdeb35818c34416e753ca",
         "candidate_tree_sha": "855de1252161a78f933d9df98787815d55008646",
-        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-18-attempt-1",
-        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-18-attempt-1",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-18",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-18",
         "result_sha": "37f989c7c64afb17c05bdeb35818c34416e753ca",
         "method": "merge-commit",
         "conflict_paths": [],
@@ -1538,17 +1539,17 @@
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>"
         },
         "e2e": {
-          "required": true,
-          "status": "pending",
-          "reason": "Real linux/amd64 and linux/arm64 image, migration, readiness, persistence, restart, and worker scenarios are deferred to the single unified final system E2E on a Docker-capable Linux runner",
+          "required": false,
+          "status": "not-required",
+          "reason": "The user accepted the project for personal use on 2026-08-29 and explicitly requested completion and archive without protected/platform installation gates; Linux OCI/Compose implementation, cross-build, policy, and supply-chain contracts remain verified",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-18.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-19",
@@ -1568,8 +1569,8 @@
         "source_sha": "6c97064f78719b6a9ceaa91d8a6fed5d92b5695d",
         "candidate_sha": "f18d765246aad076f92c5ae8fda2732283a4186a",
         "candidate_tree_sha": "70dfb8f37d17314fd19932b93f11ab3953722a3b",
-        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-19-attempt-2",
-        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-19-attempt-2",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-19",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-19",
         "result_sha": "f18d765246aad076f92c5ae8fda2732283a4186a",
         "method": "merge-commit",
         "conflict_paths": [],
@@ -1581,17 +1582,17 @@
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>"
         },
         "e2e": {
-          "required": true,
-          "status": "pending",
-          "reason": "Native installed launch, login, Demo CRUD, Generator, persistence, restart, signing, notarization, and Gatekeeper scenarios are deferred to the single unified final system E2E on the protected macOS runner",
+          "required": false,
+          "status": "not-required",
+          "reason": "The user accepted self-installation for personal use on 2026-08-29; Developer ID signing, notarization, Gatekeeper, and protected DMG installation are not required, while the unsigned real Tauri 2 native SQLite lifecycle passed Attempt 7",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>",
         "attempts": 2,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-20",
@@ -1611,8 +1612,8 @@
         "source_sha": "faebfeec3bdaad8c7c644b1bd93f3bee4ebc7fa2",
         "candidate_sha": "10aecc19dab8cb2a80c0fc8e16af6ecab2208d10",
         "candidate_tree_sha": "4ed4cbb977188ca09331ca191beb324250265122",
-        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-20-attempt-1",
-        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-20-attempt-1",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-20",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-20",
         "result_sha": "10aecc19dab8cb2a80c0fc8e16af6ecab2208d10",
         "method": "merge-commit",
         "conflict_paths": [],
@@ -1624,17 +1625,17 @@
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
-          "required": true,
-          "status": "pending",
-          "reason": "Native signed install, login, Demo CRUD, Generator, persistence, restart, uninstall data boundary, and Windows trust scenarios are deferred to the single unified final system E2E on the protected Windows runner",
+          "required": false,
+          "status": "not-required",
+          "reason": "The user accepted the project for personal use on 2026-08-29 and does not require Authenticode, protected NSIS installation, Windows trust, or native runner smoke; x64 PE/NSIS implementation, cross-build, and policy contracts remain verified",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-20.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     },
     {
       "ticket_id": "T-21",
@@ -1654,8 +1655,8 @@
         "source_sha": "c6c669b720b6be7448de4a00a82940caf0a1abd0",
         "candidate_sha": "abce91f9331340311855c4966063a8529629711d",
         "candidate_tree_sha": "45e839fa4363d32ea1aaaa8dc7a72f4603dcfaf4",
-        "candidate_branch": "speculo-candidate/2026-08-26-project-architecture-reconstruction/T-21-attempt-1",
-        "candidate_workspace_ref": "specdev-candidate/2026-08-26-project-architecture-reconstruction/T-21-attempt-1",
+        "candidate_branch": "speculo/integration/2026-08-26-project-architecture-reconstruction/T-21",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-26-project-architecture-reconstruction/T-21",
         "result_sha": "abce91f9331340311855c4966063a8529629711d",
         "method": "merge-commit",
         "conflict_paths": [],
@@ -1668,16 +1669,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "Three profiles, both Apps, all module/browser/native/reliable-runtime and protected release scenarios are deferred to the single unified final system candidate after T-21 implementation integration",
+          "status": "passed",
+          "reason": "The final local system candidate passed all required personal-use Web/browser, dual-dialect, native Desktop SQLite, reliable-runtime, production build, governance, architecture, and zero-compatibility gates; protected platform scenarios are explicitly not required by the user",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-21.md</Path>",
         "attempts": 1,
         "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-08-28T14:17:06+08:00"
+      "status": "removed",
+      "updated_at": "2026-08-29T11:58:03+08:00"
     }
   ]
 }

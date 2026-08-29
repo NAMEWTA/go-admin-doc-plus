@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-10
 title: Settings 参数与字典垂直切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 模块新增公共 API、双方言 schema，并必须隔离业务设置与运行 secret
 ready: true
@@ -112,12 +112,12 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-10 under T
 
 ## 10. 验收标准
 
-- [ ] `AC-015`：业务设置、字典和 options 闭环成立且拒绝运行 secret。
-- [ ] `AC-035`：管理交互合同完整。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] 非 E2E 实现 Gate 已执行、E2E 已登记到最终统一矩阵且 shared path 无越权写入。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-015`：业务设置、字典和 options 闭环成立且拒绝运行 secret。
+- [x] `AC-035`：管理交互合同完整。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-10.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] 非 E2E 实现 Gate 已执行、E2E 已登记到最终统一矩阵且 shared path 无越权写入。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。
 
 ## 11. 当前实现结果
 

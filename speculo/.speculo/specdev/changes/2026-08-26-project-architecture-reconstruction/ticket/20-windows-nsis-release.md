@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-20
 title: Windows x64 NSIS 发行切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: Windows 原生签名、安装、首次启动、重启和卸载边界需要受保护发行 Gate
 ready: true
@@ -111,9 +111,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/ma
 
 ## 10. 验收标准
 
-- [ ] `AC-032`：签名 NSIS、安装、首次启动、重启和卸载边界证据完整。
-- [ ] `AC-033`：Windows required Gate 失败阻断候选。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-20.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] 未执行远端发布或正式签名，非 E2E 实现 Gate 已执行且平台场景已登记到最终统一矩阵。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-032`：Windows x64 NSIS/PE sidecar 实现、交叉构建与 policy 合同通过；签名、安装、trust 与受保护 Windows native smoke 按 2026-08-29 个人自用决定记为 not-required。
+- [x] `AC-033`：Windows required Gate 的阻断策略合同已通过。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-20.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] 未执行远端发布或正式签名，非 E2E 实现 Gate 已执行且平台场景的 not-required disposition 已登记。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。

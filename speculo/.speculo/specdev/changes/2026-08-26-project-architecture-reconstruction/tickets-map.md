@@ -2,7 +2,7 @@
 schema_version: 3
 artifact: tickets-map
 change: 2026-08-26-project-architecture-reconstruction
-status: in_progress
+status: completed
 ---
 
 # Tickets Map: Go Admin Plus 自主产品架构重构
@@ -32,18 +32,18 @@ status: in_progress
 | T-07 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/07-iam-administration-authorization.md</Path>` | IAM 管理与最终授权 | T-06 | deep | critical | yes | codex-t07-iam | AC-011, AC-013, AC-035, AC-036 | W5 / G3 | done |
 | T-08 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/08-reliable-runtime-no-redis.md</Path>` | 无 Redis Outbox 与唯一 executor | T-03, T-04 | deep | critical | yes | codex-t08-reliability | AC-018, AC-034 | W4 / G3 | done |
 | T-09 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/09-organization-module.md</Path>` | Organization 完整管理闭环 | T-07 | deep | high | yes | codex-t09-organization | AC-014, AC-035 | W6 / G4 | done |
-| T-10 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>` | Settings 完整管理闭环 | T-07 | deep | high | yes | codex-t10-settings | AC-015, AC-035 | W6 / G4 implementation integrated；Web E2E deferred to G8 | in_progress |
+| T-10 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/10-settings-module.md</Path>` | Settings 完整管理闭环 | T-07 | deep | high | yes | codex-t10-settings | AC-015, AC-035 | W6 / G4；G8 SQLite/PostgreSQL Web E2E passed | done |
 | T-11 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/11-audit-module.md</Path>` | Audit 可靠脱敏闭环 | T-06, T-08 | deep | high | yes | codex-t11-audit | AC-016, AC-035 | W5 / G4 | done |
-| T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | codex-t12-scheduler | AC-017, AC-018, AC-035 | W6 / G4 implementation integrated；multi-instance E2E deferred to G8 | in_progress |
-| T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4 implementation integrated；filesystem/browser E2E deferred to G8 | in_progress |
+| T-12 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/12-scheduler-module.md</Path>` | Scheduler 受控执行闭环 | T-07, T-08 | deep | critical | yes | codex-t12-scheduler | AC-017, AC-018, AC-035 | W6 / G4；G8 SQLite/PostgreSQL browser 与可靠运行时 passed | done |
+| T-13 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/13-files-module.md</Path>` | Files 安全读写闭环 | T-07 | deep | critical | yes | codex-t13-files | AC-020, AC-035 | W6 / G4；G8 SQLite/PostgreSQL filesystem/browser passed | done |
 | T-14 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/14-demo-tracer.md</Path>` | Demo 双方言 CRUD 曳光弹 | T-04, T-05, T-07 | deep | medium | yes | codex-t14-demo | AC-021, AC-024, AC-035 | W6 / G4 priority | done |
-| T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | codex-root | AC-019, AC-023, AC-028, AC-035 | W7 / G4 implementation integrated；Web E2E deferred to G8 | in_progress |
-| T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4 implementation integrated；native E2E deferred to G8 | in_progress |
-| T-17 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/17-product-composition-matrix.md</Path>` | 三 Profile、双 App 完整产品 | T-09, T-10, T-11, T-12, T-13, T-15, T-16 | deep | critical | yes | codex-root | AC-003, AC-004, AC-011, AC-021, AC-022, AC-024, AC-025, AC-028, AC-034, AC-035, AC-036 | W8 / G5 implementation integrated；product E2E deferred to G8 | in_progress |
-| T-18 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/18-linux-oci-compose-release.md</Path>` | Linux OCI/Compose 候选 | T-17 | deep | high | yes | codex-root | AC-030, AC-033 | W9 / G6 implementation integrated；Linux E2E deferred to G8 | in_progress |
-| T-19 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/19-macos-universal-release.md</Path>` | macOS Universal DMG 候选 | T-17 | deep | critical | yes | codex-root | AC-031, AC-033 | W9 / G6 implementation integrated；macOS E2E deferred to G8 | in_progress |
-| T-20 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/20-windows-nsis-release.md</Path>` | Windows x64 NSIS 候选 | T-17 | deep | critical | yes | codex-root | AC-032, AC-033 | W9 / G6 implementation integrated；Windows E2E deferred to G8 | in_progress |
-| T-21 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/21-atomic-cutover-contraction.md</Path>` | 原子切换与旧体系归零 | T-18, T-19, T-20 | deep | critical | yes | codex-root | AC-001, AC-002, AC-023, AC-028, AC-029, AC-033 | W10 / G7 implementation integrated；unified E2E deferred to G8 | in_progress |
+| T-15 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/15-generator-module.md</Path>` | Generator 预览生成编译闭环 | T-14 | deep | high | yes | codex-root | AC-019, AC-023, AC-028, AC-035 | W7 / G4；G8 双 profile browser/generate/compile/runtime passed | done |
+| T-16 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/16-tauri-desktop-host.md</Path>` | Tauri 2 Desktop 安全闭环 | T-06, T-08, T-14 | deep | critical | yes | codex-t16-desktop | AC-006, AC-007, AC-009, AC-021, AC-027, AC-036 | W7 / G4；G8 macOS Tauri 2 native SQLite passed | done |
+| T-17 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/17-product-composition-matrix.md</Path>` | 三 Profile、双 App 完整产品 | T-09, T-10, T-11, T-12, T-13, T-15, T-16 | deep | critical | yes | codex-root | AC-003, AC-004, AC-011, AC-021, AC-022, AC-024, AC-025, AC-028, AC-034, AC-035, AC-036 | W8 / G5；最终本地系统候选 passed | done |
+| T-18 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/18-linux-oci-compose-release.md</Path>` | Linux OCI/Compose 候选 | T-17 | deep | high | yes | codex-root | AC-030, AC-033 | W9 / G6 implementation/policy passed；Docker native smoke not-required | done |
+| T-19 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/19-macos-universal-release.md</Path>` | macOS Universal DMG 候选 | T-17 | deep | critical | yes | codex-root | AC-031, AC-033 | W9 / G6 build/policy/native passed；sign/notary/install not-required | done |
+| T-20 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/20-windows-nsis-release.md</Path>` | Windows x64 NSIS 候选 | T-17 | deep | critical | yes | codex-root | AC-032, AC-033 | W9 / G6 implementation/cross-build/policy passed；protected native gate not-required | done |
+| T-21 | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/ticket/21-atomic-cutover-contraction.md</Path>` | 原子切换与旧体系归零 | T-18, T-19, T-20 | deep | critical | yes | codex-root | AC-001, AC-002, AC-023, AC-028, AC-029, AC-033 | W10 / G7；G8 local scope passed，self-use platform gates waived | done |
 
 Ticket frontmatter 是状态、依赖、深度和路径访问契约的权威；本表是同步投影。
 
@@ -165,7 +165,7 @@ T-18 + T-19 + T-20 -> T-21 [atomic contract]
 - **G5 Product Integration：** W8 的 T-17；Lead 在 parent-candidate 验证三 profile、双 App composition 的全部非 E2E 合同、边界与构建门禁。
 - **G6 Protected Release Implementation：** W9 的 T-18/T-19/T-20；完成本地实现、构建、policy 与供应链描述，正式凭据、受保护 runner 和远端动作仍需额外批准。
 - **G7 Atomic Contract Implementation：** W10 的 T-21；冻结全部实现 result SHA 后删除旧体系并运行最终零扫描。
-- **G8 Unified System E2E：** 全部 T-01 至 T-21 实现进入 `main` 后，Lead 基于唯一最终系统候选统一运行一次完整 E2E；通过后才能关闭未完成 Ticket 与 change。
+- **G8 Unified System E2E：** 唯一最终本地系统候选已通过双数据库 Web/browser、PostgreSQL fault 与 macOS Tauri 2 native SQLite E2E；Linux/Windows 原生及签名、公证、受保护安装按 2026-08-29 个人自用完成决定记为 not-required，Gate 已关闭。
 
 由于 Ticket 数量超过 10、全部为 Deep、包含 migration/shared contract/多平台 Gate，本 change 必须进入 Goal Plan，不能直接无编排实施。
 

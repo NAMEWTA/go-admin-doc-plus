@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-19
 title: macOS Universal DMG 发行切片
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: Universal 原生制品、签名、公证、安装和本地数据重启需要受保护发行 Gate
 ready: true
@@ -111,9 +111,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/ma
 
 ## 10. 验收标准
 
-- [ ] `AC-031`：Universal DMG 签名、公证、安装、首次启动和重启证据完整。
-- [ ] `AC-033`：macOS required Gate 失败阻断候选。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] 未执行远端发布或正式签名，非 E2E 实现 Gate 已执行且平台场景已登记到最终统一矩阵。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-031`：Universal App/DMG 构建与 policy 合同通过；签名、公证、Gatekeeper 和受保护安装按 2026-08-29 个人自用决定记为 not-required，真实 Tauri 2 native SQLite 场景已通过。
+- [x] `AC-033`：macOS required Gate 的阻断策略合同已通过。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-19.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] 未执行远端发布或正式签名，非 E2E 实现 Gate 与本机 native E2E 已执行且豁免 disposition 已登记。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。

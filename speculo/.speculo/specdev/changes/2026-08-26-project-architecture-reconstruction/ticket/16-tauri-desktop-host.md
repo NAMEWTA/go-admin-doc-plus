@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-26-project-architecture-reconstruction
 id: T-16
 title: Tauri 2 Desktop 安全宿主闭环
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 原生宿主、sidecar、Stronghold、随机 loopback、SQLite 迁移与进程监督构成关键桌面安全边界
 ready: true
@@ -117,9 +117,9 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/adapters/desktop/**</Path>
 
 ## 10. 验收标准
 
-- [ ] `AC-006/AC-007`：单实例、随机 sidecar、迁移/备份、开窗 Gate 和重启持久化成立。
-- [ ] `AC-009`：Stronghold proxy 生效且 WebView/URL/log 不可读取 Session。
-- [ ] `AC-021/AC-027/AC-036`：Desktop SQLite Demo、配置来源和 Shell 状态成立。
-- [ ] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>`。
-- [ ] 修改未越界，形成非空 commit 并记录 integration result SHA。
-- [ ] Ticket、Map 和 Evidence 一致且无未批准偏差。
+- [x] `AC-006/AC-007`：单实例、随机 sidecar、迁移/备份、开窗 Gate 和重启持久化成立。
+- [x] `AC-009`：Stronghold proxy 生效且 WebView/URL/log 不可读取 Session。
+- [x] `AC-021/AC-027/AC-036`：Desktop SQLite Demo、配置来源和 Shell 状态成立。
+- [x] 验证矩阵记录到 `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/evidence/T-16.md</Path>`。
+- [x] 修改未越界，形成非空 commit 并记录 integration result SHA。
+- [x] Ticket、Map 和 Evidence 一致且无未批准偏差。

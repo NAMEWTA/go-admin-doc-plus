@@ -4,12 +4,13 @@
   "active": [
     {
       "change": "2026-08-26-project-architecture-reconstruction",
-      "current_work": "specdev/implement",
+      "current_work": "specdev/archive-and-consolidate",
       "works_run": [
         "specdev/grill-with-docs",
         "specdev/spec",
         "specdev/tickets",
-        "specdev/goal-plan"
+        "specdev/goal-plan",
+        "specdev/implement"
       ],
       "claimed_investigations": []
     }
