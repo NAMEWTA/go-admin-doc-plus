@@ -443,7 +443,7 @@ const main = async () => {
     await deleteProduct(app.child.pid)
     await poll('native product delete', async () => !(await windowContains(app.child.pid, 'E2E-001')))
     phase = 'logout-navigation'
-    await clickButton(app.child.pid, 'Administrator')
+    await clickButton(app.child.pid, '账户菜单')
     await poll('native account page', () => windowContains(app.child.pid, '退出登录'))
     phase = 'logout'
     await logout(app.child.pid)
