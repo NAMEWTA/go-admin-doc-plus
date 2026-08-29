@@ -1,16 +1,17 @@
-# Archive And Consolidate Dry-run
+# Archive And Consolidate Execution Report
 
-- **mode:** `dry-run`
+- **mode:** `executed`
 - **scope:** `archive-single`
 - **workflow:** `specdev`
 - **change:** `2026-08-26-project-architecture-reconstruction`
 - **generated_at:** `2026-08-29T12:20:00+08:00`
-- **user_confirmation:** `pending`
-- **final_result:** `not-executed`
+- **executed_at:** `2026-08-29T12:22:07+08:00`
+- **user_confirmation:** `confirmed`（用户于 2026-08-29 明确回复“执行”）
+- **final_result:** `verified`
 - **completion commit:** `9cab3aa`
 - **remote reconcile:** `main` 与 `origin/main` 一致，ahead/behind 为 `0/0`
 
-> 未移动 change，未写入永久知识，未删除任何知识文件。此文件只持久化 dry-run 计划；实际归档必须取得用户对本计划的显式确认。
+> 本报告先以 dry-run 固化执行集合，随后依据用户对该固定计划的明确确认完成归档、知识提升、清理和验证。
 
 ## 1. Path Context
 
@@ -129,7 +130,7 @@
 
 ## 8. Confirmed Execution Order
 
-只有收到用户对本报告的明确批准后才执行：
+以下顺序已获得用户明确批准并执行：
 
 1. 重检 source/target、completed 状态、Git clean、远端一致性和知识 store drift；任一变化即停止。
 2. 创建 `<Path>{roots.state}/specdev/archive/2026-08/</Path>` 并原子移动完整 change。
@@ -154,4 +155,41 @@
 | conflict-specific confirmations | 0 |
 | blocked items | 0 |
 
-**Dry-run verdict:** `ready-for-confirmation`。未执行归档移动、知识写入或清理。
+**Dry-run verdict:** `ready-for-confirmation`。该 verdict 是执行前固定计划的历史记录，随后已按用户确认执行。
+
+## 10. Execution And Verification
+
+### Applied Result
+
+| Item | Result |
+|---|---|
+| confirmation | `confirmed`；用户明确回复“执行” |
+| source | `<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/</Path>` 已不存在 |
+| archive target | `<Path>{roots.state}/specdev/archive/2026-08/2026-08-26-project-architecture-reconstruction/</Path>` 完整存在 |
+| archive payload | 21 个 Ticket、22 份 Evidence，以及 Goal Plan、Spec、ADR、Context、Log、Design Tree、Tickets Map 和状态文件 |
+| global status | `active: []`；`archived` 唯一包含本 change；两者无重叠 |
+| archived status | `change_status: archived`、`current_work: null`、`archived: true`、`archive_path` 与目标一致 |
+| ADR graduation | 创建 21 份 Accepted ADR；施工期 ADR-021 仅随 change 归档 |
+| context graduation | 创建 1 份当前架构词汇表，共 61 个术语 |
+| research graduation | 0；调研过程随 change 归档，永久 research store 保持空目录 |
+| cleanup | 删除 ADR/context 两个失效 `.gitkeep`；保留 research `.gitkeep` |
+
+### Validation Evidence
+
+| Check | Result |
+|---|---|
+| execution drift preflight at `cb6be69` | pass；source/target、状态、知识 store 和 `origin/main` 均与 dry-run 一致 |
+| pre-move SpecDev `--stage complete` | pass；`0 error / 0 warning` |
+| post-move structural reread | pass；source absent、target complete、状态一致、21 Ticket、22 Evidence、21 ADR、61 terms |
+| SpecDev package self-check | pass；`0 error / 0 warning` |
+| docs check | `DOCS_CHECK_PASS` |
+| governance check | `GOVERNANCE_CHECK_PASS` |
+| architecture check | `ARCHITECTURE_CHECK_PASS` |
+| zero compatibility check | `COMPATIBILITY_ZERO_PASS` |
+| `git diff --check` | pass |
+
+归档后再次调用 `--stage complete` 会得到预期的不适用结果：现有校验器将该 stage 硬编码为仅接受 `change_status=completed`，同时在尚未提交归档移动时将仓库判为 dirty；因此它不能作为 `change_status=archived` 的后置验证器。完成门已在原子移动前以 clean worktree 通过，移动后的真实性由归档结构、全局/局部状态、数量、JSON、路径和包级自检重读覆盖。
+
+### Git Reconcile
+
+归档内容和本执行报告将以 `docs(specdev): archive architecture reconstruction` 提交并推送至 `origin/main`。实际提交与远端同步结果在提交完成后追加记录。
