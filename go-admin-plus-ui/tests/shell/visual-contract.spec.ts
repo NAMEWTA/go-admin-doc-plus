@@ -199,7 +199,7 @@ describe('admin visual contract', () => {
     for (const testId of ['settings-pagination', 'dictionaries-pagination', 'items-pagination']) {
       expect(settings).toContain(`data-testid="${testId}"`)
     }
-    expect(settings).not.toContain("outcome==='failed'")
+    expect(settings).toContain("outcome==='failed'&&props.controller.failure()==='validation'")
     for (const constraint of ['minlength="3"', 'maxlength="80"', 'maxlength="120"', 'maxlength="500"', 'max="100000" required']) {
       expect(settings).toContain(constraint)
     }

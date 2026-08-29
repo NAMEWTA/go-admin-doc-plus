@@ -2,7 +2,7 @@ import { createApp, h, type Component } from 'vue'
 import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import { FilesRequestError, filesPermissions } from '@go-admin-plus/domain-files'
-import { createBrowserSessionFetch } from '@go-admin-plus/adapter-browser'
+import { createBrowserSessionFetch, createWebPlatform } from '@go-admin-plus/adapter-browser'
 import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
 import { createFilesController, createWebFilesClient, FilesPage } from '@go-admin-plus/web-domain-files'
@@ -66,7 +66,7 @@ const scenario = async () => {
 
   const controller = createFilesController(client, async () => true, { can: permission => capabilities.can(permission) })
   let sessionRequired = false
-  const app = createApp({ render: () => h(FilesPage as Component, { controller, onSessionRequired: () => { sessionRequired = true } }) })
+  const app = createApp({ render: () => h(FilesPage as Component, { controller, platform: createWebPlatform(), onSessionRequired: () => { sessionRequired = true } }) })
   app.mount('#app')
   await waitUntil(() => controller.list.snapshot().rows.some(row => row.originalName === 'foreign.txt'), 'foreign fixture did not load')
   const foreign = controller.list.snapshot().rows.find(row => row.originalName === 'foreign.txt')!

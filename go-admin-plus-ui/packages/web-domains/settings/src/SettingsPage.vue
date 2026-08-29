@@ -12,7 +12,7 @@ const switchTab=(value:typeof tab.value)=>settle(async()=>{closeForms();if(value
 const openSetting=()=>{resetSetting();settingFormOpen.value=true}
 const editSetting=(row:Setting)=>{Object.assign(settingForm,{category:row.category,key:row.key,label:row.label,value:row.value,description:row.description,enabled:row.enabled,id:row.id,revision:row.revision});settingFormOpen.value=true}
 const resetSetting=()=>{Object.assign(settingForm,props.controller.emptySetting());delete settingForm.id;delete settingForm.revision}
-const saveSetting=()=>settle(async()=>{if(await props.controller.saveSetting({...settingForm})==='completed'){resetSetting();settingFormOpen.value=false}})
+const saveSetting=()=>settle(async()=>{const outcome=await props.controller.saveSetting({...settingForm});if(outcome==='completed'){resetSetting();settingFormOpen.value=false}else if(outcome==='failed'&&props.controller.failure()==='validation')resetSetting()})
 const openDictionary=()=>{resetDictionary();dictionaryFormOpen.value=true}
 const editDictionary=(row:Dictionary)=>{Object.assign(dictionaryForm,{key:row.key,name:row.name,description:row.description,enabled:row.enabled,id:row.id,revision:row.revision});dictionaryFormOpen.value=true}
 const resetDictionary=()=>{Object.assign(dictionaryForm,props.controller.emptyDictionary());delete dictionaryForm.id;delete dictionaryForm.revision}

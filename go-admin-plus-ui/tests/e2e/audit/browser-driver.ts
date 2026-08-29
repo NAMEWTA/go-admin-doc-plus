@@ -71,8 +71,8 @@ const driver = {
     await waitFor(() => controller.list.snapshot().filters.source === 'web' && controller.list.snapshot().total === 1, 'Audit browser filter failed')
 
     click('audit-view')
-    await waitFor(() => Boolean(document.querySelector('dialog[open]')), 'Audit browser detail did not open')
-    const detail = document.querySelector('dialog')?.textContent ?? ''
+    await waitFor(() => Boolean(document.querySelector('[data-testid="audit-detail-dialog"][role="dialog"]')), 'Audit browser detail did not open')
+    const detail = document.querySelector('[data-testid="audit-detail-dialog"]')?.textContent ?? ''
 		assert(detail.includes('demo:ui-record-revision-2') && detail.includes(auditFixture.accountRef) && detail.includes(auditFixture.operationOutcome === 'succeeded' ? '成功' : '失败'), 'Audit browser detail content failed')
 
     const before = document.querySelector<HTMLInputElement>('[data-testid="audit-cleanup-before"]')
