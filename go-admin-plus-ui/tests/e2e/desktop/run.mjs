@@ -396,8 +396,21 @@ const main = async () => {
     await poll('session revoke requires login', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
     phase = 'session-revocation-relogin-submit'
     await login(app.child.pid, 'admin', fixturePassword)
-    phase = 'session-revocation-workspace'
-    await poll('native authenticated workspace after relogin', () => windowContains(app.child.pid, 'Administrator'))
+    phase = 'session-revocation-workspace-timeout'
+    const reloginDeadline = Date.now() + 30_000
+    while (Date.now() < reloginDeadline) {
+      if (await windowContains(app.child.pid, 'Administrator')) break
+      if (await windowContains(app.child.pid, '账号或密码无法验证，请重试。')) {
+        phase = 'session-revocation-workspace-authentication'
+        throw new Error('native relogin was rejected')
+      }
+      if (await windowContains(app.child.pid, '服务暂不可用')) {
+        phase = 'session-revocation-workspace-unavailable'
+        throw new Error('native relogin runtime was unavailable')
+      }
+      await delay(100)
+    }
+    if (!(await windowContains(app.child.pid, 'Administrator'))) throw new Error('native authenticated workspace after relogin timed out')
     phase = 'session-revocation-navigation'
     await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
