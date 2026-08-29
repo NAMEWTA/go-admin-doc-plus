@@ -482,6 +482,13 @@ source worktree 只运行 Ticket 非 E2E 检查；任何 source worktree E2E pas
 
 恢复时依次读取本 Goal Plan、当前 Ticket、`<Path>{roots.state}/specdev/changes/2026-08-26-project-architecture-reconstruction/.status.json</Path>`、Tickets Map 和最新 Evidence。先核对 `main` 当前 HEAD 是否包含最后通过的 `result_sha`；若存在 active source 或 candidate，从其不可变 checkpoint 继续，不重建已通过工作。若父 HEAD 漂移，暂停派单并重算所有未开始 worktree 的 base；若超过 4 次集成尝试或需要新产品决定，标记 blocked 并返回用户。
 
+## 2026-08-29 E2E Resume Result
+
+- 用户以 `e2e` 恢复统一 G8。本轮严格执行候选失效规则：Attempt 5 的 browser/Settings 问题经 R05 修复进入 `main@c5f89f8ad649e41c29400a66f504763e5314feb7`；Attempt 6 的 Tauri native accessibility 与 relogin 问题经 R06 修复进入 `main@157b40d9f8c1fbf70e5d679efdbd60a855d75441`。
+- 唯一最终本地候选 G8 Attempt 7 固定为 `157b40d9f8c1fbf70e5d679efdbd60a855d75441` / tree `cf3bc89666c1e610dca38737f4f19737e64dde25`。IAM Session、IAM Administration、Demo、Organization、Settings、Scheduler、Files、Generator 的 SQLite/PostgreSQL browser 场景、Audit browser 场景、PostgreSQL backend termination/recovery，以及 macOS Tauri 2 native SQLite 场景全部通过；完整矩阵见 G8 Evidence 第 29 节。
+- 最终 tree 的 frontend lint、24 workspace 与 E2E typecheck、37 files / 195 tests、44 Node runner tests、10 workspace boundaries 和双 App production build 全绿。完成记录只累积最终候选及同 tree 的门禁，不累积失效候选结果。
+- Linux 双架构 OCI/Compose 仍等待 Docker-capable Linux runner；macOS 签名/公证/安装与 Windows x64 NSIS 签名/安装仍等待对应原生受保护 runner、凭据和独立授权。故当前只闭合本地 G8 范围，T-18 至 T-21、统一 G8 与 change 不得标记 complete。
+
 ## Assumptions
 
 - 低影响假设：父分支逻辑名称继续使用 `main`；实际 Git 分支经实测为 `main`。
