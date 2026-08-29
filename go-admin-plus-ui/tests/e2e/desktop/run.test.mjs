@@ -170,6 +170,7 @@ test('accessibility query walks the native flattened element collection', () => 
   assert.match(form, /name of currentElement is "\u540d\u79f0"/)
   assert.match(form, /keystroke "Native product"/)
   assert.match(form, /name of currentElement is "\u4fdd\u5b58"/)
+  assert.equal((form.match(/set elementsToScan to entire contents of window 1/g) ?? []).length, 2)
   assert.match(windowValueScript(42, 'E2E boundary blocked:'), /observedName starts with "E2E boundary blocked:"/)
 })
 
