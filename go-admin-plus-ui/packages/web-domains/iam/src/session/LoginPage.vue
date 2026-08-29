@@ -55,10 +55,10 @@ const submit = async () => {
       <form aria-label="登录" @submit.prevent="submit">
         <h1>Go Admin Plus</h1>
         <p class="login-page__subtitle">使用管理员账号登录控制台</p>
-        <label>账号<input v-model.trim="credentials.username" autocomplete="username" placeholder="请输入账号" autofocus required minlength="3" maxlength="64"></label>
+        <label>账号<input v-model.trim="credentials.username" aria-label="账号" autocomplete="username" placeholder="请输入账号" autofocus required minlength="3" maxlength="64"></label>
         <label>密码
           <span class="login-page__password-field">
-            <input ref="passwordInput" v-model="credentials.password" autocomplete="current-password" :type="passwordVisible ? 'text' : 'password'" placeholder="请输入密码" required minlength="12" maxlength="128">
+            <input ref="passwordInput" v-model="credentials.password" aria-label="密码" autocomplete="current-password" :type="passwordVisible ? 'text' : 'password'" placeholder="请输入密码" required minlength="12" maxlength="128">
             <button
               class="login-page__password-toggle"
               type="button"
