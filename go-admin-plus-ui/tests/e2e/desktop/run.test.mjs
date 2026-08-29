@@ -132,6 +132,7 @@ test('native diagnostics preserve the failing phase and ignore state transitions
 
 test('native accessibility diagnostics expose only a fixed unavailable category', () => {
   assert.equal(nativeAccessibilityFailure('native field unavailable: 密码 (-2700)'), 'desktop native accessibility field unavailable')
+  assert.equal(nativeAccessibilityFailure('native field action unavailable: 2 (-1719)'), 'desktop native accessibility field-action-2 unavailable')
   assert.equal(nativeAccessibilityFailure('native submit button unavailable: 登录 (-2700)'), 'desktop native accessibility submit-button unavailable')
   assert.equal(nativeAccessibilityFailure('arbitrary AppleScript failure'), undefined)
 })

@@ -23,11 +23,15 @@ export const fillAndClickScript = (pid, fields, button) => {
   const declarations = fields.map((_, index) => `  set targetField${index} to missing value`).join('\n')
   const matches = fields.map(({ name, role = 'AXTextField' }, index) => `      if role of currentElement is ${quoteAppleScript(role)} and name of currentElement is ${quoteAppleScript(name)} then set targetField${index} to contents of currentElement`).join('\n')
   const actions = fields.map(({ name, value }, index) => `  if targetField${index} is missing value then error ${quoteAppleScript(`native field unavailable: ${name}`)}
-  set focused of targetField${index} to true
-  delay 0.2
-  keystroke "a" using command down
-  keystroke ${quoteAppleScript(value)}
-  delay 0.2`).join('\n')
+  try
+    set focused of targetField${index} to true
+    delay 0.2
+    keystroke "a" using command down
+    keystroke ${quoteAppleScript(value)}
+    delay 0.2
+  on error
+    error ${quoteAppleScript(`native field action unavailable: ${index}`)}
+  end try`).join('\n')
   return `tell application "System Events"
 if not (exists (first process whose unix id is ${pid})) then error "native process unavailable"
 tell (first process whose unix id is ${pid})
