@@ -93,7 +93,7 @@ const activeChildren = new Set()
 const spawnTracked = (command, args, options) => {
   const { drainStdout, drainStderr, ...spawnOptions } = options
   const child = spawn(command, args, spawnOptions)
-  const state = { closed: false, spawned: false, spawnFailed: false }
+  const state = { closed: false, spawned: false, spawnFailed: false, output: '' }
   childStates.set(child, state)
   activeChildren.add(child)
   child.once('spawn', () => { state.spawned = true })
@@ -104,15 +104,22 @@ const spawnTracked = (command, args, options) => {
     activeChildren.delete(child)
   })
   child.once('close', () => { state.closed = true; activeChildren.delete(child) })
-  if (drainStdout && child.stdout) child.stdout.resume()
-  if (drainStderr && child.stderr) child.stderr.resume()
+  const capture = (chunk) => { state.output = (state.output + String(chunk)).slice(-8192) }
+  if (drainStdout && child.stdout) child.stdout.on('data', capture)
+  if (drainStderr && child.stderr) child.stderr.on('data', capture)
   return child
 }
 
 const assertChildHealthy = (child, label) => {
   const state = childStates.get(child)
   if (state?.spawnFailed) fail(`${label} could not start`)
-  if (state?.closed || child.exitCode !== null) fail(`${label} exited unexpectedly`)
+  if (state?.closed || child.exitCode !== null) {
+    const category = /static directory is unavailable/.test(state?.output ?? '') ? ' static fixture unavailable'
+      : /migration failed/.test(state?.output ?? '') ? ' migration failed'
+        : /readiness (?:directory|file) is unavailable/.test(state?.output ?? '') ? ' readiness unavailable'
+          : /profile is invalid/.test(state?.output ?? '') ? ' profile invalid' : ''
+    fail(`${label} exited unexpectedly${category}`)
+  }
 }
 
 class CDPClient {

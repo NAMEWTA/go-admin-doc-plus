@@ -15,6 +15,7 @@ const control = async (path: string, method: 'GET' | 'POST' = 'GET', body?: unkn
 const definitionRow = (name: string) => [...document.querySelectorAll<HTMLTableRowElement>('[data-row-key]')].find(row => row.cells[0]?.textContent === name)
 const action = (name: string, actionName: string) => { const button = definitionRow(name)?.querySelector<HTMLButtonElement>(`[data-action="${actionName}"]`); assert(button, `missing ${actionName} for ${name}`); button.click() }
 const expectFailure = async (operation: () => Promise<unknown>, category: string) => { try { await operation() } catch (error) { assert(error instanceof SchedulerRequestError && error.category === category, `expected ${category}`); return }; throw new Error(`expected ${category}`) }
+let stage = 'login'
 
 const scenario = async () => {
   const sessionFetch = createBrowserSessionFetch(fetch)
@@ -25,6 +26,7 @@ const scenario = async () => {
   await capability.refresh()
   const api = createWebSchedulerClient(sessionFetch, '/api')
   assert(capability.can('scheduler.definitions.read') && capability.can('scheduler.executions.read'), 'scheduler manifest incomplete')
+  stage = 'self-scope'
   await control('scope', 'POST', { scope: 'self' }); await capability.refresh()
   await expectFailure(() => api.taskTypes(), 'forbidden')
   const selfController = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
@@ -38,6 +40,7 @@ const scenario = async () => {
   const app = createApp({ render: () => h(SchedulerPage as Component, { controller }) }); app.mount('#app')
   await waitUntil(() => document.querySelector('[data-testid="open-scheduler-definition-form"]') !== null && controller.taskTypes().length === 1, 'scheduler management view did not load')
   const create = async (name: string, key: string, fail: boolean) => {
+    stage = `create-${key}`
     element<HTMLButtonElement>('[data-testid="open-scheduler-definition-form"]').click()
     await waitUntil(() => document.querySelector('[data-testid="scheduler-definition-form"]') !== null, 'scheduler create dialog did not open')
     await input('[data-testid="scheduler-definition-form"] [name="name"]', name)
@@ -51,6 +54,7 @@ const scenario = async () => {
   }
   await create('Browser success', 'success', false)
   await create('Browser failure', 'failure', true)
+  stage = 'execution'
   await control('contender', 'POST')
   const run = await (await control('run', 'POST')).json() as Record<string, number>
   assert(run.triggered === 2 && run.succeeded === 1 && run.failed === 1 && run.delivered === 1, 'scheduler/outbox shared lease execution mismatch')
@@ -60,13 +64,16 @@ const scenario = async () => {
   const executionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === '执行记录'); assert(executionsTab, 'execution tab missing'); executionsTab.click()
   await waitUntil(() => document.body.textContent?.includes('browser_expected_failure') === true, 'failed execution history missing')
   const definitionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === '任务管理'); assert(definitionsTab, 'definitions tab missing'); definitionsTab.click(); await Promise.resolve()
+  stage = 'stop'
   for (const name of ['Browser success', 'Browser failure']) { action(name, 'toggle'); await waitUntil(() => definitionRow(name)?.textContent?.includes('已停止') === true, `${name} stop did not linearize`) }
   const second = await (await control('run', 'POST')).json() as Record<string, number>
   assert(second.triggered === 0, 'stopped scheduler produced a new execution')
+  stage = 'edit-delete'
   action('Browser success', 'edit'); await waitUntil(() => document.querySelector('[data-testid="scheduler-definition-form"] [name="name"]') !== null, 'edit did not open'); await input('[data-testid="scheduler-definition-form"] [name="name"]', 'Browser success updated'); element<HTMLFormElement>('[data-testid="scheduler-definition-form"]').requestSubmit(); await waitUntil(() => definitionRow('Browser success updated') !== undefined, 'edit did not render')
   action('Browser failure', 'delete'); await waitUntil(() => definitionRow('Browser failure') === undefined, 'delete did not render')
   const invalid = { name: 'Invalid', taskType: 'browser.effect', schedule: { minutes: [0], hours: [0], daysOfMonth: [], months: [1], weekdays: [] }, parameters: { key: 'invalid', fail: false, extra: 'rejected' } } as unknown as DefinitionInput
   await expectFailure(() => api.createDefinition(invalid), 'validation')
+  stage = 'revocation'
   await control('revoke-read', 'POST'); await capability.refresh()
   assert(controller.definitions.snapshot().rows.length === 0, 'revoked capability retained definition projection')
   app.unmount(); document.body.innerHTML = '<div id="app"></div>'
@@ -77,4 +84,4 @@ const scenario = async () => {
   document.body.innerHTML = '<pre id="result">SCHEDULER_E2E_PASS</pre>'; await control('shutdown', 'POST')
 }
 
-await scenario().catch(async () => { document.body.replaceChildren(); const result = document.createElement('pre'); result.id = 'result'; result.textContent = 'SCHEDULER_E2E_FAIL|ASSERTION'; document.body.append(result); await control('shutdown', 'POST').catch(() => undefined) })
+await scenario().catch(async () => { document.body.replaceChildren(); const result = document.createElement('pre'); result.id = 'result'; result.textContent = `SCHEDULER_E2E_FAIL|ASSERTION:${stage}`; document.body.append(result); await control('shutdown', 'POST').catch(() => undefined) })

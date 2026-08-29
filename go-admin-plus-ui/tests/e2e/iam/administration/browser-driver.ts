@@ -228,7 +228,11 @@ const scenario = async () => {
   await clickRowAndWait('browser-user', 'edit', '[data-testid="reset-user-password"]')
   await input('[data-testid="reset-user-password"] [name="password"]', 'browser replacement password')
   submit('reset-user-password')
-  await waitUntil(() => element<HTMLInputElement>('[data-testid="reset-user-password"] [name="password"]').value === '', 'reset password was retained')
+  await waitUntil(() => document.querySelector('[data-testid="reset-user-password"]') === null, 'reset password dialog did not close')
+  await clickRowAndWait('browser-user', 'edit', '[data-testid="reset-user-password"]')
+  assert(element<HTMLInputElement>('[data-testid="reset-user-password"] [name="password"]').value === '', 'reset password was retained')
+  click('[aria-labelledby="edit-user-title"] [aria-label="关闭"]')
+  await waitUntil(() => document.querySelector('[data-testid="reset-user-password"]') === null, 'reset password dialog did not close after retention check')
 
   await fillCreateUser('browser-single', 'Browser Single')
   clickRow('browser-single', 'delete')
