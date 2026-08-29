@@ -410,7 +410,13 @@ const main = async () => {
       }
       await delay(100)
     }
-    if (!(await windowContains(app.child.pid, 'Administrator'))) throw new Error('native authenticated workspace after relogin timed out')
+    if (!(await windowContains(app.child.pid, 'Administrator'))) {
+      if (await windowContains(app.child.pid, '使用管理员账号登录控制台')) phase = 'session-revocation-workspace-login-stalled'
+      else if (await windowContains(app.child.pid, '正在加载')) phase = 'session-revocation-workspace-loading-stalled'
+      else if (await windowContains(app.child.pid, '无权访问')) phase = 'session-revocation-workspace-forbidden'
+      else if (await windowContains(app.child.pid, '页面不存在')) phase = 'session-revocation-workspace-not-found'
+      throw new Error('native authenticated workspace after relogin timed out')
+    }
     phase = 'session-revocation-navigation'
     await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')

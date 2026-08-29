@@ -148,7 +148,7 @@ test('native runner verifies SQLite only while the sidecar is stopped', () => {
 
 test('native session revocation exposes bounded lifecycle phases', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  for (const phase of ['control', 'login-window', 'relogin-submit', 'workspace-timeout', 'workspace-authentication', 'workspace-unavailable', 'navigation', 'demo']) {
+  for (const phase of ['control', 'login-window', 'relogin-submit', 'workspace-timeout', 'workspace-authentication', 'workspace-unavailable', 'workspace-login-stalled', 'workspace-loading-stalled', 'workspace-forbidden', 'workspace-not-found', 'navigation', 'demo']) {
     assert.match(runner, new RegExp(`phase = 'session-revocation-${phase}'`))
   }
 })
