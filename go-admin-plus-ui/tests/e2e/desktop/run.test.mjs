@@ -146,6 +146,13 @@ test('native runner verifies SQLite only while the sidecar is stopped', () => {
   assert.ok(stopped > 0 && stopped < verified && verified < restarted)
 })
 
+test('native session revocation exposes bounded lifecycle phases', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  for (const phase of ['control', 'login-window', 'relogin-submit', 'workspace', 'navigation', 'demo']) {
+    assert.match(runner, new RegExp(`phase = 'session-revocation-${phase}'`))
+  }
+})
+
 test('native delete uses the uniquely named product action and a test-only confirmation port', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   const app = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue'), 'utf8')

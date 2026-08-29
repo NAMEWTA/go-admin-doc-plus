@@ -390,13 +390,18 @@ const main = async () => {
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
     await clickButton(app.child.pid, 'E2E permissions on')
     await poll('permission capability restored', () => windowContains(app.child.pid, '产品搜索'))
-    phase = 'session-revocation'
+    phase = 'session-revocation-control'
     await clickButton(app.child.pid, 'E2E revoke session')
+    phase = 'session-revocation-login-window'
     await poll('session revoke requires login', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
+    phase = 'session-revocation-relogin-submit'
     await login(app.child.pid, 'admin', fixturePassword)
+    phase = 'session-revocation-workspace'
     await poll('native authenticated workspace after relogin', () => windowContains(app.child.pid, 'Administrator'))
+    phase = 'session-revocation-navigation'
     await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
+    phase = 'session-revocation-demo'
     await poll('native Demo page after relogin', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'single-instance'
     const firstSidecar = await newSidecarPid(sidecarBaseline)
