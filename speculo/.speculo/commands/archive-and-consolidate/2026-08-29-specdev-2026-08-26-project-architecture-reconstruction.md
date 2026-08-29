@@ -192,4 +192,4 @@
 
 ### Git Reconcile
 
-归档内容和本执行报告将以 `docs(specdev): archive architecture reconstruction` 提交并推送至 `origin/main`。实际提交与远端同步结果在提交完成后追加记录。
+归档内容和本执行报告已由提交 `9280e36`（`docs(specdev): archive architecture reconstruction`）推送至 `origin/main`，远端更新范围为 `cb6be69..9280e36`。该同步结果于 2026-08-29 验证成功；本段 reconcile 补遗以独立文档提交继续同步，最终提交号以用户交付记录为准。
