@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -214,58 +215,16 @@ func TestServerCommandFixtureRejectsRuntimeOwnership(t *testing.T) {
 	}
 }
 
-func TestUtilityCommandsContainOnlyProcessEntry(t *testing.T) {
+func TestLegacyServerCommandsAreRemoved(t *testing.T) {
 	_, source, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("resolve architecture test path")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(source), "..", ".."))
-	for _, command := range []struct {
-		directory string
-		name      string
-	}{
-		{directory: "cmd/config-check", name: "Config check"},
-		{directory: "cmd/migrate", name: "Migration"},
-	} {
-		t.Run(command.name, func(t *testing.T) {
-			violations, err := commandViolations(os.DirFS(root), command.directory, command.name)
-			if err != nil {
-				t.Fatalf("inspect %s command: %v", command.name, err)
-			}
-			if len(violations) != 0 {
-				t.Fatalf("%s may contain only launch parsing and result presentation; runtime composition belongs under internal/app/product:\n%s", command.directory, strings.Join(violations, "\n"))
-			}
-		})
-	}
-}
-
-func TestMigrationCommandFixtureRejectsRuntimeOwnership(t *testing.T) {
-	root := t.TempDir()
-	writeFixture := func(name, content string) {
-		t.Helper()
-		filename := filepath.Join(root, filepath.FromSlash(name))
-		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
-			t.Fatal(err)
+	for _, directory := range []string{"cmd/config-check", "cmd/migrate"} {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(directory))); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("legacy command %s still exists", directory)
 		}
-		if err := os.WriteFile(filename, []byte(content), 0o600); err != nil {
-			t.Fatal(err)
-		}
-	}
-	writeFixture("cmd/migrate/main.go", "package main\nimport (\n_ \"database/sql\"\n_ \"example.test/product/internal/platform/database\"\n)\nfunc main() {}\n")
-	writeFixture("cmd/migrate/main_test.go", "package main\n")
-	writeFixture("cmd/migrate/runtime.go", "package main\n")
-
-	violations, err := commandViolations(os.DirFS(root), "cmd/migrate", "Migration")
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := []string{
-		"cmd/migrate/main.go: Migration entry imports runtime dependency database/sql",
-		"cmd/migrate/main.go: Migration entry imports runtime dependency example.test/product/internal/platform/database",
-		"cmd/migrate/runtime.go: Migration command owns non-entry production code",
-	}
-	if fmt.Sprint(violations) != fmt.Sprint(want) {
-		t.Fatalf("violations = %v, want %v", violations, want)
 	}
 }
 

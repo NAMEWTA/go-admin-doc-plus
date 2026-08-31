@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,8 +12,11 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
 	serverhost "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/host/server"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/recovery"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	platformdesktop "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/desktop"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/logging"
 )
 
 // ServerLaunch contains the typed launch material needed by the Server
@@ -22,6 +26,8 @@ type ServerLaunch struct {
 	DataRoot       string
 	RepositoryRoot string
 	Version        string
+	WithWorker     bool
+	Development    bool
 }
 
 type serverProfile struct {
@@ -30,6 +36,7 @@ type serverProfile struct {
 	sessionPolicy      config.SessionPolicy
 	generatorSchema    string
 	databaseCapability string
+	logLevel           string
 }
 
 // NewServerHost composes the Server profile, database, product and network
@@ -42,6 +49,9 @@ func NewServerHost(launch ServerLaunch) (*serverhost.Host, error) {
 	profile, err := serverRuntimeProfile(launch.Snapshot)
 	if err != nil {
 		return nil, err
+	}
+	if launch.WithWorker && launch.Snapshot.Profile() == config.ProfileServerPostgres {
+		return nil, errors.New("postgres API cannot own workers")
 	}
 	dataRoot, err := canonicalServerDataRoot(launch.DataRoot)
 	if err != nil {
@@ -63,31 +73,159 @@ func NewServerHost(launch ServerLaunch) (*serverhost.Host, error) {
 			Database: profile.databaseCapability,
 		},
 	}, func(ctx context.Context) (serverhost.Runtime, error) {
+		var instanceLock *platformdesktop.InstanceLock
+		if launch.Snapshot.Profile() == config.ProfileServerSQLite {
+			instanceLock, err = platformdesktop.AcquireInstanceLock(dataRoot)
+			if err != nil {
+				return serverhost.Runtime{}, errors.New("server SQLite instance is already active")
+			}
+		}
 		db, err := database.NewProcess().Open(ctx, profile.database)
 		if err != nil {
+			_ = instanceLock.Close()
 			return serverhost.Runtime{}, errors.New("server database startup failed")
 		}
-		built, err := Build(ctx, db, Options{
-			SessionPolicy:       profile.sessionPolicy,
-			FilesRoot:           filepath.Join(dataRoot, "files"),
-			RepositoryRoot:      repositoryRoot,
-			GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
-			GeneratorSchema:     profile.generatorSchema,
-			GeneratorTables:     []string{"demo_products"},
-			WorkerOwner:         fmt.Sprintf("server-%d", os.Getpid()),
-			WorkerInterval:      time.Second,
-			AuditRetentionAge:   30 * 24 * time.Hour,
-		})
+		releasePresence, err := recovery.AcquireRuntimePresence(ctx, db)
 		if err != nil {
 			_ = db.Close()
+			_ = instanceLock.Close()
+			return serverhost.Runtime{}, errors.New("server runtime presence failed")
+		}
+		if err := PrepareRuntimeSchema(ctx, db, db.Dialect() == database.DialectSQLite); err != nil {
+			_ = releasePresence()
+			_ = db.Close()
+			_ = instanceLock.Close()
 			return serverhost.Runtime{}, err
 		}
+		logger, logCloser, err := logging.New(logging.Config{
+			Service: "go-admin-plus", Version: launch.Version, Profile: string(launch.Snapshot.Profile()), Level: profile.logLevel,
+			Sink: logging.Sink{Mode: serverLogMode(launch.Development), Writer: os.Stdout},
+		})
+		if err != nil {
+			_ = releasePresence()
+			_ = db.Close()
+			_ = instanceLock.Close()
+			return serverhost.Runtime{}, errors.New("server logging startup failed")
+		}
+		built, err := BuildPrepared(ctx, db, serverOptions(profile, dataRoot, repositoryRoot), launch.WithWorker)
+		if err != nil {
+			_ = logCloser.Close()
+			_ = releasePresence()
+			_ = db.Close()
+			_ = instanceLock.Close()
+			return serverhost.Runtime{}, err
+		}
+		logger.Info("runtime_ready", slog.String("role", "serve"), slog.Bool("workers", launch.WithWorker))
 		return serverhost.Runtime{
 			Application: built.Application,
 			Readiness:   built.Readiness,
-			Close:       func(context.Context) error { return db.Close() },
+			Logger:      logger,
+			Close: func(context.Context) error {
+				logger.Info("runtime_stopped", slog.String("role", "serve"))
+				return errors.Join(releasePresence(), logCloser.Close(), db.Close(), instanceLock.Close())
+			},
 		}, nil
 	})
+}
+
+// RunServerWorker runs the worker role without constructing a network Host.
+func RunServerWorker(ctx context.Context, launch ServerLaunch) (resultErr error) {
+	if ctx == nil {
+		return errors.New("worker context is required")
+	}
+	launch.Version = strings.TrimSpace(launch.Version)
+	if launch.Version == "" || strings.TrimSpace(launch.DataRoot) == "" || strings.TrimSpace(launch.RepositoryRoot) == "" {
+		return errors.New("worker launch material is invalid")
+	}
+	profile, err := serverRuntimeProfile(launch.Snapshot)
+	if err != nil {
+		return err
+	}
+	dataRoot, err := canonicalServerDataRoot(launch.DataRoot)
+	if err != nil {
+		return errors.New("worker data root failed")
+	}
+	repositoryRoot, err := canonicalServerRepositoryRoot(launch.RepositoryRoot)
+	if err != nil {
+		return errors.New("worker repository root failed")
+	}
+	var instanceLock *platformdesktop.InstanceLock
+	if launch.Snapshot.Profile() == config.ProfileServerSQLite {
+		instanceLock, err = platformdesktop.AcquireInstanceLock(dataRoot)
+		if err != nil {
+			return errors.New("worker SQLite instance is already active")
+		}
+		defer func() { resultErr = errors.Join(resultErr, instanceLock.Close()) }()
+	}
+	db, err := database.NewProcess().Open(ctx, profile.database)
+	if err != nil {
+		return errors.New("worker database startup failed")
+	}
+	defer func() { resultErr = errors.Join(resultErr, db.Close()) }()
+	releasePresence, err := recovery.AcquireRuntimePresence(ctx, db)
+	if err != nil {
+		return errors.New("worker runtime presence failed")
+	}
+	defer func() { resultErr = errors.Join(resultErr, releasePresence()) }()
+	if err := PrepareRuntimeSchema(ctx, db, db.Dialect() == database.DialectSQLite); err != nil {
+		return err
+	}
+	logger, closer, err := logging.New(logging.Config{
+		Service: "go-admin-plus", Version: launch.Version, Profile: string(launch.Snapshot.Profile()), Level: profile.logLevel,
+		Sink: logging.Sink{Mode: serverLogMode(launch.Development), Writer: os.Stdout},
+	})
+	if err != nil {
+		return errors.New("worker logging startup failed")
+	}
+	defer func() { resultErr = errors.Join(resultErr, closer.Close()) }()
+	built, err := BuildPrepared(ctx, db, serverOptions(profile, dataRoot, repositoryRoot), true)
+	if err != nil {
+		return err
+	}
+	if err := built.Application.Start(ctx); err != nil {
+		return errors.New("worker application startup failed")
+	}
+	logger.Info("runtime_ready", slog.String("role", "worker"))
+	var workerErr error
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for workerErr == nil {
+		select {
+		case <-ctx.Done():
+			workerErr = nil
+			goto stop
+		case <-ticker.C:
+			for _, checker := range built.Readiness {
+				if checker.Name == "workers" {
+					if err := checker.Check(ctx); err != nil {
+						workerErr = errors.New("worker execution failed")
+					}
+				}
+			}
+		}
+	}
+stop:
+	stopCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	logger.Info("runtime_stopped", slog.String("role", "worker"))
+	return errors.Join(workerErr, built.Application.Stop(stopCtx))
+}
+
+func serverLogMode(development bool) logging.Mode {
+	if development {
+		return logging.ModeConsole
+	}
+	return logging.ModeJSON
+}
+
+func serverOptions(profile serverProfile, dataRoot, repositoryRoot string) Options {
+	return Options{
+		SessionPolicy: profile.sessionPolicy, FilesRoot: filepath.Join(dataRoot, "files"),
+		RepositoryRoot: repositoryRoot, GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
+		GeneratorSchema: profile.generatorSchema, GeneratorTables: []string{"demo_products"},
+		WorkerOwner: fmt.Sprintf("server-%d", os.Getpid()), WorkerInterval: time.Second,
+		AuditRetentionAge: 30 * 24 * time.Hour,
+	}
 }
 
 func serverRuntimeProfile(snapshot config.Snapshot) (serverProfile, error) {
@@ -98,6 +236,7 @@ func serverRuntimeProfile(snapshot config.Snapshot) (serverProfile, error) {
 			sessionPolicy:      profile.SessionPolicy(),
 			generatorSchema:    "main",
 			databaseCapability: "sqlite",
+			logLevel:           profile.LogLevel(),
 		}, nil
 	}
 	if profile, ok := snapshot.ServerPostgres(); ok {
@@ -107,6 +246,7 @@ func serverRuntimeProfile(snapshot config.Snapshot) (serverProfile, error) {
 			sessionPolicy:      profile.SessionPolicy(),
 			generatorSchema:    "public",
 			databaseCapability: "postgres",
+			logLevel:           profile.LogLevel(),
 		}, nil
 	}
 	return serverProfile{}, errors.New("server runtime profile is invalid")

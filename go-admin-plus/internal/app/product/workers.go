@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -19,6 +20,8 @@ type workerGroup struct {
 	interval   time.Duration
 	executor   *scheduler.Executor
 	dispatcher *outbox.Dispatcher
+	lifecycle  *files.AccountLifecycle
+	reconcile  func(context.Context) error
 	lease      *coordination.Lease
 	cancel     context.CancelFunc
 	done       chan struct{}
@@ -26,8 +29,8 @@ type workerGroup struct {
 	started    bool
 }
 
-func newWorkerGroup(db *database.Database, owner string, interval time.Duration, executor *scheduler.Executor, dispatcher *outbox.Dispatcher) *workerGroup {
-	return &workerGroup{db: db, owner: owner, interval: interval, executor: executor, dispatcher: dispatcher}
+func newWorkerGroup(db *database.Database, owner string, interval time.Duration, executor *scheduler.Executor, dispatcher *outbox.Dispatcher, lifecycle *files.AccountLifecycle, reconcile func(context.Context) error) *workerGroup {
+	return &workerGroup{db: db, owner: owner, interval: interval, executor: executor, dispatcher: dispatcher, lifecycle: lifecycle, reconcile: reconcile}
 }
 
 func (group *workerGroup) Start(ctx context.Context) error {
@@ -79,7 +82,18 @@ func (group *workerGroup) runOnce(ctx context.Context) error {
 		return err
 	}
 	_, err := group.dispatcher.RunOnce(ctx, group.lease, time.Now().UTC())
-	return err
+	if err != nil {
+		return err
+	}
+	if group.lifecycle != nil {
+		if err := group.lifecycle.RunOnce(ctx); err != nil {
+			return err
+		}
+	}
+	if group.reconcile != nil {
+		return group.reconcile(ctx)
+	}
+	return nil
 }
 
 func (group *workerGroup) Stop(ctx context.Context) error {

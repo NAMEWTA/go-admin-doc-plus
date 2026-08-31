@@ -23,8 +23,8 @@ printf '%s' "$task_list" | "$node_command" -e '
   const actual = tasks.map(({ name }) => name).sort()
   const expected = [
     "architecture:check", "build", "compatibility:zero", "contract:lint", "default",
-    "dev", "docs:check", "generate", "generate:check", "governance:check", "lint",
-    "lint:staged", "migrate", "package", "release", "release:verify", "task:contract", "test",
+    "dev", "doctor", "docs:check", "generate", "generate:check", "governance:check", "lint",
+    "lint:staged", "migrate", "package", "release", "release:verify", "task:contract", "test", "worker",
   ].sort()
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     console.error(`task contract: public tasks differ\nexpected=${expected}\nactual=${actual}`)
@@ -47,7 +47,7 @@ hook_status=0
 PATH=/nonexistent "$shell_command" "$hook" >/dev/null 2>&1 || hook_status=$?
 test "$hook_status" -ne 0 || fail 'pre-commit hook hides a missing Task CLI failure'
 
-for task_name in dev build test lint generate migrate package; do
+for task_name in dev build test lint generate migrate package worker doctor; do
   dry_output=$("$task_command" --verbose --dry "$task_name" 2>&1) ||
     fail "$task_name cannot resolve from the repository root with default inputs"
   case $dry_output in

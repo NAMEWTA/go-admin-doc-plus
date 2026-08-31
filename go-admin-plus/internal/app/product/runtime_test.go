@@ -147,3 +147,47 @@ func TestBuildRejectsIncompleteProductOptionsBeforeAssembly(t *testing.T) {
 		t.Fatal("Build accepted incomplete dependencies")
 	}
 }
+
+func TestBuildPreparedAPIRoleDoesNotOwnWorkerLease(t *testing.T) {
+	ctx := context.Background()
+	db, err := database.NewProcess().Open(ctx, database.Config{
+		Profile: config.ProfileServerSQLite, SQLitePath: filepath.Join(t.TempDir(), "api.sqlite3"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := product.PrepareRuntimeSchema(ctx, db, true); err != nil {
+		t.Fatal(err)
+	}
+	repositoryRoot, err := filepath.Abs("../../../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataRoot := t.TempDir()
+	built, err := product.BuildPrepared(ctx, db, product.Options{
+		SessionPolicy: config.DefaultSessionPolicy(), FilesRoot: filepath.Join(dataRoot, "files"),
+		RepositoryRoot: repositoryRoot, GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
+		GeneratorSchema: "main", GeneratorTables: []string{"demo_products"},
+		WorkerOwner: "api-without-workers", WorkerInterval: time.Hour, AuditRetentionAge: 30 * 24 * time.Hour,
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(built.Readiness) != 1 || built.Readiness[0].Name != "database" {
+		t.Fatalf("API readiness = %#v", built.Readiness)
+	}
+	if err := built.Application.Start(ctx); err != nil {
+		t.Fatal(err)
+	}
+	lease, err := coordination.Acquire(ctx, db, coordination.Config{Owner: "independent-worker"})
+	if err != nil {
+		t.Fatalf("API role owned worker lease: %v", err)
+	}
+	if err := lease.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := built.Application.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
