@@ -38,16 +38,16 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-08-31T20:11:04+08:00",
+  "updated_at": "2026-08-31T20:18:03+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
     "T-01 source e80d08fc09138474979221f196561c5b246320f9: govulncheck passes, but required full Go/contract checks are blocked by pre-existing Windows portability failures owned by later Tickets; resume after those owning fixes are integrated or on a compatible runner.",
-    "T-02 implementation 6f6c2507ad0d9f47f879ca69f11c06c46d175102: targeted IAM/database checks pass, but required race and real PostgreSQL proofs need a CGO C compiler and GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN; neither is available on this host.",
+    "T-02 implementation bf6f891ac93106c24ac1bb8391c1974f13d1a2a4: targeted IAM/database checks pass and the 0030 migration now uses globally unique version 6210000000000, but required race and real PostgreSQL proofs need a CGO C compiler and GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN; neither is available on this host.",
     "T-11 implementation a5f80acf95482c038aa8e6b3b4e9f138ab7a9451: frozen install, audit, lint, typecheck, 204 Vitest checks, and dual-App builds pass, but pnpm test is blocked by the T-20-owned Windows Desktop artifact-path assertion; no WSL/container runner is available.",
     "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof.",
-    "T-03 implementation 849357390dffc0c2ea82240de8b8e2c136831db0: targeted migration/session tests and vet pass, but candidate fc2d849dacf7936c44346de1344a3b496485aed4 is blocked by the T-09-owned 0040 composition gap, existing Windows full-suite failures, missing CGO C compiler for race, and missing disposable PostgreSQL DSN."
+    "T-03 implementation ec59dd25bca92c74464b485604b949e5a5dbf115: targeted migration/session tests and vet pass and the 0040 migration now uses globally unique version 6220000000000; the prior candidate fc2d849dacf7936c44346de1344a3b496485aed4 remains a failed attempt and must be rebuilt after the T-09-owned composition gap, Windows full-suite failures, missing CGO C compiler, and missing disposable PostgreSQL DSN are resolved."
   ],
   "deviations": [],
   "worktrees": [
@@ -135,7 +135,7 @@
         "promotion_status": "pending"
       },
       "status": "blocked",
-      "updated_at": "2026-08-31T19:29:32+08:00"
+      "updated_at": "2026-08-31T20:18:03+08:00"
     },
     {
       "ticket_id": "T-11",
@@ -221,7 +221,7 @@
         "promotion_status": "failed"
       },
       "status": "blocked",
-      "updated_at": "2026-08-31T20:06:07+08:00"
+      "updated_at": "2026-08-31T20:18:03+08:00"
     },
     {
       "ticket_id": "T-04",
