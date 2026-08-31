@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-08-31T21:23:25+08:00",
+  "updated_at": "2026-08-31T21:27:57+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -48,7 +48,8 @@
     "T-11 implementation a5f80acf95482c038aa8e6b3b4e9f138ab7a9451: frozen install, audit, lint, typecheck, 204 Vitest checks, and dual-App builds pass, but pnpm test is blocked by the T-20-owned Windows Desktop artifact-path assertion; no WSL/container runner is available.",
     "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof.",
     "T-03 implementation ec59dd25bca92c74464b485604b949e5a5dbf115: targeted migration/session tests and vet pass and the 0040 migration now uses globally unique version 6220000000000; the prior candidate fc2d849dacf7936c44346de1344a3b496485aed4 remains a failed attempt and must be rebuilt after the T-09-owned composition gap, Windows full-suite failures, missing CGO C compiler, and missing disposable PostgreSQL DSN are resolved.",
-    "T-04 implementation dca203c199a274c479d8c1ab3acbdc01850eb0d8 and candidate 1961d45c43955d4c9d244c7c5273dc96439ed9b6: targeted IAM/Organization tests, repeated scope tests, architecture checks, and vet pass; promotion is blocked by existing Windows full-suite failures, missing CGO C compiler for race, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN for the required real PostgreSQL proof."
+    "T-04 implementation dca203c199a274c479d8c1ab3acbdc01850eb0d8 and candidate 1961d45c43955d4c9d244c7c5273dc96439ed9b6: targeted IAM/Organization tests, repeated scope tests, architecture checks, and vet pass; promotion is blocked by existing Windows full-suite failures, missing CGO C compiler for race, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN for the required real PostgreSQL proof.",
+    "T-06 implementation ddc2e6725646a640deba7d5b7981a9a146b5aae7 and candidate d7bfb162ae35ae4e467f66eaffdcb483e5224952: capacity, migration, repeated concurrency, and vet checks pass; promotion is blocked by the T-09-owned product migration/probe composition, existing Windows full-suite failures, missing CGO C compiler, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN."
   ],
   "deviations": [],
   "worktrees": [
@@ -277,25 +278,25 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-06",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-06",
-      "source_checkpoint": "ddc2e6725646a640deba7d5b7981a9a146b5aae7",
+      "source_checkpoint": null,
       "integration": {
-        "status": "pending",
+        "status": "failed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
+        "parent_before_sha": "b54b5039dc6a284a656406a96d0874a5fef51347",
+        "source_sha": "ddc2e6725646a640deba7d5b7981a9a146b5aae7",
+        "candidate_sha": "d7bfb162ae35ae4e467f66eaffdcb483e5224952",
+        "candidate_tree_sha": "731ac7722cde32e9f156a3a96e3d48609125ddb2",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-06",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-06",
         "result_sha": null,
-        "method": null,
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "failed",
         "full_suite": {
           "required": true,
-          "status": "pending",
+          "status": "failed",
           "reason": "T-06 requires Files quota, disk watermark, reconciliation, dual-dialect, race, and fault-injection checks on the parent candidate",
-          "evidence": null
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-06.md</Path>"
         },
         "e2e": {
           "required": false,
@@ -304,11 +305,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-06.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "failed"
       },
-      "status": "review",
-      "updated_at": "2026-08-31T21:23:25+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-31T21:27:57+08:00"
     }
   ]
 }
