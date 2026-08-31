@@ -12,6 +12,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	productsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo/migrations/0010-products"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
+	filesaccountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/account_lifecycle_migration"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
 	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
@@ -21,6 +22,7 @@ import (
 	bootstraprecoverymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
 	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	datascopemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0050-data-scope"
+	accountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
 	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
@@ -75,6 +77,7 @@ var moduleDefinitions = []ModuleDefinition{
 		"iam-bootstrap-recovery",
 		"iam-session-protection",
 		"iam-data-scope",
+		"iam-account-lifecycle",
 	}},
 	{ID: ModuleAudit, MigrationModules: []string{"audit"}, RegistersMenu: true},
 	{ID: ModuleOrganization, MigrationModules: []string{"organization"}, RegistersMenu: true},
@@ -82,7 +85,7 @@ var moduleDefinitions = []ModuleDefinition{
 	{ID: ModuleGenerator, MigrationModules: []string{"generator-config"}, RegistersMenu: true},
 	{ID: ModuleScheduler, MigrationModules: []string{"scheduler"}, RegistersMenu: true},
 	{ID: ModuleDemo, MigrationModules: []string{"demo-products"}, RegistersMenu: true},
-	{ID: ModuleFiles, MigrationModules: []string{"files", "files-capacity"}, RegistersMenu: true},
+	{ID: ModuleFiles, MigrationModules: []string{"files", "files-capacity", "files-account-lifecycle"}, RegistersMenu: true},
 }
 
 var capabilityRegistrations = []capabilityRegistration{
@@ -133,6 +136,7 @@ func NewMigrationRunner() (*migrations.Runner, error) {
 		bootstraprecoverymigration.Provider{},
 		sessionprotectionmigration.Provider{},
 		datascopemigration.Provider{},
+		accountlifecyclemigration.Provider{},
 		organizationmigration.Provider{},
 		auditmigration.Provider{},
 		productsmigration.Provider{},
@@ -141,6 +145,7 @@ func NewMigrationRunner() (*migrations.Runner, error) {
 		schedulermigration.Provider{},
 		filesmigration.Provider{},
 		capacitymigration.Provider{},
+		filesaccountlifecyclemigration.Provider{},
 		reliableruntime.Provider{},
 	)
 }
