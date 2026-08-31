@@ -1,4 +1,20 @@
-import { AdministrationRequestError, type AdministrationClient, type Menu, type MenuInput, type Permission, type Role, type User } from '@go-admin-plus/domain-iam/administration'
+import {
+  AdministrationRequestError,
+  canCancelAccountDeletion,
+  validAccountOrganizationRequest,
+  validRoleDataScopeRequest,
+  validStartAccountDeletionRequest,
+  type AccountDeletion,
+  type AccountOrganizationRequest,
+  type AdministrationClient,
+  type Menu,
+  type MenuInput,
+  type Permission,
+  type Role,
+  type RoleDataScopeRequest,
+  type StartAccountDeletionRequest,
+  type User,
+} from '@go-admin-plus/domain-iam/administration'
 import { createListController, type FormController, type FormRunResult, type ListController } from '@go-admin-plus/ui'
 
 export interface UserFilters { search: string }
@@ -28,10 +44,18 @@ export interface AdministrationController {
   setUserRoles(id: string, roleIds: ReadonlyArray<string>): Promise<CommandResult>
   setRoleGrants(id: string, permissionCodes: ReadonlyArray<string>, menuIds: ReadonlyArray<string>): Promise<CommandResult>
   resetPassword(id: string, password: string): Promise<CommandResult>
+  setUserOrganization(id: string, input: AccountOrganizationRequest): Promise<CommandResult>
+  setRoleDataScope(id: string, input: RoleDataScopeRequest): Promise<CommandResult>
+  deletion(): AccountDeletion | null
+  deletionLoading(): boolean
+  clearDeletion(): void
+  startUserDeletion(id: string, input: StartAccountDeletionRequest): Promise<CommandResult>
+  refreshUserDeletion(id: string): Promise<CommandResult>
+  cancelUserDeletion(id: string): Promise<CommandResult>
 }
 
 export type CommandResult = 'completed' | 'cancelled' | 'busy' | 'invalid' | 'failed' | 'refresh-failed'
-export type AdministrationFailure = 'relogin' | 'forbidden' | 'validation' | 'conflict' | 'unavailable'
+export type AdministrationFailure = 'relogin' | 'forbidden' | 'validation' | 'not-found' | 'conflict' | 'unavailable'
 
 export const createAdministrationController = (client: AdministrationClient, confirm: (count: number) => Promise<boolean>): AdministrationController => {
   let roles: ReadonlyArray<Role> = []
@@ -40,20 +64,28 @@ export const createAdministrationController = (client: AdministrationClient, con
   let capabilityCodes = new Set<string>()
   let capabilityScope: Role['dataScope'] = 'self'
   let failure: AdministrationFailure | null = null
+  let deletion: AccountDeletion | null = null
+  let deletionLoading = false
   let userProjectionVisible = false
   const pendingRepairs = new Map<string, () => Promise<void>>()
   let mutationBusy = false
   let repairBusy = false
   const clearAuthorizationProjection = () => {
-    capabilityCodes = new Set(); capabilityScope = 'self'; roles = []; menus = []; permissions = []; userProjectionVisible = false
+    capabilityCodes = new Set(); capabilityScope = 'self'; roles = []; menus = []; permissions = []; userProjectionVisible = false; deletion = null
   }
   const recordFailure = (error: unknown) => {
     failure = error instanceof AdministrationRequestError && isAdministrationFailure(error.category)
       ? error.category
       : 'unavailable'
     if (failure === 'relogin') clearAuthorizationProjection()
+    else if (failure === 'forbidden') deletion = null
   }
   const clearFailure = () => { failure = null }
+  const requireAccess = (permissionCode: string): boolean => {
+    if (canAccess(permissionCode)) return true
+    failure = 'forbidden'
+    return false
+  }
   const rawUsers = createListController<UserFilters, User, string>({
     initialFilters: () => ({ search: '' }),
     rowKey: (row) => row.id,
@@ -125,9 +157,9 @@ export const createAdministrationController = (client: AdministrationClient, con
       catch (error) { recordFailure(error); return 'refresh-failed' }
     }
     return {
-      get busy() { return mutationBusy || repairBusy },
+      get busy() { return mutationBusy || repairBusy || deletionLoading },
       async run(model) {
-        if (mutationBusy || repairBusy) return 'busy'
+        if (mutationBusy || repairBusy || deletionLoading) return 'busy'
         if (pendingRepairs.size > 0) return 'refresh-failed'
         mutationBusy = true
         try {
@@ -156,7 +188,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     refresh: refreshAuthorizationData,
   })
   const command = async (key: string, operation: () => Promise<void>, refreshed: () => Promise<void>, destructive = false): Promise<CommandResult> => {
-    if (mutationBusy || repairBusy) return 'busy'
+    if (mutationBusy || repairBusy || deletionLoading) return 'busy'
     if (pendingRepairs.size > 0) return 'refresh-failed'
     mutationBusy = true
     clearFailure()
@@ -168,7 +200,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     } finally { mutationBusy = false }
   }
   const repairProjection = async (): Promise<CommandResult> => {
-    if (repairBusy || mutationBusy) return 'busy'
+    if (repairBusy || mutationBusy || deletionLoading) return 'busy'
     const next = pendingRepairs.entries().next().value as [string, () => Promise<void>] | undefined
     if (!next) return 'completed'
     repairBusy = true
@@ -186,7 +218,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     clearFailure,
     hasPendingRepair: () => pendingRepairs.size > 0,
     repairProjection,
-    get busy() { return mutationBusy || repairBusy },
+    get busy() { return mutationBusy || repairBusy || deletionLoading },
     updateUser(user, enabled) { return command(`update-user:${user.id}`, async () => { await client.updateUser(user.id, { displayName: user.displayName, email: user.email, enabled }) }, refreshUsersProjection, !enabled) },
     deleteRole(id) { return command(`delete-role:${id}`, () => client.deleteRole(id), refreshAuthorizationData, true) },
     updateRole(role) { if (!validStableKey(role.key) || !validName(role.name, 100)) return Promise.resolve('invalid'); return command(`update-role:${role.id}`, () => client.updateRole(role.id, { key: role.key, name: role.name, dataScope: role.dataScope === 'all' ? 'all' : 'self', enabled: role.enabled }), refreshAuthorizationData, !role.enabled) },
@@ -195,6 +227,39 @@ export const createAdministrationController = (client: AdministrationClient, con
     setUserRoles(id, roleIds) { return command(`set-user-roles:${id}`, () => client.setUserRoles(id, roleIds), refreshUsersProjection) },
     setRoleGrants(id, permissionCodes, menuIds) { return command(`set-role-grants:${id}`, () => client.setRoleGrants(id, permissionCodes, menuIds), refreshAuthorizationData) },
     resetPassword(id, password) { if (password.length < 12) return Promise.resolve('invalid'); return command(`reset-password:${id}`, () => client.resetPassword(id, password), refreshUsersProjection, true) },
+    setUserOrganization(id, input) {
+      if (!validAccountOrganizationRequest(input)) return Promise.resolve('invalid')
+      if (!requireAccess('iam.users.write')) return Promise.resolve('failed')
+      return command(`set-user-organization:${id}`, () => client.setUserOrganization(id, input), refreshUsersProjection)
+    },
+    setRoleDataScope(id, input) {
+      if (!validRoleDataScopeRequest(input)) return Promise.resolve('invalid')
+      if (!requireAccess('iam.roles.write')) return Promise.resolve('failed')
+      return command(`set-role-data-scope:${id}`, () => client.setRoleDataScope(id, input), refreshAuthorizationData)
+    },
+    deletion: () => deletion,
+    deletionLoading: () => deletionLoading,
+    clearDeletion() { deletion = null },
+    startUserDeletion(id, input) {
+      if (!validStartAccountDeletionRequest(id, input)) return Promise.resolve('invalid')
+      if (!requireAccess('iam.users.delete')) return Promise.resolve('failed')
+      return command(`start-user-deletion:${id}`, async () => { deletion = await client.startUserDeletion(id, input) }, refreshUsersProjection, true)
+    },
+    async refreshUserDeletion(id) {
+      if (!requireAccess('iam.users.delete')) return 'failed'
+      if (mutationBusy || repairBusy || deletionLoading) return 'busy'
+      deletionLoading = true
+      clearFailure()
+      try {
+        try { deletion = await client.getUserDeletion(id); return 'completed' }
+        catch (error) { recordFailure(error); return 'failed' }
+      } finally { deletionLoading = false }
+    },
+    cancelUserDeletion(id) {
+      if (!deletion || deletion.accountId !== id || !canCancelAccountDeletion(deletion)) return Promise.resolve('invalid')
+      if (!requireAccess('iam.users.delete')) return Promise.resolve('failed')
+      return command(`cancel-user-deletion:${id}`, async () => { await client.cancelUserDeletion(id); deletion = null }, refreshUsersProjection)
+    },
   }
 }
 
@@ -215,7 +280,7 @@ export const settleAdministrationPageOperation = async <T>(operation: () => Prom
 }
 
 const isAdministrationFailure = (value: string): value is AdministrationFailure =>
-  ['relogin', 'forbidden', 'validation', 'conflict', 'unavailable'].includes(value)
+  ['relogin', 'forbidden', 'validation', 'not-found', 'conflict', 'unavailable'].includes(value)
 
 const validName = (value: string, maximum: number) => value.trim().length >= 3 && value.length <= maximum
 const validStableKey = (value: string) => value.length >= 3 && value.length <= 64 && /^[a-z0-9][a-z0-9_-]*$/.test(value)

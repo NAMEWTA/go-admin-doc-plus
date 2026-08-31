@@ -12,6 +12,37 @@ export type AccountOrganizationRequest = components['schemas']['AccountOrganizat
 export type RoleDataScopeRequest = components['schemas']['RoleDataScopeRequest']
 export type StartAccountDeletionRequest = components['schemas']['StartAccountDeletionRequest']
 
+const hasUniqueNonEmptyIdentifiers = (identifiers: ReadonlyArray<string>): boolean =>
+  identifiers.every((identifier) => identifier.trim().length > 0)
+  && new Set(identifiers).size === identifiers.length
+
+export const validAccountOrganizationRequest = (input: AccountOrganizationRequest): boolean =>
+  (input.primaryDepartmentId === undefined || input.primaryDepartmentId.trim().length > 0)
+  && hasUniqueNonEmptyIdentifiers(input.positionIds)
+
+export const validRoleDataScopeRequest = (input: RoleDataScopeRequest): boolean => {
+  if (!hasUniqueNonEmptyIdentifiers(input.departmentIds)) return false
+  return input.scope === 'custom'
+    ? input.departmentIds.length > 0
+    : input.departmentIds.length === 0
+}
+
+export const validStartAccountDeletionRequest = (
+  accountId: string,
+  input: StartAccountDeletionRequest,
+): boolean => {
+  if (accountId.trim().length === 0) return false
+  if (input.strategy === 'transfer') {
+    return input.purgeConfirmed === false
+      && input.transferTargetId !== undefined
+      && input.transferTargetId.trim().length > 0
+      && input.transferTargetId !== accountId
+  }
+  return input.purgeConfirmed && input.transferTargetId === undefined
+}
+
+export const canCancelAccountDeletion = (deletion: AccountDeletion): boolean => deletion.status === 'queued'
+
 export interface AdministrationClient {
   manifest(): Promise<Manifest>
   listUsers(search: string, page: number, pageSize: number): Promise<UserPage>

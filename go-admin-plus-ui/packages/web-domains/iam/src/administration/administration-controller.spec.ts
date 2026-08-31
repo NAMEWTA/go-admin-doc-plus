@@ -78,6 +78,69 @@ describe('administration controller', () => {
     expect(api.setRoleDataScope).not.toHaveBeenCalled()
   })
 
+  it('validates organization and five-scope mutations at the controller boundary', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    expect(await controller.setUserOrganization('account-00000001', { positionIds: [] })).toBe('failed')
+    expect(controller.failure()).toBe('forbidden')
+    expect(api.setUserOrganization).not.toHaveBeenCalled()
+
+    await controller.refreshAuthorizationData()
+    expect(await controller.setUserOrganization('account-00000001', { primaryDepartmentId: '', positionIds: [] })).toBe('invalid')
+    expect(await controller.setUserOrganization('account-00000001', { primaryDepartmentId: 'department-1', positionIds: ['position-1'] })).toBe('completed')
+    expect(api.setUserOrganization).toHaveBeenCalledWith('account-00000001', { primaryDepartmentId: 'department-1', positionIds: ['position-1'] })
+    expect(await controller.setRoleDataScope('role-000000000001', { scope: 'custom', departmentIds: [] })).toBe('invalid')
+    expect(await controller.setRoleDataScope('role-000000000001', { scope: 'organization-tree', departmentIds: [] })).toBe('completed')
+    expect(api.setRoleDataScope).toHaveBeenCalledWith('role-000000000001', { scope: 'organization-tree', departmentIds: [] })
+  })
+
+  it('tracks deletion refreshes and refuses cancellation after a worker claim', async () => {
+    const api = client(); const confirm = vi.fn(async () => true); const controller = createAdministrationController(api, confirm)
+    await controller.refreshAuthorizationData()
+    expect(await controller.startUserDeletion('account-00000001', { strategy: 'purge', purgeConfirmed: false })).toBe('invalid')
+    expect(await controller.startUserDeletion('account-00000001', { strategy: 'transfer', transferTargetId: 'account-00000002', purgeConfirmed: false })).toBe('completed')
+    expect(controller.deletion()?.status).toBe('queued')
+    expect(confirm).toHaveBeenCalledTimes(1)
+
+    vi.mocked(api.getUserDeletion).mockResolvedValueOnce({ ...controller.deletion()!, status: 'claimed', updatedAt: '2026-09-01T00:00:01Z' })
+    expect(await controller.refreshUserDeletion('account-00000001')).toBe('completed')
+    expect(controller.deletion()?.status).toBe('claimed')
+    expect(await controller.cancelUserDeletion('account-00000001')).toBe('invalid')
+    expect(api.cancelUserDeletion).not.toHaveBeenCalled()
+
+    vi.mocked(api.getUserDeletion).mockRejectedValueOnce(new AdministrationRequestError('forbidden'))
+    expect(await controller.refreshUserDeletion('account-00000001')).toBe('failed')
+    expect(controller.deletion()).toBe(null)
+
+    controller.clearDeletion()
+    expect(controller.deletion()).toBe(null)
+  })
+
+  it('cancels only a queued deletion and refreshes the restored user projection', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData()
+    expect(await controller.startUserDeletion('account-00000001', { strategy: 'purge', purgeConfirmed: true })).toBe('completed')
+    vi.mocked(api.listUsers).mockClear()
+    expect(await controller.cancelUserDeletion('account-00000001')).toBe('completed')
+    expect(api.cancelUserDeletion).toHaveBeenCalledWith('account-00000001')
+    expect(api.listUsers).toHaveBeenCalledTimes(1)
+    expect(controller.deletion()).toBe(null)
+  })
+
+  it('serializes deletion refresh with mutation commands', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    await controller.refreshAuthorizationData()
+    let release!: () => void
+    vi.mocked(api.getUserDeletion).mockImplementationOnce(() => new Promise((resolve) => {
+      release = () => resolve({ id: '11111111-1111-1111-1111-111111111111', accountId: 'account-00000001', strategy: 'purge', status: 'queued', auditReference: 'audit-reference', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' })
+    }))
+    const refreshing = controller.refreshUserDeletion('account-00000001')
+    expect(controller.busy).toBe(true)
+    expect(await controller.setUserOrganization('account-00000001', { positionIds: [] })).toBe('busy')
+    expect(api.setUserOrganization).not.toHaveBeenCalled()
+    release()
+    expect(await refreshing).toBe('completed')
+  })
+
   it('loads only administration projections granted by the manifest', async () => {
     const api = client()
     vi.mocked(api.manifest).mockResolvedValueOnce({ dataScope: 'self', permissionCodes: ['iam.users.read', 'iam.users.write', 'iam.roles.read', 'iam.menus.read', 'iam.permissions.read', 'iam.roles.assign', 'iam.manifest.read'], menus: [] })

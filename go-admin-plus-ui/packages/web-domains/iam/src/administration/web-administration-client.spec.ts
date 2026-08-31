@@ -56,6 +56,15 @@ describe('web administration client', () => {
     await expect(client.manifest()).rejects.toEqual(expect.objectContaining({ category: 'unavailable', message: 'IAM administration request failed' }))
   })
 
+  it('maps a missing deletion projection to a stable not-found category', async () => {
+    const response = new Response(JSON.stringify({ category: 'not_found', detail: 'internal row detail' }), { status: 404, headers: { 'Content-Type': 'application/problem+json' } })
+    const client = createWebAdministrationClient(async () => response, 'https://app.example.test/api')
+    await expect(client.getUserDeletion('account-00000001')).rejects.toEqual(expect.objectContaining({
+      category: 'not-found',
+      message: 'IAM administration request failed',
+    }))
+  })
+
   it('uses only the organization, lifecycle and five-scope administration contracts', async () => {
     const requests: Request[] = []
     const deletion = { id: '11111111-1111-1111-1111-111111111111', accountId: 'account-00000001', strategy: 'purge', status: 'queued', auditReference: 'audit-reference', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' }
