@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-06
 title: 建立文件配额与磁盘容量治理
-status: review
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 涉及双方言配额并发、文件系统崩溃一致性、容量拒绝和持久数据迁移
 ready: true

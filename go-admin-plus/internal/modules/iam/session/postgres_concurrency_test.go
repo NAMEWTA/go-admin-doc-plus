@@ -13,6 +13,7 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
@@ -26,9 +27,9 @@ func (postgresLoginFactNoop) RecordLoginFact(context.Context, database.Tx, Login
 	return nil
 }
 
-// TestPostgresGenerationFencesConcurrentRotationAndRevoke is intentionally gated.
+// TestPostgresGenerationFencesConcurrentRenewalAndRevoke is intentionally gated.
 // Lead runs it against an isolated real PostgreSQL database in candidate verification.
-func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
+func TestPostgresGenerationFencesConcurrentRenewalAndRevoke(t *testing.T) {
 	dsn := os.Getenv(postgresDisposableDSNEnv)
 	if dsn == "" {
 		t.Skip(postgresDisposableDSNEnv + " is not set")
@@ -50,7 +51,7 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 		t.Fatal("parse disposable PostgreSQL connection material")
 	}
 	db := openPostgres(t, ctx, isolatedDSN)
-	runner, err := migrations.NewRunner(sessionmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, sessionprotectionmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,19 +88,19 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 	}
 	clock = clock.Add(61 * time.Minute)
 
-	rotationLocked := make(chan struct{})
-	releaseRotation := make(chan struct{})
+	renewalLocked := make(chan struct{})
+	releaseRenewal := make(chan struct{})
 	revokeRequested := make(chan struct{})
 	revokeLocked := make(chan struct{})
-	var rotationOnce, releaseOnce, requestOnce, revokeOnce sync.Once
-	release := func() { releaseOnce.Do(func() { close(releaseRotation) }) }
+	var renewalOnce, releaseOnce, requestOnce, revokeOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(releaseRenewal) }) }
 	t.Cleanup(release)
 	service.lockProbe = func(point accountLockPoint) {
 		switch point {
 		case accountLockHeld:
-			rotationOnce.Do(func() {
-				close(rotationLocked)
-				<-releaseRotation
+			renewalOnce.Do(func() {
+				close(renewalLocked)
+				<-releaseRenewal
 			})
 		case accountRevokeLockRequested:
 			requestOnce.Do(func() { close(revokeRequested) })
@@ -108,17 +109,17 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 		}
 	}
 
-	rotated := make(chan Issued, 1)
-	rotationErr := make(chan error, 1)
+	renewed := make(chan Issued, 1)
+	renewalErr := make(chan error, 1)
 	go func() {
-		value, currentErr := service.Current(ctx, issued.Token)
-		rotated <- value
-		rotationErr <- currentErr
+		value, currentErr := service.Renew(ctx, issued.Token, issued.CSRF)
+		renewed <- value
+		renewalErr <- currentErr
 	}()
 	select {
-	case <-rotationLocked:
+	case <-renewalLocked:
 	case <-ctx.Done():
-		t.Fatal("rotation did not enter the account-locked critical section")
+		t.Fatal("renewal did not enter the account-locked critical section")
 	}
 
 	revokeErr := make(chan error, 1)
@@ -130,14 +131,14 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 	}
 	select {
 	case <-revokeLocked:
-		t.Fatal("revoke acquired the account lock while rotation still held it")
+		t.Fatal("revoke acquired the account lock while renewal still held it")
 	default:
 	}
 	release()
 
-	replacement := <-rotated
-	if err := <-rotationErr; err != nil {
-		t.Fatalf("locked rotation failed: %v", err)
+	continued := <-renewed
+	if err := <-renewalErr; err != nil {
+		t.Fatalf("locked renewal failed: %v", err)
 	}
 	if err := <-revokeErr; err != nil {
 		t.Fatalf("queued revoke failed: %v", err)
@@ -145,12 +146,13 @@ func TestPostgresGenerationFencesConcurrentRotationAndRevoke(t *testing.T) {
 	select {
 	case <-revokeLocked:
 	default:
-		t.Fatal("revoke did not acquire the account lock after rotation committed")
+		t.Fatal("revoke did not acquire the account lock after renewal committed")
 	}
-	for _, token := range []string{issued.Token, replacement.Token} {
-		if _, err := service.Current(ctx, token); !errors.Is(err, ErrAuthentication) {
-			t.Fatal("generation fence allowed a token after concurrent PostgreSQL revoke")
-		}
+	if continued.Token != "" || continued.CSRF != issued.CSRF {
+		t.Fatal("renewal changed stable session credentials")
+	}
+	if _, err := service.Current(ctx, issued.Token); !errors.Is(err, ErrAuthentication) {
+		t.Fatal("generation fence allowed a token after concurrent PostgreSQL revoke")
 	}
 }
 

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session/protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
@@ -27,8 +28,21 @@ var (
 	ErrValidation     = errors.New("request validation failed")
 	ErrConflict       = errors.New("request conflicts with current state")
 	ErrInternal       = errors.New("iam operation failed")
-	errExpired        = errors.New("session expired")
+	ErrRateLimited    = errors.New("login temporarily unavailable")
 )
+
+type rateLimitError struct{ retryAfter time.Duration }
+
+func (e rateLimitError) Error() string        { return ErrRateLimited.Error() }
+func (e rateLimitError) Is(target error) bool { return target == ErrRateLimited }
+
+func RetryAfter(err error) (time.Duration, bool) {
+	var limited rateLimitError
+	if !errors.As(err, &limited) {
+		return 0, false
+	}
+	return limited.retryAfter, true
+}
 
 var avatarReference = regexp.MustCompile(`^files/[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$`)
 
@@ -81,7 +95,9 @@ type Service struct {
 	policy       config.SessionPolicy
 	now          func() time.Time
 	passwordWork *account.PasswordWorkBudget
+	protection   *protection.Repository
 	loginFacts   LoginFactPort
+	optionErr    error
 	lockProbe    func(accountLockPoint)
 }
 
@@ -100,6 +116,16 @@ func WithPasswordWorkBudget(budget *account.PasswordWorkBudget) Option {
 	return func(s *Service) { s.passwordWork = budget }
 }
 func WithLoginFactPort(port LoginFactPort) Option { return func(s *Service) { s.loginFacts = port } }
+func WithLoginProtectionPolicy(policy protection.Policy) Option {
+	return func(s *Service) {
+		repository, err := protection.NewRepository(s.db.Dialect(), policy)
+		if err != nil {
+			s.optionErr = err
+			return
+		}
+		s.protection = repository
+	}
+}
 
 func NewService(db Database, policy config.SessionPolicy, options ...Option) (*Service, error) {
 	if db == nil {
@@ -108,15 +134,25 @@ func NewService(db Database, policy config.SessionPolicy, options ...Option) (*S
 	if _, err := config.NewSessionPolicy(policy.IdleTimeout(), policy.AbsoluteTimeout(), policy.RotationInterval()); err != nil {
 		return nil, err
 	}
-	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget()}
+	loginProtection, err := protection.NewRepository(db.Dialect(), protection.DefaultPolicy())
+	if err != nil {
+		return nil, err
+	}
+	s := &Service{db: db, accounts: account.NewRepository(db.Dialect()), policy: policy, now: time.Now, passwordWork: account.ProcessPasswordWorkBudget(), protection: loginProtection}
 	for _, option := range options {
 		option(s)
+	}
+	if s.optionErr != nil {
+		return nil, s.optionErr
 	}
 	if s.now == nil {
 		return nil, errors.New("clock is required")
 	}
 	if s.passwordWork == nil {
 		return nil, errors.New("password work budget is required")
+	}
+	if s.protection == nil {
+		return nil, errors.New("login protection is required")
 	}
 	if s.loginFacts == nil {
 		return nil, errors.New("login fact port is required")
@@ -141,18 +177,45 @@ func (i Issued) MarshalJSON() ([]byte, error) {
 }
 
 type record struct {
-	ID, AccountID, TokenHash, CSRFHash, State                         string
+	ID, AccountID, TokenHash, CSRFHash, State, FamilyID               string
 	Generation                                                        int64
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt, RotateAt time.Time
 }
 
 func (s *Service) Login(ctx context.Context, username, password string) (Issued, error) {
+	return s.LoginFrom(ctx, LoginCommand{Username: username, Password: password, Source: protection.DefaultSource()})
+}
+
+type LoginCommand struct {
+	Username string
+	Password string
+	Source   protection.Source
+}
+
+func (s *Service) LoginFrom(ctx context.Context, command LoginCommand) (Issued, error) {
+	username, password := command.Username, command.Password
 	attemptID, err := newLoginAttemptID()
 	if err != nil {
 		return Issued{}, ErrInternal
 	}
 	now := s.now().UTC()
+	var decision protection.Decision
+	err = s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		var consumeErr error
+		decision, consumeErr = s.protection.Consume(ctx, tx, username, command.Source, now)
+		return consumeErr
+	})
+	if err != nil {
+		return Issued{}, sanitize(err)
+	}
+	if !decision.Allowed {
+		if factErr := s.failedLogin(ctx, attemptID, now); !errors.Is(factErr, ErrCredentials) {
+			return Issued{}, factErr
+		}
+		return Issued{}, rateLimitError{retryAfter: decision.RetryAfter}
+	}
 	if len(strings.TrimSpace(username)) < 3 || len(username) > 64 || len(password) < 12 || len(password) > 128 {
+		_ = account.VerifyPassword(dummyPasswordHash, password)
 		return Issued{}, s.failedLogin(ctx, attemptID, now)
 	}
 	releasePasswordWork, acquired := s.passwordWork.TryAcquire()
@@ -240,12 +303,12 @@ func (s *Service) Current(ctx context.Context, token string) (Issued, error) {
 	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, credential, err := s.active(ctx, tx, token, now)
+		_, credential, err := s.activeRead(ctx, tx, token, now)
 		if err != nil {
 			return err
 		}
-		result, err = s.refresh(ctx, tx, rec, credential.Profile, now)
-		return err
+		result = Issued{Profile: credential.Profile}
+		return nil
 	})
 	return result, sanitize(err)
 }
@@ -254,18 +317,17 @@ func (s *Service) Profile(ctx context.Context, token string) (Issued, error) {
 	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		rec, credential, err := s.active(ctx, tx, token, now)
+		_, credential, err := s.activeRead(ctx, tx, token, now)
 		if err != nil {
 			return err
 		}
-		result, err = s.refresh(ctx, tx, rec, credential.Profile, now)
-		return err
+		result = Issued{Profile: credential.Profile}
+		return nil
 	})
 	return result, sanitize(err)
 }
 
-// AuthorizeRequest authenticates a generic protected route and advances the same idle/rotation
-// lifecycle as built-in session endpoints. Mutation failures are fenced before any refresh.
+// AuthorizeRequest keeps reads observational and touches idle time only after a mutation is authorized.
 func (s *Service) AuthorizeRequest(ctx context.Context, token, csrf string, mutation bool) (Issued, error) {
 	var result Issued
 	now := s.now().UTC()
@@ -276,13 +338,16 @@ func (s *Service) AuthorizeRequest(ctx context.Context, token, csrf string, muta
 		if mutation {
 			rec, credential, err = s.authorizeMutation(ctx, tx, token, csrf, now)
 		} else {
-			rec, credential, err = s.active(ctx, tx, token, now)
+			rec, credential, err = s.activeRead(ctx, tx, token, now)
 		}
 		if err != nil {
 			return err
 		}
-		result, err = s.refresh(ctx, tx, rec, credential.Profile, now)
-		return err
+		result = Issued{Profile: credential.Profile}
+		if !mutation {
+			return nil
+		}
+		return s.touch(ctx, tx, rec, now)
 	})
 	return result, sanitize(err)
 }
@@ -308,8 +373,36 @@ func (s *Service) UpdateProfile(ctx context.Context, token, csrf, displayName, e
 		if err != nil {
 			return err
 		}
-		result, err = s.refresh(ctx, tx, rec, profile, now)
-		return err
+		if err := s.touch(ctx, tx, rec, now); err != nil {
+			return err
+		}
+		result = Issued{Profile: profile, CSRF: csrf}
+		return nil
+	})
+	return result, sanitize(err)
+}
+
+func (s *Service) Heartbeat(ctx context.Context, token, csrf string) (Issued, error) {
+	return s.renew(ctx, token, csrf)
+}
+
+func (s *Service) Renew(ctx context.Context, token, csrf string) (Issued, error) {
+	return s.renew(ctx, token, csrf)
+}
+
+func (s *Service) renew(ctx context.Context, token, csrf string) (Issued, error) {
+	var result Issued
+	now := s.now().UTC()
+	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		rec, credential, err := s.authorizeMutation(ctx, tx, token, csrf, now)
+		if err != nil {
+			return err
+		}
+		if err := s.touch(ctx, tx, rec, now); err != nil {
+			return err
+		}
+		result = Issued{Profile: credential.Profile, CSRF: csrf}
+		return nil
 	})
 	return result, sanitize(err)
 }
@@ -436,17 +529,42 @@ func (s *Service) create(ctx context.Context, tx database.Tx, profile account.Pr
 	if err != nil {
 		return Issued{}, err
 	}
+	familyID, err := randomSecret()
+	if err != nil {
+		return Issued{}, err
+	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO iam_sessions
-		(id, account_id, token_hash, generation, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at)
-		VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), generation, tokenDigest(csrf), now, now,
-		minTime(now.Add(s.policy.IdleTimeout()), absolute), absolute, minTime(now.Add(s.policy.RotationInterval()), absolute))
+		(id, account_id, token_hash, generation, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at, family_id, renewed_at, renew_after_at)
+		VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), generation, tokenDigest(csrf), now, now,
+		minTime(now.Add(s.policy.IdleTimeout()), absolute), absolute, absolute, familyID, now, minTime(now.Add(s.policy.RotationInterval()), absolute))
 	if err != nil {
 		return Issued{}, normalizeSQLError(err, "session creation failed")
 	}
 	return Issued{Profile: profile, Token: token, CSRF: csrf}, nil
 }
 
-func (s *Service) active(ctx context.Context, tx database.Tx, token string, now time.Time) (record, account.Credential, error) {
+func (s *Service) activeRead(ctx context.Context, tx database.Tx, token string, now time.Time) (record, account.Credential, error) {
+	if len(token) != 43 {
+		return record{}, account.Credential{}, ErrAuthentication
+	}
+	rec, err := s.findSession(ctx, tx, token, false)
+	if err != nil {
+		return record{}, account.Credential{}, err
+	}
+	credential, err := s.accounts.FindByID(ctx, tx, rec.AccountID, false)
+	if errors.Is(err, account.ErrNotFound) || credential.Disabled {
+		return record{}, account.Credential{}, ErrAuthentication
+	}
+	if err != nil {
+		return record{}, account.Credential{}, err
+	}
+	if rec.State != "active" || rec.Generation != credential.SessionGeneration || !now.Before(rec.IdleExpiresAt) || !now.Before(rec.AbsoluteExpiresAt) {
+		return record{}, account.Credential{}, ErrAuthentication
+	}
+	return rec, credential, nil
+}
+
+func (s *Service) activeLocked(ctx context.Context, tx database.Tx, token string, now time.Time) (record, account.Credential, error) {
 	if len(token) != 43 {
 		return record{}, account.Credential{}, ErrAuthentication
 	}
@@ -466,97 +584,58 @@ func (s *Service) active(ctx context.Context, tx database.Tx, token string, now 
 		return record{}, account.Credential{}, err
 	}
 	s.probeLock(accountLockHeld)
-	query := `SELECT id, account_id, token_hash, generation, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at
-		FROM iam_sessions WHERE token_hash = ?`
-	if s.db.Dialect() == database.DialectPostgres {
-		query += " FOR UPDATE"
-	}
-	var rec record
-	err = tx.QueryRowContext(ctx, query, digest).Scan(&rec.ID, &rec.AccountID, &rec.TokenHash, &rec.Generation, &rec.CSRFHash, &rec.State, &rec.CreatedAt, &rec.LastSeenAt, &rec.IdleExpiresAt, &rec.AbsoluteExpiresAt, &rec.RotateAt)
-	if errors.Is(err, sql.ErrNoRows) {
-		return record{}, account.Credential{}, ErrAuthentication
-	}
+	rec, err := s.findSession(ctx, tx, token, true)
 	if err != nil {
-		return record{}, account.Credential{}, normalizeSQLError(err, "session lookup failed")
+		return record{}, account.Credential{}, err
 	}
 	if rec.State != "active" || rec.AccountID != credential.ID || rec.Generation != credential.SessionGeneration {
 		return record{}, account.Credential{}, ErrAuthentication
 	}
 	if !now.Before(rec.IdleExpiresAt) || !now.Before(rec.AbsoluteExpiresAt) {
-		updated, updateErr := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'expired' WHERE id = ? AND state = 'active'`, rec.ID)
-		if updateErr != nil {
-			return record{}, account.Credential{}, normalizeSQLError(updateErr, "session expiry failed")
-		}
-		count, countErr := updated.RowsAffected()
-		if countErr != nil {
-			return record{}, account.Credential{}, normalizeSQLError(countErr, "session expiry result failed")
-		}
-		if count != 1 {
-			return record{}, account.Credential{}, ErrAuthentication
-		}
-		return record{}, account.Credential{}, errExpired
+		return record{}, account.Credential{}, ErrAuthentication
 	}
 	return rec, credential, nil
 }
 
-func (s *Service) refresh(ctx context.Context, tx database.Tx, rec record, profile account.Profile, now time.Time) (Issued, error) {
-	if !now.Before(rec.RotateAt) {
-		issued, err := s.create(ctx, tx, profile, rec.Generation, now, rec.AbsoluteExpiresAt)
-		if err != nil {
-			return Issued{}, err
-		}
-		updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET state = 'rotated', replaced_by = ? WHERE id = ? AND generation = ? AND state = 'active'`, tokenDigest(issued.Token), rec.ID, rec.Generation)
-		if err != nil {
-			return Issued{}, normalizeSQLError(err, "session rotation failed")
-		}
-		count, countErr := updated.RowsAffected()
-		if countErr != nil {
-			return Issued{}, normalizeSQLError(countErr, "session rotation result failed")
-		}
-		if count != 1 {
-			return Issued{}, ErrAuthentication
-		}
-		issued.Rotated = true
-		return issued, nil
+func (s *Service) findSession(ctx context.Context, tx database.Tx, token string, lock bool) (record, error) {
+	query := `SELECT id, account_id, token_hash, generation, csrf_hash, state, COALESCE(family_id, ''), created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at
+		FROM iam_sessions WHERE token_hash = ?`
+	if lock && s.db.Dialect() == database.DialectPostgres {
+		query += " FOR UPDATE"
 	}
-	csrf, err := randomSecret()
-	if err != nil {
-		return Issued{}, err
+	var rec record
+	err := tx.QueryRowContext(ctx, query, tokenDigest(token)).Scan(&rec.ID, &rec.AccountID, &rec.TokenHash, &rec.Generation, &rec.CSRFHash, &rec.State, &rec.FamilyID, &rec.CreatedAt, &rec.LastSeenAt, &rec.IdleExpiresAt, &rec.AbsoluteExpiresAt, &rec.RotateAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return record{}, ErrAuthentication
 	}
-	updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET csrf_hash = ?, last_seen_at = ?, idle_expires_at = ? WHERE id = ? AND generation = ? AND state = 'active'`,
-		tokenDigest(csrf), now, minTime(now.Add(s.policy.IdleTimeout()), rec.AbsoluteExpiresAt), rec.ID, rec.Generation)
 	if err != nil {
-		return Issued{}, normalizeSQLError(err, "session refresh failed")
+		return record{}, normalizeSQLError(err, "session lookup failed")
+	}
+	return rec, nil
+}
+
+func (s *Service) touch(ctx context.Context, tx database.Tx, rec record, now time.Time) error {
+	updated, err := tx.ExecContext(ctx, `UPDATE iam_sessions SET last_seen_at = ?, idle_expires_at = ?, renewed_at = ?, renew_after_at = ? WHERE id = ? AND generation = ? AND state = 'active'`,
+		now, minTime(now.Add(s.policy.IdleTimeout()), rec.AbsoluteExpiresAt), now, minTime(now.Add(s.policy.RotationInterval()), rec.AbsoluteExpiresAt), rec.ID, rec.Generation)
+	if err != nil {
+		return normalizeSQLError(err, "session renewal failed")
 	}
 	count, countErr := updated.RowsAffected()
 	if countErr != nil {
-		return Issued{}, normalizeSQLError(countErr, "session refresh result failed")
+		return normalizeSQLError(countErr, "session renewal result failed")
 	}
 	if count != 1 {
-		return Issued{}, ErrAuthentication
-	}
-	return Issued{Profile: profile, CSRF: csrf}, nil
-}
-
-// withinTx commits the active->expired transition while preserving an authentication result.
-func (s *Service) withinTx(ctx context.Context, fn func(context.Context, database.Tx) error) error {
-	expired := false
-	err := s.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		err := fn(ctx, tx)
-		if errors.Is(err, errExpired) {
-			expired = true
-			return nil
-		}
-		return err
-	})
-	if err == nil && expired {
 		return ErrAuthentication
 	}
-	return err
+	return nil
+}
+
+func (s *Service) withinTx(ctx context.Context, fn func(context.Context, database.Tx) error) error {
+	return s.db.WithinTx(ctx, fn)
 }
 
 func (s *Service) authorizeMutation(ctx context.Context, tx database.Tx, token, csrf string, now time.Time) (record, account.Credential, error) {
-	rec, credential, err := s.active(ctx, tx, token, now)
+	rec, credential, err := s.activeLocked(ctx, tx, token, now)
 	if err != nil {
 		return record{}, account.Credential{}, err
 	}

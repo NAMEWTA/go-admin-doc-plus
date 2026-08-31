@@ -24,6 +24,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/coordination"
@@ -335,7 +336,7 @@ func TestSynchronousLoginPortRejectsSensitiveActorReferencesWithoutWriting(t *te
 func TestRealIAMAdaptersRecordLoginAndAuthorizeAuditRequests(t *testing.T) {
 	ctx := context.Background()
 	db := openSQLite(t)
-	migrate(t, db, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
+	migrate(t, db, sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, auditmigration.Provider{})
 	now := time.Date(2026, 8, 27, 10, 0, 0, 0, time.UTC)
 	createAuditIAMFixture(t, db, now)
 	loginRecorder, err := audit.NewLoginRecorder(db)
