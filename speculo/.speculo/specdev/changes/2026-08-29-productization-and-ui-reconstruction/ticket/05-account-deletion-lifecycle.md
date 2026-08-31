@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-05
 title: 建立账号 Tombstone 与文件处置生命周期
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 涉及不可逆账号/文件删除、跨模块事件、双方言迁移和系统管理员存续安全不变量
 ready: true
 risk: critical
 blocked_by: [T-02, T-04]
 contract_ids: [AC-013, AC-023, AC-024, AC-025, AC-026]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/modules/iam/administration/deletion*</Path>", "<Path>go-admin-plus/internal/modules/files/account_lifecycle*</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle/**</Path>", "<Path>go-admin-plus/test/iam/authorization/account_deletion*</Path>", "<Path>go-admin-plus/test/files/account_lifecycle*</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/modules/iam/administration/deletion*</Path>", "<Path>go-admin-plus/internal/modules/files/account_lifecycle*</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle/**</Path>", "<Path>go-admin-plus/test/iam/authorization/account_deletion*</Path>", "<Path>go-admin-plus/test/files/account_lifecycle*</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/administration/service.go</Path>", "<Path>go-admin-plus/internal/modules/files/service.go</Path>", "<Path>go-admin-plus/internal/platform/outbox/**</Path>", "<Path>contracts/openapi/modules/iam-administration.yaml</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 不产生孤儿 owner，最后启用管理员不变量与 purge 不可逆边界成立。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-05.md</Path>`。
 - [ ] 路径、commit、集成、父分支 result 和 E2E disposition 完整。
-

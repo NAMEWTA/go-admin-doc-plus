@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main` 当前仅含 Speculo 执行状态提交；每次恢复必须重读实际 HEAD，最后一次 candidate parent 为 `be0a50c076389372c379b007548a2101d858933c`，未晋升任何失败 candidate |
-| Tickets | T-01/T-02/T-03/T-04/T-06/T-07 `done`；T-09 early checkpoint `review`、完整 Ticket `in_progress`；T-11 `in_progress`；T-05/T-08/T-10/T-12~T-21 `ready` |
+| Parent | `main@f4ab97365c43f40328d8d120108f410a9c0869f4`；Wave A 后端 result 与状态已提交；T-05 从该干净父 SHA 创建标准 source worktree |
+| Tickets | T-01/T-02/T-03/T-04/T-06/T-07 `done`；T-05/T-09/T-11 `in_progress`（T-09 early checkpoint 为 `review`）；T-08/T-10/T-12~T-21 `ready` |
 | Gate | G0 已关闭；G1 后端 Wave A segment 已通过，G1 仍等待 T-05/T-11/T-12；G2~G8 关闭 |
-| Workspace records | 六个 Wave A 后端 Ticket 均有标准 source/candidate/result；T-09 checkpoint `cb3dd5c` 已进入 main；旧失败候选继续保留 |
+| Workspace records | 六个 Wave A 后端 Ticket 均有标准 source/candidate/result；T-05 source 基线 `f4ab973` 已创建；T-09 checkpoint `cb3dd5c` 已进入 main；旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup 与符号链接失败仍归对应 owning Ticket 修复；T-08 必须收敛旧 rotate-on-read HTTP 红灯。
 
-下一执行顺序为：T-05 账号删除生命周期 -> T-08 公共合同与 HTTP adapters（同时清零稳定 CSRF 红灯）-> 完整 T-09。失败候选、source worktree 与保护 stash 均继续保留。
+当前执行 T-05 账号删除生命周期；完成 result 后进入 T-08 公共合同与 HTTP adapters（同时清零稳定 CSRF 红灯），随后关闭完整 T-09。失败候选、source worktree 与保护 stash 均继续保留。
 
 ### Resume Protocol
 
