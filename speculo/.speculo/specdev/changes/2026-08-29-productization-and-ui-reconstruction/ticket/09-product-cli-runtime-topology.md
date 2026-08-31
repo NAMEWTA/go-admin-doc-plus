@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-09
 title: 统一产品 CLI、运行拓扑与 Profile Migration
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 修改产品组合根、运行角色、迁移所有权、共享命令面和生产 readiness，事故半径覆盖所有 profile
 ready: true
@@ -125,7 +125,7 @@ shared_path_owners: ["<Path>go-admin-plus/internal/app/product/**</Path> => T-09
 
 ## 10. 验收标准
 
-- [ ] `AC-029~033` 的 CLI、角色、迁移、日志与 Doctor 行为成立。
-- [ ] 旧 Server 小命令和调用点为零，三 profile 构建/进程 contract 通过。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>`。
-- [ ] shared owner、commit、integration/result 和 E2E disposition 完整。
+- [x] `AC-029~033` 的 CLI、角色、迁移、日志与 Doctor 行为成立。
+- [x] 旧 Server 小命令和调用点为零，三 profile 构建/进程 contract 通过。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>`。
+- [x] shared owner、commit、integration/result 和 E2E disposition 完整。

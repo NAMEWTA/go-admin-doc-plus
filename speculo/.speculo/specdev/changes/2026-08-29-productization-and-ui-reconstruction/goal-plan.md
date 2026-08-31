@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main` 已包含 T-08 result `eb1b0a661017c3db7b1f24418907e07ac762844e`；公共 OpenAPI、生成 transport、稳定 CSRF 与 IAM/Files HTTP adapter 已原子进入父分支 |
-| Tickets | T-01~T-08（除编号空缺）均 `done`；T-09/T-11 `in_progress`（T-09 early checkpoints 为 `review`）；T-10/T-12~T-21 `ready` |
+| Parent | `main` 已包含 T-09 result `1c63709335bc2d7792e16e7f541e2c0ff5cd86b2`；单一 CLI、显式 API/worker/migration 所有权和三 Profile 运行拓扑已进入父分支 |
+| Tickets | T-01~T-09（除编号空缺）均 `done`；T-11 `in_progress`；T-10/T-12~T-21 `ready` |
 | Gate | G0 已关闭；G1 后端 lifecycle segment 已通过，G1 仍等待 T-11/T-12；G2~G8 关闭 |
-| Workspace records | T-08 source `5327ddd`、candidate/result `eb1b0a6` 已记录；T-09 checkpoints `cb3dd5c` 与 `5b09c2b` 已进入 main；所有 source/candidate 与旧失败候选继续保留 |
+| Workspace records | T-09 source `3a2963e`、candidate/result `1c63709` 与 early checkpoints `cb3dd5c`、`5b09c2b` 已记录；所有 source/candidate 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-08 已以 result `eb1b0a661017c3db7b1f24418907e07ac762844e` 完成 canonical/generated、HTTP adapter、稳定 CSRF、真实 PostgreSQL、Go/TS 与候选归因。当前进入完整 T-09 产品组合与运行拓扑收敛；失败候选、source worktree 与保护 stash 均继续保留。
+T-09 已以 result `1c63709335bc2d7792e16e7f541e2c0ff5cd86b2` 完成统一 CLI、显式角色、schema fencing、真实 PostgreSQL、竞态与候选归因，并解锁 T-10 与 T-18 的依赖边。下一执行面为 T-10/T-11/T-12~T-17；失败候选、source worktree 与保护 stash 均继续保留。
 
 ### Resume Protocol
 

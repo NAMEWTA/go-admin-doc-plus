@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T01:02:55+08:00",
+  "updated_at": "2026-09-01T03:47:50+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -449,24 +449,24 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-09",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-09",
-      "source_checkpoint": "cb3dd5c3225539ef4ac2255e97711ffac92f1257",
+      "source_checkpoint": "3a2963e2471df9da1f5d0745c2b1da21d41bda11",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "4c18a47b15e2323b41735ba0303f5a12393cadcd",
+        "source_sha": "3a2963e2471df9da1f5d0745c2b1da21d41bda11",
+        "candidate_sha": "1c63709335bc2d7792e16e7f541e2c0ff5cd86b2",
+        "candidate_tree_sha": "e29e6dae4dcbc6446d01f9e0ebb8e124c79c79c1",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-09",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-09",
+        "result_sha": "1c63709335bc2d7792e16e7f541e2c0ff5cd86b2",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "DEV-09-001 migration composition checkpoints cb3dd5c and 5b09c2b are integrated, but complete CLI/profile/runtime topology still requires T-08 result and full T-09 verification",
+          "status": "passed",
+          "reason": "Targeted CLI/product/host/application, changed-scope race, non-skipped PostgreSQL migration fencing, vet, tidy, build, architecture/task/governance contracts, shell syntax, and old-command zero scans passed; both full Go dialect matrices were executed and retained only attributed pre-existing Windows baseline failures",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>"
         },
         "e2e": {
@@ -476,11 +476,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "review",
-      "updated_at": "2026-09-01T00:58:46+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T03:47:50+08:00"
     }
   ]
 }
