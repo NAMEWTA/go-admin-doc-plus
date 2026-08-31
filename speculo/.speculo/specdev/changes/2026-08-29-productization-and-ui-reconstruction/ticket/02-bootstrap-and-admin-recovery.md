@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-02
 title: 建立首管理员 Bootstrap 与离线恢复用例
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 涉及认证、双方言 schema、并发唯一性、凭据处理和灾难恢复授权边界
 ready: true

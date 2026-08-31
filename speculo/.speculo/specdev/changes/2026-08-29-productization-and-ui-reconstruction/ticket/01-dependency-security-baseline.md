@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-01
 title: 修复已知依赖漏洞并建立安全基线
-status: in_progress
+status: done
 planning_depth: standard
 planning_depth_reason: 请求校验链路存在可达漏洞，虽修改集中于 Go 依赖图，但需要兼容、生成和回归证明
 ready: true

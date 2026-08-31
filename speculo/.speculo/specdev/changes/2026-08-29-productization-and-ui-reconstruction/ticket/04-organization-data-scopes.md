@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-04
 title: 建立组织归属与五种数据范围
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 改变授权模型、双方言 schema、跨 IAM/Organization port 和所有受保护查询的不变量
 ready: true

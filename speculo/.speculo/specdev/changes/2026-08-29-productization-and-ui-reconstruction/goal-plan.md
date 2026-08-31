@@ -316,22 +316,22 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
 | Parent | `main` 当前仅含 Speculo 执行状态提交；每次恢复必须重读实际 HEAD，最后一次 candidate parent 为 `be0a50c076389372c379b007548a2101d858933c`，未晋升任何失败 candidate |
-| Tickets | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `in_progress`；T-05/T-08~T-10、T-12~T-21 `ready` |
-| Gate | G0 已关闭；G1~G8 关闭 |
-| Workspace records | T-01/T-02/T-03/T-04/T-06/T-07/T-11 的实现提交已固定；DEV-09-001 已批准，Lead 正在重建 Wave A 后端联合候选并启动 T-09 early composition checkpoint |
+| Tickets | T-01/T-02/T-03/T-04/T-06/T-07 `done`；T-09 early checkpoint `review`、完整 Ticket `in_progress`；T-11 `in_progress`；T-05/T-08/T-10/T-12~T-21 `ready` |
+| Gate | G0 已关闭；G1 后端 Wave A segment 已通过，G1 仍等待 T-05/T-11/T-12；G2~G8 关闭 |
+| Workspace records | 六个 Wave A 后端 Ticket 均有标准 source/candidate/result；T-09 checkpoint `cb3dd5c` 已进入 main；旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
 ### Pending Decisions and Blockers
 
-当前执行已由用户的“都批准”恢复；DEV-09-001 解除了 Wave A/T-09 的执行闭环，但以下 required 条件仍需实际建立并产生证据：
+当前执行 active；DEV-09-001 已解除 Wave A/T-09 的执行闭环并完成本轮候选晋升：
 
-- 在本机准备可供 Go CGO/race 使用的 C 编译器，以及 disposable PostgreSQL service/DSN；准备动作不得触碰用户数据库或 `dev_store`，测试数据根必须显式隔离。
+- WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
-- 既有 Windows sidecar、desktop、Generator、UNC、backup 与符号链接失败仍归对应 owning Ticket 修复，联合候选不得把这些失败记为 passed。
+- 既有 Windows sidecar、desktop、Generator、UNC、backup 与符号链接失败仍归对应 owning Ticket 修复；T-08 必须收敛旧 rotate-on-read HTTP 红灯。
 
-执行顺序固定为：记录偏差 -> 构建 Wave A 后端联合候选 -> T-09 owner 提供最小 composition checkpoint -> 补齐 race/真实 PostgreSQL 证据 -> 仅在候选验证满足时推进 `main`。失败候选、source worktree 与保护 stash 均继续保留。
+下一执行顺序为：T-05 账号删除生命周期 -> T-08 公共合同与 HTTP adapters（同时清零稳定 CSRF 红灯）-> 完整 T-09。失败候选、source worktree 与保护 stash 均继续保留。
 
 ### Resume Protocol
 
