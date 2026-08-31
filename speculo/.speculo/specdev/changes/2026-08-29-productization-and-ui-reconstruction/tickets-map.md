@@ -37,7 +37,7 @@ status: ready
 | T-07 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/07-observability-and-doctor.md</Path>` | 结构化日志与 Doctor | — | deep | high | yes | codex-root | AC-029, AC-032, AC-033 | A / Operations Prefactor | done |
 | T-08 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/08-public-contract-integration.md</Path>` | OpenAPI、生成类型与 HTTP adapter 一致 | T-02, T-03, T-04, T-05, T-06 | deep | critical | yes | codex-root | AC-009~013, AC-019~029, AC-038 | C / Contract Gate | done |
 | T-09 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/09-product-cli-runtime-topology.md</Path>` | 单一产品 CLI 与三 Profile 拓扑 | T-07, T-08（closure）；DEV-09-001 early checkpoint | deep | critical | yes | codex-root | AC-029~033 | D / Runtime Gate | done |
-| T-10 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/10-desktop-first-setup.md</Path>` | Desktop 原生首次设置与 Session 转换 | T-02, T-09 | deep | critical | yes | unassigned | AC-004, AC-005, AC-031 | E / Desktop Setup | ready |
+| T-10 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/10-desktop-first-setup.md</Path>` | Desktop 原生首次设置与 Session 转换 | T-02, T-09, T-13 | deep | critical | yes | unassigned | AC-004, AC-005, AC-031 | E / Desktop Setup | ready |
 | T-11 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/11-ui-design-system.md</Path>` | Element Plus token 与共享管理组件 | — | standard | high | yes | codex-root | AC-017, AC-018 | A / UI Prefactor | done |
 | T-12 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/12-router-workspace-shell.md</Path>` | Vue Router 单一事实源与双宿主 Shell | T-11 | deep | high | yes | codex-root | AC-014~018 | B / Shell Gate | done |
 | T-13 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/13-cross-tab-session-clients.md</Path>` | Web 跨标签与 Desktop Session client | T-03, T-08 | deep | high | yes | codex-root | AC-011, AC-013 | D / Client Auth | in_progress |
@@ -68,6 +68,7 @@ T-11 ──┼────┼───┼───┼───┼───┼─
         │                 │   │                      │
         └─────────────────┴───┴──→ T-08 ──┬─→ T-13 │
                                            ├─→ T-09 │
+                                           └─→ T-13 ─→ T-10
 T-11 ─→ T-12 ───────────────┬──────────────┼─→ T-15 │
 T-06 + T-08 + T-11 + T-12 ──┼──────────────┴─→ T-16│
 T-04 + T-05 + T-08 + T-11 + T-12 + T-13 ───→ T-14 │
@@ -147,7 +148,7 @@ T-17 + T-18 + T-19 + T-20 ─────────────────→
 | T-05 | T-12 | 无 | 否 | Wave B 可并行 |
 | T-08 | 所有合同消费者 | OpenAPI、Go wire、TS generated | 是 | T-08 是唯一 shared owner，消费者先只读 |
 | T-09 | T-10/T-18/T-21 | product root、CLI、Task、scripts、compose | 是 | 按 DAG 串行，T-09 先冻结命令面 |
-| T-10 | T-20 | Desktop native code | 是 | `main.rs` 仅 T-10 可写；T-20 只写测试/验证脚本 |
+| T-10 | T-13/T-20 | Desktop native code | 是 | `main.rs` 默认仅 T-10 可写；DEV-13-001 仅开放两条原生 Session maintenance 命令，T-20 只写测试/验证脚本 |
 | T-11 | T-12/T-14/T-15/T-16 | lockfile、workspace UI package | 是 | T-11 是依赖和设计系统 owner，后续消费 |
 | T-12 | T-13/T-14/T-15/T-16 | App Shell | 部分 | T-12 唯一写 Shell；T-13 只写 adapter/domain |
 | T-13 | T-15/T-16 | 无 | 否 | Wave D 可并行 |

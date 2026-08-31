@@ -115,7 +115,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 | D | T-13 | T-03、T-08 result | Browser/Desktop Session adapters | — | G3 / D2 |
 | D | T-15 | T-11、T-12 result | Audit/Settings/Scheduler domains | — | G3 / D3 |
 | D | T-16 | T-06、T-08、T-11、T-12 result | Files/Generator/Demo domains | — | G3 / D4 |
-| E | T-10 | T-02、T-09 result；导入 `main.rs` 快照 | Desktop setup/native host | T-10 | G3 / E1 |
+| E | T-10 | T-02、T-09、T-13 result；导入 `main.rs` 快照 | Desktop setup/native host | T-10 | G3 / E1 |
 | E | T-14 | T-04、T-05、T-08、T-11~13 result | IAM/Organization UI | — | G3 / E2 |
 | F | T-17 | T-04~06、T-11、T-14、T-16 result | Generator 与 architecture checks | — | G4 / F1 |
 | G | T-18 | T-01、T-09、T-17 result | CI、PG/security scripts | T-18 | G5 / G1 |
@@ -138,7 +138,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 | T-07 | 日志与 Doctor | — | `WT/T-07` | Lead / dynamic dispatch | not-required：进程输出归 T-09/T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-07.md</Path>` |
 | T-08 | 公共 wire contract | T-02~06 | `WT/T-08` | Lead / dynamic dispatch | not-required：HTTP contract integration | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-08.md</Path>` |
 | T-09 | CLI/Profile 拓扑 | T-07, T-08（closure）；DEV-09-001 early checkpoint | `WT/T-09` | Lead / dynamic dispatch | not-required：真实进程合同 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>` |
-| T-10 | Desktop first setup | T-02, T-09 | `WT/T-10` | Lead / dynamic dispatch | not-required：原生 E2E 归 T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-10.md</Path>` |
+| T-10 | Desktop first setup | T-02, T-09, T-13 | `WT/T-10` | Lead / dynamic dispatch | not-required：原生 E2E 归 T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-10.md</Path>` |
 | T-11 | Element Plus 设计系统 | — | `WT/T-11` | Lead / dynamic dispatch | not-required：真实视口归 T-19/T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>` |
 | T-12 | Router/Shell 单一事实源 | T-11 | `WT/T-12` | Lead / dynamic dispatch | not-required：刷新/history 归 T-19/T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-12.md</Path>` |
 | T-13 | 跨标签 Session clients | T-03, T-08 | `WT/T-13` | Lead / dynamic dispatch | not-required：真实双标签归 T-19 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-13.md</Path>` |
@@ -226,7 +226,7 @@ Gate 的关闭依据是行为和不可变 checkpoint，不是“完成了若干 
 | T-07 | dispatch 时最新 `main` | `WT/T-07` / `specdev/.../T-07` | logging/Doctor/config | required/non-empty | candidate process integration；E2E N/R | result 后解锁 T-09 |
 | T-08 | T-02~06 所需 result 的最新 `main` | `WT/T-08` / `specdev/.../T-08` | OpenAPI/generate/Go+TS | required/non-empty | candidate contract/conformance；E2E N/R | result 后关闭 G2 |
 | T-09 | T-07+T-08 result | `WT/T-09` / `specdev/.../T-09` | CLI/process/profile/schema | required/non-empty | candidate runtime/Task；E2E N/R | result 后解锁 T-10/T-18 |
-| T-10 | T-02+T-09 result + G0 native snapshot | `WT/T-10` / `specdev/.../T-10` | Go/Rust/native integration | required/non-empty | candidate Rust/build；E2E N/R | result 后解锁 T-20 |
+| T-10 | T-02+T-09+T-13 result + G0 native snapshot | `WT/T-10` / `specdev/.../T-10` | Go/Rust/native integration | required/non-empty | candidate Rust/build；E2E N/R | result 后解锁 T-20 |
 | T-11 | dispatch 时最新 `main` | `WT/T-11` / `specdev/.../T-11` | pnpm/UI component/visual contract | required/non-empty | candidate lint/type/build；E2E N/R | result 后解锁 T-12/14/15/16 |
 | T-12 | T-11 result | `WT/T-12` / `specdev/.../T-12` | router/Shell component | required/non-empty | candidate dual-host build；E2E N/R | result 后解锁 UI consumers |
 | T-13 | T-03+T-08 result | `WT/T-13` / `specdev/.../T-13` | adapter/domain deterministic | required/non-empty | candidate client integration；E2E N/R | result 后解锁 T-14/T-19 |
@@ -319,7 +319,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Tickets | T-01~T-09、T-11~T-12 均 `done`；T-13 `in_progress`；T-10/T-14~T-21 `ready` |
 | Gate | G0 已关闭；G1 后端 lifecycle segment 已通过，G1 仍等待 T-11/T-12；G2~G8 关闭 |
 | Workspace records | T-12 source `cfff08d`、candidate/result `edcdf14` 已记录；所有 source/candidate 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-12-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-12-001/DEV-13-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-12 已完成并解锁页面 Shell 依赖。T-13 已由 `codex-root` 从 base `d8dcfd40645c65d47f0e6523425a2a4347c07b32` 开始执行，负责 stable CSRF、heartbeat/renew、跨标签 leader lease 与 Desktop client 对齐；失败候选、source worktree 与保护 stash 均继续保留。
+T-12 已完成并解锁页面 Shell 依赖。T-13 已由 `codex-root` 从 base `d8dcfd40645c65d47f0e6523425a2a4347c07b32` 开始执行，负责 stable CSRF、heartbeat/renew、跨标签 leader lease 与 Desktop client 对齐。DEV-13-001 已批准其新增最小 Tauri 专用 maintenance seam：rotation 只在 Rust vault 内消费，JS 只接收公开 Profile；失败候选、source worktree 与保护 stash 均继续保留。
 
 ### Resume Protocol
 

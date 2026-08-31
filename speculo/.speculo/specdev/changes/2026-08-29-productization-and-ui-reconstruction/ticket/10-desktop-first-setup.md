@@ -9,7 +9,7 @@ planning_depth: deep
 planning_depth_reason: 跨 Tauri/Rust/Go/WebView 安全边界处理最高权限凭据、首次 Session 和不可重复 Bootstrap
 ready: true
 risk: critical
-blocked_by: [T-02, T-09]
+blocked_by: [T-02, T-09, T-13]
 contract_ids: [AC-004, AC-005, AC-031]
 owner: unassigned
 expected_changes: ["<Path>go-admin-plus/internal/host/desktop/setup*</Path>", "<Path>go-admin-plus/internal/app/product/desktop_setup*</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/first_setup*</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/vault.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/first-setup/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>"]
@@ -101,7 +101,7 @@ Desktop 启动并完成备份/migration 后，原生宿主判断是否为空库�
 
 ## 9. 发布、迁移与恢复
 
-- **迁移顺序：** T-02/T-09 -> setup adapter -> Tauri capability/UI -> T-20 native Gate。
+- **迁移顺序：** T-02/T-09/T-13 -> setup adapter -> Tauri capability/UI -> T-20 native Gate。
 - **兼容窗口：** 无公开 setup 双轨；数据库事实是唯一状态。
 - **监控信号：** 本地脱敏 setup stage/result、vault failure、backup/migration status。
 - **回滚或前向恢复：** Bootstrap 前可安全退出；提交后通过普通登录前向恢复；数据库迁移失败恢复备份。
@@ -114,4 +114,3 @@ Desktop 启动并完成备份/migration 后，原生宿主判断是否为空库�
 - [ ] main.rs 现有用户修改被完整融合，WebView 无密码/原始 Session。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-10.md</Path>`。
 - [ ] shared owner、commit、integration/result 和 T-20 E2E 归属完整。
-
