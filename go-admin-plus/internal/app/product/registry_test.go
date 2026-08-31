@@ -84,8 +84,8 @@ func TestProductMigrationMatrixComposesBothDialects(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(entries) != 16 {
-				t.Fatalf("composed migration files = %d, want 16", len(entries))
+			if len(entries) != 17 {
+				t.Fatalf("composed migration files = %d, want 17", len(entries))
 			}
 		})
 	}
@@ -128,8 +128,8 @@ func TestProductSQLiteAppliesMigrationsAndCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Applied != 16 {
-		t.Fatalf("applied migrations = %d, want 16", result.Applied)
+	if result.Applied != 17 {
+		t.Fatalf("applied migrations = %d, want 17", result.Applied)
 	}
 
 	capabilities, err := authorization.NewCapabilityRegistry(db)

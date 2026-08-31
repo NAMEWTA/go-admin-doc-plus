@@ -75,6 +75,7 @@ const scenario = async () => {
 
   const api = createWebOrganizationClient(fetch, '/api')
   const capability = createCapabilityController(createWebAdministrationClient(fetch, '/api'))
+  const organizationScope = () => capability.state().manifest?.dataScope === 'all' ? 'all' as const : 'self' as const
   await capability.refresh()
   assert(capability.can('organization.departments.read') && capability.can('organization.positions.read'), 'organization capability manifest is incomplete')
 
@@ -85,7 +86,7 @@ const scenario = async () => {
   await expectOrganizationFailure(() => api.listDepartments(), 'forbidden')
   await expectOrganizationFailure(() => api.createPosition({ key: 'self-denied', name: 'Self denied', departmentId: 'department-root-001', enabled: true }), 'forbidden')
   document.body.innerHTML = '<div id="app"></div>'
-  const selfController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const selfController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const selfApp = createApp({ render: () => h(OrganizationPage as Component, { controller: selfController }) })
   selfApp.mount('#app')
   await Promise.resolve()
@@ -98,7 +99,7 @@ const scenario = async () => {
   await capability.refresh()
   assert(capability.state().manifest?.dataScope === 'all', 'all scope did not recover')
 
-  const controller = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const controller = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
   const app = createApp({ render: () => h(OrganizationPage as Component, { controller }) })
   app.mount('#app')
@@ -206,7 +207,7 @@ const scenario = async () => {
   assert(!capability.can('organization.positions.read'), 'revoked capability remained visible')
   app.unmount()
   document.body.innerHTML = '<div id="app"></div>'
-  const revokedController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const revokedController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const revokedApp = createApp({ render: () => h(OrganizationPage as Component, { controller: revokedController }) })
   revokedApp.mount('#app')
   await waitUntil(() => row('root') !== null, 'authorized department projection did not recover')
@@ -217,7 +218,7 @@ const scenario = async () => {
   await expectOrganizationFailure(() => api.listDepartments(), 'relogin')
   document.body.innerHTML = '<div id="app"></div>'
   let sessionRequired = false
-  const expiredController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const expiredController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const expiredApp = createApp({ render: () => h(OrganizationPage as Component, { controller: expiredController, onSessionRequired: () => { sessionRequired = true } }) })
   expiredApp.mount('#app')
   await waitUntil(() => sessionRequired && expiredController.failure() === 'relogin', 'revoked session did not enter relogin state')
@@ -226,7 +227,7 @@ const scenario = async () => {
   assert(capability.state().manifest === null && capability.state().status === 'unauthorized', 'revoked session retained capability manifest')
   expiredApp.unmount()
   document.body.innerHTML = '<div id="app"></div>'
-  const unauthorizedController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const unauthorizedController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const unauthorizedApp = createApp({ render: () => h(OrganizationPage as Component, { controller: unauthorizedController }) })
   unauthorizedApp.mount('#app')
   await Promise.resolve()

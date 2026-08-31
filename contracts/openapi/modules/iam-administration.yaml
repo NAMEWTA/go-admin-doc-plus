@@ -51,20 +51,6 @@ paths:
         '403': {$ref: '#/components/responses/AuthorizationProblem'}
         '409': {$ref: '#/components/responses/ConflictProblem'}
         '500': {$ref: '#/components/responses/InternalProblem'}
-  /iam/administration/users/batch-delete:
-    post:
-      operationId: deleteIamUsers
-      summary: Delete users atomically
-      security: [{SessionCookie: [], CsrfToken: []}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/DeleteUsersRequest'}}}}
-      responses:
-        '204': {description: Users deleted atomically., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
-        '400': {$ref: '#/components/responses/ValidationProblem'}
-        '401': {$ref: '#/components/responses/AuthenticationProblem'}
-        '403': {$ref: '#/components/responses/AuthorizationProblem'}
-        '404': {$ref: '#/components/responses/NotFoundProblem'}
-        '409': {$ref: '#/components/responses/ConflictProblem'}
-        '500': {$ref: '#/components/responses/InternalProblem'}
   /iam/administration/users/{userId}:
     parameters: [{$ref: '#/components/parameters/UserId'}]
     get:
@@ -89,12 +75,54 @@ paths:
         '404': {$ref: '#/components/responses/NotFoundProblem'}
         '409': {$ref: '#/components/responses/ConflictProblem'}
         '500': {$ref: '#/components/responses/InternalProblem'}
-    delete:
-      operationId: deleteIamUser
-      summary: Delete a user
+  /iam/administration/users/{userId}/organization:
+    put:
+      operationId: setIamUserOrganization
+      summary: Replace a user's primary department and positions
+      parameters: [{$ref: '#/components/parameters/UserId'}]
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AccountOrganizationRequest'}}}}
+      responses:
+        '204': {description: Account organization assignments replaced., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /iam/administration/users/{userId}/deletion:
+    parameters: [{$ref: '#/components/parameters/UserId'}]
+    post:
+      operationId: startIamUserDeletion
+      summary: Start the single-account deletion lifecycle
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/StartAccountDeletionRequest'}}}}
+      responses:
+        '202': {description: Account deletion queued., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/AccountDeletion'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+    get:
+      operationId: getIamUserDeletion
+      summary: Read the current account deletion lifecycle
+      responses:
+        '200': {description: Current account deletion state., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/json: {schema: {$ref: '#/components/schemas/AccountDeletion'}}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
+  /iam/administration/users/{userId}/deletion/cancel:
+    post:
+      operationId: cancelIamUserDeletion
+      summary: Cancel an account deletion before worker claim
+      parameters: [{$ref: '#/components/parameters/UserId'}]
       security: [{SessionCookie: [], CsrfToken: []}]
       responses:
-        '204': {description: User deleted., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '204': {description: Queued account deletion canceled., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
         '401': {$ref: '#/components/responses/AuthenticationProblem'}
         '403': {$ref: '#/components/responses/AuthorizationProblem'}
         '404': {$ref: '#/components/responses/NotFoundProblem'}
@@ -192,6 +220,21 @@ paths:
         '404': {$ref: '#/components/responses/NotFoundProblem'}
         '409': {$ref: '#/components/responses/ConflictProblem'}
         '500': {$ref: '#/components/responses/InternalProblem'}
+  /iam/administration/roles/{roleId}/data-scope:
+    put:
+      operationId: setIamRoleDataScope
+      summary: Replace a role's five-mode data scope
+      parameters: [{$ref: '#/components/parameters/RoleId'}]
+      security: [{SessionCookie: [], CsrfToken: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RoleDataScopeRequest'}}}}
+      responses:
+        '204': {description: Role data scope replaced., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
+        '400': {$ref: '#/components/responses/ValidationProblem'}
+        '401': {$ref: '#/components/responses/AuthenticationProblem'}
+        '403': {$ref: '#/components/responses/AuthorizationProblem'}
+        '404': {$ref: '#/components/responses/NotFoundProblem'}
+        '409': {$ref: '#/components/responses/ConflictProblem'}
+        '500': {$ref: '#/components/responses/InternalProblem'}
   /iam/administration/menus:
     get:
       operationId: listIamMenus
@@ -257,7 +300,7 @@ components:
     RoleId: {name: roleId, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
     MenuId: {name: menuId, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
   headers:
-    CsrfToken: {description: Current anti-forgery token when session authentication completed; replace the previous value., schema: {type: string, minLength: 43, maxLength: 43}}
+    CsrfToken: {description: Stable anti-forgery token for the authenticated Session family., schema: {type: string, minLength: 43, maxLength: 43}}
     SetCookie: {description: Replacement session cookie when periodic rotation occurs., schema: {type: string}}
   responses:
     ValidationProblem: {description: Request validation failed., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
@@ -269,7 +312,8 @@ components:
   schemas:
     Problem: {$ref: ../components/schemas.yaml#/Problem}
     Identifier: {type: string, minLength: 16, maxLength: 64}
-    DataScope: {type: string, enum: [all, self]}
+    BaseDataScope: {type: string, enum: [all, self], description: Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.}
+    DataScope: {type: string, enum: [all, self, organization, organization-tree, custom]}
     User:
       type: object
       additionalProperties: false
@@ -310,11 +354,41 @@ components:
       additionalProperties: false
       required: [roleIds]
       properties: {roleIds: {type: array, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}}
-    DeleteUsersRequest:
+    AccountOrganizationRequest:
       type: object
       additionalProperties: false
-      required: [userIds]
-      properties: {userIds: {type: array, minItems: 1, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}}
+      required: [positionIds]
+      properties:
+        primaryDepartmentId: {$ref: '#/components/schemas/Identifier'}
+        positionIds: {type: array, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}
+    RoleDataScopeRequest:
+      type: object
+      additionalProperties: false
+      required: [scope, departmentIds]
+      properties:
+        scope: {$ref: '#/components/schemas/DataScope'}
+        departmentIds: {type: array, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}
+    StartAccountDeletionRequest:
+      type: object
+      additionalProperties: false
+      required: [strategy]
+      properties:
+        strategy: {type: string, enum: [transfer, purge]}
+        transferTargetId: {$ref: '#/components/schemas/Identifier'}
+        purgeConfirmed: {type: boolean, default: false}
+    AccountDeletion:
+      type: object
+      additionalProperties: false
+      required: [id, accountId, strategy, status, auditReference, createdAt, updatedAt]
+      properties:
+        id: {type: string, format: uuid}
+        accountId: {$ref: '#/components/schemas/Identifier'}
+        strategy: {type: string, enum: [transfer, purge]}
+        transferTargetId: {$ref: '#/components/schemas/Identifier'}
+        status: {type: string, enum: [queued, claimed, completed, failed]}
+        auditReference: {type: string, minLength: 1, maxLength: 128}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
     ResetPasswordRequest:
       type: object
       additionalProperties: false
@@ -340,7 +414,7 @@ components:
       properties:
         key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
-        dataScope: {$ref: '#/components/schemas/DataScope'}
+        dataScope: {$ref: '#/components/schemas/BaseDataScope'}
     UpdateRoleRequest:
       type: object
       additionalProperties: false
@@ -348,7 +422,7 @@ components:
       properties:
         key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
-        dataScope: {$ref: '#/components/schemas/DataScope'}
+        dataScope: {$ref: '#/components/schemas/BaseDataScope'}
         enabled: {type: boolean}
     SetRoleGrantsRequest:
       type: object

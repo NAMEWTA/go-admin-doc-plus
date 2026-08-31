@@ -214,7 +214,7 @@ export interface components {
     };
     requestBodies: never;
     headers: {
-        /** @description Current anti-forgery token when session authentication completed; replace the previous value. */
+        /** @description Stable anti-forgery token for the authenticated Session family. */
         CsrfToken: string;
         /** @description Replacement session cookie when periodic rotation occurs. */
         SetCookie: string;

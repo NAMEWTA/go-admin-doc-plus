@@ -186,6 +186,9 @@ type AuthenticationProblem = Problem
 // AuthorizationProblem defines model for AuthorizationProblem.
 type AuthorizationProblem = Problem
 
+// CapacityProblem defines model for CapacityProblem.
+type CapacityProblem = Problem
+
 // ConflictProblem defines model for ConflictProblem.
 type ConflictProblem = Problem
 
@@ -592,6 +595,16 @@ type AuthorizationProblemApplicationProblemPlusJSONResponse struct {
 	Headers AuthorizationProblemResponseHeaders
 }
 
+type CapacityProblemResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken string
+}
+type CapacityProblemApplicationProblemPlusJSONResponse struct {
+	Body Problem
+
+	Headers CapacityProblemResponseHeaders
+}
+
 type ConflictProblemResponseHeaders struct {
 	SetCookie  *string
 	XCSRFToken string
@@ -924,6 +937,26 @@ func (response UploadFile500ApplicationProblemPlusJSONResponse) VisitUploadFileR
 	}
 	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
 	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadFile507ApplicationProblemPlusJSONResponse struct {
+	CapacityProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UploadFile507ApplicationProblemPlusJSONResponse) VisitUploadFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
+	w.WriteHeader(507)
 	_, err := buf.WriteTo(w)
 	return err
 }

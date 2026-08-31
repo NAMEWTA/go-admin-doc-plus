@@ -10,24 +10,94 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AccountDeletionStatus.
+const (
+	Claimed   AccountDeletionStatus = "claimed"
+	Completed AccountDeletionStatus = "completed"
+	Failed    AccountDeletionStatus = "failed"
+	Queued    AccountDeletionStatus = "queued"
+)
+
+// Valid indicates whether the value is a known member of the AccountDeletionStatus enum.
+func (e AccountDeletionStatus) Valid() bool {
+	switch e {
+	case Claimed:
+		return true
+	case Completed:
+		return true
+	case Failed:
+		return true
+	case Queued:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AccountDeletionStrategy.
+const (
+	AccountDeletionStrategyPurge    AccountDeletionStrategy = "purge"
+	AccountDeletionStrategyTransfer AccountDeletionStrategy = "transfer"
+)
+
+// Valid indicates whether the value is a known member of the AccountDeletionStrategy enum.
+func (e AccountDeletionStrategy) Valid() bool {
+	switch e {
+	case AccountDeletionStrategyPurge:
+		return true
+	case AccountDeletionStrategyTransfer:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for BaseDataScope.
+const (
+	BaseDataScopeAll  BaseDataScope = "all"
+	BaseDataScopeSelf BaseDataScope = "self"
+)
+
+// Valid indicates whether the value is a known member of the BaseDataScope enum.
+func (e BaseDataScope) Valid() bool {
+	switch e {
+	case BaseDataScopeAll:
+		return true
+	case BaseDataScopeSelf:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DataScope.
 const (
-	All  DataScope = "all"
-	Self DataScope = "self"
+	DataScopeAll              DataScope = "all"
+	DataScopeCustom           DataScope = "custom"
+	DataScopeOrganization     DataScope = "organization"
+	DataScopeOrganizationTree DataScope = "organization-tree"
+	DataScopeSelf             DataScope = "self"
 )
 
 // Valid indicates whether the value is a known member of the DataScope enum.
 func (e DataScope) Valid() bool {
 	switch e {
-	case All:
+	case DataScopeAll:
 		return true
-	case Self:
+	case DataScopeCustom:
+		return true
+	case DataScopeOrganization:
+		return true
+	case DataScopeOrganizationTree:
+		return true
+	case DataScopeSelf:
 		return true
 	default:
 		return false
@@ -64,6 +134,51 @@ func (e ProblemCategory) Valid() bool {
 	}
 }
 
+// Defines values for StartAccountDeletionRequestStrategy.
+const (
+	StartAccountDeletionRequestStrategyPurge    StartAccountDeletionRequestStrategy = "purge"
+	StartAccountDeletionRequestStrategyTransfer StartAccountDeletionRequestStrategy = "transfer"
+)
+
+// Valid indicates whether the value is a known member of the StartAccountDeletionRequestStrategy enum.
+func (e StartAccountDeletionRequestStrategy) Valid() bool {
+	switch e {
+	case StartAccountDeletionRequestStrategyPurge:
+		return true
+	case StartAccountDeletionRequestStrategyTransfer:
+		return true
+	default:
+		return false
+	}
+}
+
+// AccountDeletion defines model for AccountDeletion.
+type AccountDeletion struct {
+	AccountId        Identifier              `json:"accountId"`
+	AuditReference   string                  `json:"auditReference"`
+	CreatedAt        time.Time               `json:"createdAt"`
+	Id               openapi_types.UUID      `json:"id"`
+	Status           AccountDeletionStatus   `json:"status"`
+	Strategy         AccountDeletionStrategy `json:"strategy"`
+	TransferTargetId *Identifier             `json:"transferTargetId,omitempty"`
+	UpdatedAt        time.Time               `json:"updatedAt"`
+}
+
+// AccountDeletionStatus defines model for AccountDeletion.Status.
+type AccountDeletionStatus string
+
+// AccountDeletionStrategy defines model for AccountDeletion.Strategy.
+type AccountDeletionStrategy string
+
+// AccountOrganizationRequest defines model for AccountOrganizationRequest.
+type AccountOrganizationRequest struct {
+	PositionIds         []Identifier `json:"positionIds"`
+	PrimaryDepartmentId *Identifier  `json:"primaryDepartmentId,omitempty"`
+}
+
+// BaseDataScope Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
+type BaseDataScope string
+
 // CapabilityManifest defines model for CapabilityManifest.
 type CapabilityManifest struct {
 	DataScope       DataScope        `json:"dataScope"`
@@ -82,9 +197,10 @@ type CapabilityMenu struct {
 
 // CreateRoleRequest defines model for CreateRoleRequest.
 type CreateRoleRequest struct {
-	DataScope DataScope `json:"dataScope"`
-	Key       string    `json:"key"`
-	Name      string    `json:"name"`
+	// DataScope Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
+	DataScope BaseDataScope `json:"dataScope"`
+	Key       string        `json:"key"`
+	Name      string        `json:"name"`
 }
 
 // CreateUserRequest defines model for CreateUserRequest.
@@ -97,11 +213,6 @@ type CreateUserRequest struct {
 
 // DataScope defines model for DataScope.
 type DataScope string
-
-// DeleteUsersRequest defines model for DeleteUsersRequest.
-type DeleteUsersRequest struct {
-	UserIds []Identifier `json:"userIds"`
-}
 
 // Identifier defines model for Identifier.
 type Identifier = string
@@ -169,6 +280,12 @@ type Role struct {
 	Protected       bool         `json:"protected"`
 }
 
+// RoleDataScopeRequest defines model for RoleDataScopeRequest.
+type RoleDataScopeRequest struct {
+	DepartmentIds []Identifier `json:"departmentIds"`
+	Scope         DataScope    `json:"scope"`
+}
+
 // SetRoleGrantsRequest defines model for SetRoleGrantsRequest.
 type SetRoleGrantsRequest struct {
 	MenuIds         []Identifier `json:"menuIds"`
@@ -180,12 +297,23 @@ type SetUserRolesRequest struct {
 	RoleIds []Identifier `json:"roleIds"`
 }
 
+// StartAccountDeletionRequest defines model for StartAccountDeletionRequest.
+type StartAccountDeletionRequest struct {
+	PurgeConfirmed   *bool                               `json:"purgeConfirmed,omitempty"`
+	Strategy         StartAccountDeletionRequestStrategy `json:"strategy"`
+	TransferTargetId *Identifier                         `json:"transferTargetId,omitempty"`
+}
+
+// StartAccountDeletionRequestStrategy defines model for StartAccountDeletionRequest.Strategy.
+type StartAccountDeletionRequestStrategy string
+
 // UpdateRoleRequest defines model for UpdateRoleRequest.
 type UpdateRoleRequest struct {
-	DataScope DataScope `json:"dataScope"`
-	Enabled   bool      `json:"enabled"`
-	Key       string    `json:"key"`
-	Name      string    `json:"name"`
+	// DataScope Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
+	DataScope BaseDataScope `json:"dataScope"`
+	Enabled   bool          `json:"enabled"`
+	Key       string        `json:"key"`
+	Name      string        `json:"name"`
 }
 
 // UpdateUserRequest defines model for UpdateUserRequest.
@@ -264,17 +392,23 @@ type CreateIamRoleJSONRequestBody = CreateRoleRequest
 // UpdateIamRoleJSONRequestBody defines body for UpdateIamRole for application/json ContentType.
 type UpdateIamRoleJSONRequestBody = UpdateRoleRequest
 
+// SetIamRoleDataScopeJSONRequestBody defines body for SetIamRoleDataScope for application/json ContentType.
+type SetIamRoleDataScopeJSONRequestBody = RoleDataScopeRequest
+
 // SetIamRoleGrantsJSONRequestBody defines body for SetIamRoleGrants for application/json ContentType.
 type SetIamRoleGrantsJSONRequestBody = SetRoleGrantsRequest
 
 // CreateIamUserJSONRequestBody defines body for CreateIamUser for application/json ContentType.
 type CreateIamUserJSONRequestBody = CreateUserRequest
 
-// DeleteIamUsersJSONRequestBody defines body for DeleteIamUsers for application/json ContentType.
-type DeleteIamUsersJSONRequestBody = DeleteUsersRequest
-
 // UpdateIamUserJSONRequestBody defines body for UpdateIamUser for application/json ContentType.
 type UpdateIamUserJSONRequestBody = UpdateUserRequest
+
+// StartIamUserDeletionJSONRequestBody defines body for StartIamUserDeletion for application/json ContentType.
+type StartIamUserDeletionJSONRequestBody = StartAccountDeletionRequest
+
+// SetIamUserOrganizationJSONRequestBody defines body for SetIamUserOrganization for application/json ContentType.
+type SetIamUserOrganizationJSONRequestBody = AccountOrganizationRequest
 
 // ResetIamUserPasswordJSONRequestBody defines body for ResetIamUserPassword for application/json ContentType.
 type ResetIamUserPasswordJSONRequestBody = ResetPasswordRequest
@@ -314,6 +448,9 @@ type ServerInterface interface {
 	// UpdateIamRole Update a role
 	// (PATCH /iam/administration/roles/{roleId})
 	UpdateIamRole(w http.ResponseWriter, r *http.Request, roleId RoleId)
+	// SetIamRoleDataScope Replace a role's five-mode data scope
+	// (PUT /iam/administration/roles/{roleId}/data-scope)
+	SetIamRoleDataScope(w http.ResponseWriter, r *http.Request, roleId RoleId)
 	// SetIamRoleGrants Replace role Permission Code and menu grants
 	// (PUT /iam/administration/roles/{roleId}/grants)
 	SetIamRoleGrants(w http.ResponseWriter, r *http.Request, roleId RoleId)
@@ -323,18 +460,24 @@ type ServerInterface interface {
 	// CreateIamUser Create a user
 	// (POST /iam/administration/users)
 	CreateIamUser(w http.ResponseWriter, r *http.Request)
-	// DeleteIamUsers Delete users atomically
-	// (POST /iam/administration/users/batch-delete)
-	DeleteIamUsers(w http.ResponseWriter, r *http.Request)
-	// DeleteIamUser Delete a user
-	// (DELETE /iam/administration/users/{userId})
-	DeleteIamUser(w http.ResponseWriter, r *http.Request, userId UserId)
 	// GetIamUser Get a user within the caller data scope
 	// (GET /iam/administration/users/{userId})
 	GetIamUser(w http.ResponseWriter, r *http.Request, userId UserId)
 	// UpdateIamUser Update a user
 	// (PATCH /iam/administration/users/{userId})
 	UpdateIamUser(w http.ResponseWriter, r *http.Request, userId UserId)
+	// GetIamUserDeletion Read the current account deletion lifecycle
+	// (GET /iam/administration/users/{userId}/deletion)
+	GetIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId)
+	// StartIamUserDeletion Start the single-account deletion lifecycle
+	// (POST /iam/administration/users/{userId}/deletion)
+	StartIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId)
+	// CancelIamUserDeletion Cancel an account deletion before worker claim
+	// (POST /iam/administration/users/{userId}/deletion/cancel)
+	CancelIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId)
+	// SetIamUserOrganization Replace a user's primary department and positions
+	// (PUT /iam/administration/users/{userId}/organization)
+	SetIamUserOrganization(w http.ResponseWriter, r *http.Request, userId UserId)
 	// ResetIamUserPassword Reset a user password and revoke sessions
 	// (PUT /iam/administration/users/{userId}/password)
 	ResetIamUserPassword(w http.ResponseWriter, r *http.Request, userId UserId)
@@ -407,6 +550,12 @@ func (_ Unimplemented) UpdateIamRole(w http.ResponseWriter, r *http.Request, rol
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// SetIamRoleDataScope Replace a role's five-mode data scope
+// (PUT /iam/administration/roles/{roleId}/data-scope)
+func (_ Unimplemented) SetIamRoleDataScope(w http.ResponseWriter, r *http.Request, roleId RoleId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // SetIamRoleGrants Replace role Permission Code and menu grants
 // (PUT /iam/administration/roles/{roleId}/grants)
 func (_ Unimplemented) SetIamRoleGrants(w http.ResponseWriter, r *http.Request, roleId RoleId) {
@@ -425,18 +574,6 @@ func (_ Unimplemented) CreateIamUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// DeleteIamUsers Delete users atomically
-// (POST /iam/administration/users/batch-delete)
-func (_ Unimplemented) DeleteIamUsers(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// DeleteIamUser Delete a user
-// (DELETE /iam/administration/users/{userId})
-func (_ Unimplemented) DeleteIamUser(w http.ResponseWriter, r *http.Request, userId UserId) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // GetIamUser Get a user within the caller data scope
 // (GET /iam/administration/users/{userId})
 func (_ Unimplemented) GetIamUser(w http.ResponseWriter, r *http.Request, userId UserId) {
@@ -446,6 +583,30 @@ func (_ Unimplemented) GetIamUser(w http.ResponseWriter, r *http.Request, userId
 // UpdateIamUser Update a user
 // (PATCH /iam/administration/users/{userId})
 func (_ Unimplemented) UpdateIamUser(w http.ResponseWriter, r *http.Request, userId UserId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetIamUserDeletion Read the current account deletion lifecycle
+// (GET /iam/administration/users/{userId}/deletion)
+func (_ Unimplemented) GetIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// StartIamUserDeletion Start the single-account deletion lifecycle
+// (POST /iam/administration/users/{userId}/deletion)
+func (_ Unimplemented) StartIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CancelIamUserDeletion Cancel an account deletion before worker claim
+// (POST /iam/administration/users/{userId}/deletion/cancel)
+func (_ Unimplemented) CancelIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// SetIamUserOrganization Replace a user's primary department and positions
+// (PUT /iam/administration/users/{userId}/organization)
+func (_ Unimplemented) SetIamUserOrganization(w http.ResponseWriter, r *http.Request, userId UserId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -658,6 +819,32 @@ func (siw *ServerInterfaceWrapper) UpdateIamRole(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// SetIamRoleDataScope operation middleware
+func (siw *ServerInterfaceWrapper) SetIamRoleDataScope(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "roleId" -------------
+	var roleId RoleId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "roleId", chi.URLParam(r, "roleId"), &roleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "roleId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetIamRoleDataScope(w, r, roleId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // SetIamRoleGrants operation middleware
 func (siw *ServerInterfaceWrapper) SetIamRoleGrants(w http.ResponseWriter, r *http.Request) {
 
@@ -757,46 +944,6 @@ func (siw *ServerInterfaceWrapper) CreateIamUser(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
-// DeleteIamUsers operation middleware
-func (siw *ServerInterfaceWrapper) DeleteIamUsers(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteIamUsers(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// DeleteIamUser operation middleware
-func (siw *ServerInterfaceWrapper) DeleteIamUser(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// ------------- Path parameter "userId" -------------
-	var userId UserId
-
-	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.DeleteIamUser(w, r, userId)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // GetIamUser operation middleware
 func (siw *ServerInterfaceWrapper) GetIamUser(w http.ResponseWriter, r *http.Request) {
 
@@ -840,6 +987,110 @@ func (siw *ServerInterfaceWrapper) UpdateIamUser(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateIamUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetIamUserDeletion operation middleware
+func (siw *ServerInterfaceWrapper) GetIamUserDeletion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetIamUserDeletion(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartIamUserDeletion operation middleware
+func (siw *ServerInterfaceWrapper) StartIamUserDeletion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartIamUserDeletion(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelIamUserDeletion operation middleware
+func (siw *ServerInterfaceWrapper) CancelIamUserDeletion(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelIamUserDeletion(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// SetIamUserOrganization operation middleware
+func (siw *ServerInterfaceWrapper) SetIamUserOrganization(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SetIamUserOrganization(w, r, userId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1045,6 +1296,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/iam/administration/roles/{roleId}", wrapper.UpdateIamRole)
 	})
 	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/iam/administration/roles/{roleId}/data-scope", wrapper.SetIamRoleDataScope)
+	})
+	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/iam/administration/roles/{roleId}/grants", wrapper.SetIamRoleGrants)
 	})
 	r.Group(func(r chi.Router) {
@@ -1054,16 +1308,22 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/iam/administration/users", wrapper.CreateIamUser)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/iam/administration/users/batch-delete", wrapper.DeleteIamUsers)
-	})
-	r.Group(func(r chi.Router) {
-		r.Delete(options.BaseURL+"/iam/administration/users/{userId}", wrapper.DeleteIamUser)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/iam/administration/users/{userId}", wrapper.GetIamUser)
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/iam/administration/users/{userId}", wrapper.UpdateIamUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/iam/administration/users/{userId}/deletion", wrapper.GetIamUserDeletion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/iam/administration/users/{userId}/deletion", wrapper.StartIamUserDeletion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/iam/administration/users/{userId}/deletion/cancel", wrapper.CancelIamUserDeletion)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/iam/administration/users/{userId}/organization", wrapper.SetIamUserOrganization)
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/iam/administration/users/{userId}/password", wrapper.ResetIamUserPassword)
@@ -2361,6 +2621,161 @@ func (response UpdateIamRole500ApplicationProblemPlusJSONResponse) VisitUpdateIa
 	return err
 }
 
+type SetIamRoleDataScopeRequestObject struct {
+	RoleId RoleId `json:"roleId"`
+	Body   *SetIamRoleDataScopeJSONRequestBody
+}
+
+type SetIamRoleDataScopeResponseObject interface {
+	VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error
+}
+
+type SetIamRoleDataScope204ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken *string
+}
+
+type SetIamRoleDataScope204Response struct {
+	Headers SetIamRoleDataScope204ResponseHeaders
+}
+
+func (response SetIamRoleDataScope204Response) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetIamRoleDataScope400ApplicationProblemPlusJSONResponse struct {
+	ValidationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamRoleDataScope400ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamRoleDataScope401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamRoleDataScope401ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamRoleDataScope403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamRoleDataScope403ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamRoleDataScope404ApplicationProblemPlusJSONResponse struct {
+	NotFoundProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamRoleDataScope404ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamRoleDataScope409ApplicationProblemPlusJSONResponse struct {
+	ConflictProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamRoleDataScope409ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamRoleDataScope500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamRoleDataScope500ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type SetIamRoleGrantsRequestObject struct {
 	RoleId RoleId `json:"roleId"`
 	Body   *SetIamRoleGrantsJSONRequestBody
@@ -2774,292 +3189,6 @@ func (response CreateIamUser500ApplicationProblemPlusJSONResponse) VisitCreateIa
 	return err
 }
 
-type DeleteIamUsersRequestObject struct {
-	Body *DeleteIamUsersJSONRequestBody
-}
-
-type DeleteIamUsersResponseObject interface {
-	VisitDeleteIamUsersResponse(w http.ResponseWriter) error
-}
-
-type DeleteIamUsers204ResponseHeaders struct {
-	SetCookie  *string
-	XCSRFToken *string
-}
-
-type DeleteIamUsers204Response struct {
-	Headers DeleteIamUsers204ResponseHeaders
-}
-
-func (response DeleteIamUsers204Response) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(204)
-	return nil
-}
-
-type DeleteIamUsers400ApplicationProblemPlusJSONResponse struct {
-	ValidationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUsers400ApplicationProblemPlusJSONResponse) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUsers401ApplicationProblemPlusJSONResponse struct {
-	AuthenticationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUsers401ApplicationProblemPlusJSONResponse) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUsers403ApplicationProblemPlusJSONResponse struct {
-	AuthorizationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUsers403ApplicationProblemPlusJSONResponse) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUsers404ApplicationProblemPlusJSONResponse struct {
-	NotFoundProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUsers404ApplicationProblemPlusJSONResponse) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUsers409ApplicationProblemPlusJSONResponse struct {
-	ConflictProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUsers409ApplicationProblemPlusJSONResponse) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUsers500ApplicationProblemPlusJSONResponse struct {
-	InternalProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUsers500ApplicationProblemPlusJSONResponse) VisitDeleteIamUsersResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUserRequestObject struct {
-	UserId UserId `json:"userId"`
-}
-
-type DeleteIamUserResponseObject interface {
-	VisitDeleteIamUserResponse(w http.ResponseWriter) error
-}
-
-type DeleteIamUser204ResponseHeaders struct {
-	SetCookie  *string
-	XCSRFToken *string
-}
-
-type DeleteIamUser204Response struct {
-	Headers DeleteIamUser204ResponseHeaders
-}
-
-func (response DeleteIamUser204Response) VisitDeleteIamUserResponse(w http.ResponseWriter) error {
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(204)
-	return nil
-}
-
-type DeleteIamUser401ApplicationProblemPlusJSONResponse struct {
-	AuthenticationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUser401ApplicationProblemPlusJSONResponse) VisitDeleteIamUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUser403ApplicationProblemPlusJSONResponse struct {
-	AuthorizationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUser403ApplicationProblemPlusJSONResponse) VisitDeleteIamUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUser404ApplicationProblemPlusJSONResponse struct {
-	NotFoundProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUser404ApplicationProblemPlusJSONResponse) VisitDeleteIamUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUser409ApplicationProblemPlusJSONResponse struct {
-	ConflictProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUser409ApplicationProblemPlusJSONResponse) VisitDeleteIamUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteIamUser500ApplicationProblemPlusJSONResponse struct {
-	InternalProblemApplicationProblemPlusJSONResponse
-}
-
-func (response DeleteIamUser500ApplicationProblemPlusJSONResponse) VisitDeleteIamUserResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type GetIamUserRequestObject struct {
 	UserId UserId `json:"userId"`
 }
@@ -3324,6 +3453,596 @@ type UpdateIamUser500ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateIamUser500ApplicationProblemPlusJSONResponse) VisitUpdateIamUserResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIamUserDeletionRequestObject struct {
+	UserId UserId `json:"userId"`
+}
+
+type GetIamUserDeletionResponseObject interface {
+	VisitGetIamUserDeletionResponse(w http.ResponseWriter) error
+}
+
+type GetIamUserDeletion200ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken *string
+}
+
+type GetIamUserDeletion200JSONResponse struct {
+	Body    AccountDeletion
+	Headers GetIamUserDeletion200ResponseHeaders
+}
+
+func (response GetIamUserDeletion200JSONResponse) VisitGetIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIamUserDeletion400ApplicationProblemPlusJSONResponse struct {
+	ValidationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIamUserDeletion400ApplicationProblemPlusJSONResponse) VisitGetIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIamUserDeletion401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIamUserDeletion401ApplicationProblemPlusJSONResponse) VisitGetIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIamUserDeletion403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIamUserDeletion403ApplicationProblemPlusJSONResponse) VisitGetIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIamUserDeletion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIamUserDeletion404ApplicationProblemPlusJSONResponse) VisitGetIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetIamUserDeletion500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetIamUserDeletion500ApplicationProblemPlusJSONResponse) VisitGetIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartIamUserDeletionRequestObject struct {
+	UserId UserId `json:"userId"`
+	Body   *StartIamUserDeletionJSONRequestBody
+}
+
+type StartIamUserDeletionResponseObject interface {
+	VisitStartIamUserDeletionResponse(w http.ResponseWriter) error
+}
+
+type StartIamUserDeletion202ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken *string
+}
+
+type StartIamUserDeletion202JSONResponse struct {
+	Body    AccountDeletion
+	Headers StartIamUserDeletion202ResponseHeaders
+}
+
+func (response StartIamUserDeletion202JSONResponse) VisitStartIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartIamUserDeletion400ApplicationProblemPlusJSONResponse struct {
+	ValidationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartIamUserDeletion400ApplicationProblemPlusJSONResponse) VisitStartIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartIamUserDeletion401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartIamUserDeletion401ApplicationProblemPlusJSONResponse) VisitStartIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartIamUserDeletion403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartIamUserDeletion403ApplicationProblemPlusJSONResponse) VisitStartIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartIamUserDeletion409ApplicationProblemPlusJSONResponse struct {
+	ConflictProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartIamUserDeletion409ApplicationProblemPlusJSONResponse) VisitStartIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartIamUserDeletion500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartIamUserDeletion500ApplicationProblemPlusJSONResponse) VisitStartIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelIamUserDeletionRequestObject struct {
+	UserId UserId `json:"userId"`
+}
+
+type CancelIamUserDeletionResponseObject interface {
+	VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error
+}
+
+type CancelIamUserDeletion204ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken *string
+}
+
+type CancelIamUserDeletion204Response struct {
+	Headers CancelIamUserDeletion204ResponseHeaders
+}
+
+func (response CancelIamUserDeletion204Response) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+type CancelIamUserDeletion400ApplicationProblemPlusJSONResponse struct {
+	ValidationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelIamUserDeletion400ApplicationProblemPlusJSONResponse) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelIamUserDeletion401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelIamUserDeletion401ApplicationProblemPlusJSONResponse) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelIamUserDeletion403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelIamUserDeletion403ApplicationProblemPlusJSONResponse) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelIamUserDeletion404ApplicationProblemPlusJSONResponse struct {
+	NotFoundProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelIamUserDeletion404ApplicationProblemPlusJSONResponse) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelIamUserDeletion409ApplicationProblemPlusJSONResponse struct {
+	ConflictProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelIamUserDeletion409ApplicationProblemPlusJSONResponse) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelIamUserDeletion500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelIamUserDeletion500ApplicationProblemPlusJSONResponse) VisitCancelIamUserDeletionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamUserOrganizationRequestObject struct {
+	UserId UserId `json:"userId"`
+	Body   *SetIamUserOrganizationJSONRequestBody
+}
+
+type SetIamUserOrganizationResponseObject interface {
+	VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error
+}
+
+type SetIamUserOrganization204ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken *string
+}
+
+type SetIamUserOrganization204Response struct {
+	Headers SetIamUserOrganization204ResponseHeaders
+}
+
+func (response SetIamUserOrganization204Response) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+type SetIamUserOrganization400ApplicationProblemPlusJSONResponse struct {
+	ValidationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamUserOrganization400ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamUserOrganization401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamUserOrganization401ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamUserOrganization403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamUserOrganization403ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamUserOrganization404ApplicationProblemPlusJSONResponse struct {
+	NotFoundProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamUserOrganization404ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamUserOrganization409ApplicationProblemPlusJSONResponse struct {
+	ConflictProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamUserOrganization409ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	if response.Headers.XCSRFToken != nil {
+		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
+	}
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SetIamUserOrganization500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SetIamUserOrganization500ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -3683,6 +4402,9 @@ type StrictServerInterface interface {
 	// UpdateIamRole Update a role
 	// (PATCH /iam/administration/roles/{roleId})
 	UpdateIamRole(ctx context.Context, request UpdateIamRoleRequestObject) (UpdateIamRoleResponseObject, error)
+	// SetIamRoleDataScope Replace a role's five-mode data scope
+	// (PUT /iam/administration/roles/{roleId}/data-scope)
+	SetIamRoleDataScope(ctx context.Context, request SetIamRoleDataScopeRequestObject) (SetIamRoleDataScopeResponseObject, error)
 	// SetIamRoleGrants Replace role Permission Code and menu grants
 	// (PUT /iam/administration/roles/{roleId}/grants)
 	SetIamRoleGrants(ctx context.Context, request SetIamRoleGrantsRequestObject) (SetIamRoleGrantsResponseObject, error)
@@ -3692,18 +4414,24 @@ type StrictServerInterface interface {
 	// CreateIamUser Create a user
 	// (POST /iam/administration/users)
 	CreateIamUser(ctx context.Context, request CreateIamUserRequestObject) (CreateIamUserResponseObject, error)
-	// DeleteIamUsers Delete users atomically
-	// (POST /iam/administration/users/batch-delete)
-	DeleteIamUsers(ctx context.Context, request DeleteIamUsersRequestObject) (DeleteIamUsersResponseObject, error)
-	// DeleteIamUser Delete a user
-	// (DELETE /iam/administration/users/{userId})
-	DeleteIamUser(ctx context.Context, request DeleteIamUserRequestObject) (DeleteIamUserResponseObject, error)
 	// GetIamUser Get a user within the caller data scope
 	// (GET /iam/administration/users/{userId})
 	GetIamUser(ctx context.Context, request GetIamUserRequestObject) (GetIamUserResponseObject, error)
 	// UpdateIamUser Update a user
 	// (PATCH /iam/administration/users/{userId})
 	UpdateIamUser(ctx context.Context, request UpdateIamUserRequestObject) (UpdateIamUserResponseObject, error)
+	// GetIamUserDeletion Read the current account deletion lifecycle
+	// (GET /iam/administration/users/{userId}/deletion)
+	GetIamUserDeletion(ctx context.Context, request GetIamUserDeletionRequestObject) (GetIamUserDeletionResponseObject, error)
+	// StartIamUserDeletion Start the single-account deletion lifecycle
+	// (POST /iam/administration/users/{userId}/deletion)
+	StartIamUserDeletion(ctx context.Context, request StartIamUserDeletionRequestObject) (StartIamUserDeletionResponseObject, error)
+	// CancelIamUserDeletion Cancel an account deletion before worker claim
+	// (POST /iam/administration/users/{userId}/deletion/cancel)
+	CancelIamUserDeletion(ctx context.Context, request CancelIamUserDeletionRequestObject) (CancelIamUserDeletionResponseObject, error)
+	// SetIamUserOrganization Replace a user's primary department and positions
+	// (PUT /iam/administration/users/{userId}/organization)
+	SetIamUserOrganization(ctx context.Context, request SetIamUserOrganizationRequestObject) (SetIamUserOrganizationResponseObject, error)
 	// ResetIamUserPassword Reset a user password and revoke sessions
 	// (PUT /iam/administration/users/{userId}/password)
 	ResetIamUserPassword(ctx context.Context, request ResetIamUserPasswordRequestObject) (ResetIamUserPasswordResponseObject, error)
@@ -4027,6 +4755,39 @@ func (sh *strictHandler) UpdateIamRole(w http.ResponseWriter, r *http.Request, r
 	}
 }
 
+// SetIamRoleDataScope operation middleware
+func (sh *strictHandler) SetIamRoleDataScope(w http.ResponseWriter, r *http.Request, roleId RoleId) {
+	var request SetIamRoleDataScopeRequestObject
+
+	request.RoleId = roleId
+
+	var body SetIamRoleDataScopeJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetIamRoleDataScope(ctx, request.(SetIamRoleDataScopeRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetIamRoleDataScope")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetIamRoleDataScopeResponseObject); ok {
+		if err := validResponse.VisitSetIamRoleDataScopeResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // SetIamRoleGrants operation middleware
 func (sh *strictHandler) SetIamRoleGrants(w http.ResponseWriter, r *http.Request, roleId RoleId) {
 	var request SetIamRoleGrantsRequestObject
@@ -4117,63 +4878,6 @@ func (sh *strictHandler) CreateIamUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DeleteIamUsers operation middleware
-func (sh *strictHandler) DeleteIamUsers(w http.ResponseWriter, r *http.Request) {
-	var request DeleteIamUsersRequestObject
-
-	var body DeleteIamUsersJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteIamUsers(ctx, request.(DeleteIamUsersRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteIamUsers")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DeleteIamUsersResponseObject); ok {
-		if err := validResponse.VisitDeleteIamUsersResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// DeleteIamUser operation middleware
-func (sh *strictHandler) DeleteIamUser(w http.ResponseWriter, r *http.Request, userId UserId) {
-	var request DeleteIamUserRequestObject
-
-	request.UserId = userId
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteIamUser(ctx, request.(DeleteIamUserRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteIamUser")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(DeleteIamUserResponseObject); ok {
-		if err := validResponse.VisitDeleteIamUserResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // GetIamUser operation middleware
 func (sh *strictHandler) GetIamUser(w http.ResponseWriter, r *http.Request, userId UserId) {
 	var request GetIamUserRequestObject
@@ -4226,6 +4930,124 @@ func (sh *strictHandler) UpdateIamUser(w http.ResponseWriter, r *http.Request, u
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(UpdateIamUserResponseObject); ok {
 		if err := validResponse.VisitUpdateIamUserResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetIamUserDeletion operation middleware
+func (sh *strictHandler) GetIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
+	var request GetIamUserDeletionRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetIamUserDeletion(ctx, request.(GetIamUserDeletionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetIamUserDeletion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetIamUserDeletionResponseObject); ok {
+		if err := validResponse.VisitGetIamUserDeletionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartIamUserDeletion operation middleware
+func (sh *strictHandler) StartIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
+	var request StartIamUserDeletionRequestObject
+
+	request.UserId = userId
+
+	var body StartIamUserDeletionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartIamUserDeletion(ctx, request.(StartIamUserDeletionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartIamUserDeletion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartIamUserDeletionResponseObject); ok {
+		if err := validResponse.VisitStartIamUserDeletionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CancelIamUserDeletion operation middleware
+func (sh *strictHandler) CancelIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
+	var request CancelIamUserDeletionRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelIamUserDeletion(ctx, request.(CancelIamUserDeletionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelIamUserDeletion")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CancelIamUserDeletionResponseObject); ok {
+		if err := validResponse.VisitCancelIamUserDeletionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SetIamUserOrganization operation middleware
+func (sh *strictHandler) SetIamUserOrganization(w http.ResponseWriter, r *http.Request, userId UserId) {
+	var request SetIamUserOrganizationRequestObject
+
+	request.UserId = userId
+
+	var body SetIamUserOrganizationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SetIamUserOrganization(ctx, request.(SetIamUserOrganizationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SetIamUserOrganization")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SetIamUserOrganizationResponseObject); ok {
+		if err := validResponse.VisitSetIamUserOrganizationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

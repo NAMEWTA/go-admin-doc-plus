@@ -55,4 +55,36 @@ describe('web administration client', () => {
     await expect(client.manifest()).rejects.toEqual(expect.objectContaining({ category: 'relogin', message: 'IAM administration request failed' }))
     await expect(client.manifest()).rejects.toEqual(expect.objectContaining({ category: 'unavailable', message: 'IAM administration request failed' }))
   })
+
+  it('uses only the organization, lifecycle and five-scope administration contracts', async () => {
+    const requests: Request[] = []
+    const deletion = { id: '11111111-1111-1111-1111-111111111111', accountId: 'account-00000001', strategy: 'purge', status: 'queued', auditReference: 'audit-reference', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' }
+    const responses = [
+      new Response(null, { status: 204 }),
+      new Response(JSON.stringify(deletion), { status: 202, headers: { 'Content-Type': 'application/json' } }),
+      new Response(JSON.stringify(deletion), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+      new Response(null, { status: 204 }),
+      new Response(null, { status: 204 }),
+    ]
+    const client = createWebAdministrationClient(async (request) => {
+      requests.push(request instanceof Request ? request : new Request(request))
+      return responses.shift()!
+    }, 'https://app.example.test/api')
+
+    await client.setUserOrganization('account-00000001', { primaryDepartmentId: 'department-00001', positionIds: ['position-00000001'] })
+    await client.startUserDeletion('account-00000001', { strategy: 'purge', purgeConfirmed: true })
+    await client.getUserDeletion('account-00000001')
+    await client.cancelUserDeletion('account-00000001')
+    await client.setRoleDataScope('role-000000000001', { scope: 'custom', departmentIds: ['department-00001'] })
+
+    expect(requests.map((request) => [request.method, new URL(request.url).pathname])).toEqual([
+      ['PUT', '/api/iam/administration/users/account-00000001/organization'],
+      ['POST', '/api/iam/administration/users/account-00000001/deletion'],
+      ['GET', '/api/iam/administration/users/account-00000001/deletion'],
+      ['POST', '/api/iam/administration/users/account-00000001/deletion/cancel'],
+      ['PUT', '/api/iam/administration/roles/role-000000000001/data-scope'],
+    ])
+    await expect(requests[1]!.json()).resolves.toEqual({ strategy: 'purge', purgeConfirmed: true })
+    await expect(requests[4]!.json()).resolves.toEqual({ scope: 'custom', departmentIds: ['department-00001'] })
+  })
 })

@@ -177,7 +177,7 @@ func (i Issued) MarshalJSON() ([]byte, error) {
 }
 
 type record struct {
-	ID, AccountID, TokenHash, CSRFHash, State, FamilyID               string
+	ID, AccountID, TokenHash, CSRFHash, CSRFToken, State, FamilyID    string
 	Generation                                                        int64
 	CreatedAt, LastSeenAt, IdleExpiresAt, AbsoluteExpiresAt, RotateAt time.Time
 }
@@ -303,11 +303,11 @@ func (s *Service) Current(ctx context.Context, token string) (Issued, error) {
 	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		_, credential, err := s.activeRead(ctx, tx, token, now)
+		rec, credential, err := s.activeRead(ctx, tx, token, now)
 		if err != nil {
 			return err
 		}
-		result = Issued{Profile: credential.Profile}
+		result = Issued{Profile: credential.Profile, CSRF: rec.CSRFToken}
 		return nil
 	})
 	return result, sanitize(err)
@@ -317,11 +317,11 @@ func (s *Service) Profile(ctx context.Context, token string) (Issued, error) {
 	var result Issued
 	now := s.now().UTC()
 	err := s.withinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		_, credential, err := s.activeRead(ctx, tx, token, now)
+		rec, credential, err := s.activeRead(ctx, tx, token, now)
 		if err != nil {
 			return err
 		}
-		result = Issued{Profile: credential.Profile}
+		result = Issued{Profile: credential.Profile, CSRF: rec.CSRFToken}
 		return nil
 	})
 	return result, sanitize(err)
@@ -343,7 +343,7 @@ func (s *Service) AuthorizeRequest(ctx context.Context, token, csrf string, muta
 		if err != nil {
 			return err
 		}
-		result = Issued{Profile: credential.Profile}
+		result = Issued{Profile: credential.Profile, CSRF: rec.CSRFToken}
 		if !mutation {
 			return nil
 		}
@@ -401,7 +401,7 @@ func (s *Service) renew(ctx context.Context, token, csrf string) (Issued, error)
 		if err := s.touch(ctx, tx, rec, now); err != nil {
 			return err
 		}
-		result = Issued{Profile: credential.Profile, CSRF: csrf}
+		result = Issued{Profile: credential.Profile, CSRF: rec.CSRFToken}
 		return nil
 	})
 	return result, sanitize(err)
@@ -534,8 +534,8 @@ func (s *Service) create(ctx context.Context, tx database.Tx, profile account.Pr
 		return Issued{}, err
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO iam_sessions
-		(id, account_id, token_hash, generation, csrf_hash, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at, family_id, renewed_at, renew_after_at)
-		VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), generation, tokenDigest(csrf), now, now,
+		(id, account_id, token_hash, generation, csrf_hash, csrf_token, state, created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at, family_id, renewed_at, renew_after_at)
+		VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`, id, profile.ID, tokenDigest(token), generation, tokenDigest(csrf), csrf, now, now,
 		minTime(now.Add(s.policy.IdleTimeout()), absolute), absolute, absolute, familyID, now, minTime(now.Add(s.policy.RotationInterval()), absolute))
 	if err != nil {
 		return Issued{}, normalizeSQLError(err, "session creation failed")
@@ -598,13 +598,13 @@ func (s *Service) activeLocked(ctx context.Context, tx database.Tx, token string
 }
 
 func (s *Service) findSession(ctx context.Context, tx database.Tx, token string, lock bool) (record, error) {
-	query := `SELECT id, account_id, token_hash, generation, csrf_hash, state, COALESCE(family_id, ''), created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at
+	query := `SELECT id, account_id, token_hash, generation, csrf_hash, COALESCE(csrf_token, ''), state, COALESCE(family_id, ''), created_at, last_seen_at, idle_expires_at, absolute_expires_at, rotate_at
 		FROM iam_sessions WHERE token_hash = ?`
 	if lock && s.db.Dialect() == database.DialectPostgres {
 		query += " FOR UPDATE"
 	}
 	var rec record
-	err := tx.QueryRowContext(ctx, query, tokenDigest(token)).Scan(&rec.ID, &rec.AccountID, &rec.TokenHash, &rec.Generation, &rec.CSRFHash, &rec.State, &rec.FamilyID, &rec.CreatedAt, &rec.LastSeenAt, &rec.IdleExpiresAt, &rec.AbsoluteExpiresAt, &rec.RotateAt)
+	err := tx.QueryRowContext(ctx, query, tokenDigest(token)).Scan(&rec.ID, &rec.AccountID, &rec.TokenHash, &rec.Generation, &rec.CSRFHash, &rec.CSRFToken, &rec.State, &rec.FamilyID, &rec.CreatedAt, &rec.LastSeenAt, &rec.IdleExpiresAt, &rec.AbsoluteExpiresAt, &rec.RotateAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return record{}, ErrAuthentication
 	}

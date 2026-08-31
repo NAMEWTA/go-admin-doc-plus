@@ -21,7 +21,7 @@ func (authorizationHTTPLoginFactNoop) RecordLoginFact(context.Context, database.
 	return nil
 }
 
-func TestHTTPRotationHeadersSurviveAuthorizationConflictAndValidationResponses(t *testing.T) {
+func TestHTTPAuthorizationResponsesUseStableCSRFFromReadOnlySessions(t *testing.T) {
 	for _, test := range []struct {
 		name, method, path, body string
 		prepare                  func(*testing.T, *database.Database)
@@ -69,14 +69,14 @@ func TestHTTPRotationHeadersSurviveAuthorizationConflictAndValidationResponses(t
 				t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 			}
 			cookie, csrf := response.Header().Get("Set-Cookie"), response.Header().Get("X-CSRF-Token")
-			if cookie == "" || csrf == "" || !strings.Contains(cookie, session.CookieName+"=") || !strings.Contains(cookie, "HttpOnly") || !strings.Contains(cookie, "Secure") || !strings.Contains(cookie, "SameSite=Strict") {
-				t.Fatalf("replacement headers missing attributes: cookie=%t csrf=%t", cookie != "", csrf != "")
+			if cookie != "" || csrf != issued.CSRF {
+				t.Fatalf("stable headers mismatch: cookie=%t csrf=%q", cookie != "", csrf)
 			}
 			if strings.Contains(response.Body.String(), issued.Token) || strings.Contains(response.Body.String(), issued.CSRF) {
 				t.Fatal("credential leaked in error body")
 			}
-			if _, err := sessions.Current(context.Background(), issued.Token); err == nil {
-				t.Fatal("rotated original token remained active")
+			if _, err := sessions.Current(context.Background(), issued.Token); err != nil {
+				t.Fatalf("read-only authorization replaced the original token: %v", err)
 			}
 		})
 	}

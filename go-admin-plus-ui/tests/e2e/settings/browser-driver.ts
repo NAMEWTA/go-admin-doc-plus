@@ -14,7 +14,7 @@ const sessionFetch=createBrowserSessionFetch(observedFetch)
 const session=createSessionController(createWebSessionClient(sessionFetch,'/api'))
 const capabilities=createCapabilityController(createWebAdministrationClient(sessionFetch,'/api'))
 const client=createWebSettingsClient(sessionFetch,'/api')
-const controller=createSettingsController(client,async()=>true,{can:(code:SettingsPermissionCode)=>capabilities.can(code),scope:()=>capabilities.state().manifest?.dataScope??null})
+const controller=createSettingsController(client,async()=>true,{can:(code:SettingsPermissionCode)=>capabilities.can(code),scope:()=>capabilities.state().manifest?.dataScope==='all'?'all':'self'})
 let app:App<Element>|null=null
 const mount=()=>{app?.unmount();document.querySelector('#app')!.textContent='';app=createApp({render:()=>h(SettingsPage as Component,{controller})});app.mount('#app')}
 const delay=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms))

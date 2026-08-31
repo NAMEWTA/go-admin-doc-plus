@@ -120,7 +120,7 @@ components:
       $ref: ../components/security-schemes.yaml#/CsrfToken
   headers:
     CsrfToken:
-      description: The current anti-forgery token after any session rotation.
+      description: The stable anti-forgery token shared by the authenticated Session family.
       required: true
       schema: { type: string, minLength: 43, maxLength: 43 }
   responses:

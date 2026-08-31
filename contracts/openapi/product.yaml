@@ -17,6 +17,10 @@ paths:
     $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1login
   /iam/session/current:
     $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1current
+  /iam/session/heartbeat:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1heartbeat
+  /iam/session/renew:
+    $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1renew
   /iam/session/logout:
     $ref: ./modules/iam-session.yaml#/paths/~1iam~1session~1logout
   /iam/account/profile:
@@ -27,10 +31,14 @@ paths:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1manifest
   /iam/administration/users:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users
-  /iam/administration/users/batch-delete:
-    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1batch-delete
   /iam/administration/users/{userId}:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}
+  /iam/administration/users/{userId}/organization:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}~1organization
+  /iam/administration/users/{userId}/deletion:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}~1deletion
+  /iam/administration/users/{userId}/deletion/cancel:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}~1deletion~1cancel
   /iam/administration/users/{userId}/roles:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1users~1{userId}~1roles
   /iam/administration/users/{userId}/password:
@@ -41,6 +49,8 @@ paths:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1roles~1{roleId}
   /iam/administration/roles/{roleId}/grants:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1roles~1{roleId}~1grants
+  /iam/administration/roles/{roleId}/data-scope:
+    $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1roles~1{roleId}~1data-scope
   /iam/administration/menus:
     $ref: ./modules/iam-administration.yaml#/paths/~1iam~1administration~1menus
   /iam/administration/menus/{menuId}:

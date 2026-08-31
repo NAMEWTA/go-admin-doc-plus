@@ -96,48 +96,6 @@ func (s *HTTPServer) UpdateIamUser(ctx context.Context, request transport.Update
 	return transport.UpdateIamUser200JSONResponse{Body: transportUser(value), Headers: transport.UpdateIamUser200ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
 }
 
-func (s *HTTPServer) DeleteIamUser(ctx context.Context, request transport.DeleteIamUserRequestObject) (transport.DeleteIamUserResponseObject, error) {
-	err := s.service.DeleteUser(ctx, requestHTTP(ctx).actorID, request.UserId)
-	if err != nil {
-		if errors.Is(err, ErrDenied) {
-			return transport.DeleteIamUser403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
-		}
-		if errors.Is(err, ErrNotFound) {
-			return transport.DeleteIamUser404ApplicationProblemPlusJSONResponse{NotFoundProblemApplicationProblemPlusJSONResponse: notFoundProblem(ctx)}, nil
-		}
-		if errors.Is(err, ErrConflict) {
-			return transport.DeleteIamUser409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(ctx)}, nil
-		}
-		return transport.DeleteIamUser500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
-	}
-	csrf, cookie := responseHeaders(ctx)
-	return transport.DeleteIamUser204Response{Headers: transport.DeleteIamUser204ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
-}
-
-func (s *HTTPServer) DeleteIamUsers(ctx context.Context, request transport.DeleteIamUsersRequestObject) (transport.DeleteIamUsersResponseObject, error) {
-	if request.Body == nil {
-		return transport.DeleteIamUsers400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil
-	}
-	err := s.service.DeleteUsers(ctx, requestHTTP(ctx).actorID, request.Body.UserIds)
-	if err != nil {
-		if errors.Is(err, ErrValidation) {
-			return transport.DeleteIamUsers400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil
-		}
-		if errors.Is(err, ErrDenied) {
-			return transport.DeleteIamUsers403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
-		}
-		if errors.Is(err, ErrNotFound) {
-			return transport.DeleteIamUsers404ApplicationProblemPlusJSONResponse{NotFoundProblemApplicationProblemPlusJSONResponse: notFoundProblem(ctx)}, nil
-		}
-		if errors.Is(err, ErrConflict) {
-			return transport.DeleteIamUsers409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(ctx)}, nil
-		}
-		return transport.DeleteIamUsers500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
-	}
-	csrf, cookie := responseHeaders(ctx)
-	return transport.DeleteIamUsers204Response{Headers: transport.DeleteIamUsers204ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
-}
-
 func (s *HTTPServer) SetIamUserRoles(ctx context.Context, request transport.SetIamUserRolesRequestObject) (transport.SetIamUserRolesResponseObject, error) {
 	if request.Body == nil {
 		return transport.SetIamUserRoles400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil

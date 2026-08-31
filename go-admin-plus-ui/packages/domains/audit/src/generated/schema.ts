@@ -223,7 +223,7 @@ export interface components {
     parameters: never;
     requestBodies: never;
     headers: {
-        /** @description The current anti-forgery token after any session rotation. */
+        /** @description The stable anti-forgery token shared by the authenticated Session family. */
         CsrfToken: string;
     };
     pathItems: never;
