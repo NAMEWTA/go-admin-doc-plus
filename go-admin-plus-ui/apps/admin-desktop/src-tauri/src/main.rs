@@ -594,6 +594,14 @@ fn generator_repository_is_complete(root: &Path) -> bool {
 }
 
 fn runtime_paths(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), &'static str> {
+    #[cfg(debug_assertions)]
+    if let Some(root) = std::env::var_os("GO_ADMIN_DESKTOP_DATA_ROOT") {
+        let root = PathBuf::from(root);
+        if !root.is_absolute() {
+            return Err("desktop development data root invalid");
+        }
+        return Ok((root.join("data"), root.join("logs")));
+    }
     #[cfg(feature = "native-e2e")]
     if let Some(root) = std::env::var_os("GO_ADMIN_DESKTOP_E2E_ROOT") {
         let root = PathBuf::from(root);
