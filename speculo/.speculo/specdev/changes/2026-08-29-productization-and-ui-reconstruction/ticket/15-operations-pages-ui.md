@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-15
 title: 重构 Audit、Settings 与 Scheduler 页面
-status: ready
+status: in_progress
 planning_depth: standard
 planning_depth_reason: 三个独立 Web Domain 使用同一成熟页面模式，跨多文件但不改变公共 API 或数据模型
 ready: true
 risk: medium
 blocked_by: [T-11, T-12]
 contract_ids: [AC-014, AC-015, AC-016, AC-017, AC-018, AC-038]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/audit*</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/settings*</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/scheduler*</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/packages/web-domains/audit/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/settings/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/scheduler/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/audit*</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/settings*</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/scheduler*</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/domains/audit/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 三领域既有业务功能、错误和权限语义完整。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-15.md</Path>`。
 - [ ] commit、integration/result 和 T-19 E2E 归属完整。
-
