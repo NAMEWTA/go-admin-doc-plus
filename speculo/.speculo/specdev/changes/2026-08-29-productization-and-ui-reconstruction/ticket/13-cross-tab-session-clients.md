@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-13
 title: 实现 Web 与 Desktop Session 协调客户端
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 跨浏览器标签和双宿主消费认证协议，错误会导致登录失效或客户端错误承担授权正确性
 ready: true
@@ -114,7 +114,7 @@ Session controller 根据实际用户活动安排 heartbeat，并仅在续期窗
 
 ## 10. 验收标准
 
-- [ ] `AC-011、AC-013` 的客户端协调 contract 成立。
-- [ ] channel/fallback/leader failure 无 secret、无循环请求、无授权事实漂移。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-13.md</Path>`。
-- [ ] commit、integration/result 和 T-19 E2E 归属完整。
+- [x] `AC-011、AC-013` 的客户端协调 contract 成立。
+- [x] channel/fallback/leader failure 无 secret、无循环请求、无授权事实漂移。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-13.md</Path>`。
+- [x] commit、integration/result 和 T-19 E2E 归属完整。
