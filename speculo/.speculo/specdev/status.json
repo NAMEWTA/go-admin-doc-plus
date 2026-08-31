@@ -3,7 +3,14 @@
   "workflow": "specdev",
   "active": [
     {
-      "change": "2026-08-29-productization-and-ui-reconstruction"
+      "change": "2026-08-29-productization-and-ui-reconstruction",
+      "current_work": "specdev/implement",
+      "works_run": [
+        "specdev/grill-with-docs",
+        "specdev/spec",
+        "specdev/tickets",
+        "specdev/goal-plan"
+      ]
     }
   ],
   "archived": [
