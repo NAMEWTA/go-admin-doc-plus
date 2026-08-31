@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-07
 title: 建立结构化日志与 Doctor 诊断能力
-status: in_progress
+status: review
 planning_depth: deep
 planning_depth_reason: 日志贯穿安全边界和所有运行角色，Doctor 需要稳定诊断合同、secret 脱敏与 profile 差异
 ready: true
