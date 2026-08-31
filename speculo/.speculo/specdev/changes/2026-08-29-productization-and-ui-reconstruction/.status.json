@@ -1,0 +1,48 @@
+{
+  "schema_version": 6,
+  "artifact": "change-status",
+  "change": "2026-08-29-productization-and-ui-reconstruction",
+  "change_status": "active",
+  "current_work": null,
+  "works_run": [
+    "specdev/grill-with-docs",
+    "specdev/spec",
+    "specdev/tickets",
+    "specdev/goal-plan"
+  ],
+  "claimed_investigations": [],
+  "execution_authorization": {
+    "implementation_commit": {
+      "status": "authorized",
+      "source": "USER-DECISION:2026-08-31 Goal Plan 推荐方案全部接受",
+      "granted_at": "2026-08-31T08:27:39+08:00",
+      "scope": "Local per-Ticket implementation/source commits within approved writable paths"
+    },
+    "local_candidate_integration": {
+      "status": "authorized",
+      "source": "USER-DECISION:2026-08-31 Goal Plan 推荐方案全部接受",
+      "granted_at": "2026-08-31T08:27:39+08:00",
+      "scope": "Lead-owned local candidate integration and parent fast-forward for the required worktree plan; excludes push, deploy, publish, and source cleanup"
+    },
+    "source_cleanup": {
+      "status": "not-authorized",
+      "source": null,
+      "granted_at": null,
+      "scope": "No branch or worktree cleanup is authorized by this change initialization"
+    }
+  },
+  "leadership": {
+    "current": "codex-root",
+    "epoch": 1,
+    "assigned_at": "2026-08-29T13:14:24+08:00",
+    "history": []
+  },
+  "created_at": "2026-08-29T13:14:24+08:00",
+  "updated_at": "2026-08-31T08:33:51+08:00",
+  "completed_at": null,
+  "archived": false,
+  "archive_path": null,
+  "blockers": [],
+  "deviations": [],
+  "worktrees": []
+}

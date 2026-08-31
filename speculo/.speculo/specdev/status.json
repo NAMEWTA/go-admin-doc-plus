@@ -1,7 +1,11 @@
 {
   "schema_version": 5,
   "workflow": "specdev",
-  "active": [],
+  "active": [
+    {
+      "change": "2026-08-29-productization-and-ui-reconstruction"
+    }
+  ],
   "archived": [
     "2026-08-26-project-architecture-reconstruction"
   ]
