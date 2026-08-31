@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { AdministrationRequestError, createCapabilityController, type Manifest } from './administration-controller'
+import {
+  AdministrationRequestError,
+  canCancelAccountDeletion,
+  createCapabilityController,
+  validAccountOrganizationRequest,
+  validRoleDataScopeRequest,
+  validStartAccountDeletionRequest,
+  type Manifest,
+} from './administration-controller'
 
 const manifest: Manifest = { dataScope: 'self', permissionCodes: ['iam.users.read'], menus: [{ key: 'iam-users', label: 'Users', path: '/iam/users', permissionCode: 'iam.users.read', sortOrder: 10 }] }
 
@@ -21,5 +29,26 @@ describe('capability controller', () => {
     const first = controller.refresh(); await controller.refresh(); resolveFirst(manifest); await first
     expect(controller.state()).toEqual({ status: 'unauthorized', manifest: null, error: 'authorization' })
     expect(controller.can('iam.users.read')).toBe(false)
+  })
+})
+
+describe('administration mutation contracts', () => {
+  it('validates organization and five-scope inputs without transport guesses', () => {
+    expect(validAccountOrganizationRequest({ primaryDepartmentId: 'department-1', positionIds: ['position-1'] })).toBe(true)
+    expect(validAccountOrganizationRequest({ positionIds: ['position-1', 'position-1'] })).toBe(false)
+    expect(validAccountOrganizationRequest({ primaryDepartmentId: '', positionIds: [] })).toBe(false)
+    expect(validRoleDataScopeRequest({ scope: 'custom', departmentIds: ['department-1'] })).toBe(true)
+    expect(validRoleDataScopeRequest({ scope: 'custom', departmentIds: [] })).toBe(false)
+    expect(validRoleDataScopeRequest({ scope: 'organization-tree', departmentIds: [] })).toBe(true)
+    expect(validRoleDataScopeRequest({ scope: 'all', departmentIds: ['department-1'] })).toBe(false)
+  })
+
+  it('enforces transfer, purge confirmation, and the claim cancellation boundary', () => {
+    expect(validStartAccountDeletionRequest('account-1', { strategy: 'transfer', transferTargetId: 'account-2', purgeConfirmed: false })).toBe(true)
+    expect(validStartAccountDeletionRequest('account-1', { strategy: 'transfer', transferTargetId: 'account-1', purgeConfirmed: false })).toBe(false)
+    expect(validStartAccountDeletionRequest('account-1', { strategy: 'purge', purgeConfirmed: false })).toBe(false)
+    expect(validStartAccountDeletionRequest('account-1', { strategy: 'purge', purgeConfirmed: true })).toBe(true)
+    expect(canCancelAccountDeletion({ id: 'deletion-1', accountId: 'account-1', strategy: 'purge', status: 'queued', auditReference: 'audit-1', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' })).toBe(true)
+    expect(canCancelAccountDeletion({ id: 'deletion-1', accountId: 'account-1', strategy: 'purge', status: 'claimed', auditReference: 'audit-1', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:01Z' })).toBe(false)
   })
 })

@@ -9,7 +9,8 @@
   "dependencies": {
     "@go-admin-plus/domain-organization": "workspace:*",
     "@go-admin-plus/ui": "workspace:*",
-    "vue": "catalog:"
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "scripts": {
     "test": "vitest run src",

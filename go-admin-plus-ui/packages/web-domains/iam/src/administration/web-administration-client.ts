@@ -68,6 +68,7 @@ const problemCategory = (value: unknown) => typeof value === 'object' && value !
 const classifyResponse = (status: number, problem: Problem | null): string | null => {
   if (status === 401 || problem?.code === 'CSRF_REJECTED') return 'relogin'
   if (status === 403) return 'forbidden'
+  if (status === 404) return 'not-found'
   if (status === 400 || status === 422) return 'validation'
   if (status === 409) return 'conflict'
   if (status >= 500) return 'unavailable'

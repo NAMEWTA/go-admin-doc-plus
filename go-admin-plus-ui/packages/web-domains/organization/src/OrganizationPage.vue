@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import type { Department, DepartmentInput, Position, PositionInput } from '@go-admin-plus/domain-organization'
 import { settleOrganizationPageOperation, type OrganizationController } from './organization-controller'
+import { organizationViewForPath } from './organization-view'
 
 const props = defineProps<{ controller: OrganizationController }>()
 const emit = defineEmits<{ sessionRequired: [] }>()
-const tab = ref<'departments' | 'positions'>('departments')
+const route = useRoute()
+const view = computed(() => organizationViewForPath(route.path))
 const revision = ref(0)
 const filters = reactive({ search: '' })
 const department = reactive<DepartmentInput>({ key: '', name: '', parentId: '', sortOrder: 0 })
@@ -51,7 +54,6 @@ const closeDialogs = () => {
   closeCreateDepartment(); closeCreatePosition()
   editedDepartment.value = null; editedPosition.value = null
 }
-const switchTab = (value: 'departments' | 'positions') => { closeDialogs(); tab.value = value }
 const editDepartment = (item: Department) => { editedDepartment.value = { id: item.id, key: item.key, name: item.name, parentId: item.parentId ?? '', sortOrder: item.sortOrder, protected: item.protected } }
 const editPosition = (item: Position) => { editedPosition.value = { id: item.id, key: item.key, name: item.name, departmentId: item.departmentId, enabled: item.enabled, protected: item.protected } }
 const search = () => run(() => props.controller.positions.search({ ...filters }))
@@ -86,11 +88,12 @@ const savePosition = async () => {
   }))
   if (result === 'completed') editedPosition.value = null
 }
-onMounted(() => run(async () => {
+const loadView = () => run(async () => {
   if (can('organization.departments.read')) await props.controller.refreshDepartments()
-  if (can('organization.positions.read')) await props.controller.positions.refresh()
-  if (!can('organization.departments.read')) tab.value = 'positions'
-}))
+  if (view.value === 'positions' && can('organization.positions.read')) await props.controller.positions.refresh()
+})
+onMounted(loadView)
+watch(view, () => { closeDialogs(); void loadView() })
 </script>
 
 <template>
@@ -98,12 +101,7 @@ onMounted(() => run(async () => {
     <header><h1>组织管理</h1></header>
     <p v-if="failureMessage" role="alert">{{ failureMessage }}</p>
     <button v-if="controller.hasPendingRepair()" type="button" data-testid="repair-organization" :disabled="controller.busy" @click="run(() => controller.repairProjection())">刷新已保存的变更</button>
-    <nav class="tabs" aria-label="组织管理视图">
-      <button v-if="can('organization.departments.read')" type="button" :aria-pressed="tab === 'departments'" @click="switchTab('departments')">部门管理</button>
-      <button v-if="can('organization.positions.read')" type="button" :aria-pressed="tab === 'positions'" @click="switchTab('positions')">岗位管理</button>
-    </nav>
-
-    <section v-if="tab === 'departments' && can('organization.departments.read')" aria-labelledby="departments-heading">
+    <section v-if="view === 'departments' && can('organization.departments.read')" aria-labelledby="departments-heading">
       <h2 id="departments-heading">部门列表</h2>
       <div class="toolbar management-toolbar"><button v-if="can('organization.departments.write')" type="button" data-testid="open-create-department" @click="openCreateDepartment">新增</button></div>
       <ul class="tree">
@@ -113,7 +111,7 @@ onMounted(() => run(async () => {
       <div v-if="editedDepartment && can('organization.departments.write')" class="management-dialog-backdrop" @click.self="editedDepartment = null" @keydown.esc="editedDepartment = null"><form class="management-dialog" data-testid="edit-department" role="dialog" aria-modal="true" aria-labelledby="edit-department-title" @submit.prevent="saveDepartment"><header class="management-dialog__header"><h3 id="edit-department-title">修改部门 {{ editedDepartment.key }}</h3><button type="button" aria-label="关闭" @click="editedDepartment = null">×</button></header><div class="management-dialog__body"><label>部门名称<input v-model.trim="editedDepartment.name" required maxlength="100"></label><label>上级部门<select v-model="editedDepartment.parentId" required><option v-for="item in departments.filter((candidate) => candidate.id !== editedDepartment?.id)" :key="item.id" :value="item.id">{{ item.name }}</option></select></label><label>显示排序<input v-model.number="editedDepartment.sortOrder" type="number" min="-1000000" max="1000000"></label></div><footer class="management-dialog__footer"><button type="button" @click="editedDepartment = null">取消</button><button type="submit" :disabled="editedDepartment.protected || blocked">保存</button></footer></form></div>
     </section>
 
-    <section v-else-if="tab === 'positions' && can('organization.positions.read')" aria-labelledby="positions-heading">
+    <section v-else-if="view === 'positions' && can('organization.positions.read')" aria-labelledby="positions-heading">
       <h2 id="positions-heading">岗位列表</h2>
       <form class="toolbar" data-testid="position-search" @submit.prevent="search"><label>岗位搜索<input name="search" v-model.trim="filters.search" maxlength="100" placeholder="请输入岗位编码或名称"></label><button type="submit">搜索</button><button type="button" @click="reset">重置</button><button v-if="can('organization.positions.write')" type="button" data-testid="open-create-position" @click="openCreatePosition">新增</button></form>
       <table><thead><tr><th>岗位编码</th><th>岗位名称</th><th>所属部门</th><th>状态</th><th>操作</th></tr></thead><tbody><tr v-for="item in positions.rows" :key="item.id" :data-row-key="item.key"><td>{{ item.key }}</td><td>{{ item.name }}</td><td>{{ departments.find((candidate) => candidate.id === item.departmentId)?.name ?? item.departmentId }}</td><td>{{ item.enabled ? '启用' : '停用' }}</td><td><button v-if="can('organization.positions.write')" type="button" data-action="edit" @click="editPosition(item)">修改</button><button v-if="can('organization.positions.delete')" type="button" data-action="delete" :disabled="item.protected || blocked" @click="run(() => controller.deletePosition(item.id))">删除</button></td></tr></tbody></table>
@@ -128,8 +126,7 @@ onMounted(() => run(async () => {
 <style scoped>
 .organization-page { display: grid; gap: 20px; }
 h1, h2, h3 { margin: 0; letter-spacing: 0; }
-.tabs, .toolbar, .pagination { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
-.tabs button[aria-pressed="true"] { border-bottom-color: var(--ga-brand); color: var(--ga-brand); }
+.toolbar, .pagination { display: flex; gap: 8px; align-items: end; flex-wrap: wrap; }
 section { display: grid; gap: 16px; }
 .tree { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .tree li { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(100px, 1fr) auto auto; align-items: center; gap: 8px; min-height: 42px; border-bottom: 1px solid var(--ga-border-light); }
