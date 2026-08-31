@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-11
 title: 建立 Element Plus 管理后台设计系统
-status: in_progress
+status: done
 planning_depth: standard
 planning_depth_reason: 跨 workspace 共享依赖、主题 token 和基础组件，但不改变后端公共合同或持久数据
 ready: true
@@ -110,7 +110,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-11", "<Pat
 
 ## 10. 验收标准
 
-- [ ] `AC-017~018` 的共享视觉/主题基础可独立验证。
-- [ ] lockfile frozen，核心组件状态、键盘/focus/reduced-motion tests 通过。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>`。
-- [ ] shared owner、commit、integration/result 和 E2E disposition 完整。
+- [x] `AC-017~018` 的共享视觉/主题基础可独立验证。
+- [x] lockfile frozen，核心组件状态、键盘/focus/reduced-motion tests 通过。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>`。
+- [x] shared owner、commit、integration/result 和 E2E disposition 完整。

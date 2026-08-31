@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T03:47:50+08:00",
+  "updated_at": "2026-09-01T04:02:37+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -148,25 +148,25 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-11",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-11",
-      "source_checkpoint": null,
+      "source_checkpoint": "a5f80acf95482c038aa8e6b3b4e9f138ab7a9451",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "6ea8b9fde3d9958adcda32c2125798386e7cbbce",
+        "source_sha": "a5f80acf95482c038aa8e6b3b4e9f138ab7a9451",
+        "candidate_sha": "4193229f364a0042c6345a2917c98ea9eb775f79",
+        "candidate_tree_sha": "91aa051b0cd0a716cd9a583735b7d7b72a903aab",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-11",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-11",
+        "result_sha": "4193229f364a0042c6345a2917c98ea9eb775f79",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "T-11 requires frozen install, UI unit and visual-contract tests, lint, typecheck, and dual-app builds on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Pinned pnpm frozen install, 206 Vitest component tests, 33 targeted list/visual contracts, lint, workspace typecheck, and dual-app production builds passed; the sole full test nonzero is the pre-existing Windows-vs-macOS artifact path assertion owned by T-20",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>"
         },
         "e2e": {
           "required": false,
@@ -175,11 +175,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "blocked",
-      "updated_at": "2026-08-31T19:29:32+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T04:02:37+08:00"
     },
     {
       "ticket_id": "T-03",
