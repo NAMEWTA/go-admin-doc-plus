@@ -9,6 +9,8 @@
     "allow-desktop-navigation",
     "allow-desktop-login",
     "allow-desktop-logout",
+    "allow-desktop-session-heartbeat",
+    "allow-desktop-session-renew",
     "allow-desktop-pick-file",
     "allow-desktop-save-file",
     "allow-desktop-notify",

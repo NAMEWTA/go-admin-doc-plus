@@ -9,7 +9,11 @@ import type {
   ShellRuntimePort
 } from '@go-admin-plus/platform'
 
-export { createBrowserSessionFetch } from './session-fetch'
+export {
+  createBrowserSessionFetch,
+  type BrowserSessionFetch,
+  type BrowserSessionFetchOptions
+} from './session-fetch'
 
 type Fetch = typeof globalThis.fetch
 interface WebHostOperations {

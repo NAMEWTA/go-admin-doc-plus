@@ -4,6 +4,7 @@ import { createSessionController, SessionRequestError, type AccountProfile, type
 const profile: AccountProfile = { id: '1', username: 'admin', displayName: 'Admin', email: 'admin@example.test' }
 const client = (overrides: Partial<SessionClient> = {}): SessionClient => ({
   login: async () => profile, current: async () => profile, logout: async () => undefined,
+  heartbeat: async () => profile, renew: async () => profile,
   profile: async () => profile, updateProfile: async () => profile, changePassword: async () => undefined,
   ...overrides,
 })
@@ -66,6 +67,28 @@ describe('session controller', () => {
     const controller = createSessionController(client({ updateProfile: async () => { throw new SessionRequestError('authorization') } }))
     await controller.restore()
     await controller.updateProfile({ displayName: 'Admin', email: 'admin@example.test' })
+    expect(controller.state()).toEqual({ status: 'unauthenticated', profile: null, error: null })
+  })
+
+  it('refreshes heartbeat without publishing a loading state', async () => {
+    const refreshed = { ...profile, displayName: 'Admin Updated' }
+    const controller = createSessionController(client({ heartbeat: async () => refreshed }))
+    await controller.restore()
+    const states: string[] = []
+    const unsubscribe = controller.subscribe(state => { states.push(state.status) })
+    states.length = 0
+    await controller.heartbeat()
+    expect(controller.state()).toEqual({ status: 'authenticated', profile: refreshed, error: null })
+    expect(states).toEqual(['authenticated'])
+    unsubscribe()
+  })
+
+  it('never revives a session after renew reports authentication failure', async () => {
+    const controller = createSessionController(client({
+      renew: async () => { throw new SessionRequestError('authentication') }
+    }))
+    await controller.restore()
+    await controller.renew()
     expect(controller.state()).toEqual({ status: 'unauthenticated', profile: null, error: null })
   })
 })

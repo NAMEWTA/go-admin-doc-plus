@@ -282,6 +282,43 @@ async fn desktop_logout(state: State<'_, Arc<HostState>>) -> Result<LogoutResult
     result
 }
 
+async fn run_session_maintenance(
+    state: State<'_, Arc<HostState>>,
+    renew: bool,
+) -> Result<PublicProfile, &'static str> {
+    let proxy = state.wait_for_proxy().await?;
+    let permit = state
+        .requests
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _permit = permit;
+        if renew {
+            proxy.renew()
+        } else {
+            proxy.heartbeat()
+        }
+    })
+    .await
+    .map_err(|_| "desktop session maintenance failed")?
+}
+
+#[tauri::command]
+async fn desktop_session_heartbeat(
+    state: State<'_, Arc<HostState>>,
+) -> Result<PublicProfile, &'static str> {
+    run_session_maintenance(state, false).await
+}
+
+#[tauri::command]
+async fn desktop_session_renew(
+    state: State<'_, Arc<HostState>>,
+) -> Result<PublicProfile, &'static str> {
+    run_session_maintenance(state, true).await
+}
+
 #[tauri::command]
 async fn desktop_pick_file(
     app: tauri::AppHandle,
@@ -850,6 +887,8 @@ fn main() {
             desktop_navigation,
             desktop_login,
             desktop_logout,
+            desktop_session_heartbeat,
+            desktop_session_renew,
             desktop_pick_file,
             desktop_save_file,
             desktop_notify,
