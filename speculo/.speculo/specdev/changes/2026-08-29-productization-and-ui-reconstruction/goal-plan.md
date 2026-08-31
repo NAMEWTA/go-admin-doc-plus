@@ -304,17 +304,23 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@6e4fa68efb0b69d6822bc602dfe08cd14d02a582`；执行时每 Ticket 重读 |
+| Parent | `main@b9e77b591fbeffa06485518ba9e9fbbd10914efb`；当前仅含 Speculo 执行状态提交，未晋升失败 candidate |
 | Tickets | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `in_progress`；T-05/T-08~T-10、T-12~T-21 `ready` |
 | Gate | G0 已关闭；G1~G8 关闭 |
 | Workspace records | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `blocked`（实现提交已固定，等待所列 runner/owning Ticket 门禁）；其余 Ticket 待依赖满足后建立 |
 | Authorization | local source commits、candidate integration 与 `main` fast-forward 已授权；远程/部署/清理未授权 |
-| Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`；均未清理 |
+| Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
 ### Pending Decisions and Blockers
 
-无。用户已选择推荐的 required worktree，并授权本地 Ticket commit、Lead candidate integration 与 `main` 更新。G0 是已决定的执行前门禁，不是未决问题。
+当前执行 blocked，且没有满足 Goal Plan 依赖条件的后续 Ticket 可启动：
+
+- required race 需要带 C 编译器的 CGO runner；T-02/T-03/T-04/T-06 的真实双方言证据还需要 `GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN`；G7/T-20 需要真实 macOS Tauri/Keychain/native-window 环境。当前 Windows host 不具备这些环境，也没有 Docker、WSL 或可用 PostgreSQL service。
+- T-03 与 T-06 的模块实现需要由 T-09-owned 产品 migration composition 注册新 provider 才能通过 parent-candidate full suite；但 T-09 依赖 T-08 result，而 T-08 又依赖 T-03/T-06 result。这是当前路径所有权、DAG 与 required full-suite Gate 的执行闭环，Lead 无权通过越界修改或降低 Gate 自行解除。
+- 既有 Windows sidecar、desktop、Generator、UNC、backup 与符号链接失败由后续 owning Tickets 修复，但 required Wave A candidate full suite 先于这些 Tickets 的依赖解锁，同样不能记为 passed。
+
+恢复需要同时提供 required runner 环境，并由 Goal Plan/路径 owner 批准可验证的 sequencing deviation（例如先由 T-09 composition owner 提供 provider wiring checkpoint，或修订 Wave A full-suite 进入条件）；在此之前 `main` 不晋升任何失败 candidate，T-05/T-08/T-09/T-12 及下游保持未启动。
 
 ### Resume Protocol
 

@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-08-31T21:53:14+08:00",
+  "updated_at": "2026-08-31T21:57:27+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -50,7 +50,8 @@
     "T-03 implementation ec59dd25bca92c74464b485604b949e5a5dbf115: targeted migration/session tests and vet pass and the 0040 migration now uses globally unique version 6220000000000; the prior candidate fc2d849dacf7936c44346de1344a3b496485aed4 remains a failed attempt and must be rebuilt after the T-09-owned composition gap, Windows full-suite failures, missing CGO C compiler, and missing disposable PostgreSQL DSN are resolved.",
     "T-04 implementation dca203c199a274c479d8c1ab3acbdc01850eb0d8 and candidate 1961d45c43955d4c9d244c7c5273dc96439ed9b6: targeted IAM/Organization tests, repeated scope tests, architecture checks, and vet pass; promotion is blocked by existing Windows full-suite failures, missing CGO C compiler for race, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN for the required real PostgreSQL proof.",
     "T-06 implementation ddc2e6725646a640deba7d5b7981a9a146b5aae7 and candidate d7bfb162ae35ae4e467f66eaffdcb483e5224952: capacity, migration, repeated concurrency, and vet checks pass; promotion is blocked by the T-09-owned product migration/probe composition, existing Windows full-suite failures, missing CGO C compiler, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN.",
-    "T-07 implementation 39f0da6c615ea3ecc971ae45443aff70783e6bea and candidate 8af45c5c23c993d9180e9260b0c8776b99d60db2: logging, redaction, rotation, Doctor, config, health, repeated tests, and vet pass; promotion is blocked by existing Windows full-suite failures and the missing CGO C compiler required for race."
+    "T-07 implementation 39f0da6c615ea3ecc971ae45443aff70783e6bea and candidate 8af45c5c23c993d9180e9260b0c8776b99d60db2: logging, redaction, rotation, Doctor, config, health, repeated tests, and vet pass; promotion is blocked by existing Windows full-suite failures and the missing CGO C compiler required for race.",
+    "Execution DAG is blocked after Wave A: T-03/T-06 require T-09-owned product migration composition to pass their required full suites, while T-09 depends transitively on T-03/T-06 results; resolving this requires an approved sequencing/path-owner deviation rather than a Lead-owned implementation change."
   ],
   "deviations": [],
   "worktrees": [
