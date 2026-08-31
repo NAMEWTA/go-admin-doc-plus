@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-14
 title: 重构 IAM 与 Organization 管理体验
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 页面承载认证、授权范围和不可逆账号删除交互，需跨 domain/Web Domain 且保持后端安全语义
 ready: true
@@ -114,7 +114,7 @@ shared_path_owners: []
 
 ## 10. 验收标准
 
-- [ ] frontmatter 所列 IAM/Organization/route/visual AC 在组件合同中成立。
-- [ ] deletion、scope、权限错误不会在 UI 中失真或绕过后端。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-14.md</Path>`。
-- [ ] commit、integration/result 和 T-19 E2E 归属完整。
+- [x] frontmatter 所列 IAM/Organization/route/visual AC 在组件合同中成立。
+- [x] deletion、scope、权限错误不会在 UI 中失真或绕过后端。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-14.md</Path>`。
+- [x] commit、integration/result 和 T-19 E2E 归属完整。
