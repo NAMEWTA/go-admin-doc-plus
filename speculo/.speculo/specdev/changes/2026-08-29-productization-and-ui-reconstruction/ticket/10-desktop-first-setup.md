@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-10
 title: 实现 Desktop 原生首次设置与 Session 转换
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 跨 Tauri/Rust/Go/WebView 安全边界处理最高权限凭据、首次 Session 和不可重复 Bootstrap
 ready: true

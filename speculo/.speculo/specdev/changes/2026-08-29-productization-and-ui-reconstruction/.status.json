@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T06:15:00+08:00",
+  "updated_at": "2026-09-01T06:40:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -581,24 +581,24 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-10",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-10",
-      "source_checkpoint": null,
+      "source_checkpoint": "d7e9dc9e34878fddd7333c365443dbca4df9a104",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "4a60783454d94a7de84de0628ea1d9aa4ef5d4c7",
+        "source_sha": "d7e9dc9e34878fddd7333c365443dbca4df9a104",
+        "candidate_sha": "f4a1d481821c3dab100f7c60d6a377eabbeacac3",
+        "candidate_tree_sha": "3b49657a0b76043a601557a17b2e8008e2a414ae",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-10",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-10",
+        "result_sha": "f4a1d481821c3dab100f7c60d6a377eabbeacac3",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "T-10 requires empty/restart/partial-success Go and Rust integration, preserved G0 main.rs input, secret/capability scans, lint/typecheck, Tauri no-bundle verification, and dual-app builds",
+          "status": "passed",
+          "reason": "Source and candidate passed deterministic empty/partial-success/restart setup coverage, 227 Vitest checks, Rust default/native tests and clippy, secret/capability scans, lint, complete typecheck, workspace boundary, dual-app and Tauri no-bundle builds; known Windows full-suite failures match the parent baseline, candidate Rust output required a shorter target path, and Go race could not start because gcc is absent from the current PATH",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-10.md</Path>"
         },
         "e2e": {
@@ -608,11 +608,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-10.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-01T05:37:59+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T06:40:00+08:00"
     }
   ]
 }
