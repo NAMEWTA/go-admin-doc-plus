@@ -3,6 +3,8 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSessionClient, createDesktopTransport } from '@go-admin-plus/adapter-desktop'
 import { ProductWorkspace } from '@go-admin-plus/app-shell/product'
 
+import FirstSetupGate from '../first-setup/FirstSetupGate.vue'
+
 const runtime = createDesktopRuntime()
 const platform = createDesktopPlatform()
 const fetcher = createDesktopFetch()
@@ -87,16 +89,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <aside class="native-e2e" aria-live="polite">
-    <span v-if="nativeBoundary">{{ nativeBoundary }}</span>
-    <span v-if="nativeAuthorization">{{ nativeAuthorization }}</span>
-    <button type="button" @click="nativeControl('scope-self')">E2E scope self</button>
-    <button type="button" @click="nativeControl('scope-all')">E2E scope all</button>
-    <button type="button" @click="nativeControl('permissions-off')">E2E permissions off</button>
-    <button type="button" @click="nativeControl('permissions-on')">E2E permissions on</button>
-    <button type="button" @click="nativeControl('session-revoke')">E2E revoke session</button>
-  </aside>
-  <ProductWorkspace :key="workspaceKey" host="desktop" :runtime="runtime" :platform="platform" :fetcher="fetcher" :session-client="session" />
+  <FirstSetupGate v-slot="{ workspaceKey: setupKey }">
+    <aside class="native-e2e" aria-live="polite">
+      <span v-if="nativeBoundary">{{ nativeBoundary }}</span>
+      <span v-if="nativeAuthorization">{{ nativeAuthorization }}</span>
+      <button type="button" @click="nativeControl('scope-self')">E2E scope self</button>
+      <button type="button" @click="nativeControl('scope-all')">E2E scope all</button>
+      <button type="button" @click="nativeControl('permissions-off')">E2E permissions off</button>
+      <button type="button" @click="nativeControl('permissions-on')">E2E permissions on</button>
+      <button type="button" @click="nativeControl('session-revoke')">E2E revoke session</button>
+    </aside>
+    <ProductWorkspace :key="`${setupKey}-${workspaceKey}`" host="desktop" :runtime="runtime" :platform="platform" :fetcher="fetcher" :session-client="session" />
+  </FirstSetupGate>
 </template>
 
 <style scoped>

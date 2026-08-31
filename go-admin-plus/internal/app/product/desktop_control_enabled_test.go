@@ -73,3 +73,16 @@ func TestDesktopNativeScopeControlEnforcesAndRestoresOwnership(t *testing.T) {
 		t.Fatalf("sentinels = %d, %v", sentinels, err)
 	}
 }
+
+func TestDesktopNativeControlDispatchesFirstSetupAction(t *testing.T) {
+	setup, closeDatabase := testDesktopSetup(t)
+	defer closeDatabase()
+	control := &desktopNativeControl{setup: setup}
+	request := httptest.NewRequest(http.MethodPost, "/__desktop/test-control", strings.NewReader(`{"action":"first-setup-state"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	control.serveHTTP(response, request)
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"state":"required"`) {
+		t.Fatalf("native setup state = %d %s", response.Code, response.Body.String())
+	}
+}

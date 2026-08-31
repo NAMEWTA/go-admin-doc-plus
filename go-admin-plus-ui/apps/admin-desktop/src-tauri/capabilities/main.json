@@ -6,6 +6,8 @@
   "permissions": [
     "allow-desktop-request",
     "allow-desktop-identity",
+    "allow-desktop-first-setup-state",
+    "allow-desktop-first-setup-submit",
     "allow-desktop-navigation",
     "allow-desktop-login",
     "allow-desktop-logout",

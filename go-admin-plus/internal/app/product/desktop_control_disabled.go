@@ -8,4 +8,6 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
-func desktopPrivateRoute(*database.Database, *session.Service) *desktophost.PrivateRoute { return nil }
+func desktopPrivateRoute(db *database.Database, sessions *session.Service) *desktophost.PrivateRoute {
+	return newDesktopSetupPrivateRoute(db, sessions, desktopSetupPath)
+}
