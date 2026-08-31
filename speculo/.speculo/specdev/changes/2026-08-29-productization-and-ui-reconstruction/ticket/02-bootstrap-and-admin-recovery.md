@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-02
 title: 建立首管理员 Bootstrap 与离线恢复用例
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 涉及认证、双方言 schema、并发唯一性、凭据处理和灾难恢复授权边界
 ready: true
 risk: critical
 blocked_by: []
 contract_ids: [AC-001, AC-002, AC-003, AC-006, AC-007]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/modules/iam/bootstrap/**</Path>", "<Path>go-admin-plus/internal/modules/iam/recovery/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery/**</Path>", "<Path>go-admin-plus/test/database/**</Path>", "<Path>database/bootstrap/**</Path>", "<Path>database/README.md</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/modules/iam/bootstrap/**</Path>", "<Path>go-admin-plus/internal/modules/iam/recovery/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery/**</Path>", "<Path>go-admin-plus/test/database/**</Path>", "<Path>database/bootstrap/**</Path>", "<Path>database/README.md</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/account/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/**</Path>", "<Path>go-admin-plus/internal/platform/database/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 固定凭据 SQL 被安全移除，现有未提交数据库资产按 Spec 处理并有 Evidence。
 - [ ] 验证记录到 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-02.md</Path>`。
 - [ ] 路径所有权、实现 commit、direct-parent/candidate、E2E disposition 和父分支 result 完整。
-
