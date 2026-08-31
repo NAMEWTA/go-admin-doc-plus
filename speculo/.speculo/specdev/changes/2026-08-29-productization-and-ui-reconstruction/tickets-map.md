@@ -148,7 +148,7 @@ T-17 + T-18 + T-19 + T-20 ─────────────────→
 | T-05 | T-12 | 无 | 否 | Wave B 可并行 |
 | T-08 | 所有合同消费者 | OpenAPI、Go wire、TS generated | 是 | T-08 是唯一 shared owner，消费者先只读 |
 | T-09 | T-10/T-18/T-21 | product root、CLI、Task、scripts、compose | 是 | 按 DAG 串行，T-09 先冻结命令面 |
-| T-10 | T-13/T-20 | Desktop native code | 是 | `main.rs` 默认仅 T-10 可写；DEV-13-001 仅开放两条原生 Session maintenance 命令，T-20 只写测试/验证脚本 |
+| T-10 | T-13/T-20 | Desktop native code | 是 | `main.rs` 默认仅 T-10 可写；DEV-10-001 开放 setup 所需最小 composition/proxy/manifest/UI 入口，DEV-13-001 仅开放两条原生 Session maintenance 命令，T-20 只写测试/验证脚本 |
 | T-11 | T-12/T-14/T-15/T-16 | lockfile、workspace UI package | 是 | T-11 是依赖和设计系统 owner，后续消费 |
 | T-12 | T-13/T-14/T-15/T-16 | App Shell | 部分 | T-12 唯一写 Shell；T-13 只写 adapter/domain |
 | T-13 | T-15/T-16 | 无 | 否 | Wave D 可并行 |
