@@ -12,8 +12,8 @@ risk: high
 blocked_by: [T-11]
 contract_ids: [AC-014, AC-015, AC-016, AC-017, AC-018]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/styles.css</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/styles.css</Path>", "<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/styles.css</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/styles.css</Path>", "<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>"]
+expected_changes: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/styles.css</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/styles.css</Path>", "<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/styles.css</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/styles.css</Path>", "<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/workspace-boundary.test.mjs</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/**</Path>"]
 shared_paths: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>"]
 shared_path_owners: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path> => T-12"]
@@ -45,6 +45,13 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path> =>
 ### 已采用的低影响假设
 
 - Dashboard 保持 Shell 内编译路由；领域 Tickets 替换 loader 指向的页面实现而不修改 manifest。
+
+### 已批准执行偏差 DEV-12-001
+
+- **触发事实：** 既有 workspace boundary 以静态 `<FilesPage :platform>` 强制旧页面组合；T-12 改为编译期 loader + `RouterView` 后，该断言与必须删除的平行 module 状态冲突。
+- **批准范围：** T-12 临时拥有 `tests/shell/workspace-boundary.test.mjs`，只把 Files Platform Port 断言迁移到 route-derived component props 和编译期 manifest loader。
+- **禁止扩大：** 不修改 adapters、领域页面或 package dependency allowlist，不放宽双 App Platform Port 与 Desktop command allowlist。
+- **批准来源：** 用户“都批准”覆盖全部必要偏差。
 
 ### 未决问题
 

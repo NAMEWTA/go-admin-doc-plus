@@ -319,7 +319,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Tickets | T-01~T-09、T-11 均 `done`；T-12 `in_progress`；T-10/T-13~T-21 `ready` |
 | Gate | G0 已关闭；G1 后端 lifecycle segment 已通过，G1 仍等待 T-11/T-12；G2~G8 关闭 |
 | Workspace records | T-11 source `a5f80ac`、merge `a95da8e`、candidate/result `4193229` 已记录；所有 source/candidate 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-12-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
