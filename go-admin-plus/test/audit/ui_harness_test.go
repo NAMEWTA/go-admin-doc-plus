@@ -17,6 +17,7 @@ import (
 	auditmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit/migrations/0011-audit"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -98,7 +99,7 @@ func TestAuditUIFixtureCleanupDeletesOnlyExpiredOperation(t *testing.T) {
 
 	ctx := context.Background()
 	db := openSQLite(t)
-	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
+	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, auditmigration.Provider{})
 	createAuditIAMFixture(t, db, auditUIFixtureTime)
 	loginRecorder, err := audit.NewLoginRecorder(db)
 	if err != nil {
@@ -174,7 +175,7 @@ func TestAuditUIHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	db := openAuditUIHarnessDatabase(t, ctx, profile)
-	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, auditmigration.Provider{})
+	migrate(t, db, reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, auditmigration.Provider{})
 	store := newAuditStore(t, db)
 	fixtureTime := auditUIFixtureTime
 	clock := &auditHarnessClock{now: fixtureTime}
