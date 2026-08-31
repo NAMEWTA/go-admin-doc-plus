@@ -58,22 +58,32 @@
       "source_checkpoint": null,
       "integration": {
         "status": "pending",
+        "parent_ref": "refs/heads/main",
         "parent_before_sha": null,
         "source_sha": null,
         "candidate_sha": null,
+        "candidate_tree_sha": null,
         "candidate_branch": null,
         "candidate_workspace_ref": null,
         "result_sha": null,
         "method": null,
         "conflict_paths": [],
         "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-01 requires Go, contract, generation-drift, and vulnerability checks on the parent candidate",
+          "evidence": null
+        },
         "e2e": {
           "required": false,
           "status": "not-required",
+          "reason": "The dependency-only security change is proven by request-contract regression and reachable vulnerability analysis; system E2E remains owned by T-19 and T-20",
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-01.md</Path>",
-        "attempts": 0
+        "attempts": 0,
+        "promotion_status": "pending"
       },
       "status": "active",
       "updated_at": "2026-08-31T17:58:27+08:00"
