@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-04
 title: 建立组织归属与五种数据范围
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 改变授权模型、双方言 schema、跨 IAM/Organization port 和所有受保护查询的不变量
 ready: true
 risk: critical
 blocked_by: []
 contract_ids: [AC-019, AC-020, AC-021, AC-022]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/modules/iam/authorization/scope*</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/data_scope*</Path>", "<Path>go-admin-plus/internal/modules/organization/projection.go</Path>", "<Path>go-admin-plus/internal/modules/organization/model.go</Path>", "<Path>go-admin-plus/internal/modules/organization/repository.go</Path>", "<Path>go-admin-plus/internal/modules/organization/service.go</Path>", "<Path>go-admin-plus/internal/modules/organization/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0050-data-scope/**</Path>", "<Path>go-admin-plus/test/iam/authorization/**</Path>", "<Path>go-admin-plus/test/organization/**</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/modules/iam/authorization/scope*</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/data_scope*</Path>", "<Path>go-admin-plus/internal/modules/organization/projection.go</Path>", "<Path>go-admin-plus/internal/modules/organization/model.go</Path>", "<Path>go-admin-plus/internal/modules/organization/repository.go</Path>", "<Path>go-admin-plus/internal/modules/organization/service.go</Path>", "<Path>go-admin-plus/internal/modules/organization/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0050-data-scope/**</Path>", "<Path>go-admin-plus/test/iam/authorization/**</Path>", "<Path>go-admin-plus/test/organization/**</Path>"]
 read_only_paths: ["<Path>contracts/openapi/modules/iam-administration.yaml</Path>", "<Path>contracts/openapi/modules/organization.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/service.go</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 无主部门/custom 空集合不扩大权限，多角色仅合并获准角色。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-04.md</Path>`。
 - [ ] 路径、commit、集成、父分支 result 和 E2E disposition 完整。
-

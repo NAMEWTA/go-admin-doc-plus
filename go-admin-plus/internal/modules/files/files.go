@@ -65,6 +65,7 @@ type Metadata struct {
 
 type UploadInput struct {
 	OriginalName, DeclaredMediaType string
+	DeclaredSizeBytes               int64
 	Content                         io.Reader
 }
 

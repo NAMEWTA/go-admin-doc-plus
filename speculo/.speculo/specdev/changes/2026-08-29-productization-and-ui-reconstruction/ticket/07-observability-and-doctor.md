@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-07
 title: 建立结构化日志与 Doctor 诊断能力
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 日志贯穿安全边界和所有运行角色，Doctor 需要稳定诊断合同、secret 脱敏与 profile 差异
 ready: true
 risk: high
 blocked_by: []
 contract_ids: [AC-029, AC-032, AC-033]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/platform/logging/**</Path>", "<Path>go-admin-plus/internal/application/operations/doctor/**</Path>", "<Path>go-admin-plus/internal/platform/config/logging*</Path>", "<Path>go-admin-plus/internal/platform/config/*_test.go</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/platform/logging/**</Path>", "<Path>go-admin-plus/internal/application/operations/doctor/**</Path>", "<Path>go-admin-plus/internal/platform/config/logging*</Path>", "<Path>go-admin-plus/internal/platform/config/*_test.go</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/app/product/**</Path>", "<Path>go-admin-plus/internal/host/**</Path>", "<Path>go-admin-plus/internal/modules/audit/**</Path>", "<Path>go-admin-plus/internal/platform/config/config.go</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] log.level、三 sink 和 secret corpus 测试通过。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-07.md</Path>`。
 - [ ] 路径、commit、集成、result 与 E2E disposition 完整。
-

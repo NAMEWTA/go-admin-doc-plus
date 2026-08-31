@@ -25,6 +25,12 @@ type fileRecord struct {
 	CreatedAt, UpdatedAt                                                            time.Time
 }
 
+type capacityReservation struct {
+	ID, OwnerAccountID   string
+	ReservedBytes        int64
+	CreatedAt, ExpiresAt time.Time
+}
+
 type repository struct{ dialect database.Dialect }
 
 func (repository) insert(ctx context.Context, tx database.Tx, record fileRecord) error {
@@ -33,6 +39,139 @@ func (repository) insert(ctx context.Context, tx database.Tx, record fileRecord)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, record.ID, record.OwnerAccountID, record.OriginalName, record.NameKey,
 		record.MediaType, record.SizeBytes, record.SHA256, record.StorageKey, record.TemporaryKey, record.State, record.Revision, record.CreatedAt, record.UpdatedAt)
 	return err
+}
+
+func (repository repository) reserve(ctx context.Context, tx database.Tx, id, owner string, bytes int64, createdAt, expiresAt time.Time, policy CapacityPolicy) error {
+	if id == "" || owner == "" || bytes < 1 || !policy.valid() {
+		return ErrValidation
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO files_capacity_counters(scope_kind, scope_id, reserved_bytes, reserved_objects)
+		VALUES (?, ?, 0, 0) ON CONFLICT (scope_kind, scope_id) DO NOTHING`, "account", owner); err != nil {
+		return err
+	}
+	if repository.dialect == database.DialectPostgres {
+		for _, key := range [][2]string{{"global", "global"}, {"account", owner}} {
+			var locked int
+			if err := tx.QueryRowContext(ctx, `SELECT 1 FROM files_capacity_counters WHERE scope_kind = ? AND scope_id = ? FOR UPDATE`, key[0], key[1]).Scan(&locked); err != nil {
+				return err
+			}
+		}
+	}
+	if ok, err := incrementCapacity(ctx, tx, "global", "global", bytes, policy.MaximumTotalBytes, policy.MaximumTotalObjects); err != nil {
+		return err
+	} else if !ok {
+		return ErrQuotaExceeded
+	}
+	if ok, err := incrementCapacity(ctx, tx, "account", owner, bytes, policy.MaximumAccountBytes, policy.MaximumAccountObjects); err != nil {
+		return err
+	} else if !ok {
+		return ErrQuotaExceeded
+	}
+	_, err := tx.ExecContext(ctx, `INSERT INTO files_capacity_reservations(id, owner_account_id, reserved_bytes, created_at, expires_at)
+		VALUES (?, ?, ?, ?, ?)`, id, owner, bytes, createdAt, expiresAt)
+	return err
+}
+
+func incrementCapacity(ctx context.Context, tx database.Tx, kind, id string, bytes, maximumBytes, maximumObjects int64) (bool, error) {
+	result, err := tx.ExecContext(ctx, `UPDATE files_capacity_counters
+		SET reserved_bytes = reserved_bytes + ?, reserved_objects = reserved_objects + 1
+		WHERE scope_kind = ? AND scope_id = ? AND reserved_bytes + ? <= ? AND reserved_objects + 1 <= ?`,
+		bytes, kind, id, bytes, maximumBytes, maximumObjects)
+	if err != nil {
+		return false, err
+	}
+	count, err := result.RowsAffected()
+	return count == 1, err
+}
+
+func (repository repository) commitReservation(ctx context.Context, tx database.Tx, reservationID string, record fileRecord) error {
+	reservation, err := repository.getReservation(ctx, tx, reservationID)
+	if err != nil {
+		return err
+	}
+	if reservation.OwnerAccountID != record.OwnerAccountID || record.SizeBytes < 0 || record.SizeBytes > reservation.ReservedBytes {
+		return ErrSizeMismatch
+	}
+	difference := reservation.ReservedBytes - record.SizeBytes
+	if difference > 0 {
+		if err := decrementCapacity(ctx, tx, reservation.OwnerAccountID, difference, 0); err != nil {
+			return err
+		}
+	}
+	if err := exactlyOne(tx.ExecContext(ctx, `DELETE FROM files_capacity_reservations WHERE id = ?`, reservationID)); err != nil {
+		return err
+	}
+	return repository.insert(ctx, tx, record)
+}
+
+func (repository repository) releaseReservation(ctx context.Context, tx database.Tx, id string) error {
+	reservation, err := repository.getReservation(ctx, tx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if err := decrementCapacity(ctx, tx, reservation.OwnerAccountID, reservation.ReservedBytes, 1); err != nil {
+		return err
+	}
+	return exactlyOne(tx.ExecContext(ctx, `DELETE FROM files_capacity_reservations WHERE id = ?`, id))
+}
+
+func (repository repository) getReservation(ctx context.Context, tx database.Tx, id string) (capacityReservation, error) {
+	query := `SELECT id, owner_account_id, reserved_bytes, created_at, expires_at FROM files_capacity_reservations WHERE id = ?`
+	if repository.dialect == database.DialectPostgres {
+		query += ` FOR UPDATE`
+	}
+	var reservation capacityReservation
+	err := tx.QueryRowContext(ctx, query, id).Scan(&reservation.ID, &reservation.OwnerAccountID, &reservation.ReservedBytes, &reservation.CreatedAt, &reservation.ExpiresAt)
+	return reservation, err
+}
+
+func decrementCapacity(ctx context.Context, tx database.Tx, owner string, bytes, objects int64) error {
+	for _, key := range [][2]string{{"global", "global"}, {"account", owner}} {
+		result, err := tx.ExecContext(ctx, `UPDATE files_capacity_counters
+			SET reserved_bytes = reserved_bytes - ?, reserved_objects = reserved_objects - ?
+			WHERE scope_kind = ? AND scope_id = ? AND reserved_bytes >= ? AND reserved_objects >= ?`,
+			bytes, objects, key[0], key[1], bytes, objects)
+		if err := exactlyOne(result, err); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (repository repository) releaseExpiredReservations(ctx context.Context, tx database.Tx, now time.Time, limit int) (int, error) {
+	query := `SELECT id FROM files_capacity_reservations WHERE expires_at <= ? ORDER BY expires_at ASC, id ASC LIMIT ?`
+	if repository.dialect == database.DialectPostgres {
+		query += ` FOR UPDATE SKIP LOCKED`
+	}
+	rows, err := tx.QueryContext(ctx, query, now, limit)
+	if err != nil {
+		return 0, err
+	}
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return 0, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return 0, err
+	}
+	if err := rows.Close(); err != nil {
+		return 0, err
+	}
+	for _, id := range ids {
+		if err := repository.releaseReservation(ctx, tx, id); err != nil {
+			return 0, err
+		}
+	}
+	return len(ids), nil
 }
 
 func (repository) markReady(ctx context.Context, tx database.Tx, id string, now time.Time) error {
@@ -132,12 +271,12 @@ func (repository repository) markDeleting(ctx context.Context, tx database.Tx, t
 	}
 	records := make([]fileRecord, 0, len(targets))
 	for _, target := range targets {
-		query := `SELECT id, owner_account_id, storage_key, state, revision FROM files_objects WHERE id = ?`
+		query := `SELECT id, owner_account_id, storage_key, size_bytes, state, revision FROM files_objects WHERE id = ?`
 		if repository.dialect == database.DialectPostgres {
 			query += ` FOR UPDATE`
 		}
 		var record fileRecord
-		err := tx.QueryRowContext(ctx, query, target.ID).Scan(&record.ID, &record.OwnerAccountID, &record.StorageKey, &record.State, &record.Revision)
+		err := tx.QueryRowContext(ctx, query, target.ID).Scan(&record.ID, &record.OwnerAccountID, &record.StorageKey, &record.SizeBytes, &record.State, &record.Revision)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -169,8 +308,11 @@ func (repository repository) markDeleting(ctx context.Context, tx database.Tx, t
 	return records, nil
 }
 
-func (repository) removeDeleting(ctx context.Context, tx database.Tx, id string) error {
-	result, err := tx.ExecContext(ctx, `DELETE FROM files_objects WHERE id = ? AND state = ?`, id, stateDeleting)
+func (repository) removeDeleting(ctx context.Context, tx database.Tx, record fileRecord) error {
+	if err := decrementCapacity(ctx, tx, record.OwnerAccountID, record.SizeBytes, 1); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, `DELETE FROM files_objects WHERE id = ? AND state = ?`, record.ID, stateDeleting)
 	if err != nil {
 		return err
 	}
@@ -232,8 +374,11 @@ func (repository) finishClaimedReady(ctx context.Context, tx database.Tx, id, to
 	return exactlyOne(result, err)
 }
 
-func (repository) removeClaimed(ctx context.Context, tx database.Tx, id, state, token string) error {
-	result, err := tx.ExecContext(ctx, `DELETE FROM files_objects WHERE id = ? AND state = ? AND claim_token = ?`, id, state, token)
+func (repository) removeClaimed(ctx context.Context, tx database.Tx, record fileRecord, token string) error {
+	if err := decrementCapacity(ctx, tx, record.OwnerAccountID, record.SizeBytes, 1); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, `DELETE FROM files_objects WHERE id = ? AND state = ? AND claim_token = ?`, record.ID, record.State, token)
 	return exactlyOne(result, err)
 }
 

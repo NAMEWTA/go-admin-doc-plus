@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-03
 title: 重构持久登录保护与 Session 续期模型
-status: review
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 改变认证协议、CSRF 安全语义、双方言并发状态和 Session 数据迁移
 ready: true
@@ -12,8 +12,8 @@ risk: critical
 blocked_by: []
 contract_ids: [AC-008, AC-009, AC-010, AC-011, AC-012, AC-013]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus/internal/modules/iam/account/password_budget.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/protection/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0040-session-protection/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>"]
-writable_paths: ["<Path>go-admin-plus/internal/modules/iam/account/password_budget.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/protection/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0040-session-protection/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>"]
+expected_changes: ["<Path>go-admin-plus/internal/modules/iam/account/password_budget.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/protection/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0040-session-protection/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>", "<Path>go-admin-plus/test/audit/audit_test.go</Path>", "<Path>go-admin-plus/test/audit/ui_harness_test.go</Path>"]
+writable_paths: ["<Path>go-admin-plus/internal/modules/iam/account/password_budget.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/protection/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0040-session-protection/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>", "<Path>go-admin-plus/test/audit/audit_test.go</Path>", "<Path>go-admin-plus/test/audit/ui_harness_test.go</Path>"]
 read_only_paths: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/http.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/transport/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/**</Path>"]
 shared_paths: []
 shared_path_owners: []
@@ -45,6 +45,12 @@ shared_path_owners: []
 ### 已采用的低影响假设
 
 - 限流阈值和时间窗采用类型化安全范围内的保守默认值；精确数值不进入公共 wire contract。
+
+### 已批准执行偏差 DEV-03-001
+
+- 用户 `2026-08-31T22:50:26+08:00` 的“都批准”覆盖 DEV-09-001 联合候选所必需的路径串行化。联合候选证明 0040 provider 加入产品 registry 后，既有跨模块 Session 消费测试仍只建立旧 0010/0020 schema，导致登录 fail-closed。
+- T-03 writable paths 精确增加上述 2 个 Audit 测试文件，仅允许把 `sessionprotectionmigration.Provider{}` 加入各自 disposable fixture；Authorization 目录继续由 T-04 拥有，不得修改 T-08-owned HTTP/wire contract。
+- 修正后的 source checkpoint 为 `b1d3432ceff1faf1d1b5b33a866f56b821c15329`；旧 rotate-on-read 断言继续作为 T-08 合同迁移红灯，不在 T-03 改回旧语义。
 
 ### 未决问题
 

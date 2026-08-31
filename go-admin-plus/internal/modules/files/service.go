@@ -13,12 +13,14 @@ import (
 const recoveryBatchSize = 100
 
 type Service struct {
-	db         Database
-	storage    Storage
-	authorizer Authorizer
-	repository repository
-	now        func() time.Time
-	observer   Observer
+	db             Database
+	storage        Storage
+	authorizer     Authorizer
+	repository     repository
+	now            func() time.Time
+	observer       Observer
+	capacityPolicy CapacityPolicy
+	capacityProbe  CapacityProbe
 }
 
 type Option func(*Service)
@@ -32,13 +34,17 @@ func NewService(db Database, storage Storage, authorizer Authorizer, options ...
 	if db == nil || storage == nil || authorizer == nil || (db.Dialect() != database.DialectSQLite && db.Dialect() != database.DialectPostgres) {
 		return nil, errors.New("files service dependencies are required")
 	}
-	service := &Service{db: db, storage: storage, authorizer: authorizer, repository: repository{dialect: db.Dialect()}, now: time.Now, observer: discardObserver{}}
+	service := &Service{db: db, storage: storage, authorizer: authorizer, repository: repository{dialect: db.Dialect()}, now: time.Now,
+		observer: discardObserver{}, capacityPolicy: DefaultCapacityPolicy()}
 	for _, option := range options {
 		if option != nil {
 			option(service)
 		}
 	}
-	if service.now == nil || service.observer == nil {
+	if service.capacityProbe == nil {
+		service.capacityProbe = configuredCapacityProbe{policy: service.capacityPolicy}
+	}
+	if service.now == nil || service.observer == nil || service.capacityProbe == nil || !service.capacityPolicy.valid() {
 		return nil, errors.New("files service options are invalid")
 	}
 	return service, nil
@@ -50,8 +56,13 @@ func (service *Service) Upload(ctx context.Context, actorID string, input Upload
 	if actorID == "" || !valid || input.Content == nil {
 		return Metadata{}, ErrValidation
 	}
-	// Keep the body outside a database transaction, but reject unauthorized callers before any
-	// bytes are staged. The insert transaction repeats this check to fence concurrent revocation.
+	reservationBytes := input.DeclaredSizeBytes
+	if reservationBytes < 0 || reservationBytes > service.capacityPolicy.MaximumObjectBytes {
+		return Metadata{}, ErrContentTooLarge
+	}
+	if reservationBytes == 0 {
+		reservationBytes = service.capacityPolicy.MaximumObjectBytes
+	}
 	if err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 		scope, err := service.authorizer.RequireInTx(ctx, tx, actorID, PermissionFilesWrite)
 		if err != nil {
@@ -64,6 +75,34 @@ func (service *Service) Upload(ctx context.Context, actorID string, input Upload
 	}); err != nil {
 		return Metadata{}, service.normalize(ctx, err)
 	}
+	capacity, err := service.capacityProbe.Capacity(ctx)
+	if err != nil {
+		if ctx != nil && ctx.Err() != nil {
+			return Metadata{}, ctx.Err()
+		}
+		return Metadata{}, ErrDiskCapacity
+	}
+	if !service.capacityPolicy.accepts(capacity, reservationBytes) {
+		return Metadata{}, ErrDiskCapacity
+	}
+	reservationID := uuid.NewString()
+	reservedAt := service.now().UTC()
+	if err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		return service.repository.reserve(ctx, tx, reservationID, actorID, reservationBytes, reservedAt,
+			reservedAt.Add(service.capacityPolicy.ReservationTTL), service.capacityPolicy)
+	}); err != nil {
+		return Metadata{}, service.normalize(ctx, err)
+	}
+	reservationOwnedByRequest := true
+	defer func() {
+		if reservationOwnedByRequest {
+			cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = service.db.WithinTx(cleanup, func(ctx context.Context, tx database.Tx) error {
+				return service.repository.releaseReservation(ctx, tx, reservationID)
+			})
+		}
+	}()
 	staged, err := service.storage.Stage(ctx, input.DeclaredMediaType, input.Content)
 	if err != nil {
 		return Metadata{}, service.normalize(ctx, err)
@@ -76,7 +115,10 @@ func (service *Service) Upload(ctx context.Context, actorID string, input Upload
 			_ = service.storage.Abort(cleanup, staged.TemporaryKey)
 		}
 	}()
-	now := service.now().UTC()
+	if input.DeclaredSizeBytes > 0 && staged.SizeBytes != input.DeclaredSizeBytes {
+		return Metadata{}, ErrSizeMismatch
+	}
+	now := reservedAt
 	record := fileRecord{ID: uuid.NewString(), OwnerAccountID: actorID, OriginalName: name, NameKey: nameKey(name), MediaType: staged.MediaType,
 		SizeBytes: staged.SizeBytes, SHA256: staged.SHA256, StorageKey: NewStorageKey(), TemporaryKey: &staged.TemporaryKey, State: statePending,
 		Revision: 1, CreatedAt: now, UpdatedAt: now}
@@ -88,11 +130,12 @@ func (service *Service) Upload(ctx context.Context, actorID string, input Upload
 		if !validScope(scope) {
 			return ErrDenied
 		}
-		return service.repository.insert(ctx, tx, record)
+		return service.repository.commitReservation(ctx, tx, reservationID, record)
 	})
 	if err != nil {
 		return Metadata{}, service.normalize(ctx, err)
 	}
+	reservationOwnedByRequest = false
 	stageOwnedByRequest = false
 	if err := service.storage.Publish(ctx, staged.TemporaryKey, record.StorageKey); err != nil {
 		return Metadata{}, service.normalize(ctx, err)
@@ -222,7 +265,7 @@ func (service *Service) Delete(ctx context.Context, actorID string, targets []De
 			return service.normalize(ctx, err)
 		}
 		if err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-			return service.repository.removeDeleting(ctx, tx, record.ID)
+			return service.repository.removeDeleting(ctx, tx, record)
 		}); err != nil {
 			return service.normalize(ctx, err)
 		}
@@ -234,27 +277,26 @@ func (service *Service) Delete(ctx context.Context, actorID string, targets []De
 // not repair the same object. SQLite's profile contract supplies the single process owner.
 func (service *Service) Reconcile(ctx context.Context) (resultErr error) {
 	defer func() { service.observe("reconcile", resultErr) }()
-	for {
-		now := service.now().UTC()
-		token := uuid.NewString()
-		var records []fileRecord
-		err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-			var err error
-			records, err = service.repository.claimRecovery(ctx, tx, now, now.Add(30*time.Second), token, recoveryBatchSize)
+	now := service.now().UTC()
+	token := uuid.NewString()
+	var records []fileRecord
+	err := service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		if _, err := service.repository.releaseExpiredReservations(ctx, tx, now, service.capacityPolicy.ReconcileBatchSize); err != nil {
 			return err
-		})
-		if err != nil {
-			return service.normalize(ctx, err)
 		}
-		if len(records) == 0 {
-			return nil
-		}
-		for _, record := range records {
-			if err := service.reconcileRecord(ctx, record, token); err != nil {
-				return err
-			}
+		var err error
+		records, err = service.repository.claimRecovery(ctx, tx, now, now.Add(30*time.Second), token, service.capacityPolicy.ReconcileBatchSize)
+		return err
+	})
+	if err != nil {
+		return service.normalize(ctx, err)
+	}
+	for _, record := range records {
+		if err := service.reconcileRecord(ctx, record, token); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 func (service *Service) reconcileRecord(ctx context.Context, record fileRecord, token string) error {
@@ -284,7 +326,7 @@ func (service *Service) reconcileRecord(ctx context.Context, record fileRecord, 
 		}
 		return service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
 			if !objectExists {
-				return service.repository.removeClaimed(ctx, tx, record.ID, statePending, token)
+				return service.repository.removeClaimed(ctx, tx, record, token)
 			}
 			return service.repository.finishClaimedReady(ctx, tx, record.ID, token, service.now().UTC())
 		})
@@ -293,7 +335,7 @@ func (service *Service) reconcileRecord(ctx context.Context, record fileRecord, 
 			return service.normalize(ctx, err)
 		}
 		return service.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-			return service.repository.removeClaimed(ctx, tx, record.ID, stateDeleting, token)
+			return service.repository.removeClaimed(ctx, tx, record, token)
 		})
 	default:
 		return ErrInternal
@@ -308,7 +350,7 @@ func (service *Service) normalize(ctx context.Context, err error) error {
 		return ctx.Err()
 	}
 	for _, stable := range []error{context.Canceled, context.DeadlineExceeded, ErrDenied, ErrValidation, ErrNotFound, ErrConflict,
-		ErrAuthentication, ErrCSRF, ErrContentTooLarge, ErrMediaType} {
+		ErrAuthentication, ErrCSRF, ErrContentTooLarge, ErrMediaType, ErrQuotaExceeded, ErrDiskCapacity, ErrSizeMismatch} {
 		if errors.Is(err, stable) {
 			return stable
 		}
@@ -323,7 +365,8 @@ func (service *Service) observe(operation string, err error) {
 	outcome := "succeeded"
 	if err != nil {
 		outcome = "failed"
-		for _, rejected := range []error{ErrDenied, ErrValidation, ErrNotFound, ErrConflict, ErrAuthentication, ErrCSRF, ErrContentTooLarge, ErrMediaType} {
+		for _, rejected := range []error{ErrDenied, ErrValidation, ErrNotFound, ErrConflict, ErrAuthentication, ErrCSRF, ErrContentTooLarge, ErrMediaType,
+			ErrQuotaExceeded, ErrDiskCapacity, ErrSizeMismatch} {
 			if errors.Is(err, rejected) {
 				outcome = "rejected"
 				break
