@@ -9,7 +9,7 @@ planning_depth: deep
 planning_depth_reason: 模板会写入双方言 schema、公共 API、后端模块、前端 workspace 和权限注册，事故半径覆盖未来所有生成模块
 ready: true
 risk: high
-blocked_by: [T-04, T-05, T-06, T-11, T-14, T-16]
+blocked_by: [T-04, T-05, T-06, T-09, T-11, T-14, T-16]
 contract_ids: [AC-034]
 owner: unassigned
 expected_changes: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 双 dialect、OpenAPI、Go、domain/Web Domain、permission、tests 均生成且门禁通过。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-17.md</Path>`。
 - [ ] commit、integration/result 和 E2E disposition 完整。
-
