@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-08
 title: 汇合公共 OpenAPI 合同与 HTTP Adapters
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 原子改变共享 OpenAPI、生成 wire 类型、认证端点和破坏性账号删除公共接口
 ready: true
@@ -130,7 +130,7 @@ shared_path_owners: ["<Path>contracts/openapi/**</Path> => T-08", "<Path>go-admi
 
 ## 10. 验收标准
 
-- [ ] frontmatter 所列 AC 的公开合同和失败语义成立。
-- [ ] 旧账号 DELETE/batch-delete 与滚动 CSRF 描述/调用为零。
-- [ ] contract lint、generate check、Go/TS 验证写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-08.md</Path>`。
-- [ ] shared owner、commit、candidate/direct-parent、result 和 E2E disposition 完整。
+- [x] frontmatter 所列 AC 的公开合同和失败语义成立。
+- [x] 旧账号 DELETE/batch-delete 与滚动 CSRF 描述/调用为零。
+- [x] contract lint、generate check、Go/TS 验证写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-08.md</Path>`。
+- [x] shared owner、commit、candidate/direct-parent、result 和 E2E disposition 完整。

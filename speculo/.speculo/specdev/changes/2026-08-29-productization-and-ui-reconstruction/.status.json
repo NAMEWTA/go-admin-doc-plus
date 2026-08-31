@@ -405,25 +405,25 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-08",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-08",
-      "source_checkpoint": null,
+      "source_checkpoint": "5327dddebfb1a4e25eedee6b7f9b1beb35507c18",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "b4d7b199cd0bc1ea5105478a2e189b3eddc85fa2",
+        "source_sha": "5327dddebfb1a4e25eedee6b7f9b1beb35507c18",
+        "candidate_sha": "eb1b0a661017c3db7b1f24418907e07ac762844e",
+        "candidate_tree_sha": "c012c178ad1080672179f8d26b4a182a02b79be3",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-08",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-08",
+        "result_sha": "eb1b0a661017c3db7b1f24418907e07ac762844e",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "T-08 requires canonical OpenAPI lint, deterministic generation drift, IAM/Files HTTP conformance, Go/TypeScript checks, and old-contract zero scans on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Canonical lint and deterministic generation, targeted IAM/Files/session/product/audit Go matrices, non-skipped PostgreSQL session fencing, IAM Web Domain tests, full UI typecheck/build, architecture/governance checks, and old-contract zero scans passed; both full Go dialect commands were executed and retained only the attributed pre-existing Windows baseline failures",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-08.md</Path>"
         },
         "e2e": {
           "required": false,
@@ -432,11 +432,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-08.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-01T01:02:55+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T02:55:08+08:00"
     },
     {
       "ticket_id": "T-09",
