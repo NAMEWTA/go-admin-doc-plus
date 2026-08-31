@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-12
 title: 建立 Vue Router 单一事实源与工作台 Shell
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 共享 App Shell、双宿主 history、权限路由和所有业务页面导航均受影响
 ready: true
@@ -117,7 +117,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path> =>
 
 ## 10. 验收标准
 
-- [ ] `AC-014~018` 的组件/manifest 合同成立。
-- [ ] Web/Desktop history 不同但业务 route/权限一致，数据库不能加载任意组件。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-12.md</Path>`。
-- [ ] shared owner、commit、integration/result 和 E2E disposition 完整。
+- [x] `AC-014~018` 的组件/manifest 合同成立。
+- [x] Web/Desktop history 不同但业务 route/权限一致，数据库不能加载任意组件。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-12.md</Path>`。
+- [x] shared owner、commit、integration/result 和 E2E disposition 完整。

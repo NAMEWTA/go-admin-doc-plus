@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main` 已包含 T-11 result `4193229f364a0042c6345a2917c98ea9eb775f79`；Element Plus token、共享管理组件与 Node-compatible frozen lock 已进入父分支 |
-| Tickets | T-01~T-09、T-11 均 `done`；T-12 `in_progress`；T-10/T-13~T-21 `ready` |
+| Parent | `main` 已包含 T-12 result `edcdf14930e0d45b4cf61f64f891fdc5e7f883cc`；编译期 manifest、Vue Router 单一事实源与双宿主 Shell 已进入父分支 |
+| Tickets | T-01~T-09、T-11~T-12 均 `done`；T-10/T-13~T-21 `ready` |
 | Gate | G0 已关闭；G1 后端 lifecycle segment 已通过，G1 仍等待 T-11/T-12；G2~G8 关闭 |
-| Workspace records | T-11 source `a5f80ac`、merge `a95da8e`、candidate/result `4193229` 已记录；所有 source/candidate 与旧失败候选继续保留 |
+| Workspace records | T-12 source `cfff08d`、candidate/result `edcdf14` 已记录；所有 source/candidate 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-12-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-11 已以 result `4193229f364a0042c6345a2917c98ea9eb775f79` 完成共享 token/component 并解锁 T-12。T-12 已由 `codex-root` 从 base `7bef099780c683121758b14a5ef17a5f7eb3f395` 开始执行，负责 Router 单一事实源与双宿主 Shell；失败候选、source worktree 与保护 stash 均继续保留。
+T-12 已以 result `edcdf14930e0d45b4cf61f64f891fdc5e7f883cc` 完成 Router 单一事实源、权限交集、双 history、403/404/unavailable 与动态 loader，并解锁 T-14~16 的 Shell 依赖。下一执行面为 T-13；失败候选、source worktree 与保护 stash 均继续保留。
 
 ### Resume Protocol
 
