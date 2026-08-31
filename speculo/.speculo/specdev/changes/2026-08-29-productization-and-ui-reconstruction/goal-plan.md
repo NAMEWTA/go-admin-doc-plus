@@ -95,6 +95,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 - DEV-03-001 允许 T-03 精确修正 2 个 Audit disposable fixture；T-04 继续按既有目录所有权修正 2 个 Authorization fixture。四者仅显式应用 0040 migration；旧 rotate-on-read HTTP 断言保持为 T-08 红灯，不得在领域服务中恢复 GET 写入。
 - T-09 的 `blocked_by: [T-07, T-08]` 继续约束完整 Ticket closure/result；提前检查点不是 T-09 result，也不解锁 T-10/T-18。
 - 联合候选仍必须补齐 required race 与真实 PostgreSQL 证据后才能晋升。既有 Windows 平台失败只能按 owning Ticket 保留为明确失败证据，不得改写为 passed；G5~G8、T-18~21 的 required 门禁完全不变。
+- **Wave A bridge promotion contract：** 用户“都批准”同时批准修订本轮 full-suite 进入条件。T-01/T-02/T-03/T-04/T-06/T-07 只有在全部改动包、产品 migration matrix、`go vet`、architecture、required race、逐 Ticket 独立真实 PostgreSQL 和 reachable vulnerability 检查通过，且 `go test ./...` 已同时在最新 `main` 与候选实际运行并完成差异归因时，才可把联合 parent-candidate 记为 passed。允许携带的红灯仅限两类：两侧完全一致的 Windows 平台基线；以及 T-03 稳定 CSRF/GET 零写必然触发、且由 T-08 明确拥有的旧 rotate-on-read HTTP 断言。它们必须写入对应 owning Ticket，不得记为自身通过，并须在 G4/G5 前清零。
 
 ### Waves and Ownership
 
