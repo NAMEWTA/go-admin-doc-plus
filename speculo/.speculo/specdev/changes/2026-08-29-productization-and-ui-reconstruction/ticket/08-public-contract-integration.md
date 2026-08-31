@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-08
 title: 汇合公共 OpenAPI 合同与 HTTP Adapters
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 原子改变共享 OpenAPI、生成 wire 类型、认证端点和破坏性账号删除公共接口
 ready: true
 risk: critical
 blocked_by: [T-02, T-03, T-04, T-05, T-06]
 contract_ids: [AC-009, AC-010, AC-011, AC-012, AC-013, AC-019, AC-020, AC-021, AC-022, AC-023, AC-024, AC-025, AC-026, AC-027, AC-028, AC-029, AC-038]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>contracts/openapi/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/http.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/transport/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/http*</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/transport/**</Path>", "<Path>go-admin-plus/internal/modules/files/http.go</Path>", "<Path>go-admin-plus/internal/modules/files/transport/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/*/generated/**</Path>", "<Path>scripts/contracts/generated/**</Path>"]
 writable_paths: ["<Path>contracts/openapi/**</Path>", "<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/http.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/transport/**</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/http*</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/transport/**</Path>", "<Path>go-admin-plus/internal/modules/files/http.go</Path>", "<Path>go-admin-plus/internal/modules/files/transport/**</Path>", "<Path>go-admin-plus-ui/packages/api-client/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/audit/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/scheduler/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/settings/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/*/generated/**</Path>", "<Path>scripts/contracts/generated/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/bootstrap/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/administration/deletion*</Path>", "<Path>go-admin-plus/internal/modules/files/quota*</Path>", "<Path>scripts/contracts/cli.mjs</Path>"]
