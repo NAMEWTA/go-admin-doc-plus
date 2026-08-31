@@ -46,10 +46,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Read and refresh the current session */
+        /** Read the current session without mutating it */
         get: operations["getCurrentIamSession"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/session/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Extend idle expiry for an active session */
+        post: operations["heartbeatIamSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -84,6 +101,23 @@ export interface paths {
         put?: never;
         /** Revoke the current session */
         post: operations["logoutIamSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/session/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renew an active session while preserving its family CSRF token */
+        post: operations["renewIamSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -221,6 +255,16 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Login is temporarily unavailable without revealing which protection bucket was reached. */
+        RateLimitProblem: {
+            headers: {
+                "Retry-After": number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description The request does not satisfy the declared contract. */
         ValidationProblem: {
             headers: {
@@ -251,7 +295,7 @@ export interface components {
     parameters: never;
     requestBodies: never;
     headers: {
-        /** @description The current anti-forgery token. It must be replaced after session rotation. */
+        /** @description The stable anti-forgery token shared by the current Session family. */
         CsrfToken: string;
     };
     pathItems: never;
@@ -353,6 +397,29 @@ export interface operations {
             /** @description The session is active. */
             200: {
                 headers: {
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
+            };
+            401: components["responses"]["AuthenticationProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
+    heartbeatIamSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Activity was recorded without changing the Session family CSRF token. */
+            200: {
+                headers: {
                     "Set-Cookie"?: string;
                     "X-CSRF-Token": components["headers"]["CsrfToken"];
                     [name: string]: unknown;
@@ -362,6 +429,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
             500: components["responses"]["InternalProblem"];
         };
     };
@@ -391,6 +459,7 @@ export interface operations {
             };
             400: components["responses"]["ValidationProblem"];
             401: components["responses"]["AuthenticationProblem"];
+            429: components["responses"]["RateLimitProblem"];
             500: components["responses"]["InternalProblem"];
         };
     };
@@ -410,6 +479,31 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
+    renewIamSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The opaque Session token is current and the family CSRF token is unchanged. */
+            200: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionResponse"];
+                };
             };
             401: components["responses"]["AuthenticationProblem"];
             403: components["responses"]["AuthorizationProblem"];

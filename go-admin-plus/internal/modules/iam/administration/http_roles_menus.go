@@ -2,10 +2,13 @@ package administration
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"fmt"
 
 	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration/transport"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
 func (s *HTTPServer) GetIamCapabilityManifest(ctx context.Context, _ transport.GetIamCapabilityManifestRequestObject) (transport.GetIamCapabilityManifestResponseObject, error) {
@@ -26,6 +29,9 @@ func (s *HTTPServer) ListIamRoles(ctx context.Context, _ transport.ListIamRolesR
 		if errors.Is(err, ErrDenied) {
 			return transport.ListIamRoles403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
 		}
+		return transport.ListIamRoles500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
+	}
+	if err := s.projectEffectiveRoleScopes(ctx, values); err != nil {
 		return transport.ListIamRoles500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
 	}
 	body := make([]transport.Role, 0, len(values))
@@ -53,8 +59,73 @@ func (s *HTTPServer) CreateIamRole(ctx context.Context, request transport.Create
 		}
 		return transport.CreateIamRole500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
 	}
+	if s.dataScopes != nil {
+		err = s.dataScopes.SetRoleDataScope(ctx, requestHTTP(ctx).actorID, value.ID, RoleDataScope{Scope: value.Scope})
+		if err != nil {
+			if cleanupErr := s.removeUninitializedRole(context.WithoutCancel(ctx), value.ID); cleanupErr != nil {
+				return transport.CreateIamRole500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
+			}
+			switch {
+			case errors.Is(err, ErrDenied):
+				return transport.CreateIamRole403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
+			case errors.Is(err, ErrConflict):
+				return transport.CreateIamRole409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(ctx)}, nil
+			default:
+				return transport.CreateIamRole500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
+			}
+		}
+	}
 	csrf, cookie := responseHeaders(ctx)
 	return transport.CreateIamRole201JSONResponse{Body: transportRole(value), Headers: transport.CreateIamRole201ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
+}
+
+func (s *HTTPServer) projectEffectiveRoleScopes(ctx context.Context, values []Role) error {
+	if s.dataScopes == nil || len(values) == 0 {
+		return nil
+	}
+	arguments := make([]any, 0, len(values))
+	index := make(map[string]int, len(values))
+	for position := range values {
+		arguments = append(arguments, values[position].ID)
+		index[values[position].ID] = position
+	}
+	return s.dataScopes.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		rows, err := tx.QueryContext(ctx, `SELECT role_id, scope FROM iam_role_data_scopes WHERE role_id IN (`+placeholders(len(values))+`)`, arguments...)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var roleID string
+			var scope authorization.Scope
+			if err := rows.Scan(&roleID, &scope); err != nil {
+				return err
+			}
+			position, ok := index[roleID]
+			if !ok || !validDataScope(scope) {
+				return fmt.Errorf("invalid role data scope projection")
+			}
+			values[position].Scope = scope
+		}
+		return rows.Err()
+	})
+}
+
+func (s *HTTPServer) removeUninitializedRole(ctx context.Context, roleID string) error {
+	return s.dataScopes.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		result, err := tx.ExecContext(ctx, `DELETE FROM iam_roles WHERE id = ?`, roleID)
+		if err != nil {
+			return err
+		}
+		count, err := result.RowsAffected()
+		if err != nil {
+			return err
+		}
+		if count != 1 {
+			return fmt.Errorf("created role cleanup affected %d rows", count)
+		}
+		return nil
+	})
 }
 
 func (s *HTTPServer) UpdateIamRole(ctx context.Context, request transport.UpdateIamRoleRequestObject) (transport.UpdateIamRoleResponseObject, error) {
@@ -77,8 +148,49 @@ func (s *HTTPServer) UpdateIamRole(ctx context.Context, request transport.Update
 		}
 		return transport.UpdateIamRole500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
 	}
+	if s.dataScopes != nil {
+		syncScope, syncErr := s.shouldSyncBaseRoleScope(ctx, request.RoleId)
+		if syncErr != nil {
+			return transport.UpdateIamRole500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
+		}
+		if syncScope {
+			syncErr = s.dataScopes.SetRoleDataScope(ctx, requestHTTP(ctx).actorID, request.RoleId, RoleDataScope{Scope: authorization.Scope(request.Body.DataScope)})
+			switch {
+			case syncErr == nil:
+			case errors.Is(syncErr, ErrDenied):
+				return transport.UpdateIamRole403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
+			case errors.Is(syncErr, ErrNotFound):
+				return transport.UpdateIamRole404ApplicationProblemPlusJSONResponse{NotFoundProblemApplicationProblemPlusJSONResponse: notFoundProblem(ctx)}, nil
+			case errors.Is(syncErr, ErrConflict):
+				return transport.UpdateIamRole409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(ctx)}, nil
+			default:
+				return transport.UpdateIamRole500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
+			}
+		}
+	}
 	csrf, cookie := responseHeaders(ctx)
 	return transport.UpdateIamRole204Response{Headers: transport.UpdateIamRole204ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
+}
+
+func (s *HTTPServer) shouldSyncBaseRoleScope(ctx context.Context, roleID string) (bool, error) {
+	var scope authorization.Scope
+	err := s.dataScopes.db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		return tx.QueryRowContext(ctx, `SELECT scope FROM iam_role_data_scopes WHERE role_id = ?`, roleID).Scan(&scope)
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return true, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	switch scope {
+	case authorization.ScopeAll, authorization.ScopeSelf:
+		return true, nil
+	case authorization.ScopeOrganization, authorization.ScopeOrganizationTree, authorization.ScopeCustom:
+		return false, nil
+	default:
+		return false, fmt.Errorf("invalid role data scope projection")
+	}
 }
 
 func (s *HTTPServer) DeleteIamRole(ctx context.Context, request transport.DeleteIamRoleRequestObject) (transport.DeleteIamRoleResponseObject, error) {

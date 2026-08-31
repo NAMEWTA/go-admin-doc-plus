@@ -530,7 +530,7 @@ func contextForFailure(sentinel error) (context.Context, context.CancelFunc) {
 	return ctx, func() {}
 }
 
-func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
+func TestSessionLifecyclePersistsOpaqueTokenDigestAndStableCSRFProjection(t *testing.T) {
 	db, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	issued, err := service.Login(context.Background(), "ADMIN", "correct horse battery")
 	if err != nil {
@@ -539,12 +539,12 @@ func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
 	if len(issued.Token) != 43 || len(issued.CSRF) != 43 {
 		t.Fatal("session material is not high entropy")
 	}
-	var tokenHash, csrfHash string
-	if err := db.Bun().QueryRowContext(context.Background(), `SELECT token_hash, csrf_hash FROM iam_sessions`).Scan(&tokenHash, &csrfHash); err != nil {
+	var tokenHash, csrfHash, csrfToken string
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT token_hash, csrf_hash, csrf_token FROM iam_sessions`).Scan(&tokenHash, &csrfHash, &csrfToken); err != nil {
 		t.Fatal(err)
 	}
-	if tokenHash == issued.Token || csrfHash == issued.CSRF || len(tokenHash) != 64 || len(csrfHash) != 64 {
-		t.Fatal("raw session material reached persistence")
+	if tokenHash == issued.Token || csrfHash == issued.CSRF || len(tokenHash) != 64 || len(csrfHash) != 64 || csrfToken != issued.CSRF {
+		t.Fatal("session persistence projection is inconsistent")
 	}
 	serialized, err := json.Marshal(issued)
 	if err != nil || strings.Contains(string(serialized), issued.Token) || strings.Contains(string(serialized), issued.CSRF) {
@@ -553,7 +553,7 @@ func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
 
 	*clock = clock.Add(61 * time.Minute)
 	current, err := service.Current(context.Background(), issued.Token)
-	if err != nil || current.Rotated || current.Token != "" || current.CSRF != "" {
+	if err != nil || current.Rotated || current.Token != "" || current.CSRF != issued.CSRF {
 		t.Fatalf("read exposed replacement credentials: %#v %v", current, err)
 	}
 	renewed, err := service.Renew(context.Background(), issued.Token, issued.CSRF)
@@ -678,7 +678,7 @@ func TestSessionFamilyKeepsTokenAndCSRFAcrossReadsRenewalsAndWrites(t *testing.T
 	}
 	*clock = clock.Add(61 * time.Minute)
 	read, err := service.Profile(context.Background(), first.Token)
-	if err != nil || read.Token != "" || read.CSRF != "" || read.Rotated {
+	if err != nil || read.Token != "" || read.CSRF != first.CSRF || read.Rotated {
 		t.Fatalf("profile read changed credentials: %#v %v", read, err)
 	}
 	renewed, err := service.Renew(context.Background(), first.Token, first.CSRF)
@@ -753,18 +753,18 @@ func TestAuthorizeRequestFencesCSRFFromIdleTouch(t *testing.T) {
 	}
 
 	read, err := service.AuthorizeRequest(context.Background(), issued.Token, "", false)
-	if err != nil || read.Profile.ID != issued.Profile.ID || read.CSRF != "" {
+	if err != nil || read.Profile.ID != issued.Profile.ID || read.CSRF != issued.CSRF {
 		t.Fatalf("generic protected read = %#v, %v", read, err)
 	}
 	*clock = clock.Add(61 * time.Minute)
 	continued, err := service.AuthorizeRequest(context.Background(), issued.Token, issued.CSRF, true)
-	if err != nil || continued.Rotated || continued.Token != "" || continued.CSRF != "" {
+	if err != nil || continued.Rotated || continued.Token != "" || continued.CSRF != issued.CSRF {
 		t.Fatalf("generic mutation changed credentials = %#v, %v", continued, err)
 	}
 }
 
-func TestHTTPProfileReadDoesNotSetReplacementCredentials(t *testing.T) {
-	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
+func TestHTTPReadsReturnStableCSRFWithoutCookieRotationOrSessionWrites(t *testing.T) {
+	db, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	handler, err := session.NewHTTPHandler(service, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
@@ -774,15 +774,28 @@ func TestHTTPProfileReadDoesNotSetReplacementCredentials(t *testing.T) {
 		t.Fatal(err)
 	}
 	*clock = clock.Add(61 * time.Minute)
-	request := httptest.NewRequest(http.MethodGet, "/iam/account/profile", nil)
-	request.AddCookie(&http.Cookie{Name: session.CookieName, Value: issued.Token})
-	response := httptest.NewRecorder()
-	handler.ServeHTTP(response, request)
-	if response.Code != http.StatusOK {
-		t.Fatalf("profile read status=%d", response.Code)
+	var changesBefore int64
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT total_changes()`).Scan(&changesBefore); err != nil {
+		t.Fatal(err)
 	}
-	if response.Header().Get("Set-Cookie") != "" || response.Header().Get("X-CSRF-Token") != "" {
-		t.Fatal("profile GET emitted replacement credentials")
+	for _, path := range []string{"/iam/account/profile", "/iam/session/current"} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		request.AddCookie(&http.Cookie{Name: session.CookieName, Value: issued.Token})
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("%s status=%d body=%s", path, response.Code, response.Body.String())
+		}
+		if response.Header().Get("Set-Cookie") != "" || response.Header().Get("X-CSRF-Token") != issued.CSRF {
+			t.Fatalf("%s did not return the stable CSRF contract", path)
+		}
+	}
+	var changesAfter int64
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT total_changes()`).Scan(&changesAfter); err != nil {
+		t.Fatal(err)
+	}
+	if changesAfter != changesBefore {
+		t.Fatalf("authenticated GETs wrote %d rows", changesAfter-changesBefore)
 	}
 }
 

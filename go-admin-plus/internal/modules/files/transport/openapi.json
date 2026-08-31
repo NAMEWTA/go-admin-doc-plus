@@ -170,6 +170,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalProblem"
+          },
+          "507": {
+            "$ref": "#/components/responses/CapacityProblem"
           }
         }
       }
@@ -363,7 +366,7 @@
     },
     "headers": {
       "CsrfToken": {
-        "description": "Current anti-forgery token after session rotation.",
+        "description": "Stable anti-forgery token for the authenticated Session family.",
         "required": true,
         "schema": {
           "type": "string",
@@ -690,6 +693,24 @@
       },
       "ContentProblem": {
         "description": "File content was rejected.",
+        "headers": {
+          "X-CSRF-Token": {
+            "$ref": "#/components/headers/CsrfToken"
+          },
+          "Set-Cookie": {
+            "$ref": "#/components/headers/SetCookie"
+          }
+        },
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/Problem"
+            }
+          }
+        }
+      },
+      "CapacityProblem": {
+        "description": "Storage capacity is temporarily unavailable without exposing global or account usage.",
         "headers": {
           "X-CSRF-Token": {
             "$ref": "#/components/headers/CsrfToken"

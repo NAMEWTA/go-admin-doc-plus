@@ -391,8 +391,9 @@ func TestRealIAMAdaptersRecordLoginAndAuthorizeAuditRequests(t *testing.T) {
 		t.Fatalf("login status = %d body=%s", loginResponse.Code, loginResponse.Body.String())
 	}
 	cookie := strings.SplitN(loginResponse.Header().Get("Set-Cookie"), ";", 2)[0]
-	if cookie == "" {
-		t.Fatal("login cookie is missing")
+	csrf := loginResponse.Header().Get("X-CSRF-Token")
+	if cookie == "" || len(csrf) != 43 {
+		t.Fatal("login credentials are missing")
 	}
 
 	list := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
@@ -413,45 +414,26 @@ func TestRealIAMAdaptersRecordLoginAndAuthorizeAuditRequests(t *testing.T) {
 		}
 	}
 
-	originalCookie := cookie
 	now = now.Add(31 * time.Minute)
-	rotating := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
-	rotating.Header.Set("Cookie", originalCookie)
-	rotatingResponse := httptest.NewRecorder()
-	auditHandler.ServeHTTP(rotatingResponse, rotating)
-	replacementHeader := rotatingResponse.Header().Get("Set-Cookie")
-	replacementCSRF := rotatingResponse.Header().Get("X-CSRF-Token")
-	if rotatingResponse.Code != http.StatusOK || replacementHeader == "" || len(replacementCSRF) != 43 {
-		t.Fatalf("real Audit request did not rotate IAM credentials: status=%d cookie=%t csrf=%t", rotatingResponse.Code, replacementHeader != "", replacementCSRF != "")
+	stable := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
+	stable.Header.Set("Cookie", cookie)
+	stableResponse := httptest.NewRecorder()
+	auditHandler.ServeHTTP(stableResponse, stable)
+	if stableResponse.Code != http.StatusOK || stableResponse.Header().Get("Set-Cookie") != "" || stableResponse.Header().Get("X-CSRF-Token") != csrf {
+		t.Fatalf("real Audit request changed stable IAM credentials: status=%d cookie=%t csrf_stable=%t", stableResponse.Code, stableResponse.Header().Get("Set-Cookie") != "", stableResponse.Header().Get("X-CSRF-Token") == csrf)
 	}
-	for _, attribute := range []string{session.CookieName + "=", "Path=/", "HttpOnly", "Secure", "SameSite=Strict"} {
-		if !strings.Contains(replacementHeader, attribute) {
-			t.Fatalf("replacement cookie omitted required attribute %q", attribute)
-		}
+	withStable := httptest.NewRequest(http.MethodPost, "/audit/records/cleanup", strings.NewReader(`{"before":"2026-06-01T00:00:00Z","confirmation":"delete-expired-audit-records"}`))
+	withStable.Header.Set("Content-Type", "application/json")
+	withStable.Header.Set("Cookie", cookie)
+	withStable.Header.Set("X-CSRF-Token", csrf)
+	withStableResponse := httptest.NewRecorder()
+	auditHandler.ServeHTTP(withStableResponse, withStable)
+	if withStableResponse.Code != http.StatusOK || withStableResponse.Header().Get("X-CSRF-Token") != csrf || withStableResponse.Header().Get("Set-Cookie") != "" {
+		t.Fatalf("stable IAM credentials did not authorize the next Audit request: status=%d", withStableResponse.Code)
 	}
-	cookie = strings.SplitN(replacementHeader, ";", 2)[0]
-	if cookie == originalCookie {
-		t.Fatal("rotation returned the original Session credential")
-	}
-	stale := httptest.NewRequest(http.MethodGet, "/audit/records?page=1&pageSize=20", nil)
-	stale.Header.Set("Cookie", originalCookie)
-	staleResponse := httptest.NewRecorder()
-	auditHandler.ServeHTTP(staleResponse, stale)
-	if staleResponse.Code != http.StatusUnauthorized {
-		t.Fatalf("rotated original credential remained valid: %d", staleResponse.Code)
-	}
-	withReplacement := httptest.NewRequest(http.MethodPost, "/audit/records/cleanup", strings.NewReader(`{"before":"2026-06-01T00:00:00Z","confirmation":"delete-expired-audit-records"}`))
-	withReplacement.Header.Set("Content-Type", "application/json")
-	withReplacement.Header.Set("Cookie", cookie)
-	withReplacement.Header.Set("X-CSRF-Token", replacementCSRF)
-	withReplacementResponse := httptest.NewRecorder()
-	auditHandler.ServeHTTP(withReplacementResponse, withReplacement)
-	if withReplacementResponse.Code != http.StatusOK || withReplacementResponse.Header().Get("X-CSRF-Token") == "" {
-		t.Fatalf("replacement IAM credentials did not authorize the next Audit request: status=%d", withReplacementResponse.Code)
-	}
-	for _, credential := range []string{strings.TrimPrefix(originalCookie, session.CookieName+"="), strings.TrimPrefix(cookie, session.CookieName+"="), replacementCSRF} {
-		if strings.Contains(rotatingResponse.Body.String(), credential) || strings.Contains(withReplacementResponse.Body.String(), credential) {
-			t.Fatal("rotated credential material reached an Audit response body")
+	for _, credential := range []string{strings.TrimPrefix(cookie, session.CookieName+"="), csrf} {
+		if strings.Contains(stableResponse.Body.String(), credential) || strings.Contains(withStableResponse.Body.String(), credential) {
+			t.Fatal("stable credential material reached an Audit response body")
 		}
 	}
 

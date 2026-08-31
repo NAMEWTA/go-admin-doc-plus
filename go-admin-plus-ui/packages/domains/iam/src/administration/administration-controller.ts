@@ -7,14 +7,20 @@ export type Menu = components['schemas']['Menu']
 export type MenuInput = components['schemas']['MenuInput']
 export type Permission = components['schemas']['Permission']
 export type Manifest = components['schemas']['CapabilityManifest']
+export type AccountDeletion = components['schemas']['AccountDeletion']
+export type AccountOrganizationRequest = components['schemas']['AccountOrganizationRequest']
+export type RoleDataScopeRequest = components['schemas']['RoleDataScopeRequest']
+export type StartAccountDeletionRequest = components['schemas']['StartAccountDeletionRequest']
 
 export interface AdministrationClient {
   manifest(): Promise<Manifest>
   listUsers(search: string, page: number, pageSize: number): Promise<UserPage>
   createUser(input: components['schemas']['CreateUserRequest']): Promise<User>
   updateUser(id: string, input: components['schemas']['UpdateUserRequest']): Promise<User>
-  deleteUser(id: string): Promise<void>
-  deleteUsers(ids: ReadonlyArray<string>): Promise<void>
+  setUserOrganization(id: string, input: AccountOrganizationRequest): Promise<void>
+  startUserDeletion(id: string, input: StartAccountDeletionRequest): Promise<AccountDeletion>
+  getUserDeletion(id: string): Promise<AccountDeletion>
+  cancelUserDeletion(id: string): Promise<void>
   setUserRoles(id: string, roleIds: ReadonlyArray<string>): Promise<void>
   resetPassword(id: string, password: string): Promise<void>
   listRoles(): Promise<ReadonlyArray<Role>>
@@ -22,6 +28,7 @@ export interface AdministrationClient {
   updateRole(id: string, input: components['schemas']['UpdateRoleRequest']): Promise<void>
   deleteRole(id: string): Promise<void>
   setRoleGrants(id: string, permissionCodes: ReadonlyArray<string>, menuIds: ReadonlyArray<string>): Promise<void>
+  setRoleDataScope(id: string, input: RoleDataScopeRequest): Promise<void>
   listMenus(): Promise<ReadonlyArray<Menu>>
   createMenu(input: MenuInput): Promise<Menu>
   updateMenu(id: string, input: MenuInput): Promise<void>

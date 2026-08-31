@@ -114,6 +114,23 @@ export interface paths {
         patch: operations["updateIamRole"];
         trace?: never;
     };
+    "/iam/administration/roles/{roleId}/data-scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a role's five-mode data scope */
+        put: operations["setIamRoleDataScope"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/iam/administration/roles/{roleId}/grants": {
         parameters: {
             query?: never;
@@ -162,12 +179,65 @@ export interface paths {
         get: operations["getIamUser"];
         put?: never;
         post?: never;
-        /** Delete a user */
-        delete: operations["deleteIamUser"];
+        delete?: never;
         options?: never;
         head?: never;
         /** Update a user */
         patch: operations["updateIamUser"];
+        trace?: never;
+    };
+    "/iam/administration/users/{userId}/deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** Read the current account deletion lifecycle */
+        get: operations["getIamUserDeletion"];
+        put?: never;
+        /** Start the single-account deletion lifecycle */
+        post: operations["startIamUserDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/administration/users/{userId}/deletion/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an account deletion before worker claim */
+        post: operations["cancelIamUserDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/iam/administration/users/{userId}/organization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a user's primary department and positions */
+        put: operations["setIamUserOrganization"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/iam/administration/users/{userId}/password": {
@@ -204,27 +274,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/iam/administration/users/batch-delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Delete users atomically */
-        post: operations["deleteIamUsers"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountDeletion: {
+            accountId: components["schemas"]["Identifier"];
+            auditReference: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "queued" | "claimed" | "completed" | "failed";
+            /** @enum {string} */
+            strategy: "transfer" | "purge";
+            transferTargetId?: components["schemas"]["Identifier"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AccountOrganizationRequest: {
+            positionIds: components["schemas"]["Identifier"][];
+            primaryDepartmentId?: components["schemas"]["Identifier"];
+        };
+        /**
+         * @description Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
+         * @enum {string}
+         */
+        BaseDataScope: "all" | "self";
         CapabilityManifest: {
             dataScope: components["schemas"]["DataScope"];
             menus: components["schemas"]["CapabilityMenu"][];
@@ -238,7 +315,7 @@ export interface components {
             sortOrder: number;
         };
         CreateRoleRequest: {
-            dataScope: components["schemas"]["DataScope"];
+            dataScope: components["schemas"]["BaseDataScope"];
             key: string;
             name: string;
         };
@@ -250,10 +327,7 @@ export interface components {
             username: string;
         };
         /** @enum {string} */
-        DataScope: "all" | "self";
-        DeleteUsersRequest: {
-            userIds: components["schemas"]["Identifier"][];
-        };
+        DataScope: "all" | "self" | "organization" | "organization-tree" | "custom";
         Identifier: string;
         Menu: {
             id: components["schemas"]["Identifier"];
@@ -306,6 +380,10 @@ export interface components {
             permissionCodes: string[];
             protected: boolean;
         };
+        RoleDataScopeRequest: {
+            departmentIds: components["schemas"]["Identifier"][];
+            scope: components["schemas"]["DataScope"];
+        };
         SetRoleGrantsRequest: {
             menuIds: components["schemas"]["Identifier"][];
             permissionCodes: string[];
@@ -313,8 +391,15 @@ export interface components {
         SetUserRolesRequest: {
             roleIds: components["schemas"]["Identifier"][];
         };
+        StartAccountDeletionRequest: {
+            /** @default false */
+            purgeConfirmed: boolean;
+            /** @enum {string} */
+            strategy: "transfer" | "purge";
+            transferTargetId?: components["schemas"]["Identifier"];
+        };
         UpdateRoleRequest: {
-            dataScope: components["schemas"]["DataScope"];
+            dataScope: components["schemas"]["BaseDataScope"];
             enabled: boolean;
             key: string;
             name: string;
@@ -417,7 +502,7 @@ export interface components {
     };
     requestBodies: never;
     headers: {
-        /** @description Current anti-forgery token when session authentication completed; replace the previous value. */
+        /** @description Stable anti-forgery token for the authenticated Session family. */
         CsrfToken: string;
         /** @description Replacement session cookie when periodic rotation occurs. */
         SetCookie: string;
@@ -706,6 +791,38 @@ export interface operations {
             500: components["responses"]["InternalProblem"];
         };
     };
+    setIamRoleDataScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roleId: components["parameters"]["RoleId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleDataScopeRequest"];
+            };
+        };
+        responses: {
+            /** @description Role data scope replaced. */
+            204: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["ValidationProblem"];
+            401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            409: components["responses"]["ConflictProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
     setIamRoleGrants: {
         parameters: {
             query?: never;
@@ -827,33 +944,6 @@ export interface operations {
             500: components["responses"]["InternalProblem"];
         };
     };
-    deleteIamUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: components["parameters"]["UserId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description User deleted. */
-            204: {
-                headers: {
-                    "Set-Cookie": components["headers"]["SetCookie"];
-                    "X-CSRF-Token": components["headers"]["CsrfToken"];
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["AuthenticationProblem"];
-            403: components["responses"]["AuthorizationProblem"];
-            404: components["responses"]["NotFoundProblem"];
-            409: components["responses"]["ConflictProblem"];
-            500: components["responses"]["InternalProblem"];
-        };
-    };
     updateIamUser: {
         parameters: {
             query?: never;
@@ -879,6 +969,128 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"];
                 };
+            };
+            400: components["responses"]["ValidationProblem"];
+            401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            409: components["responses"]["ConflictProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
+    getIamUserDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current account deletion state. */
+            200: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletion"];
+                };
+            };
+            400: components["responses"]["ValidationProblem"];
+            401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
+    startIamUserDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartAccountDeletionRequest"];
+            };
+        };
+        responses: {
+            /** @description Account deletion queued. */
+            202: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletion"];
+                };
+            };
+            400: components["responses"]["ValidationProblem"];
+            401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
+            409: components["responses"]["ConflictProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
+    cancelIamUserDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queued account deletion canceled. */
+            204: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["ValidationProblem"];
+            401: components["responses"]["AuthenticationProblem"];
+            403: components["responses"]["AuthorizationProblem"];
+            404: components["responses"]["NotFoundProblem"];
+            409: components["responses"]["ConflictProblem"];
+            500: components["responses"]["InternalProblem"];
+        };
+    };
+    setIamUserOrganization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountOrganizationRequest"];
+            };
+        };
+        responses: {
+            /** @description Account organization assignments replaced. */
+            204: {
+                headers: {
+                    "Set-Cookie": components["headers"]["SetCookie"];
+                    "X-CSRF-Token": components["headers"]["CsrfToken"];
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["ValidationProblem"];
             401: components["responses"]["AuthenticationProblem"];
@@ -936,36 +1148,6 @@ export interface operations {
         };
         responses: {
             /** @description Assignments replaced. */
-            204: {
-                headers: {
-                    "Set-Cookie": components["headers"]["SetCookie"];
-                    "X-CSRF-Token": components["headers"]["CsrfToken"];
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["ValidationProblem"];
-            401: components["responses"]["AuthenticationProblem"];
-            403: components["responses"]["AuthorizationProblem"];
-            404: components["responses"]["NotFoundProblem"];
-            409: components["responses"]["ConflictProblem"];
-            500: components["responses"]["InternalProblem"];
-        };
-    };
-    deleteIamUsers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DeleteUsersRequest"];
-            };
-        };
-        responses: {
-            /** @description Users deleted atomically. */
             204: {
                 headers: {
                     "Set-Cookie": components["headers"]["SetCookie"];

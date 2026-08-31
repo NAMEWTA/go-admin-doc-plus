@@ -24,18 +24,19 @@ const scenario = async () => {
   assert(session.state().status === 'authenticated' && !document.cookie.includes('__Host-go-admin-session'), 'scheduler login or HttpOnly boundary failed')
   const capability = createCapabilityController(createWebAdministrationClient(sessionFetch, '/api'))
   await capability.refresh()
+  const schedulerScope = () => capability.state().manifest?.dataScope === 'all' ? 'all' as const : 'self' as const
   const api = createWebSchedulerClient(sessionFetch, '/api')
   assert(capability.can('scheduler.definitions.read') && capability.can('scheduler.executions.read'), 'scheduler manifest incomplete')
   stage = 'self-scope'
   await control('scope', 'POST', { scope: 'self' }); await capability.refresh()
   await expectFailure(() => api.taskTypes(), 'forbidden')
-  const selfController = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const selfController = createSchedulerController(api, { can: permission => capability.can(permission), scope: schedulerScope }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
   const selfApp = createApp({ render: () => h(SchedulerPage as Component, { controller: selfController }) }); selfApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
   assert(document.querySelector('.tabs button') === null && document.querySelector('[data-testid="open-scheduler-definition-form"]') === null, 'self scope exposed scheduler controls')
   selfApp.unmount(); await control('scope', 'POST', { scope: 'all' }); await capability.refresh()
 
-  const controller = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const controller = createSchedulerController(api, { can: permission => capability.can(permission), scope: schedulerScope }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
   const app = createApp({ render: () => h(SchedulerPage as Component, { controller }) }); app.mount('#app')
   await waitUntil(() => document.querySelector('[data-testid="open-scheduler-definition-form"]') !== null && controller.taskTypes().length === 1, 'scheduler management view did not load')
@@ -77,7 +78,7 @@ const scenario = async () => {
   await control('revoke-read', 'POST'); await capability.refresh()
   assert(controller.definitions.snapshot().rows.length === 0, 'revoked capability retained definition projection')
   app.unmount(); document.body.innerHTML = '<div id="app"></div>'
-  const revoked = createSchedulerController(api, { can: permission => capability.can(permission), scope: () => capability.state().manifest?.dataScope ?? null }, async () => true)
+  const revoked = createSchedulerController(api, { can: permission => capability.can(permission), scope: schedulerScope }, async () => true)
   const revokedApp = createApp({ render: () => h(SchedulerPage as Component, { controller: revoked }) }); revokedApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
   assert(![...document.querySelectorAll('.tabs button')].some(button => button.textContent === '任务管理'), 'revoked scheduler navigation remained visible')
   revokedApp.unmount(); await control('revoke-session', 'POST'); await expectFailure(() => api.taskTypes(), 'relogin')

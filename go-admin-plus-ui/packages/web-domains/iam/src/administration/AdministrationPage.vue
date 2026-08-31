@@ -76,7 +76,6 @@ const saveUser = async () => {
   if (await run(() => props.controller.updateUser(editedUser.value!, !editedUser.value!.disabled)) === 'completed') closeUserEditor()
 }
 const toggleUser = (value: User) => run(() => props.controller.updateUser(value, value.disabled))
-const deleteUser = (value: User) => run(() => props.controller.deleteUsers.run([value.id]))
 const saveUserRoles = async () => {
   if (!editedUser.value) return
   if (await run(() => props.controller.setUserRoles(editedUser.value!.id, assignedRoles.value)) === 'completed') closeUserEditor()
@@ -98,11 +97,6 @@ const editMenu = (value: Menu) => { editedMenu.value = { ...value } }
 const saveMenu = async () => {
   if (!editedMenu.value) return
   if (await run(() => props.controller.updateMenu(editedMenu.value!)) === 'completed') closeMenuEditor()
-}
-const selectUser = (checked: boolean, row: typeof users.value.rows[number]) => {
-  const selected = new Set(users.value.selectedKeys)
-  if (checked) selected.add(row.id); else selected.delete(row.id)
-  props.controller.users.select(users.value.rows.filter((candidate) => selected.has(candidate.id))); revision.value += 1
 }
 onMounted(() => run(async () => {
   await props.controller.refreshAuthorizationData()
@@ -127,10 +121,9 @@ onBeforeUnmount(() => { closeDialogs(); user.password = ''; replacementPassword.
         <label>关键字<input v-model.trim="filters.search" maxlength="100" placeholder="用户名、姓名或邮箱"></label>
         <button type="submit">查询</button><button type="button" data-testid="user-search-reset" @click="reset">重置</button>
         <button v-if="can('iam.users.write')" type="button" data-testid="open-create-user" @click="openCreateUser">新增</button>
-        <button v-if="can('iam.users.delete')" type="button" data-testid="delete-selected-users" :disabled="users.selectedKeys.length === 0 || controller.deleteUsers.busy || mutationBlocked" @click="run(() => controller.deleteUsers.run(users.selectedKeys))">删除所选</button>
       </form>
-      <table><thead><tr><th scope="col">选择</th><th scope="col">用户名</th><th scope="col">姓名</th><th scope="col">邮箱</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead>
-        <tbody><tr v-for="row in users.rows" :key="row.id" :data-row-key="row.username"><td><input v-if="can('iam.users.delete')" type="checkbox" :checked="users.selectedKeys.includes(row.id)" :aria-label="`选择 ${row.username}`" @change="selectUser(($event.target as HTMLInputElement).checked, row)"></td><td>{{ row.username }}</td><td>{{ row.displayName }}</td><td>{{ row.email }}</td><td>{{ row.disabled ? '停用' : '启用' }}</td><td><button v-if="can('iam.users.write')" type="button" data-action="edit" @click="editUser(row)">编辑</button><button v-if="can('iam.users.write')" type="button" data-action="toggle" :disabled="mutationBlocked" @click="toggleUser(row)">{{ row.disabled ? '启用' : '停用' }}</button><button v-if="can('iam.users.delete')" type="button" data-action="delete" :disabled="controller.deleteUsers.busy || mutationBlocked" @click="deleteUser(row)">删除</button></td></tr></tbody>
+      <table><thead><tr><th scope="col">用户名</th><th scope="col">姓名</th><th scope="col">邮箱</th><th scope="col">状态</th><th scope="col">操作</th></tr></thead>
+        <tbody><tr v-for="row in users.rows" :key="row.id" :data-row-key="row.username"><td>{{ row.username }}</td><td>{{ row.displayName }}</td><td>{{ row.email }}</td><td>{{ row.disabled ? '停用' : '启用' }}</td><td><button v-if="can('iam.users.write')" type="button" data-action="edit" @click="editUser(row)">编辑</button><button v-if="can('iam.users.write')" type="button" data-action="toggle" :disabled="mutationBlocked" @click="toggleUser(row)">{{ row.disabled ? '启用' : '停用' }}</button></td></tr></tbody>
       </table>
       <div class="pagination" data-testid="iam-users-pagination"><span>共 {{ users.total }} 条</span><button type="button" :disabled="mutationBlocked || users.page <= 1" @click="run(() => controller.users.setPage(users.page - 1))">上一页</button><span>第 {{ users.page }} 页</span><label>每页<select :value="users.pageSize" :disabled="mutationBlocked" @change="run(() => controller.users.setPageSize(Number(($event.target as HTMLSelectElement).value)))"><option :value="10">10</option><option :value="20">20</option><option :value="50">50</option></select></label><button type="button" :disabled="mutationBlocked || users.page * users.pageSize >= users.total" @click="run(() => controller.users.setPage(users.page + 1))">下一页</button></div>
       <div v-if="createUserOpen && can('iam.users.write')" class="management-dialog-backdrop" @click.self="closeCreateUser" @keydown.esc="closeCreateUser">

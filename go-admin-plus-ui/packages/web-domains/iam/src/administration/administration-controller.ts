@@ -1,14 +1,13 @@
 import { AdministrationRequestError, type AdministrationClient, type Menu, type MenuInput, type Permission, type Role, type User } from '@go-admin-plus/domain-iam/administration'
-import { createListController, type FormController, type FormRunResult, type ListController, type RemovalController, type RemovalRunResult } from '@go-admin-plus/ui'
+import { createListController, type FormController, type FormRunResult, type ListController } from '@go-admin-plus/ui'
 
 export interface UserFilters { search: string }
 export interface CreateUserModel { username: string; displayName: string; email: string; password: string }
-export interface CreateRoleModel { key: string; name: string; dataScope: 'all' | 'self' }
+export type CreateRoleModel = Parameters<AdministrationClient['createRole']>[0]
 
 export interface AdministrationController {
   users: ListController<UserFilters, User, string>
   createUser: FormController<CreateUserModel>
-  deleteUsers: RemovalController<string>
   roles(): ReadonlyArray<Role>
   menus(): ReadonlyArray<Menu>
   permissions(): ReadonlyArray<Permission>
@@ -39,7 +38,7 @@ export const createAdministrationController = (client: AdministrationClient, con
   let menus: ReadonlyArray<Menu> = []
   let permissions: ReadonlyArray<Permission> = []
   let capabilityCodes = new Set<string>()
-  let capabilityScope: 'all' | 'self' = 'self'
+  let capabilityScope: Role['dataScope'] = 'self'
   let failure: AdministrationFailure | null = null
   let userProjectionVisible = false
   const pendingRepairs = new Map<string, () => Promise<void>>()
@@ -141,43 +140,10 @@ export const createAdministrationController = (client: AdministrationClient, con
       },
     }
   }
-  const removal = <TKey>(key: string, options: {
-    execute(keys: ReadonlyArray<TKey>): Promise<void>
-    refresh(): Promise<void>
-    clearSelection(): void
-  }): RemovalController<TKey> => {
-    const repair = async () => { options.clearSelection(); await options.refresh() }
-    const refresh = async (): Promise<RemovalRunResult> => {
-      clearFailure()
-      try { await repair(); pendingRepairs.delete(key); return 'completed' }
-      catch (error) { recordFailure(error); return 'refresh-failed' }
-    }
-    return {
-      get busy() { return mutationBusy || repairBusy },
-      async run(keys) {
-        if (mutationBusy || repairBusy) return 'busy'
-        if (pendingRepairs.size > 0) return 'refresh-failed'
-        if (keys.length === 0) return 'empty'
-        mutationBusy = true
-        try {
-          if (!await confirm(keys.length)) return 'cancelled'
-          clearFailure()
-          try { await options.execute([...keys]) } catch (error) { recordFailure(error); return 'failed' }
-          pendingRepairs.set(key, repair)
-          return await refresh()
-        } finally { mutationBusy = false }
-      },
-    }
-  }
   const createUser = form<CreateUserModel>('create-user', {
     validate: async (model) => validName(model.username, 64) && validName(model.displayName, 80) && model.email.includes('@') && model.password.length >= 12,
     submit: async (model) => { await client.createUser(model) },
     refresh: refreshUsersProjection,
-  })
-  const deleteUsers = removal<string>('delete-users', {
-    execute: (ids) => client.deleteUsers(ids),
-    refresh: refreshUsersProjection,
-    clearSelection: () => users.clearSelection(),
   })
   const createRole = form<CreateRoleModel>('create-role', {
     validate: async (model) => validStableKey(model.key) && validName(model.name, 100),
@@ -213,7 +179,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     } finally { repairBusy = false }
   }
   return {
-    users, createUser, deleteUsers, createRole, createMenu,
+    users, createUser, createRole, createMenu,
     roles: () => [...roles], menus: () => [...menus], permissions: () => [...permissions], refreshAuthorizationData,
     can: canAccess,
     failure: () => failure,
@@ -223,7 +189,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     get busy() { return mutationBusy || repairBusy },
     updateUser(user, enabled) { return command(`update-user:${user.id}`, async () => { await client.updateUser(user.id, { displayName: user.displayName, email: user.email, enabled }) }, refreshUsersProjection, !enabled) },
     deleteRole(id) { return command(`delete-role:${id}`, () => client.deleteRole(id), refreshAuthorizationData, true) },
-    updateRole(role) { if (!validStableKey(role.key) || !validName(role.name, 100)) return Promise.resolve('invalid'); return command(`update-role:${role.id}`, () => client.updateRole(role.id, { key: role.key, name: role.name, dataScope: role.dataScope, enabled: role.enabled }), refreshAuthorizationData, !role.enabled) },
+    updateRole(role) { if (!validStableKey(role.key) || !validName(role.name, 100)) return Promise.resolve('invalid'); return command(`update-role:${role.id}`, () => client.updateRole(role.id, { key: role.key, name: role.name, dataScope: role.dataScope === 'all' ? 'all' : 'self', enabled: role.enabled }), refreshAuthorizationData, !role.enabled) },
     deleteMenu(id) { return command(`delete-menu:${id}`, () => client.deleteMenu(id), refreshAuthorizationData, true) },
     updateMenu(menu) { if (!validStableKey(menu.key)) return Promise.resolve('invalid'); return command(`update-menu:${menu.id}`, () => client.updateMenu(menu.id, { key: menu.key, label: menu.label, path: menu.path, permissionCode: menu.permissionCode, sortOrder: menu.sortOrder }), refreshAuthorizationData) },
     setUserRoles(id, roleIds) { return command(`set-user-roles:${id}`, () => client.setUserRoles(id, roleIds), refreshUsersProjection) },

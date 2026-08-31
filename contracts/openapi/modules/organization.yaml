@@ -125,7 +125,7 @@ components:
     DepartmentId: {name: departmentId, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
     PositionId: {name: positionId, in: path, required: true, schema: {$ref: '#/components/schemas/Identifier'}}
   headers:
-    CsrfToken: {description: Current anti-forgery token when session authentication completed; replace the previous value., schema: {type: string, minLength: 43, maxLength: 43}}
+    CsrfToken: {description: Stable anti-forgery token for the authenticated Session family., schema: {type: string, minLength: 43, maxLength: 43}}
     SetCookie: {description: Replacement session cookie when periodic rotation occurs., schema: {type: string}}
   responses:
     ValidationProblem: {description: Request validation failed., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}

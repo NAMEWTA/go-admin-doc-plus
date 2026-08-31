@@ -133,14 +133,20 @@ func (server *HTTPServer) UploadFile(ctx context.Context, request transport.Uplo
 	switch {
 	case errors.Is(err, ErrValidation):
 		return transport.UploadFile400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(identity)}, nil
+	case errors.Is(err, ErrSizeMismatch):
+		return transport.UploadFile400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblemWithCode(identity, "FILE_SIZE_MISMATCH")}, nil
 	case errors.Is(err, ErrDenied):
 		return transport.UploadFile403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(identity)}, nil
+	case errors.Is(err, ErrQuotaExceeded):
+		return transport.UploadFile409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: capacityConflictProblem(identity)}, nil
 	case errors.Is(err, ErrConflict):
 		return transport.UploadFile409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(identity)}, nil
 	case errors.Is(err, ErrContentTooLarge):
 		return transport.UploadFile413ApplicationProblemPlusJSONResponse{ContentProblemApplicationProblemPlusJSONResponse: contentProblem(identity, "CONTENT_TOO_LARGE")}, nil
 	case errors.Is(err, ErrMediaType):
 		return transport.UploadFile415ApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Validation, "MEDIA_TYPE_REJECTED", "File content rejected", identity.trace, 415), Headers: transport.UploadFile415ResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}}, nil
+	case errors.Is(err, ErrDiskCapacity):
+		return transport.UploadFile507ApplicationProblemPlusJSONResponse{CapacityProblemApplicationProblemPlusJSONResponse: capacityProblem(identity)}, nil
 	default:
 		return transport.UploadFile500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(identity)}, nil
 	}
@@ -323,7 +329,10 @@ func responseHeaders(identity requestContext) transport.ValidationProblemRespons
 	return transport.ValidationProblemResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}
 }
 func validationProblem(identity requestContext) transport.ValidationProblemApplicationProblemPlusJSONResponse {
-	return transport.ValidationProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Validation, "REQUEST_INVALID", "Request validation failed", identity.trace, 400), Headers: responseHeaders(identity)}
+	return validationProblemWithCode(identity, "REQUEST_INVALID")
+}
+func validationProblemWithCode(identity requestContext, code string) transport.ValidationProblemApplicationProblemPlusJSONResponse {
+	return transport.ValidationProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Validation, code, "Request validation failed", identity.trace, 400), Headers: responseHeaders(identity)}
 }
 func authorizationProblem(identity requestContext) transport.AuthorizationProblemApplicationProblemPlusJSONResponse {
 	return transport.AuthorizationProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Authorization, "PERMISSION_DENIED", "Request authorization failed", identity.trace, 403), Headers: transport.AuthorizationProblemResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}}
@@ -333,6 +342,12 @@ func notFoundProblem(identity requestContext) transport.NotFoundProblemApplicati
 }
 func conflictProblem(identity requestContext) transport.ConflictProblemApplicationProblemPlusJSONResponse {
 	return transport.ConflictProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Conflict, "RESOURCE_CONFLICT", "Resource conflict", identity.trace, 409), Headers: transport.ConflictProblemResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}}
+}
+func capacityConflictProblem(identity requestContext) transport.ConflictProblemApplicationProblemPlusJSONResponse {
+	return transport.ConflictProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Conflict, "FILES_QUOTA_EXCEEDED", "File capacity unavailable", identity.trace, 409), Headers: transport.ConflictProblemResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}}
+}
+func capacityProblem(identity requestContext) transport.CapacityProblemApplicationProblemPlusJSONResponse {
+	return transport.CapacityProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Conflict, "FILES_CAPACITY_UNAVAILABLE", "File capacity unavailable", identity.trace, 507), Headers: transport.CapacityProblemResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}}
 }
 func internalProblem(identity requestContext) transport.InternalProblemApplicationProblemPlusJSONResponse {
 	return transport.InternalProblemApplicationProblemPlusJSONResponse{Body: makeProblem(transport.Internal, "INTERNAL_ERROR", "Internal server error", identity.trace, 500), Headers: transport.InternalProblemResponseHeaders{XCSRFToken: identity.csrf, SetCookie: identity.cookie}}
@@ -397,14 +412,20 @@ func uploadError(err error) (int, transport.ProblemCategory, string, string) {
 	switch {
 	case errors.Is(err, ErrValidation):
 		return 400, transport.Validation, "REQUEST_INVALID", "Request validation failed"
+	case errors.Is(err, ErrSizeMismatch):
+		return 400, transport.Validation, "FILE_SIZE_MISMATCH", "Request validation failed"
 	case errors.Is(err, ErrDenied):
 		return 403, transport.Authorization, "PERMISSION_DENIED", "Request authorization failed"
+	case errors.Is(err, ErrQuotaExceeded):
+		return 409, transport.Conflict, "FILES_QUOTA_EXCEEDED", "File capacity unavailable"
 	case errors.Is(err, ErrConflict):
 		return 409, transport.Conflict, "RESOURCE_CONFLICT", "Resource conflict"
 	case errors.Is(err, ErrContentTooLarge):
 		return 413, transport.Validation, "CONTENT_TOO_LARGE", "File content rejected"
 	case errors.Is(err, ErrMediaType):
 		return 415, transport.Validation, "MEDIA_TYPE_REJECTED", "File content rejected"
+	case errors.Is(err, ErrDiskCapacity):
+		return 507, transport.Conflict, "FILES_CAPACITY_UNAVAILABLE", "File capacity unavailable"
 	default:
 		return 500, transport.Internal, "INTERNAL_ERROR", "Internal server error"
 	}

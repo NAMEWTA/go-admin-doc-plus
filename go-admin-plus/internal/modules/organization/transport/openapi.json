@@ -485,7 +485,7 @@
     },
     "headers": {
       "CsrfToken": {
-        "description": "Current anti-forgery token when session authentication completed; replace the previous value.",
+        "description": "Stable anti-forgery token for the authenticated Session family.",
         "schema": {
           "type": "string",
           "minLength": 43,

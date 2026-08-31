@@ -117,6 +117,9 @@ type ConflictProblem = Problem
 // InternalProblem defines model for InternalProblem.
 type InternalProblem = Problem
 
+// RateLimitProblem defines model for RateLimitProblem.
+type RateLimitProblem = Problem
+
 // ValidationProblem defines model for ValidationProblem.
 type ValidationProblem = Problem
 
@@ -140,15 +143,21 @@ type ServerInterface interface {
 	// UpdateIamAccountProfile Update the authenticated account profile
 	// (PATCH /iam/account/profile)
 	UpdateIamAccountProfile(w http.ResponseWriter, r *http.Request)
-	// GetCurrentIamSession Read and refresh the current session
+	// GetCurrentIamSession Read the current session without mutating it
 	// (GET /iam/session/current)
 	GetCurrentIamSession(w http.ResponseWriter, r *http.Request)
+	// HeartbeatIamSession Extend idle expiry for an active session
+	// (POST /iam/session/heartbeat)
+	HeartbeatIamSession(w http.ResponseWriter, r *http.Request)
 	// LoginIamSession Start an authenticated session
 	// (POST /iam/session/login)
 	LoginIamSession(w http.ResponseWriter, r *http.Request)
 	// LogoutIamSession Revoke the current session
 	// (POST /iam/session/logout)
 	LogoutIamSession(w http.ResponseWriter, r *http.Request)
+	// RenewIamSession Renew an active session while preserving its family CSRF token
+	// (POST /iam/session/renew)
+	RenewIamSession(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -173,9 +182,15 @@ func (_ Unimplemented) UpdateIamAccountProfile(w http.ResponseWriter, r *http.Re
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// GetCurrentIamSession Read and refresh the current session
+// GetCurrentIamSession Read the current session without mutating it
 // (GET /iam/session/current)
 func (_ Unimplemented) GetCurrentIamSession(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// HeartbeatIamSession Extend idle expiry for an active session
+// (POST /iam/session/heartbeat)
+func (_ Unimplemented) HeartbeatIamSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -188,6 +203,12 @@ func (_ Unimplemented) LoginIamSession(w http.ResponseWriter, r *http.Request) {
 // LogoutIamSession Revoke the current session
 // (POST /iam/session/logout)
 func (_ Unimplemented) LogoutIamSession(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// RenewIamSession Renew an active session while preserving its family CSRF token
+// (POST /iam/session/renew)
+func (_ Unimplemented) RenewIamSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -256,6 +277,20 @@ func (siw *ServerInterfaceWrapper) GetCurrentIamSession(w http.ResponseWriter, r
 	handler.ServeHTTP(w, r)
 }
 
+// HeartbeatIamSession operation middleware
+func (siw *ServerInterfaceWrapper) HeartbeatIamSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.HeartbeatIamSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // LoginIamSession operation middleware
 func (siw *ServerInterfaceWrapper) LoginIamSession(w http.ResponseWriter, r *http.Request) {
 
@@ -275,6 +310,20 @@ func (siw *ServerInterfaceWrapper) LogoutIamSession(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.LogoutIamSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RenewIamSession operation middleware
+func (siw *ServerInterfaceWrapper) RenewIamSession(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RenewIamSession(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -410,10 +459,16 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Get(options.BaseURL+"/iam/session/current", wrapper.GetCurrentIamSession)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/iam/session/heartbeat", wrapper.HeartbeatIamSession)
+	})
+	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/iam/session/login", wrapper.LoginIamSession)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/iam/session/logout", wrapper.LogoutIamSession)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/iam/session/renew", wrapper.RenewIamSession)
 	})
 
 	return r
@@ -426,6 +481,15 @@ type AuthorizationProblemApplicationProblemPlusJSONResponse Problem
 type ConflictProblemApplicationProblemPlusJSONResponse Problem
 
 type InternalProblemApplicationProblemPlusJSONResponse Problem
+
+type RateLimitProblemResponseHeaders struct {
+	RetryAfter int
+}
+type RateLimitProblemApplicationProblemPlusJSONResponse struct {
+	Body Problem
+
+	Headers RateLimitProblemResponseHeaders
+}
 
 type ValidationProblemApplicationProblemPlusJSONResponse Problem
 
@@ -720,7 +784,6 @@ type GetCurrentIamSessionResponseObject interface {
 }
 
 type GetCurrentIamSession200ResponseHeaders struct {
-	SetCookie  *string
 	XCSRFToken string
 }
 
@@ -736,9 +799,6 @@ func (response GetCurrentIamSession200JSONResponse) VisitGetCurrentIamSessionRes
 		return err
 	}
 	w.Header().Set("Content-Type", "application/json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
 	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
 	w.WriteHeader(200)
 	_, err := buf.WriteTo(w)
@@ -766,6 +826,87 @@ type GetCurrentIamSession500ApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetCurrentIamSession500ApplicationProblemPlusJSONResponse) VisitGetCurrentIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type HeartbeatIamSessionRequestObject struct {
+}
+
+type HeartbeatIamSessionResponseObject interface {
+	VisitHeartbeatIamSessionResponse(w http.ResponseWriter) error
+}
+
+type HeartbeatIamSession200ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken string
+}
+
+type HeartbeatIamSession200JSONResponse struct {
+	Body    SessionResponse
+	Headers HeartbeatIamSession200ResponseHeaders
+}
+
+func (response HeartbeatIamSession200JSONResponse) VisitHeartbeatIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type HeartbeatIamSession401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response HeartbeatIamSession401ApplicationProblemPlusJSONResponse) VisitHeartbeatIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type HeartbeatIamSession403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response HeartbeatIamSession403ApplicationProblemPlusJSONResponse) VisitHeartbeatIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type HeartbeatIamSession500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response HeartbeatIamSession500ApplicationProblemPlusJSONResponse) VisitHeartbeatIamSessionResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -839,6 +980,23 @@ func (response LoginIamSession401ApplicationProblemPlusJSONResponse) VisitLoginI
 	}
 	w.Header().Set("Content-Type", "application/problem+json")
 	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type LoginIamSession429ApplicationProblemPlusJSONResponse struct {
+	RateLimitProblemApplicationProblemPlusJSONResponse
+}
+
+func (response LoginIamSession429ApplicationProblemPlusJSONResponse) VisitLoginIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Retry-After", fmt.Sprint(response.Headers.RetryAfter))
+	w.WriteHeader(429)
 	_, err := buf.WriteTo(w)
 	return err
 }
@@ -930,6 +1088,87 @@ func (response LogoutIamSession500ApplicationProblemPlusJSONResponse) VisitLogou
 	return err
 }
 
+type RenewIamSessionRequestObject struct {
+}
+
+type RenewIamSessionResponseObject interface {
+	VisitRenewIamSessionResponse(w http.ResponseWriter) error
+}
+
+type RenewIamSession200ResponseHeaders struct {
+	SetCookie  *string
+	XCSRFToken string
+}
+
+type RenewIamSession200JSONResponse struct {
+	Body    SessionResponse
+	Headers RenewIamSession200ResponseHeaders
+}
+
+func (response RenewIamSession200JSONResponse) VisitRenewIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.SetCookie != nil {
+		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
+	}
+	w.Header().Set("X-CSRF-Token", fmt.Sprint(response.Headers.XCSRFToken))
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenewIamSession401ApplicationProblemPlusJSONResponse struct {
+	AuthenticationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RenewIamSession401ApplicationProblemPlusJSONResponse) VisitRenewIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenewIamSession403ApplicationProblemPlusJSONResponse struct {
+	AuthorizationProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RenewIamSession403ApplicationProblemPlusJSONResponse) VisitRenewIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RenewIamSession500ApplicationProblemPlusJSONResponse struct {
+	InternalProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RenewIamSession500ApplicationProblemPlusJSONResponse) VisitRenewIamSessionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(500)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// ChangeIamAccountPassword Replace the authenticated account password
@@ -941,15 +1180,21 @@ type StrictServerInterface interface {
 	// UpdateIamAccountProfile Update the authenticated account profile
 	// (PATCH /iam/account/profile)
 	UpdateIamAccountProfile(ctx context.Context, request UpdateIamAccountProfileRequestObject) (UpdateIamAccountProfileResponseObject, error)
-	// GetCurrentIamSession Read and refresh the current session
+	// GetCurrentIamSession Read the current session without mutating it
 	// (GET /iam/session/current)
 	GetCurrentIamSession(ctx context.Context, request GetCurrentIamSessionRequestObject) (GetCurrentIamSessionResponseObject, error)
+	// HeartbeatIamSession Extend idle expiry for an active session
+	// (POST /iam/session/heartbeat)
+	HeartbeatIamSession(ctx context.Context, request HeartbeatIamSessionRequestObject) (HeartbeatIamSessionResponseObject, error)
 	// LoginIamSession Start an authenticated session
 	// (POST /iam/session/login)
 	LoginIamSession(ctx context.Context, request LoginIamSessionRequestObject) (LoginIamSessionResponseObject, error)
 	// LogoutIamSession Revoke the current session
 	// (POST /iam/session/logout)
 	LogoutIamSession(ctx context.Context, request LogoutIamSessionRequestObject) (LogoutIamSessionResponseObject, error)
+	// RenewIamSession Renew an active session while preserving its family CSRF token
+	// (POST /iam/session/renew)
+	RenewIamSession(ctx context.Context, request RenewIamSessionRequestObject) (RenewIamSessionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -1101,6 +1346,30 @@ func (sh *strictHandler) GetCurrentIamSession(w http.ResponseWriter, r *http.Req
 	}
 }
 
+// HeartbeatIamSession operation middleware
+func (sh *strictHandler) HeartbeatIamSession(w http.ResponseWriter, r *http.Request) {
+	var request HeartbeatIamSessionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.HeartbeatIamSession(ctx, request.(HeartbeatIamSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "HeartbeatIamSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(HeartbeatIamSessionResponseObject); ok {
+		if err := validResponse.VisitHeartbeatIamSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // LoginIamSession operation middleware
 func (sh *strictHandler) LoginIamSession(w http.ResponseWriter, r *http.Request) {
 	var request LoginIamSessionRequestObject
@@ -1149,6 +1418,30 @@ func (sh *strictHandler) LogoutIamSession(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(LogoutIamSessionResponseObject); ok {
 		if err := validResponse.VisitLogoutIamSessionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RenewIamSession operation middleware
+func (sh *strictHandler) RenewIamSession(w http.ResponseWriter, r *http.Request) {
+	var request RenewIamSessionRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RenewIamSession(ctx, request.(RenewIamSessionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RenewIamSession")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RenewIamSessionResponseObject); ok {
+		if err := validResponse.VisitRenewIamSessionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

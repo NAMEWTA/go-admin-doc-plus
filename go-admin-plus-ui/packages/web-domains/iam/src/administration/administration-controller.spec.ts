@@ -4,18 +4,19 @@ import { createAdministrationController, createUserAndClearPassword, resetPasswo
 
 const client = (): AdministrationClient => ({
   manifest: vi.fn(async (): ReturnType<AdministrationClient['manifest']> => ({ dataScope: 'all', permissionCodes: ['iam.users.read', 'iam.users.write', 'iam.users.delete', 'iam.users.reset-password', 'iam.roles.read', 'iam.roles.write', 'iam.roles.delete', 'iam.roles.assign', 'iam.menus.read', 'iam.menus.write', 'iam.menus.delete', 'iam.permissions.read', 'iam.manifest.read'], menus: [] })), listUsers: vi.fn(async (search, page, pageSize) => ({ rows: [{ id: 'account-00000001', username: search || 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }], total: page * pageSize })),
-  createUser: vi.fn(async (value) => ({ id: 'account-00000002', disabled: false, roleIds: [], ...value })), updateUser: vi.fn(), deleteUser: vi.fn(), deleteUsers: vi.fn(), setUserRoles: vi.fn(), resetPassword: vi.fn(),
-  listRoles: vi.fn(async () => []), createRole: vi.fn(async (value) => ({ id: 'role-000000000001', enabled: true, protected: false, permissionCodes: [], menuIds: [], ...value })), updateRole: vi.fn(), deleteRole: vi.fn(), setRoleGrants: vi.fn(),
+  createUser: vi.fn(async (value) => ({ id: 'account-00000002', disabled: false, roleIds: [], ...value })), updateUser: vi.fn(), setUserOrganization: vi.fn(),
+  startUserDeletion: vi.fn(async (id, value) => ({ id: '11111111-1111-1111-1111-111111111111', accountId: id, strategy: value.strategy, status: 'queued' as const, auditReference: 'audit-reference', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' })),
+  getUserDeletion: vi.fn(), cancelUserDeletion: vi.fn(), setUserRoles: vi.fn(), resetPassword: vi.fn(),
+  listRoles: vi.fn(async () => []), createRole: vi.fn(async (value) => ({ id: 'role-000000000001', enabled: true, protected: false, permissionCodes: [], menuIds: [], ...value })), updateRole: vi.fn(), deleteRole: vi.fn(), setRoleGrants: vi.fn(), setRoleDataScope: vi.fn(),
   listMenus: vi.fn(async () => []), createMenu: vi.fn(async (value) => ({ id: 'menu-000000000001', protected: false, ...value })), updateMenu: vi.fn(), deleteMenu: vi.fn(), listPermissions: vi.fn(async () => []),
 })
 
 describe('administration controller', () => {
-  it('reuses deterministic search, reset, pagination, selection and confirmation', async () => {
-    const api = client(); const confirm = vi.fn(async () => true); const controller = createAdministrationController(api, confirm)
+  it('reuses deterministic search, reset, pagination and selection', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
     await controller.users.search({ search: 'reader' }); await controller.users.setPage(2)
     controller.users.select(controller.users.snapshot().rows)
-    expect(await controller.deleteUsers.run(controller.users.snapshot().selectedKeys)).toBe('completed')
-    expect(confirm).toHaveBeenCalledWith(1); expect(api.deleteUsers).toHaveBeenCalledTimes(1); expect(api.deleteUsers).toHaveBeenCalledWith(['account-00000001']); expect(controller.users.snapshot().selectedKeys).toEqual([])
+    expect(controller.users.snapshot().selectedKeys).toEqual(['account-00000001'])
     await controller.users.reset(); expect(controller.users.snapshot().filters).toEqual({ search: '' }); expect(controller.users.snapshot().page).toBe(1)
   })
 
@@ -55,10 +56,6 @@ describe('administration controller', () => {
     expect(password).toBe('')
     expect(controller.failure()).toBe('relogin')
 
-    vi.mocked(api.deleteUsers).mockRejectedValueOnce(new AdministrationRequestError('forbidden'))
-    expect(await controller.deleteUsers.run(['account-00000001'])).toBe('failed')
-    expect(controller.failure()).toBe('forbidden')
-
     vi.mocked(api.updateUser).mockRejectedValueOnce(new AdministrationRequestError('unavailable'))
     const user = { id: 'account-00000001', username: 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }
     expect(await controller.updateUser(user, false)).toBe('failed')
@@ -71,6 +68,14 @@ describe('administration controller', () => {
     expect(await controller.updateUser(user, false)).toBe('completed')
     expect(await controller.updateRole({ id: 'role-000000000001', key: 'reader', name: 'Reader', dataScope: 'self', enabled: false, protected: false, permissionCodes: [], menuIds: [] })).toBe('completed')
     expect(confirm).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps extended role scope on its dedicated endpoint during metadata updates', async () => {
+    const api = client(); const controller = createAdministrationController(api, async () => true)
+    const role = { id: 'role-000000000001', key: 'reader', name: 'Reader', dataScope: 'custom' as const, enabled: true, protected: false, permissionCodes: [], menuIds: [] }
+    expect(await controller.updateRole(role)).toBe('completed')
+    expect(api.updateRole).toHaveBeenCalledWith(role.id, { key: role.key, name: role.name, dataScope: 'self', enabled: true })
+    expect(api.setRoleDataScope).not.toHaveBeenCalled()
   })
 
   it('loads only administration projections granted by the manifest', async () => {
@@ -180,7 +185,7 @@ describe('administration controller', () => {
     expect(controller.users.snapshot().rows).toHaveLength(1)
   })
 
-  it('repairs create, removal and command projections without repeating successful writes', async () => {
+  it('repairs create and command projections without repeating successful writes', async () => {
     const createAPI = client(); const createController = createAdministrationController(createAPI, async () => true)
     vi.mocked(createAPI.listUsers)
       .mockRejectedValueOnce(new Error('refresh unavailable'))
@@ -198,23 +203,6 @@ describe('administration controller', () => {
     expect(createController.hasPendingRepair()).toBe(false)
     expect(await createController.createUser.run({ ...model, username: 'writer' })).toBe('submitted')
     expect(createAPI.createUser).toHaveBeenCalledTimes(2)
-
-    const removeAPI = client(); const confirm = vi.fn(async () => true); const removeController = createAdministrationController(removeAPI, confirm)
-    vi.mocked(removeAPI.listUsers)
-      .mockRejectedValueOnce(new Error('refresh unavailable'))
-      .mockRejectedValueOnce(new Error('refresh still unavailable'))
-    expect(await removeController.deleteUsers.run(['account-00000001'])).toBe('refresh-failed')
-    expect(removeController.hasPendingRepair()).toBe(true)
-    expect(await removeController.deleteUsers.run(['account-00000002'])).toBe('refresh-failed')
-    expect(removeAPI.deleteUsers).toHaveBeenCalledTimes(1)
-    expect(confirm).toHaveBeenCalledTimes(1)
-    expect(await removeController.repairProjection()).toBe('refresh-failed')
-    expect(removeController.hasPendingRepair()).toBe(true)
-    expect(await removeController.repairProjection()).toBe('completed')
-    expect(removeController.hasPendingRepair()).toBe(false)
-    expect(await removeController.deleteUsers.run(['account-00000002'])).toBe('completed')
-    expect(removeAPI.deleteUsers).toHaveBeenCalledTimes(2)
-    expect(confirm).toHaveBeenCalledTimes(2)
 
     const commandAPI = client(); const commandConfirm = vi.fn(async () => true); const commandController = createAdministrationController(commandAPI, commandConfirm)
     vi.mocked(commandAPI.listUsers)
@@ -245,9 +233,7 @@ describe('administration controller', () => {
     }))
     const user = { id: 'account-00000001', username: 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }
     const creating = controller.createUser.run({ username: 'reader', displayName: 'Reader', email: 'reader@example.test', password: 'reader password' })
-    expect(await controller.deleteUsers.run([user.id])).toBe('busy')
     expect(await controller.updateUser(user, false)).toBe('busy')
-    expect(api.deleteUsers).not.toHaveBeenCalled()
     expect(api.updateUser).not.toHaveBeenCalled()
     expect(confirm).not.toHaveBeenCalled()
     release()
@@ -262,8 +248,7 @@ describe('administration controller', () => {
       releaseRepair = () => resolve({ rows: [], total: 0 })
     }))
     const repairing = controller.repairProjection()
-    expect(await controller.deleteUsers.run([user.id])).toBe('busy')
-    expect(api.deleteUsers).not.toHaveBeenCalled()
+    expect(await controller.updateUser(user, false)).toBe('busy')
     await vi.waitFor(() => expect(releaseRepair).toBeTypeOf('function'))
     releaseRepair()
     expect(await repairing).toBe('completed')

@@ -24,5 +24,9 @@ func TestMigrationPublishesEquivalentSessionProtectionForBothDialects(t *testing
 				t.Fatalf("%s migration is missing %q", dialect, required)
 			}
 		}
+		stableCSRF, err := fs.ReadFile(migrationFS, "6221000000000_iam_stable_csrf.sql")
+		if err != nil || !strings.Contains(string(stableCSRF), "csrf_token") || !strings.Contains(string(stableCSRF), "state = 'revoked'") {
+			t.Fatalf("%s stable CSRF migration is incomplete: %v", dialect, err)
+		}
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -96,8 +97,50 @@ func (s *HTTPServer) GetCurrentIamSession(ctx context.Context, _ transport.GetCu
 	if err != nil {
 		return transport.GetCurrentIamSession500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(credentials.trace)}, nil
 	}
-	headers := transport.GetCurrentIamSession200ResponseHeaders{XCSRFToken: issued.CSRF, SetCookie: replacementCookie(issued)}
+	headers := transport.GetCurrentIamSession200ResponseHeaders{XCSRFToken: issued.CSRF}
 	return transport.GetCurrentIamSession200JSONResponse{Body: sessionResponse(issued), Headers: headers}, nil
+}
+
+func (s *HTTPServer) HeartbeatIamSession(ctx context.Context, _ transport.HeartbeatIamSessionRequestObject) (transport.HeartbeatIamSessionResponseObject, error) {
+	c := credentials(ctx)
+	issued, err := s.service.Heartbeat(ctx, c.token, c.csrf)
+	if errors.Is(err, ErrCSRF) {
+		return transport.HeartbeatIamSession403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(c.trace)}, nil
+	}
+	if errors.Is(err, ErrAuthentication) {
+		return transport.HeartbeatIamSession401ApplicationProblemPlusJSONResponse{AuthenticationProblemApplicationProblemPlusJSONResponse: authProblem(c.trace)}, nil
+	}
+	if err != nil {
+		return transport.HeartbeatIamSession500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(c.trace)}, nil
+	}
+	return transport.HeartbeatIamSession200JSONResponse{
+		Body: sessionResponse(issued),
+		Headers: transport.HeartbeatIamSession200ResponseHeaders{
+			XCSRFToken: issued.CSRF,
+			SetCookie:  replacementCookie(issued),
+		},
+	}, nil
+}
+
+func (s *HTTPServer) RenewIamSession(ctx context.Context, _ transport.RenewIamSessionRequestObject) (transport.RenewIamSessionResponseObject, error) {
+	c := credentials(ctx)
+	issued, err := s.service.Renew(ctx, c.token, c.csrf)
+	if errors.Is(err, ErrCSRF) {
+		return transport.RenewIamSession403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(c.trace)}, nil
+	}
+	if errors.Is(err, ErrAuthentication) {
+		return transport.RenewIamSession401ApplicationProblemPlusJSONResponse{AuthenticationProblemApplicationProblemPlusJSONResponse: authProblem(c.trace)}, nil
+	}
+	if err != nil {
+		return transport.RenewIamSession500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(c.trace)}, nil
+	}
+	return transport.RenewIamSession200JSONResponse{
+		Body: sessionResponse(issued),
+		Headers: transport.RenewIamSession200ResponseHeaders{
+			XCSRFToken: issued.CSRF,
+			SetCookie:  replacementCookie(issued),
+		},
+	}, nil
 }
 
 func (s *HTTPServer) LogoutIamSession(ctx context.Context, _ transport.LogoutIamSessionRequestObject) (transport.LogoutIamSessionResponseObject, error) {
@@ -255,6 +298,22 @@ func loginProblem(err error, trace string) transport.LoginIamSessionResponseObje
 	}
 	if errors.Is(err, ErrCredentials) {
 		return transport.LoginIamSession401ApplicationProblemPlusJSONResponse{AuthenticationProblemApplicationProblemPlusJSONResponse: authProblem(trace)}
+	}
+	if retryAfter, limited := RetryAfter(err); limited {
+		seconds := int((retryAfter + time.Second - 1) / time.Second)
+		if seconds < 1 {
+			seconds = 1
+		}
+		if seconds > 3600 {
+			seconds = 3600
+		}
+		value := problem(transport.Authentication, "login-rate-limited", "Login temporarily unavailable", trace, http.StatusTooManyRequests)
+		value.Code = "LOGIN_RATE_LIMITED"
+		return transport.LoginIamSession429ApplicationProblemPlusJSONResponse{
+			RateLimitProblemApplicationProblemPlusJSONResponse: transport.RateLimitProblemApplicationProblemPlusJSONResponse{
+				Body: value, Headers: transport.RateLimitProblemResponseHeaders{RetryAfter: seconds},
+			},
+		}
 	}
 	return transport.LoginIamSession500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(trace)}
 }

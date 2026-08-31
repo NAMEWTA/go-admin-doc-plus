@@ -33,13 +33,32 @@ type httpContext struct {
 	cookie               *string
 }
 
-type HTTPServer struct{ service *Service }
+type HTTPServer struct {
+	service    *Service
+	dataScopes *DataScopeService
+	deletions  *DeletionService
+}
 
-func NewHTTPHandler(service *Service, sessions SessionAuthorizer, traceID contracts.TraceIDProvider) (http.Handler, error) {
+type HTTPOption func(*HTTPServer)
+
+func WithHTTPDataScopeService(service *DataScopeService) HTTPOption {
+	return func(server *HTTPServer) { server.dataScopes = service }
+}
+
+func WithHTTPDeletionService(service *DeletionService) HTTPOption {
+	return func(server *HTTPServer) { server.deletions = service }
+}
+
+func NewHTTPHandler(service *Service, sessions SessionAuthorizer, traceID contracts.TraceIDProvider, options ...HTTPOption) (http.Handler, error) {
 	if service == nil || sessions == nil || traceID == nil {
 		return nil, errors.New("iam administration HTTP dependencies are required")
 	}
 	server := &HTTPServer{service: service}
+	for _, option := range options {
+		if option != nil {
+			option(server)
+		}
+	}
 	strict := transport.NewStrictHandlerWithOptions(server, nil, transport.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, _ error) {
 			writeProblem(w, problem(transport.Validation, "REQUEST_INVALID", "Request validation failed", traceID(r), http.StatusBadRequest))

@@ -52,6 +52,7 @@ paths:
         '409': {$ref: '#/components/responses/ConflictProblem'}
         '413': {$ref: '#/components/responses/ContentProblem'}
         '415': {$ref: '#/components/responses/ContentProblem'}
+        '507': {$ref: '#/components/responses/CapacityProblem'}
         '500': {$ref: '#/components/responses/InternalProblem'}
   /files/objects/batch-delete:
     post:
@@ -107,7 +108,7 @@ components:
   parameters:
     FileId: {name: fileId, in: path, required: true, schema: {type: string, format: uuid}}
   headers:
-    CsrfToken: {description: Current anti-forgery token after session rotation., required: true, schema: {type: string, minLength: 43, maxLength: 43, pattern: '^[A-Za-z0-9_-]{43}$'}}
+    CsrfToken: {description: Stable anti-forgery token for the authenticated Session family., required: true, schema: {type: string, minLength: 43, maxLength: 43, pattern: '^[A-Za-z0-9_-]{43}$'}}
     SetCookie: {description: Replacement opaque session cookie when rotation occurs., required: false, schema: {type: string, maxLength: 4096}}
   schemas:
     Problem: {$ref: ../components/schemas.yaml#/Problem}
@@ -153,4 +154,5 @@ components:
     NotFoundProblem: {description: File not found., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
     ConflictProblem: {description: File state conflict., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
     ContentProblem: {description: File content was rejected., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
+    CapacityProblem: {description: Storage capacity is temporarily unavailable without exposing global or account usage., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}
     InternalProblem: {description: Internal failure., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}, content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}}

@@ -161,6 +161,17 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description Storage capacity is temporarily unavailable without exposing global or account usage. */
+        CapacityProblem: {
+            headers: {
+                "Set-Cookie": components["headers"]["SetCookie"];
+                "X-CSRF-Token": components["headers"]["CsrfToken"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description File state conflict. */
         ConflictProblem: {
             headers: {
@@ -222,7 +233,7 @@ export interface components {
     };
     requestBodies: never;
     headers: {
-        /** @description Current anti-forgery token after session rotation. */
+        /** @description Stable anti-forgery token for the authenticated Session family. */
         CsrfToken: string;
         /** @description Replacement opaque session cookie when rotation occurs. */
         SetCookie: string;
@@ -297,6 +308,7 @@ export interface operations {
             413: components["responses"]["ContentProblem"];
             415: components["responses"]["ContentProblem"];
             500: components["responses"]["InternalProblem"];
+            507: components["responses"]["CapacityProblem"];
         };
     };
     getFileMetadata: {
