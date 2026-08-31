@@ -1,97 +1,83 @@
 package database_test
 
 import (
-	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
+	bootstrapmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
 	productdatabase "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
-const bootstrapPassword = "administrator password"
-
-func TestSystemAdminBootstrapSQLite(t *testing.T) {
-	ctx := context.Background()
-	db, err := databaseProcess(t).Open(ctx, productdatabase.Config{
-		Profile:    config.ProfileServerSQLite,
-		SQLitePath: filepath.Join(t.TempDir(), "bootstrap.db"),
-	})
+func TestBootstrapRecoveryMigrationDialectsStayAligned(t *testing.T) {
+	provider := bootstrapmigration.Provider{}
+	sqliteFS, err := provider.Migrations(productdatabase.DialectSQLite)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = db.Close() })
-
-	runner, err := product.NewMigrationRunner()
+	postgresFS, err := provider.Migrations(productdatabase.DialectPostgres)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runner.Up(ctx, db); err != nil {
-		t.Fatal(err)
-	}
-
-	script := bootstrapScript(t, "sqlite")
-	for range 2 {
-		if _, err := db.SQL().ExecContext(ctx, script); err != nil {
-			t.Fatalf("execute bootstrap: %v", err)
+	sqliteSQL := readOnlyMigration(t, sqliteFS)
+	postgresSQL := readOnlyMigration(t, postgresFS)
+	for dialect, source := range map[string]string{"sqlite": sqliteSQL, "postgres": postgresSQL} {
+		for _, contract := range []string{"iam_bootstrap_state", "marker", "account_id", "initialized_at", "iam_account_recovery_blocks", "blocked_at"} {
+			if !strings.Contains(source, contract) {
+				t.Fatalf("%s migration is missing %q", dialect, contract)
+			}
 		}
-	}
-
-	var accounts, assignments int
-	var passwordHash string
-	if err := db.SQL().QueryRowContext(ctx, `SELECT COUNT(*), MIN(password_hash) FROM iam_accounts WHERE username = 'admin'`).Scan(&accounts, &passwordHash); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.SQL().QueryRowContext(ctx, `SELECT COUNT(*) FROM iam_account_roles WHERE account_id = 'account-system-admin' AND role_id = 'role-system-admin'`).Scan(&assignments); err != nil {
-		t.Fatal(err)
-	}
-	if accounts != 1 || assignments != 1 {
-		t.Fatalf("bootstrap result = %d accounts, %d assignments", accounts, assignments)
-	}
-	if !account.VerifyPassword(passwordHash, bootstrapPassword) {
-		t.Fatal("bootstrap password hash does not match the documented credential")
-	}
-}
-
-func TestSystemAdminBootstrapDialectsStayAligned(t *testing.T) {
-	hashPattern := regexp.MustCompile(`\$argon2id\$v=19\$m=65536,t=3,p=4\$[A-Za-z0-9+/]+\$[A-Za-z0-9+/]+`)
-	sqliteScript := bootstrapScript(t, "sqlite")
-	postgresScript := bootstrapScript(t, "postgres")
-	sqliteHash := hashPattern.FindString(sqliteScript)
-	postgresHash := hashPattern.FindString(postgresScript)
-	if sqliteHash == "" || sqliteHash != postgresHash {
-		t.Fatal("bootstrap password hashes differ between dialects")
-	}
-	for dialect, script := range map[string]string{"sqlite": sqliteScript, "postgres": postgresScript} {
-		for _, contract := range []string{"account-system-admin", "role-system-admin", "ON CONFLICT(username) DO NOTHING", "ON CONFLICT(account_id, role_id) DO NOTHING"} {
-			if !strings.Contains(script, contract) {
-				t.Fatalf("%s bootstrap is missing %q", dialect, contract)
+		for _, forbidden := range []string{"password_hash", "administrator password", "account-system-admin", "INSERT INTO iam_accounts"} {
+			if strings.Contains(source, forbidden) {
+				t.Fatalf("%s migration contains credential material %q", dialect, forbidden)
 			}
 		}
 	}
 }
 
-func databaseProcess(t *testing.T) *productdatabase.Process {
-	t.Helper()
-	return productdatabase.NewProcess()
+func TestRepositoryContainsNoStaticBootstrapSQL(t *testing.T) {
+	root := repositoryRoot(t)
+	for _, dialect := range []string{"sqlite", "postgres"} {
+		matches, err := filepath.Glob(filepath.Join(root, "database", "bootstrap", dialect, "*.sql"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) != 0 {
+			t.Fatalf("%s static bootstrap SQL remains: %v", dialect, matches)
+		}
+	}
+	readme, err := os.ReadFile(filepath.Join(root, "database", "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"administrator password", "首次登录凭据", "001-system-admin.sql"} {
+		if strings.Contains(string(readme), forbidden) {
+			t.Fatalf("database documentation contains obsolete bootstrap material %q", forbidden)
+		}
+	}
 }
 
-func bootstrapScript(t *testing.T, dialect string) string {
+func readOnlyMigration(t *testing.T, source fs.FS) string {
 	t.Helper()
-	_, source, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("bootstrap test source path unavailable")
+	entries, err := fs.ReadDir(source, ".")
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("migration entries = %d, err=%v", len(entries), err)
 	}
-	path := filepath.Join(filepath.Dir(source), "..", "..", "..", "database", "bootstrap", dialect, "001-system-admin.sql")
-	payload, err := os.ReadFile(path)
+	payload, err := fs.ReadFile(source, entries[0].Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 	return string(payload)
+}
+
+func repositoryRoot(t *testing.T) string {
+	t.Helper()
+	_, source, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("test source path unavailable")
+	}
+	return filepath.Clean(filepath.Join(filepath.Dir(source), "..", "..", ".."))
 }

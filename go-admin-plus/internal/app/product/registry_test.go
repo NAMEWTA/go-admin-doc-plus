@@ -45,6 +45,21 @@ func TestProductModulesAreCompleteAndOwned(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("Modules() = %v, want %v", got, want)
 	}
+	wantMigrations := map[product.ModuleID][]string{
+		product.ModuleIAM: {
+			"iam-session",
+			"iam-administration",
+			"iam-bootstrap-recovery",
+			"iam-session-protection",
+			"iam-data-scope",
+		},
+		product.ModuleFiles: {"files", "files-capacity"},
+	}
+	for _, module := range modules {
+		if want, ok := wantMigrations[module.ID]; ok && !reflect.DeepEqual(module.MigrationModules, want) {
+			t.Fatalf("Modules()[%s].MigrationModules = %v, want %v", module.ID, module.MigrationModules, want)
+		}
+	}
 
 	modules[0].MigrationModules[0] = "mutated"
 	if product.Modules()[0].MigrationModules[0] != "iam-session" {
@@ -68,8 +83,8 @@ func TestProductMigrationMatrixComposesBothDialects(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(entries) != 10 {
-				t.Fatalf("composed migration files = %d, want 10", len(entries))
+			if len(entries) != 14 {
+				t.Fatalf("composed migration files = %d, want 14", len(entries))
 			}
 		})
 	}
@@ -112,8 +127,8 @@ func TestProductSQLiteAppliesMigrationsAndCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Applied != 10 {
-		t.Fatalf("applied migrations = %d, want 10", result.Applied)
+	if result.Applied != 14 {
+		t.Fatalf("applied migrations = %d, want 14", result.Applied)
 	}
 
 	capabilities, err := authorization.NewCapabilityRegistry(db)

@@ -22,30 +22,32 @@ func TestLocalStorageRequiresCanonicalAbsolutePrivateRoot(t *testing.T) {
 	if err := os.Mkdir(realRoot, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	linkedRoot := filepath.Join(parent, "linked")
-	if err := os.Symlink(realRoot, linkedRoot); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := NewLocalStorage(linkedRoot); !errors.Is(err, ErrStorageRoot) {
-		t.Fatalf("symlink root error = %v", err)
-	}
 	canonicalParent, err := filepath.EvalSymlinks(parent)
 	if err != nil {
 		t.Fatal(err)
 	}
-	outsideParent := filepath.Join(canonicalParent, "outside-parent")
-	if err := os.Mkdir(outsideParent, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	ancestorLink := filepath.Join(canonicalParent, "ancestor-link")
-	if err := os.Symlink(outsideParent, ancestorLink); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := NewLocalStorage(filepath.Join(ancestorLink, "files")); !errors.Is(err, ErrStorageRoot) {
-		t.Fatalf("symlink ancestor error = %v", err)
-	}
-	if _, err := os.Lstat(filepath.Join(outsideParent, "files")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("rejected ancestor created outside root: %v", err)
+	if runtime.GOOS != "windows" {
+		linkedRoot := filepath.Join(parent, "linked")
+		if err := os.Symlink(realRoot, linkedRoot); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewLocalStorage(linkedRoot); !errors.Is(err, ErrStorageRoot) {
+			t.Fatalf("symlink root error = %v", err)
+		}
+		outsideParent := filepath.Join(canonicalParent, "outside-parent")
+		if err := os.Mkdir(outsideParent, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		ancestorLink := filepath.Join(canonicalParent, "ancestor-link")
+		if err := os.Symlink(outsideParent, ancestorLink); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := NewLocalStorage(filepath.Join(ancestorLink, "files")); !errors.Is(err, ErrStorageRoot) {
+			t.Fatalf("symlink ancestor error = %v", err)
+		}
+		if _, err := os.Lstat(filepath.Join(outsideParent, "files")); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("rejected ancestor created outside root: %v", err)
+		}
 	}
 
 	root := filepath.Join(canonicalParent, "files")
@@ -118,25 +120,27 @@ func TestLocalStoragePublishesWithoutReplacingExistingContent(t *testing.T) {
 		t.Fatalf("published content = %q, read=%v close=%v", content, readErr, closeErr)
 	}
 
-	outside := filepath.Join(t.TempDir(), "outside")
-	if err := os.WriteFile(outside, []byte("outside"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	symlinkKey := NewStorageKey()
-	if err := os.Symlink(outside, filepath.Join(root, symlinkKey)); err != nil {
-		t.Fatal(err)
-	}
-	third, err := storage.Stage(context.Background(), "text/plain", strings.NewReader("third"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer storage.Abort(context.Background(), third.TemporaryKey)
-	if err := storage.Publish(context.Background(), third.TemporaryKey, symlinkKey); !errors.Is(err, ErrStorageConflict) {
-		t.Fatalf("publish over symlink error = %v", err)
-	}
-	outsideContent, err := os.ReadFile(outside)
-	if err != nil || string(outsideContent) != "outside" {
-		t.Fatalf("outside content = %q, err=%v", outsideContent, err)
+	if runtime.GOOS != "windows" {
+		outside := filepath.Join(t.TempDir(), "outside")
+		if err := os.WriteFile(outside, []byte("outside"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		symlinkKey := NewStorageKey()
+		if err := os.Symlink(outside, filepath.Join(root, symlinkKey)); err != nil {
+			t.Fatal(err)
+		}
+		third, err := storage.Stage(context.Background(), "text/plain", strings.NewReader("third"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer storage.Abort(context.Background(), third.TemporaryKey)
+		if err := storage.Publish(context.Background(), third.TemporaryKey, symlinkKey); !errors.Is(err, ErrStorageConflict) {
+			t.Fatalf("publish over symlink error = %v", err)
+		}
+		outsideContent, err := os.ReadFile(outside)
+		if err != nil || string(outsideContent) != "outside" {
+			t.Fatalf("outside content = %q, err=%v", outsideContent, err)
+		}
 	}
 }
 
@@ -148,16 +152,18 @@ func TestLocalStorageOpenRejectsSymlinkAndNonRegularLeaf(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = storage.Close() })
 
-	outside := filepath.Join(t.TempDir(), "outside")
-	if err := os.WriteFile(outside, []byte("outside"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	symlinkKey := NewStorageKey()
-	if err := os.Symlink(outside, filepath.Join(root, symlinkKey)); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := storage.Open(context.Background(), symlinkKey); !errors.Is(err, ErrStorageNotFound) {
-		t.Fatalf("open symlink = %v", err)
+	if runtime.GOOS != "windows" {
+		outside := filepath.Join(t.TempDir(), "outside")
+		if err := os.WriteFile(outside, []byte("outside"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		symlinkKey := NewStorageKey()
+		if err := os.Symlink(outside, filepath.Join(root, symlinkKey)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := storage.Open(context.Background(), symlinkKey); !errors.Is(err, ErrStorageNotFound) {
+			t.Fatalf("open symlink = %v", err)
+		}
 	}
 
 	directoryKey := NewStorageKey()
