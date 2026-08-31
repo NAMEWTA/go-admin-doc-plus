@@ -304,7 +304,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@b9e77b591fbeffa06485518ba9e9fbbd10914efb`；当前仅含 Speculo 执行状态提交，未晋升失败 candidate |
+| Parent | `main` 当前仅含 Speculo 执行状态提交；每次恢复必须重读实际 HEAD，最后一次 candidate parent 为 `be0a50c076389372c379b007548a2101d858933c`，未晋升任何失败 candidate |
 | Tickets | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `in_progress`；T-05/T-08~T-10、T-12~T-21 `ready` |
 | Gate | G0 已关闭；G1~G8 关闭 |
 | Workspace records | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `blocked`（实现提交已固定，等待所列 runner/owning Ticket 门禁）；其余 Ticket 待依赖满足后建立 |
