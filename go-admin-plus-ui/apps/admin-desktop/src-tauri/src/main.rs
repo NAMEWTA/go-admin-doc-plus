@@ -3,6 +3,7 @@
 #[cfg(all(not(debug_assertions), not(feature = "custom-protocol")))]
 compile_error!("release desktop builds must enable the custom-protocol feature");
 
+mod first_setup;
 mod host_capabilities;
 mod product_contract;
 mod proxy;
@@ -21,6 +22,7 @@ use std::{
 };
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use first_setup::{FirstSetupInput, FirstSetupOutcome, FirstSetupState};
 use proxy::{
     DesktopRequest, DesktopResponse, IdentityResult, LogoutResult, PublicMenu, PublicProfile,
     TransportProxy,
@@ -205,6 +207,45 @@ async fn desktop_identity(
         eprintln!("desktop native identity state: unauthenticated");
     }
     result
+}
+
+#[tauri::command]
+async fn desktop_first_setup_state(
+    state: State<'_, Arc<HostState>>,
+) -> Result<FirstSetupState, &'static str> {
+    let proxy = state.wait_for_proxy().await?;
+    let permit = state
+        .requests
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _permit = permit;
+        proxy.first_setup_state()
+    })
+    .await
+    .map_err(|_| "desktop first setup state failed")?
+}
+
+#[tauri::command]
+async fn desktop_first_setup_submit(
+    state: State<'_, Arc<HostState>>,
+    input: FirstSetupInput,
+) -> Result<FirstSetupOutcome, &'static str> {
+    let proxy = state.wait_for_proxy().await?;
+    let permit = state
+        .requests
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| "desktop runtime unavailable")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _permit = permit;
+        proxy.first_setup_submit(input)
+    })
+    .await
+    .map_err(|_| "desktop first setup failed")?
 }
 
 #[tauri::command]
@@ -615,7 +656,7 @@ fn canonical_release_directory(path: &Path) -> Result<PathBuf, &'static str> {
         return Err("desktop generator resources invalid");
     }
     let canonical = fs::canonicalize(path).map_err(|_| "desktop generator resources invalid")?;
-    if canonical != path {
+    if !canonical_paths_equal(&canonical, path) {
         return Err("desktop generator resources invalid");
     }
     Ok(canonical)
@@ -806,7 +847,10 @@ fn prepare_root(path: PathBuf) -> Result<PathBuf, &'static str> {
     fs::create_dir_all(&path).map_err(|_| "desktop runtime directory unavailable")?;
     let canonical = fs::canonicalize(&path).map_err(|_| "desktop runtime directory unavailable")?;
     let info = fs::symlink_metadata(&path).map_err(|_| "desktop runtime directory unavailable")?;
-    if !info.is_dir() || info.file_type().is_symlink() || canonical != path {
+    if !info.is_dir() || info.file_type().is_symlink() {
+        return Err("desktop runtime directory is not canonical");
+    }
+    if !canonical_paths_equal(&canonical, &path) {
         return Err("desktop runtime directory is not canonical");
     }
     set_private_directory(&path)?;
@@ -834,6 +878,48 @@ fn validate_existing_ancestors(path: &Path) -> Result<(), &'static str> {
         }
     }
     Ok(())
+}
+
+fn canonical_paths_equal(canonical: &Path, requested: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        normalize_windows_extended_path(canonical) == normalize_windows_extended_path(requested)
+    }
+    #[cfg(not(windows))]
+    {
+        canonical == requested
+    }
+}
+
+#[cfg(windows)]
+fn normalize_windows_extended_path(path: &Path) -> PathBuf {
+    use std::{
+        ffi::OsString,
+        os::windows::ffi::{OsStrExt, OsStringExt},
+    };
+
+    const EXTENDED_PREFIX: &[u16] = &[b'\\' as u16, b'\\' as u16, b'?' as u16, b'\\' as u16];
+    const EXTENDED_UNC_PREFIX: &[u16] = &[
+        b'\\' as u16,
+        b'\\' as u16,
+        b'?' as u16,
+        b'\\' as u16,
+        b'U' as u16,
+        b'N' as u16,
+        b'C' as u16,
+        b'\\' as u16,
+    ];
+    let value: Vec<u16> = path.as_os_str().encode_wide().collect();
+    let normalized = if value.starts_with(EXTENDED_UNC_PREFIX) {
+        let mut result = vec![b'\\' as u16, b'\\' as u16];
+        result.extend_from_slice(&value[EXTENDED_UNC_PREFIX.len()..]);
+        result
+    } else if value.starts_with(EXTENDED_PREFIX) {
+        value[EXTENDED_PREFIX.len()..].to_vec()
+    } else {
+        value
+    };
+    PathBuf::from(OsString::from_wide(&normalized))
 }
 
 #[cfg(unix)]
@@ -884,6 +970,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             desktop_request,
             desktop_identity,
+            desktop_first_setup_state,
+            desktop_first_setup_submit,
             desktop_navigation,
             desktop_login,
             desktop_logout,
@@ -943,6 +1031,23 @@ mod tests {
     fn nested_runtime_roots_are_rejected() {
         assert!(reject_overlap(Path::new("/data"), Path::new("/data/logs")).is_err());
         assert!(reject_overlap(Path::new("/data"), Path::new("/logs")).is_ok());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_extended_paths_remain_strictly_canonical() {
+        assert!(canonical_paths_equal(
+            Path::new(r"\\?\C:\private\data"),
+            Path::new(r"C:\private\data"),
+        ));
+        assert!(canonical_paths_equal(
+            Path::new(r"\\?\UNC\server\share\data"),
+            Path::new(r"\\server\share\data"),
+        ));
+        assert!(!canonical_paths_equal(
+            Path::new(r"\\?\C:\private\other"),
+            Path::new(r"C:\private\data"),
+        ));
     }
 
     #[test]

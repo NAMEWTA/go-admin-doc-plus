@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use zeroize::{Zeroize, Zeroizing};
 
+use crate::first_setup::{self, FirstSetupInput, FirstSetupOutcome, FirstSetupState};
 use crate::product_contract;
 use crate::vault::{SessionSecrets, SessionVault};
 
@@ -39,7 +40,7 @@ struct WireResponse {
     protected_values: Vec<Zeroizing<String>>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct PublicProfile {
     pub id: String,
@@ -165,6 +166,77 @@ impl TransportProxy {
             permissions: manifest.permission_codes,
             data_scope: manifest.data_scope,
         })
+    }
+
+    pub fn first_setup_state(&self) -> Result<FirstSetupState, &'static str> {
+        let body = serde_json::json!({"action": first_setup::STATE_ACTION});
+        let response = self.send("POST", first_setup::PATH, Some(&body), false)?;
+        if response.response.status != 200
+            || contains_secret_material(&response.response.body, &response.protected_values)
+        {
+            return Err("desktop first setup state failed");
+        }
+        first_setup::decode_state(response.response.body)
+    }
+
+    pub fn first_setup_submit(
+        &self,
+        input: FirstSetupInput,
+    ) -> Result<FirstSetupOutcome, &'static str> {
+        if !input.valid() {
+            return Err("desktop first setup input invalid");
+        }
+        let mut body = Some(serde_json::json!({
+            "action": first_setup::SUBMIT_ACTION,
+            "username": input.username.as_str(),
+            "displayName": input.display_name.as_str(),
+            "email": input.email.as_str(),
+            "password": input.password.as_str(),
+        }));
+        let response = self.send("POST", first_setup::PATH, body.as_ref(), false);
+        if let Some(value) = body.as_mut() {
+            scrub_json(value);
+        }
+        let response = response?;
+        if response.response.status == 409 {
+            return match first_setup::decode_state(response.response.body)? {
+                FirstSetupState::LoginRequired => Ok(FirstSetupOutcome::LoginRequired),
+                _ => Err("desktop first setup response invalid"),
+            };
+        }
+        if response.response.status == 400 {
+            return Err("desktop first setup input invalid");
+        }
+        if response.response.status != 200 {
+            return Err("desktop first setup failed");
+        }
+        let mut issued = first_setup::decode_complete(response.response.body)?;
+        validate_profile(&issued.profile)?;
+        if !valid_secret(&issued.token) || !valid_secret(&issued.csrf) {
+            return Err("desktop first setup response invalid");
+        }
+        self.vault
+            .lock()
+            .map_err(|_| "desktop vault unavailable")?
+            .write(SessionSecrets {
+                token: std::mem::take(&mut issued.token),
+                csrf: std::mem::take(&mut issued.csrf),
+            })?;
+
+        let verified = self.identity();
+        match verified {
+            Ok(IdentityResult::Authenticated { profile, .. }) if profile == issued.profile => {
+                Ok(FirstSetupOutcome::Complete { profile })
+            }
+            _ => {
+                let _ = self.logout();
+                self.vault
+                    .lock()
+                    .map_err(|_| "desktop vault unavailable")?
+                    .clear()?;
+                Ok(FirstSetupOutcome::LoginRequired)
+            }
+        }
     }
 
     pub fn navigation(&self) -> Result<Vec<PublicMenu>, &'static str> {

@@ -2,6 +2,8 @@ fn main() {
     let manifest = tauri_build::AppManifest::new().commands(&[
         "desktop_request",
         "desktop_identity",
+        "desktop_first_setup_state",
+        "desktop_first_setup_submit",
         "desktop_navigation",
         "desktop_login",
         "desktop_logout",

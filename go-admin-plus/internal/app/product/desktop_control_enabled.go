@@ -3,6 +3,7 @@
 package product
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,7 @@ type desktopNativeAction struct {
 type desktopNativeControl struct {
 	database *database.Database
 	sessions *session.Service
+	setup    *desktopSetup
 }
 
 var (
@@ -37,7 +39,7 @@ var (
 )
 
 func desktopPrivateRoute(db *database.Database, sessions *session.Service) *desktophost.PrivateRoute {
-	control := &desktopNativeControl{database: db, sessions: sessions}
+	control := &desktopNativeControl{database: db, sessions: sessions, setup: newDesktopSetup(db, sessions)}
 	return &desktophost.PrivateRoute{
 		Pattern: "POST /__desktop/test-control",
 		Handler: http.HandlerFunc(control.serveHTTP),
@@ -66,8 +68,31 @@ func decodeDesktopNativeAction(request *http.Request) (string, error) {
 	}
 }
 
+func decodeDesktopNativeActionPayload(payload []byte) (string, error) {
+	request, err := http.NewRequest(http.MethodPost, "/__desktop/test-control", bytes.NewReader(payload))
+	if err != nil {
+		return "", errors.New("invalid desktop test control request")
+	}
+	request.Header.Set("Content-Type", "application/json")
+	return decodeDesktopNativeAction(request)
+}
+
 func (control *desktopNativeControl) serveHTTP(writer http.ResponseWriter, request *http.Request) {
-	action, err := decodeDesktopNativeAction(request)
+	if request.Header.Get("Content-Type") != "application/json" {
+		writer.WriteHeader(http.StatusGatewayTimeout)
+		return
+	}
+	payload, err := io.ReadAll(io.LimitReader(request.Body, desktopSetupMaximumBytes+1))
+	if err != nil || len(payload) > desktopSetupMaximumBytes {
+		writer.WriteHeader(http.StatusGatewayTimeout)
+		return
+	}
+	var envelope desktopNativeAction
+	if json.Unmarshal(payload, &envelope) == nil && strings.HasPrefix(envelope.Action, "first-setup-") {
+		control.setup.servePayload(writer, request, payload)
+		return
+	}
+	action, err := decodeDesktopNativeActionPayload(payload)
 	if err != nil {
 		writer.WriteHeader(http.StatusGatewayTimeout)
 		return
