@@ -18,7 +18,6 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
-	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -47,7 +46,7 @@ func TestIAMAdministrationBrowserHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	db := openAdministrationBrowserDB(t, ctx, os.Getenv(adminHarnessProfile))
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
