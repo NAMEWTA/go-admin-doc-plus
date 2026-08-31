@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
 	bootstrapmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
@@ -47,7 +48,12 @@ func TestBootstrapCreatesExactlyOneSystemAdministrator(t *testing.T) {
 	}
 
 	var accounts, roles, facts, markers int
+	var passwordHash string
+	var disabledAt any
 	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM iam_accounts`).Scan(&accounts); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.SQL().QueryRow(`SELECT password_hash, disabled_at FROM iam_accounts WHERE id = ?`, result.AccountID).Scan(&passwordHash, &disabledAt); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.SQL().QueryRow(`SELECT COUNT(*) FROM iam_account_roles WHERE account_id = ? AND role_id = 'role-system-admin'`, result.AccountID).Scan(&roles); err != nil {
@@ -61,6 +67,9 @@ func TestBootstrapCreatesExactlyOneSystemAdministrator(t *testing.T) {
 	}
 	if accounts != 1 || roles != 1 || facts != 1 || markers != 1 {
 		t.Fatalf("state = accounts:%d roles:%d facts:%d markers:%d", accounts, roles, facts, markers)
+	}
+	if disabledAt != nil || !account.VerifyPassword(passwordHash, "correct horse battery staple") {
+		t.Fatal("bootstrap account is not an enabled login credential")
 	}
 }
 

@@ -1,9 +1,7 @@
 package bootstrap
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/bootstrap/secretinput"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -37,27 +36,14 @@ type Fact struct {
 	OccurredAt time.Time
 }
 
-type Secret struct{ value []byte }
+type Secret = secretinput.Value
 
 func ReadSecret(reader io.Reader) (Secret, error) {
-	if reader == nil {
+	value, err := secretinput.Read(reader)
+	if err != nil {
 		return Secret{}, ErrInvalidArgument
 	}
-	payload, err := io.ReadAll(io.LimitReader(bufio.NewReader(reader), 130))
-	if err != nil || len(payload) > 129 {
-		return Secret{}, ErrInvalidArgument
-	}
-	payload = []byte(strings.TrimSuffix(strings.TrimSuffix(string(payload), "\n"), "\r"))
-	if len(payload) < 12 || len(payload) > 128 || strings.IndexByte(string(payload), 0) >= 0 {
-		return Secret{}, ErrInvalidArgument
-	}
-	return Secret{value: append([]byte(nil), payload...)}, nil
-}
-
-func (Secret) String() string   { return "bootstrap.Secret{[redacted]}" }
-func (Secret) GoString() string { return "bootstrap.Secret{[redacted]}" }
-func (Secret) MarshalJSON() ([]byte, error) {
-	return json.Marshal("[redacted]")
+	return value, nil
 }
 
 type Command struct {
@@ -110,10 +96,10 @@ func (service *Service) Bootstrap(ctx context.Context, command Command) (Result,
 	email := strings.ToLower(strings.TrimSpace(command.Email))
 	parsedEmail, emailErr := mail.ParseAddress(email)
 	if len(username) < 3 || len(username) > 64 || displayName == "" || len(displayName) > 80 ||
-		emailErr != nil || parsedEmail.Address != email || len(email) > 254 || len(command.Secret.value) < 12 {
+		emailErr != nil || parsedEmail.Address != email || len(email) > 254 || !command.Secret.Valid() {
 		return Result{}, ErrInvalidArgument
 	}
-	passwordHash, err := account.HashPassword(string(command.Secret.value))
+	passwordHash, err := command.Secret.PasswordHash()
 	if err != nil {
 		return Result{}, ErrInvalidArgument
 	}

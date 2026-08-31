@@ -1,17 +1,14 @@
 package recovery
 
 import (
-	"bufio"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/bootstrap/secretinput"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -50,27 +47,14 @@ type Fact struct {
 	OccurredAt time.Time
 }
 
-type Secret struct{ value []byte }
+type Secret = secretinput.Value
 
 func ReadSecret(reader io.Reader) (Secret, error) {
-	if reader == nil {
+	value, err := secretinput.Read(reader)
+	if err != nil {
 		return Secret{}, ErrInvalidArgument
 	}
-	payload, err := io.ReadAll(io.LimitReader(bufio.NewReader(reader), 130))
-	if err != nil || len(payload) > 129 {
-		return Secret{}, ErrInvalidArgument
-	}
-	payload = []byte(strings.TrimSuffix(strings.TrimSuffix(string(payload), "\n"), "\r"))
-	if len(payload) < 12 || len(payload) > 128 || strings.IndexByte(string(payload), 0) >= 0 {
-		return Secret{}, ErrInvalidArgument
-	}
-	return Secret{value: append([]byte(nil), payload...)}, nil
-}
-
-func (Secret) String() string   { return "recovery.Secret{[redacted]}" }
-func (Secret) GoString() string { return "recovery.Secret{[redacted]}" }
-func (Secret) MarshalJSON() ([]byte, error) {
-	return json.Marshal("[redacted]")
+	return value, nil
 }
 
 type Command struct {
@@ -112,7 +96,7 @@ func NewService(db Database, guard OfflineGuard, audit AuditPort, options ...Opt
 }
 
 func (service *Service) RecoverAdmin(ctx context.Context, command Command) (result Result, resultErr error) {
-	if len(command.AccountID) < 16 || len(command.AccountID) > 64 || len(command.Secret.value) < 12 || !validReason(command.Reason) {
+	if len(command.AccountID) < 16 || len(command.AccountID) > 64 || !command.Secret.Valid() || !validReason(command.Reason) {
 		return Result{}, ErrInvalidArgument
 	}
 	release, err := service.guard.Acquire(ctx)
@@ -125,7 +109,7 @@ func (service *Service) RecoverAdmin(ctx context.Context, command Command) (resu
 			resultErr = ErrInternal
 		}
 	}()
-	passwordHash, err := account.HashPassword(string(command.Secret.value))
+	passwordHash, err := command.Secret.PasswordHash()
 	if err != nil {
 		return Result{}, ErrInvalidArgument
 	}
