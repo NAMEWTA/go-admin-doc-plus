@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-06
 title: 建立文件配额与磁盘容量治理
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 涉及双方言配额并发、文件系统崩溃一致性、容量拒绝和持久数据迁移
 ready: true
 risk: high
 blocked_by: []
 contract_ids: [AC-027, AC-028, AC-029]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/modules/files/service.go</Path>", "<Path>go-admin-plus/internal/modules/files/service_test.go</Path>", "<Path>go-admin-plus/internal/modules/files/repository.go</Path>", "<Path>go-admin-plus/internal/modules/files/repository_test.go</Path>", "<Path>go-admin-plus/internal/modules/files/storage.go</Path>", "<Path>go-admin-plus/internal/modules/files/storage_test.go</Path>", "<Path>go-admin-plus/internal/modules/files/quota*</Path>", "<Path>go-admin-plus/internal/modules/files/reconcile*</Path>", "<Path>go-admin-plus/internal/modules/files/migrations/0020-capacity/**</Path>", "<Path>go-admin-plus/test/files/quota*</Path>", "<Path>go-admin-plus/test/files/capacity*</Path>", "<Path>go-admin-plus/test/files/reconcile*</Path>", "<Path>go-admin-plus/test/files/dialect_capacity*</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/modules/files/service.go</Path>", "<Path>go-admin-plus/internal/modules/files/service_test.go</Path>", "<Path>go-admin-plus/internal/modules/files/repository.go</Path>", "<Path>go-admin-plus/internal/modules/files/repository_test.go</Path>", "<Path>go-admin-plus/internal/modules/files/storage.go</Path>", "<Path>go-admin-plus/internal/modules/files/storage_test.go</Path>", "<Path>go-admin-plus/internal/modules/files/quota*</Path>", "<Path>go-admin-plus/internal/modules/files/reconcile*</Path>", "<Path>go-admin-plus/internal/modules/files/migrations/0020-capacity/**</Path>", "<Path>go-admin-plus/test/files/quota*</Path>", "<Path>go-admin-plus/test/files/capacity*</Path>", "<Path>go-admin-plus/test/files/reconcile*</Path>", "<Path>go-admin-plus/test/files/dialect_capacity*</Path>"]
 read_only_paths: ["<Path>contracts/openapi/modules/files.yaml</Path>", "<Path>go-admin-plus/internal/modules/files/http.go</Path>", "<Path>go-admin-plus/internal/modules/files/transport/**</Path>", "<Path>go-admin-plus/internal/platform/config/**</Path>"]
