@@ -1,3 +1,5 @@
+import type { Component } from 'vue'
+
 export type ProductHost = 'web' | 'desktop'
 
 export type ProductModuleId =
@@ -10,16 +12,35 @@ export type ProductModuleId =
   | 'demo'
   | 'files'
 
+export type ProductIcon =
+  | 'users'
+  | 'shield'
+  | 'menu'
+  | 'building'
+  | 'briefcase'
+  | 'file-clock'
+  | 'settings'
+  | 'book-open'
+  | 'wand'
+  | 'calendar-clock'
+  | 'history'
+  | 'package'
+  | 'files'
+
 export interface ProductRoute {
-  readonly key: string
-  readonly label: string
+  readonly name: string
+  readonly module: ProductModuleId
+  readonly title: string
   readonly path: `/${string}`
   readonly permission: `${string}.${string}`
+  readonly icon: ProductIcon
   readonly order: number
+  readonly component: () => Promise<Component>
 }
 
 export interface ProductModule {
   readonly id: ProductModuleId
+  readonly title: string
   readonly hosts: readonly ProductHost[]
   readonly routes: readonly ProductRoute[]
 }
@@ -29,98 +50,120 @@ const bothHosts = ['web', 'desktop'] as const satisfies readonly ProductHost[]
 export const productModules = [
   {
     id: 'iam',
+    title: '权限管理',
     hosts: bothHosts,
     routes: [
-      { key: 'iam-users', label: '用户管理', path: '/iam/users', permission: 'iam.users.read', order: 10 },
-      { key: 'iam-roles', label: '角色管理', path: '/iam/roles', permission: 'iam.roles.read', order: 20 },
-      { key: 'iam-menus', label: '菜单管理', path: '/iam/menus', permission: 'iam.menus.read', order: 30 }
+      { name: 'iam-users', module: 'iam', title: '用户管理', path: '/iam/users', permission: 'iam.users.read', icon: 'users', order: 10, component: async () => (await import('@go-admin-plus/web-domain-iam/administration')).AdministrationPage },
+      { name: 'iam-roles', module: 'iam', title: '角色管理', path: '/iam/roles', permission: 'iam.roles.read', icon: 'shield', order: 20, component: async () => (await import('@go-admin-plus/web-domain-iam/administration')).AdministrationPage },
+      { name: 'iam-menus', module: 'iam', title: '菜单管理', path: '/iam/menus', permission: 'iam.menus.read', icon: 'menu', order: 30, component: async () => (await import('@go-admin-plus/web-domain-iam/administration')).AdministrationPage }
     ]
   },
   {
     id: 'audit',
+    title: '审计管理',
     hosts: bothHosts,
     routes: [
-      { key: 'audit-records', label: '审计日志', path: '/audit/records', permission: 'audit.records.read', order: 500 }
+      { name: 'audit-records', module: 'audit', title: '审计日志', path: '/audit/records', permission: 'audit.records.read', icon: 'file-clock', order: 100, component: async () => (await import('@go-admin-plus/web-domain-audit')).AuditPage }
     ]
   },
   {
     id: 'organization',
+    title: '组织管理',
     hosts: bothHosts,
     routes: [
-      { key: 'organization-departments', label: '部门管理', path: '/organization/departments', permission: 'organization.departments.read', order: 600 },
-      { key: 'organization-positions', label: '岗位管理', path: '/organization/positions', permission: 'organization.positions.read', order: 610 }
+      { name: 'organization-departments', module: 'organization', title: '部门管理', path: '/organization/departments', permission: 'organization.departments.read', icon: 'building', order: 200, component: async () => (await import('@go-admin-plus/web-domain-organization')).OrganizationPage },
+      { name: 'organization-positions', module: 'organization', title: '岗位管理', path: '/organization/positions', permission: 'organization.positions.read', icon: 'briefcase', order: 210, component: async () => (await import('@go-admin-plus/web-domain-organization')).OrganizationPage }
     ]
   },
   {
     id: 'settings',
+    title: '系统设置',
     hosts: bothHosts,
     routes: [
-      { key: 'settings-values', label: '参数设置', path: '/settings/values', permission: 'settings.values.read', order: 600 },
-      { key: 'settings-dictionaries', label: '字典管理', path: '/settings/dictionaries', permission: 'settings.dictionaries.read', order: 610 }
+      { name: 'settings-values', module: 'settings', title: '参数设置', path: '/settings/values', permission: 'settings.values.read', icon: 'settings', order: 300, component: async () => (await import('@go-admin-plus/web-domain-settings')).SettingsPage },
+      { name: 'settings-dictionaries', module: 'settings', title: '字典管理', path: '/settings/dictionaries', permission: 'settings.dictionaries.read', icon: 'book-open', order: 310, component: async () => (await import('@go-admin-plus/web-domain-settings')).SettingsPage }
     ]
   },
   {
     id: 'generator',
+    title: '开发工具',
     hosts: bothHosts,
     routes: [
-      { key: 'code-generator', label: '代码生成', path: '/generator', permission: 'generator.metadata.read', order: 700 }
+      { name: 'code-generator', module: 'generator', title: '代码生成', path: '/generator', permission: 'generator.metadata.read', icon: 'wand', order: 400, component: async () => (await import('@go-admin-plus/web-domain-generator')).GeneratorWizardPage }
     ]
   },
   {
     id: 'scheduler',
+    title: '任务调度',
     hosts: bothHosts,
     routes: [
-      { key: 'scheduler-definitions', label: '任务调度', path: '/scheduler/definitions', permission: 'scheduler.definitions.read', order: 700 },
-      { key: 'scheduler-executions', label: '执行记录', path: '/scheduler/executions', permission: 'scheduler.executions.read', order: 710 }
+      { name: 'scheduler-definitions', module: 'scheduler', title: '任务定义', path: '/scheduler/definitions', permission: 'scheduler.definitions.read', icon: 'calendar-clock', order: 500, component: async () => (await import('@go-admin-plus/web-domain-scheduler')).SchedulerPage },
+      { name: 'scheduler-executions', module: 'scheduler', title: '执行记录', path: '/scheduler/executions', permission: 'scheduler.executions.read', icon: 'history', order: 510, component: async () => (await import('@go-admin-plus/web-domain-scheduler')).SchedulerPage }
     ]
   },
   {
     id: 'demo',
+    title: '示例业务',
     hosts: bothHosts,
     routes: [
-      { key: 'demo-products', label: '产品示例', path: '/demo/products', permission: 'demo.products.read', order: 800 }
+      { name: 'demo-products', module: 'demo', title: '产品示例', path: '/demo/products', permission: 'demo.products.read', icon: 'package', order: 600, component: async () => (await import('@go-admin-plus/web-domain-demo')).DemoProductsPage }
     ]
   },
   {
     id: 'files',
+    title: '文件管理',
     hosts: bothHosts,
     routes: [
-      { key: 'files-objects', label: '文件管理', path: '/files', permission: 'files.objects.read', order: 900 }
+      { name: 'files-objects', module: 'files', title: '文件管理', path: '/files', permission: 'files.objects.read', icon: 'files', order: 700, component: async () => (await import('@go-admin-plus/web-domain-files')).FilesPage }
     ]
   }
 ] as const satisfies readonly ProductModule[]
 
 const permissionPattern = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/
+const routeNamePattern = /^[a-z][a-z0-9-]*$/
 
 export const assertProductManifest = (modules: readonly ProductModule[] = productModules): void => {
   const moduleIds = new Set<string>()
-  const routeKeys = new Set<string>()
+  const routeNames = new Set<string>()
   const routePaths = new Set<string>()
+  let previousGlobalOrder = -1
 
-  for (const module of modules) {
-    if (moduleIds.has(module.id) || module.hosts.length === 0 || module.routes.length === 0) {
+  for (const productModule of modules) {
+    if (moduleIds.has(productModule.id) || !productModule.title.trim() || productModule.hosts.length === 0 || productModule.routes.length === 0) {
       throw new Error('product module definition is invalid')
     }
-    moduleIds.add(module.id)
-    let previousOrder = -1
+    moduleIds.add(productModule.id)
 
     for (const host of bothHosts) {
-      if (!module.hosts.includes(host)) throw new Error('product host coverage is incomplete')
+      if (!productModule.hosts.includes(host)) throw new Error('product host coverage is incomplete')
     }
 
-    for (const route of module.routes) {
-      if (routeKeys.has(route.key) || routePaths.has(route.path) || !permissionPattern.test(route.permission)) {
+    for (const route of productModule.routes) {
+      if (
+        route.module !== productModule.id
+        || routeNames.has(route.name)
+        || routePaths.has(route.path)
+        || !routeNamePattern.test(route.name)
+        || !route.title.trim()
+        || !permissionPattern.test(route.permission)
+        || typeof route.component !== 'function'
+      ) {
         throw new Error('product route definition is invalid')
       }
-      if (route.order <= previousOrder) throw new Error('product route order is unstable')
-      routeKeys.add(route.key)
+      if (route.order <= previousGlobalOrder) throw new Error('product route order is unstable')
+      routeNames.add(route.name)
       routePaths.add(route.path)
-      previousOrder = route.order
+      previousGlobalOrder = route.order
     }
   }
 }
 
 export const productRoutesFor = (host: ProductHost): readonly ProductRoute[] =>
-  (productModules as readonly ProductModule[]).flatMap(module => module.hosts.includes(host) ? module.routes : [])
+  (productModules as readonly ProductModule[]).flatMap(productModule =>
+    productModule.hosts.includes(host) ? productModule.routes : []
+  )
+
+export const productModuleFor = (id: ProductModuleId): ProductModule =>
+  (productModules as readonly ProductModule[]).find(productModule => productModule.id === id) as ProductModule
 
 assertProductManifest()

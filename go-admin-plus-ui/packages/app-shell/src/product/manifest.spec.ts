@@ -19,6 +19,9 @@ describe('product manifest', () => {
   it('gives Web and Desktop the same business navigation', () => {
     expect(productRoutesFor('desktop')).toEqual(productRoutesFor('web'))
     expect(productRoutesFor('web')).toHaveLength(13)
+    expect(productRoutesFor('web').every(route =>
+      route.name && route.title && route.icon && typeof route.component === 'function'
+    )).toBe(true)
   })
 
   it('rejects duplicate routes and incomplete host coverage', () => {

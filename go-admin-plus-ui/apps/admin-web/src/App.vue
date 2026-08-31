@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { createBrowserSessionFetch, createWebPlatform, createWebRuntime } from '@go-admin-plus/adapter-browser'
+import { createWebPlatform } from '@go-admin-plus/adapter-browser'
 import { ProductWorkspace } from '@go-admin-plus/app-shell/product'
+import type { ShellRuntimePort } from '@go-admin-plus/platform'
 
-const fetcher = createBrowserSessionFetch()
-const runtime = createWebRuntime(fetcher)
+defineProps<{
+  runtime: ShellRuntimePort
+  fetcher: typeof globalThis.fetch
+}>()
 const platform = createWebPlatform()
 </script>
 

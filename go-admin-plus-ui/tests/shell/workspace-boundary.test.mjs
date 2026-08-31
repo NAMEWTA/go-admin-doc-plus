@@ -241,7 +241,11 @@ test('dual Apps inject one Platform Port and Desktop host commands remain explic
 
   const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
   assert.match(productShell, /platform:\s*PlatformPort/)
-  assert.match(productShell, /<FilesPage[^>]*:platform="platform"/)
+  assert.match(productShell, /case 'files': return \{ controller: files, platform \}/)
+  assert.match(productShell, /<RouterView/)
+  assert.doesNotMatch(productShell, /<FilesPage/)
+  const manifest = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/manifest.ts'), 'utf8')
+  assert.match(manifest, /component: async \(\) => .*\.FilesPage/)
 
   const host = await readFile(join(workspaceRoot, 'apps/admin-desktop/src-tauri/src/main.rs'), 'utf8')
   const capability = await readJson(join(workspaceRoot, 'apps/admin-desktop/src-tauri/capabilities/main.json'))

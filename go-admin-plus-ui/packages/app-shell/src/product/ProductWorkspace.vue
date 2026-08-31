@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import type { AccountProfile, SessionClient, SessionState } from '@go-admin-plus/domain-iam/session'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import type { PlatformPort, ShellRuntimePort } from '@go-admin-plus/platform'
-import { AuditPage, createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
-import { createDemoController, createWebDemoClient, DemoProductsPage } from '@go-admin-plus/web-domain-demo'
-import { createFilesController, createWebFilesClient, FilesPage } from '@go-admin-plus/web-domain-files'
-import { createGeneratorController, createWebGeneratorClient, GeneratorWizardPage } from '@go-admin-plus/web-domain-generator'
+import { createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
+import { createDemoController, createWebDemoClient } from '@go-admin-plus/web-domain-demo'
+import { createFilesController, createWebFilesClient } from '@go-admin-plus/web-domain-files'
+import { createGeneratorController, createWebGeneratorClient } from '@go-admin-plus/web-domain-generator'
 import { AccountPage, createWebSessionClient, LoginPage } from '@go-admin-plus/web-domain-iam/session'
-import { AdministrationPage, createAdministrationController, createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
-import { createOrganizationController, createWebOrganizationClient, OrganizationPage } from '@go-admin-plus/web-domain-organization'
-import { createSchedulerController, createWebSchedulerClient, SchedulerPage } from '@go-admin-plus/web-domain-scheduler'
-import { createSettingsController, createWebSettingsClient, SettingsPage, type SettingsRemovalKind } from '@go-admin-plus/web-domain-settings'
+import { createAdministrationController, createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
+import { createOrganizationController, createWebOrganizationClient } from '@go-admin-plus/web-domain-organization'
+import { createSchedulerController, createWebSchedulerClient } from '@go-admin-plus/web-domain-scheduler'
+import { createSettingsController, createWebSettingsClient, type SettingsRemovalKind } from '@go-admin-plus/web-domain-settings'
 
-import { productRoutesFor, type ProductHost } from './manifest'
+import { productModuleFor, productRoutesFor, type ProductHost } from './manifest'
+import { productBreadcrumbs } from './router'
 
 const props = defineProps<{
   host: ProductHost
@@ -28,12 +30,13 @@ type View = 'loading' | 'login' | 'workspace' | 'account' | 'forbidden' | 'not-f
 
 const fetcher = props.fetcher ?? globalThis.fetch
 const platform = props.platform
+const currentRoute = useRoute()
+const router = useRouter()
 const session = createSessionController(props.sessionClient ?? createWebSessionClient(fetcher))
 const sessionState = ref<SessionState>(session.state())
 const permissions = ref<ReadonlySet<string>>(new Set())
 const dataScope = ref<'self' | 'all' | null>(null)
 const navigationPaths = ref<ReadonlySet<string>>(new Set())
-const path = ref(window.location.pathname)
 const view = ref<View>('loading')
 const sidebarCollapsed = ref(false)
 const mobileNavigationOpen = ref(false)
@@ -64,50 +67,47 @@ const routes = computed(() => productRoutesFor(props.host).filter(route =>
   navigationPaths.value.has(route.path) && permissions.value.has(route.permission)
 ))
 const profile = computed<AccountProfile | null>(() => sessionState.value.profile)
-const route = computed(() => productRoutesFor(props.host).find(candidate => candidate.path === path.value))
+const routePath = computed(() => currentRoute.path)
+const productRoute = computed(() => productRoutesFor(props.host).find(candidate => candidate.name === currentRoute.name))
+const breadcrumbs = computed(() => productBreadcrumbs(props.host, currentRoute))
 const routeGroups = computed(() => {
-  const labels: Record<string, string> = {
-    iam: '权限管理',
-    audit: '审计管理',
-    organization: '组织管理',
-    settings: '系统设置',
-    generator: '开发工具',
-    scheduler: '任务调度',
-    demo: '示例业务',
-    files: '文件管理'
-  }
   const groups = new Map<string, { key: string; label: string; mark: string; routes: typeof routes.value }>()
   for (const item of routes.value) {
-    const key = item.path.split('/')[1] ?? 'system'
+    const key = item.module
     const existing = groups.get(key)
     if (existing) existing.routes = [...existing.routes, item]
-    else groups.set(key, { key, label: labels[key] ?? key, mark: key.slice(0, 2).toUpperCase(), routes: [item] })
+    else groups.set(key, { key, label: productModuleFor(item.module).title, mark: key.slice(0, 2).toUpperCase(), routes: [item] })
   }
   return [...groups.values()]
 })
 const visitedRoutes = computed(() => visitedPaths.value
   .map(visited => productRoutesFor(props.host).find(candidate => candidate.path === visited))
   .filter(candidate => candidate !== undefined))
-const currentTitle = computed(() => path.value === '/account' ? '个人中心' : route.value?.label ?? '工作台')
 const profileMark = computed(() => (profile.value?.displayName.trim().charAt(0) || 'A').toUpperCase())
-const module = computed(() => {
-  const current = route.value
-  if (!current) return null
-  if (current.path.startsWith('/iam/')) return 'iam'
-  return current.path.split('/')[1] ?? null
+const module = computed(() => productRoute.value?.module ?? null)
+const routeComponentProps = computed(() => {
+  switch (module.value) {
+    case 'iam': return { controller: administration }
+    case 'audit': return { controller: audit }
+    case 'organization': return { controller: organization }
+    case 'settings': return { controller: settings }
+    case 'generator': return { controller: generator }
+    case 'scheduler': return { controller: scheduler }
+    case 'demo': return { controller: demo }
+    case 'files': return { controller: files, platform }
+    default: return {}
+  }
 })
 
 const replacePath = (next: string) => {
-  window.history.replaceState({}, '', next)
-  path.value = next
+  void router.replace(next)
 }
 const rememberRoute = (next: string) => {
   if (!productRoutesFor(props.host).some(candidate => candidate.path === next)) return
   visitedPaths.value = [...visitedPaths.value.filter(visited => visited !== next), next]
 }
 const navigate = (next: string) => {
-  window.history.pushState({}, '', next)
-  path.value = next
+  void router.push(next)
   rememberRoute(next)
   mobileNavigationOpen.value = false
   accountMenuOpen.value = false
@@ -115,17 +115,23 @@ const navigate = (next: string) => {
 }
 const resolveView = () => {
   if (sessionState.value.status !== 'authenticated') { view.value = 'login'; return }
-  if (path.value === '/account') { view.value = 'account'; return }
-  if (path.value === '/' || path.value === '/login') {
+  if (currentRoute.name === 'unavailable') { view.value = 'unavailable'; return }
+  if (currentRoute.name === 'forbidden') { view.value = 'forbidden'; return }
+  if (currentRoute.name === 'not-found') { view.value = 'not-found'; return }
+  if (routePath.value === '/account') { view.value = 'account'; return }
+  if (routePath.value === '/' || routePath.value === '/login') {
     const first = routes.value[0]?.path
     if (first) { replacePath(first); rememberRoute(first); view.value = 'workspace' } else view.value = 'forbidden'
     return
   }
-  if (!route.value) { view.value = 'not-found'; return }
-  if (routes.value.some(candidate => candidate.path === path.value)) {
-    rememberRoute(path.value)
+  if (!productRoute.value) { view.value = 'not-found'; return }
+  if (routes.value.some(candidate => candidate.path === routePath.value)) {
+    rememberRoute(routePath.value)
     view.value = 'workspace'
-  } else view.value = 'forbidden'
+  } else {
+    replacePath('/forbidden')
+    view.value = 'forbidden'
+  }
 }
 const loadRuntime = async () => {
   view.value = 'loading'
@@ -141,6 +147,8 @@ const loadRuntime = async () => {
     dataScope.value = identity.dataScope
     const navigation = await props.runtime.loadNavigation()
     navigationPaths.value = new Set(navigation.map(entry => entry.path))
+    const reachable = new Set<string>(routes.value.map(route => route.path))
+    visitedPaths.value = visitedPaths.value.filter(visited => reachable.has(visited))
     resolveView()
   } catch {
     view.value = 'unavailable'
@@ -153,7 +161,7 @@ const requireSession = () => {
   replacePath('/login')
   view.value = 'login'
 }
-const forbid = () => { view.value = 'forbidden' }
+const forbid = () => { replacePath('/forbidden'); view.value = 'forbidden' }
 const signedOut = () => requireSession()
 const signOut = async () => {
   accountMenuOpen.value = false
@@ -165,7 +173,7 @@ const closeTag = (target: string) => {
   if (visitedPaths.value.length <= 1) return
   const index = visitedPaths.value.indexOf(target)
   visitedPaths.value = visitedPaths.value.filter(visited => visited !== target)
-  if (target !== path.value) return
+  if (target !== routePath.value) return
   const fallback = visitedPaths.value[Math.min(index, visitedPaths.value.length - 1)] ?? routes.value[0]?.path
   if (fallback) navigate(fallback)
 }
@@ -175,19 +183,20 @@ const restore = async () => {
   if (session.state().status === 'authenticated') await loadRuntime()
   else view.value = 'login'
 }
-const handlePopState = () => { path.value = window.location.pathname; rememberRoute(path.value); resolveView() }
 const unsubscribe = session.subscribe(state => {
   sessionState.value = state
   if (state.status === 'unauthenticated' && view.value !== 'loading') requireSession()
 })
 
 onMounted(() => {
-  window.addEventListener('popstate', handlePopState)
   void restore()
 })
 onUnmounted(() => {
   unsubscribe()
-  window.removeEventListener('popstate', handlePopState)
+})
+watch(() => currentRoute.fullPath, () => {
+  rememberRoute(routePath.value)
+  if (sessionState.value.status === 'authenticated') resolveView()
 })
 </script>
 
@@ -210,9 +219,9 @@ onUnmounted(() => {
         <nav class="product-shell__navigation" aria-label="主导航">
           <section v-for="group in routeGroups" :key="group.key" class="product-shell__nav-group">
             <p class="product-shell__nav-heading"><span class="product-shell__nav-mark">{{ group.mark }}</span><span>{{ group.label }}</span></p>
-            <button v-for="item in group.routes" :key="item.key" type="button" :title="item.label" :aria-current="path === item.path ? 'page' : undefined" @click="navigate(item.path)">
+            <button v-for="item in group.routes" :key="item.name" type="button" :title="item.title" :aria-current="routePath === item.path ? 'page' : undefined" @click="navigate(item.path)">
               <span class="product-shell__nav-dot" aria-hidden="true" />
-              <span class="product-shell__nav-label">{{ item.label }}</span>
+              <span class="product-shell__nav-label">{{ item.title }}</span>
             </button>
           </section>
         </nav>
@@ -224,7 +233,11 @@ onUnmounted(() => {
             <span /><span /><span />
           </button>
           <nav class="product-shell__breadcrumb" aria-label="面包屑">
-            <button type="button" @click="navigate('/')">工作台</button><span>/</span><strong>{{ currentTitle }}</strong>
+            <template v-for="(crumb, index) in breadcrumbs" :key="`${crumb.title}-${index}`">
+              <button v-if="crumb.path" type="button" @click="navigate(crumb.path)">{{ crumb.title }}</button>
+              <strong v-else>{{ crumb.title }}</strong>
+              <span v-if="index < breadcrumbs.length - 1">/</span>
+            </template>
           </nav>
           <div class="product-shell__identity">
             <span class="product-shell__host">{{ host === 'desktop' ? 'Desktop' : 'Web' }}</span>
@@ -239,21 +252,25 @@ onUnmounted(() => {
         </header>
 
         <div class="product-shell__tags" aria-label="已访问页面">
-          <div v-for="item in visitedRoutes" :key="item.path" class="product-shell__tag" :class="{ 'is-active': path === item.path }">
-            <button type="button" :aria-current="path === item.path ? 'page' : undefined" @click="navigate(item.path)">{{ item.label }}</button>
-            <button v-if="visitedRoutes.length > 1" class="product-shell__tag-close" type="button" :aria-label="`关闭 ${item.label}`" @click="closeTag(item.path)">×</button>
+          <div v-for="item in visitedRoutes" :key="item.path" class="product-shell__tag" :class="{ 'is-active': routePath === item.path }">
+            <button type="button" :aria-current="routePath === item.path ? 'page' : undefined" @click="navigate(item.path)">{{ item.title }}</button>
+            <button v-if="visitedRoutes.length > 1" class="product-shell__tag-close" type="button" :aria-label="`关闭 ${item.title}`" @click="closeTag(item.path)">×</button>
           </div>
         </div>
 
         <div class="product-shell__content">
-          <AdministrationPage v-if="view === 'workspace' && module === 'iam'" :controller="administration" @session-required="requireSession" />
-          <AuditPage v-else-if="view === 'workspace' && module === 'audit'" :controller="audit" @relogin="requireSession" />
-          <OrganizationPage v-else-if="view === 'workspace' && module === 'organization'" :controller="organization" @session-required="requireSession" />
-          <SettingsPage v-else-if="view === 'workspace' && module === 'settings'" :controller="settings" @session-required="requireSession" @forbidden="forbid" />
-          <GeneratorWizardPage v-else-if="view === 'workspace' && module === 'generator'" :controller="generator" @session-required="requireSession" @forbidden="forbid" />
-          <SchedulerPage v-else-if="view === 'workspace' && module === 'scheduler'" :controller="scheduler" @session-required="requireSession" />
-          <DemoProductsPage v-else-if="view === 'workspace' && module === 'demo'" :controller="demo" @session-required="requireSession" @forbidden="forbid" />
-          <FilesPage v-else-if="view === 'workspace' && module === 'files'" :controller="files" :platform="platform" @session-required="requireSession" />
+          <RouterView v-if="view === 'workspace'" v-slot="{ Component }">
+            <Suspense>
+              <component
+                :is="Component"
+                v-bind="routeComponentProps"
+                @session-required="requireSession"
+                @relogin="requireSession"
+                @forbidden="forbid"
+              />
+              <template #fallback><p class="product-shell__route-loading" aria-live="polite">正在加载页面</p></template>
+            </Suspense>
+          </RouterView>
           <AccountPage v-else-if="view === 'account' && profile" :controller="session" :profile="profile" @signed-out="signedOut" />
         </div>
       </div>
