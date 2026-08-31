@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-03
 title: 重构持久登录保护与 Session 续期模型
-status: in_progress
+status: review
 planning_depth: deep
 planning_depth_reason: 改变认证协议、CSRF 安全语义、双方言并发状态和 Session 数据迁移
 ready: true
