@@ -46,6 +46,10 @@ shared_path_owners: []
 
 - 三个领域在一个 Ticket 内按相同 list/detail/form pattern 迁移，可在单上下文完成。
 
+### 已批准偏差
+
+- **DEV-15-001（USER-DECISION:all-approved）：** T-15 可写入 Settings 与 Scheduler Web Domain 的 `package.json` 及 `pnpm-lock.yaml` 对应 importer，仅为 route-derived 页面声明现有 catalog `vue-router` 直接运行时依赖。App Shell、route manifest、共享 UI、依赖版本和其他 lock importer 继续只读。
+
 ### 未决问题
 
 无。
