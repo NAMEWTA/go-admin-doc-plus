@@ -12,8 +12,8 @@ risk: high
 blocked_by: [T-04, T-05, T-08, T-11, T-12, T-13]
 contract_ids: [AC-014, AC-015, AC-016, AC-017, AC-018, AC-019, AC-020, AC-021, AC-022, AC-023, AC-024, AC-025, AC-026, AC-038]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/administration-controller*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/index.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/organization*</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/GopherMark.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/administration-controller*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/index.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/organization*</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/GopherMark.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>"]
+expected_changes: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/administration-controller*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/index.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/organization*</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/GopherMark.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/administration-controller*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/index.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/organization*</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/GopherMark.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/package.json</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
 shared_paths: []
 shared_path_owners: []
@@ -45,6 +45,10 @@ shared_path_owners: []
 ### 已采用的低影响假设
 
 - 列表查询与表单验证复用 T-11 管理组件；页面拆分文件名按现有 Web Domain 惯例。
+
+### 已批准偏差
+
+- **DEV-14-001（USER-DECISION:all-approved）：** T-14 可写入两个目标 Web Domain 的 `package.json` 和 `pnpm-lock.yaml` 中对应 importer，只为 route-derived 页面声明现有 catalog `vue-router` 直接运行时依赖。App Shell、路由定义、生成客户端、共享 UI、依赖版本与其他 lock importer 继续只读。
 
 ### 未决问题
 
