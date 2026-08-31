@@ -5,12 +5,22 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./admin-theme.css": "./src/admin-theme.css"
+    "./admin-theme.css": "./src/theme.scss",
+    "./components": {
+      "types": "./src/components/public.d.ts",
+      "default": "./src/components/runtime.mts"
+    },
+    "./theme.scss": "./src/theme.scss"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "catalog:"
+  },
+  "dependencies": {
+    "@lucide/vue": "catalog:",
+    "element-plus": "catalog:",
+    "vue": "catalog:"
   }
 }

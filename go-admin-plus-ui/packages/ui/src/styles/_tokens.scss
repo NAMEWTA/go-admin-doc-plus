@@ -1,0 +1,55 @@
+$light: (
+  "--ga-brand": #168a68,
+  "--ga-brand-strong": #106b51,
+  "--ga-success": #18864b,
+  "--ga-warning": #ad6800,
+  "--ga-danger": #c9363e,
+  "--ga-info": #356f8c,
+  "--ga-bg-body": #edf0f2,
+  "--ga-bg-container": #ffffff,
+  "--ga-bg-elevated": #ffffff,
+  "--ga-bg-subtle": #f4f6f7,
+  "--ga-bg-hover": #e8f3ef,
+  "--ga-text-1": #172126,
+  "--ga-text-2": #4b5a61,
+  "--ga-text-3": #718087,
+  "--ga-text-disabled": #9ba5aa,
+  "--ga-text-inverse": #ffffff,
+  "--ga-border": #cbd4d8,
+  "--ga-border-light": #e2e7e9,
+  "--ga-sidebar-bg": #20272a,
+  "--ga-sidebar-hover": #303a3e,
+  "--ga-sidebar-text": #c9d0d3,
+  "--ga-sidebar-text-active": #ffffff
+);
+
+$dark: (
+  "--ga-brand": #48b894,
+  "--ga-brand-strong": #73c9ad,
+  "--ga-success": #55bd7e,
+  "--ga-warning": #e8ad4a,
+  "--ga-danger": #ef7279,
+  "--ga-info": #76b5d2,
+  "--ga-bg-body": #171b1d,
+  "--ga-bg-container": #202527,
+  "--ga-bg-elevated": #282e31,
+  "--ga-bg-subtle": #2d3437,
+  "--ga-bg-hover": #293b35,
+  "--ga-text-1": #edf1f2,
+  "--ga-text-2": #b9c2c5,
+  "--ga-text-3": #8f9a9f,
+  "--ga-text-disabled": #667176,
+  "--ga-text-inverse": #16201d,
+  "--ga-border": #465055,
+  "--ga-border-light": #343c40,
+  "--ga-sidebar-bg": #111617,
+  "--ga-sidebar-hover": #273033,
+  "--ga-sidebar-text": #b7c0c3,
+  "--ga-sidebar-text-active": #ffffff
+);
+
+@mixin emit($values) {
+  @each $name, $value in $values {
+    #{$name}: #{$value};
+  }
+}

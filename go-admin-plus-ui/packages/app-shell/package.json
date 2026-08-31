@@ -22,7 +22,8 @@
     "@go-admin-plus/web-domain-organization": "workspace:*",
     "@go-admin-plus/web-domain-scheduler": "workspace:*",
     "@go-admin-plus/web-domain-settings": "workspace:*",
-    "vue": "catalog:"
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
     "@vue/compiler-sfc": "catalog:",
