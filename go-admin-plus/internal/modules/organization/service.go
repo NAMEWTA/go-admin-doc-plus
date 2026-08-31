@@ -292,7 +292,7 @@ func constraintConflict(dialect database.Dialect, err error) bool {
 	}
 	if dialect == database.DialectSQLite {
 		var coded interface{ Code() int }
-		return errors.As(err, &coded) && (coded.Code() == 1555 || coded.Code() == 2067 || coded.Code() == 787 || coded.Code() == 275)
+		return errors.As(err, &coded) && (coded.Code() == 1555 || coded.Code() == 2067 || coded.Code() == 787 || coded.Code() == 1811 || coded.Code() == 275)
 	}
 	return false
 }
