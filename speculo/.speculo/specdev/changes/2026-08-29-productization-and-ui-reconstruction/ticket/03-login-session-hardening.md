@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-03
 title: 重构持久登录保护与 Session 续期模型
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 改变认证协议、CSRF 安全语义、双方言并发状态和 Session 数据迁移
 ready: true
 risk: critical
 blocked_by: []
 contract_ids: [AC-008, AC-009, AC-010, AC-011, AC-012, AC-013]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/modules/iam/account/password_budget.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/protection/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0040-session-protection/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/modules/iam/account/password_budget.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/service.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/*_test.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/protection/**</Path>", "<Path>go-admin-plus/internal/modules/iam/migrations/0040-session-protection/**</Path>", "<Path>go-admin-plus/test/iam/session/**</Path>"]
 read_only_paths: ["<Path>contracts/openapi/modules/iam-session.yaml</Path>", "<Path>go-admin-plus/internal/modules/iam/session/http.go</Path>", "<Path>go-admin-plus/internal/modules/iam/session/transport/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 认证 GET 零写入，CSRF 家族稳定，外部错误不枚举账号。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-03.md</Path>`。
 - [ ] 路径、commit、direct-parent/candidate、父分支 result 与 E2E disposition 完整。
-
