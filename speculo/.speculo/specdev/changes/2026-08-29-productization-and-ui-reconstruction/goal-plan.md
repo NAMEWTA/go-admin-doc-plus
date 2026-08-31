@@ -50,7 +50,7 @@ ready_for_execution: true
 
 | 优先级 | 来源 | 负责内容 | 冲突处理 |
 |---|---|---|---|
-| 1 | 用户最新决定：推荐方案全部接受 | required worktree、本地 commit、candidate integration 与 `main` 更新授权 | 新决定先更新真正 owner，再修订本 Plan |
+| 1 | 用户最新决定：推荐方案全部接受；2026-08-31“都批准” | required worktree、本地 commit、candidate integration、`main` 更新、required runner 本地准备，以及 DEV-09-001 联合候选/T-09 提前组合检查点授权 | 新决定先更新真正 owner，再修订本 Plan；不包含 push、部署、发布、生产迁移或清理 |
 | 2 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ADR.md</Path>` 与 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/CONTEXT.md</Path>` | 本 change 的身份、数据、Profile、UI 与恢复决定 | 返回 `<Path>{roots.workflows}/specdev/G-grill-with-docs/G-grill-with-docs.md</Path>`，不得由实现者改写 |
 | 3 | `<Path>{roots.state}/specdev/adr/</Path>` 与 `<Path>{roots.state}/specdev/context/</Path>` | 已毕业的模块化单体、pnpm/Tauri/OpenAPI、无租户/Redis与质量门禁 | 本 change 替代时须在 ADR/LOG 明示 |
 | 4 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/spec.md</Path>` | `US-001~017`、`AC-001~039`、范围与外部行为 | 下游只能实现或触发偏差，不能改写验收 |
@@ -86,6 +86,15 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 
 关键路径为 `T-02/T-04 -> T-05 -> T-08 -> T-13 -> T-14 -> T-17 -> T-18 -> T-19 -> T-20 -> T-21`。T-08 是公共 wire contract 汇合点，T-14 是安全数据模型与前端组合汇合点，T-17 是当前脚手架冻结点，T-18~21 是不可跳过的连续证据链。Wave 表示依赖和路径允许并行，不要求填满并发上限。
 
+### Approved Sequencing Checkpoint (DEV-09-001)
+
+为解除“领域 migration 必须先进入产品 registry 才能通过 parent-candidate full suite，而 registry owner T-09 又等待这些领域 result”的闭环，用户于 `2026-08-31T22:50:26+08:00` 明确批准 ticket/release 级执行偏差：
+
+- Lead 可从最新 `main` 构建一个可审计的 Wave A 后端联合候选，按固定顺序合入已完成双轴审查的 T-01/T-02/T-03/T-04/T-06/T-07 source commit；每个 source SHA、父 SHA、冲突和候选树仍须逐项记录。
+- T-09 shared-path owner 可在该联合候选上提前建立仅限 `internal/app/product` migration/provider registry、probe/readiness 所需最小组合接线的 source checkpoint；不得借此提前实现 CLI、scripts、Compose 或改写 T-08 wire contract。
+- T-09 的 `blocked_by: [T-07, T-08]` 继续约束完整 Ticket closure/result；提前检查点不是 T-09 result，也不解锁 T-10/T-18。
+- 联合候选仍必须补齐 required race 与真实 PostgreSQL 证据后才能晋升。既有 Windows 平台失败只能按 owning Ticket 保留为明确失败证据，不得改写为 passed；G5~G8、T-18~21 的 required 门禁完全不变。
+
 ### Waves and Ownership
 
 | Wave | Ticket | 前置条件 | 项目写路径 | Shared owner | Gate/集成序号 |
@@ -100,7 +109,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 | B | T-05 | T-02、T-04 result | account/file lifecycle | — | G1 / B1 |
 | B | T-12 | T-11 result | App Shell 与双宿主入口 | T-12 | G1 / B2 |
 | C | T-08 | T-02~06 所列依赖 result | OpenAPI、Go/TS generated、HTTP adapters | T-08 | G2 / C1 |
-| D | T-09 | T-07、T-08 result | product root、CLI、Task、scripts、compose | T-09 | G3 / D1 |
+| D | T-09 | DEV-09-001 允许 migration/provider 组合检查点；完整 result 仍需 T-07、T-08 result | product root、CLI、Task、scripts、compose | T-09 | G3 / D1 |
 | D | T-13 | T-03、T-08 result | Browser/Desktop Session adapters | — | G3 / D2 |
 | D | T-15 | T-11、T-12 result | Audit/Settings/Scheduler domains | — | G3 / D3 |
 | D | T-16 | T-06、T-08、T-11、T-12 result | Files/Generator/Demo domains | — | G3 / D4 |
@@ -126,7 +135,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 | T-06 | 文件容量治理 | — | `WT/T-06` | Lead / dynamic dispatch | not-required：服务/磁盘故障测试 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-06.md</Path>` |
 | T-07 | 日志与 Doctor | — | `WT/T-07` | Lead / dynamic dispatch | not-required：进程输出归 T-09/T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-07.md</Path>` |
 | T-08 | 公共 wire contract | T-02~06 | `WT/T-08` | Lead / dynamic dispatch | not-required：HTTP contract integration | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-08.md</Path>` |
-| T-09 | CLI/Profile 拓扑 | T-07, T-08 | `WT/T-09` | Lead / dynamic dispatch | not-required：真实进程合同 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>` |
+| T-09 | CLI/Profile 拓扑 | T-07, T-08（closure）；DEV-09-001 early checkpoint | `WT/T-09` | Lead / dynamic dispatch | not-required：真实进程合同 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>` |
 | T-10 | Desktop first setup | T-02, T-09 | `WT/T-10` | Lead / dynamic dispatch | not-required：原生 E2E 归 T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-10.md</Path>` |
 | T-11 | Element Plus 设计系统 | — | `WT/T-11` | Lead / dynamic dispatch | not-required：真实视口归 T-19/T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>` |
 | T-12 | Router/Shell 单一事实源 | T-11 | `WT/T-12` | Lead / dynamic dispatch | not-required：刷新/history 归 T-19/T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-12.md</Path>` |
@@ -307,20 +316,20 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Parent | `main` 当前仅含 Speculo 执行状态提交；每次恢复必须重读实际 HEAD，最后一次 candidate parent 为 `be0a50c076389372c379b007548a2101d858933c`，未晋升任何失败 candidate |
 | Tickets | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `in_progress`；T-05/T-08~T-10、T-12~T-21 `ready` |
 | Gate | G0 已关闭；G1~G8 关闭 |
-| Workspace records | T-01/T-02/T-03/T-04/T-06/T-07/T-11 `blocked`（实现提交已固定，等待所列 runner/owning Ticket 门禁）；其余 Ticket 待依赖满足后建立 |
-| Authorization | local source commits、candidate integration 与 `main` fast-forward 已授权；远程/部署/清理未授权 |
+| Workspace records | T-01/T-02/T-03/T-04/T-06/T-07/T-11 的实现提交已固定；DEV-09-001 已批准，Lead 正在重建 Wave A 后端联合候选并启动 T-09 early composition checkpoint |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
 ### Pending Decisions and Blockers
 
-当前执行 blocked，且没有满足 Goal Plan 依赖条件的后续 Ticket 可启动：
+当前执行已由用户的“都批准”恢复；DEV-09-001 解除了 Wave A/T-09 的执行闭环，但以下 required 条件仍需实际建立并产生证据：
 
-- required race 需要带 C 编译器的 CGO runner；T-02/T-03/T-04/T-06 的真实双方言证据还需要 `GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN`；G7/T-20 需要真实 macOS Tauri/Keychain/native-window 环境。当前 Windows host 不具备这些环境，也没有 Docker、WSL 或可用 PostgreSQL service。
-- T-03 与 T-06 的模块实现需要由 T-09-owned 产品 migration composition 注册新 provider 才能通过 parent-candidate full suite；但 T-09 依赖 T-08 result，而 T-08 又依赖 T-03/T-06 result。这是当前路径所有权、DAG 与 required full-suite Gate 的执行闭环，Lead 无权通过越界修改或降低 Gate 自行解除。
-- 既有 Windows sidecar、desktop、Generator、UNC、backup 与符号链接失败由后续 owning Tickets 修复，但 required Wave A candidate full suite 先于这些 Tickets 的依赖解锁，同样不能记为 passed。
+- 在本机准备可供 Go CGO/race 使用的 C 编译器，以及 disposable PostgreSQL service/DSN；准备动作不得触碰用户数据库或 `dev_store`，测试数据根必须显式隔离。
+- G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
+- 既有 Windows sidecar、desktop、Generator、UNC、backup 与符号链接失败仍归对应 owning Ticket 修复，联合候选不得把这些失败记为 passed。
 
-恢复需要同时提供 required runner 环境，并由 Goal Plan/路径 owner 批准可验证的 sequencing deviation（例如先由 T-09 composition owner 提供 provider wiring checkpoint，或修订 Wave A full-suite 进入条件）；在此之前 `main` 不晋升任何失败 candidate，T-05/T-08/T-09/T-12 及下游保持未启动。
+执行顺序固定为：记录偏差 -> 构建 Wave A 后端联合候选 -> T-09 owner 提供最小 composition checkpoint -> 补齐 race/真实 PostgreSQL 证据 -> 仅在候选验证满足时推进 `main`。失败候选、source worktree 与保护 stash 均继续保留。
 
 ### Resume Protocol
 

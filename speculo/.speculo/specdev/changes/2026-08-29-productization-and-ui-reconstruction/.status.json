@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-08-31T21:57:27+08:00",
+  "updated_at": "2026-08-31T22:50:26+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -51,9 +51,11 @@
     "T-04 implementation dca203c199a274c479d8c1ab3acbdc01850eb0d8 and candidate 1961d45c43955d4c9d244c7c5273dc96439ed9b6: targeted IAM/Organization tests, repeated scope tests, architecture checks, and vet pass; promotion is blocked by existing Windows full-suite failures, missing CGO C compiler for race, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN for the required real PostgreSQL proof.",
     "T-06 implementation ddc2e6725646a640deba7d5b7981a9a146b5aae7 and candidate d7bfb162ae35ae4e467f66eaffdcb483e5224952: capacity, migration, repeated concurrency, and vet checks pass; promotion is blocked by the T-09-owned product migration/probe composition, existing Windows full-suite failures, missing CGO C compiler, and missing GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN.",
     "T-07 implementation 39f0da6c615ea3ecc971ae45443aff70783e6bea and candidate 8af45c5c23c993d9180e9260b0c8776b99d60db2: logging, redaction, rotation, Doctor, config, health, repeated tests, and vet pass; promotion is blocked by existing Windows full-suite failures and the missing CGO C compiler required for race.",
-    "Execution DAG is blocked after Wave A: T-03/T-06 require T-09-owned product migration composition to pass their required full suites, while T-09 depends transitively on T-03/T-06 results; resolving this requires an approved sequencing/path-owner deviation rather than a Lead-owned implementation change."
+    "Required runner provisioning is active under USER-DECISION:2026-08-31-all-approved: install a CGO C compiler and create an isolated disposable PostgreSQL service/DSN; no required gate is waived."
   ],
-  "deviations": [],
+  "deviations": [
+    "DEV-09-001 (ticket+release sequencing, approved by user 2026-08-31T22:50:26+08:00): Lead may build one audited Wave A backend candidate from reviewed T-01/T-02/T-03/T-04/T-06/T-07 sources and T-09 owner may provide an early migration/provider composition checkpoint; T-09 closure dependencies and T-18~21 required gates remain unchanged."
+  ],
   "worktrees": [
     {
       "ticket_id": "T-01",
