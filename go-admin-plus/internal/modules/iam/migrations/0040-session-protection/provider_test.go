@@ -14,7 +14,7 @@ func TestMigrationPublishesEquivalentSessionProtectionForBothDialects(t *testing
 		if err != nil {
 			t.Fatal(err)
 		}
-		content, err := fs.ReadFile(migrationFS, "6400000000000_iam_session_protection.sql")
+		content, err := fs.ReadFile(migrationFS, "6220000000000_iam_session_protection.sql")
 		if err != nil {
 			t.Fatal(err)
 		}
