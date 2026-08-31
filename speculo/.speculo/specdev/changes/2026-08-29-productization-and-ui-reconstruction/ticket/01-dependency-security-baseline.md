@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-01
 title: 修复已知依赖漏洞并建立安全基线
-status: ready
+status: in_progress
 planning_depth: standard
 planning_depth_reason: 请求校验链路存在可达漏洞，虽修改集中于 Go 依赖图，但需要兼容、生成和回归证明
 ready: true
 risk: high
 blocked_by: []
 contract_ids: [AC-037]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>"]
 writable_paths: ["<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus/go.sum</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/contracts/**</Path>", "<Path>scripts/contracts/**</Path>", "<Path>.github/workflows/ci.yml</Path>"]
@@ -111,4 +111,3 @@ shared_path_owners: []
 - [ ] Go、合同和生成漂移验证通过并写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-01.md</Path>`。
 - [ ] 修改未超出 `writable_paths`，形成非空实现 commit，direct-parent/candidate 验证和父分支 result 已记录。
 - [ ] E2E disposition、双轴审查和未批准偏差检查完成。
-

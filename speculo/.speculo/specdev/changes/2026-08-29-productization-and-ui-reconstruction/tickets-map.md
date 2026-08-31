@@ -28,7 +28,7 @@ status: ready
 
 | ID | Ticket | 可观察产出 | Blocked By | Depth | Risk | Ready | Owner | Contract IDs | Wave/Gate | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
-| T-01 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/01-dependency-security-baseline.md</Path>` | GO-2026-6112 不再可达 | — | standard | high | yes | unassigned | AC-037 | A / Security Prefactor | ready |
+| T-01 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/01-dependency-security-baseline.md</Path>` | GO-2026-6112 不再可达 | — | standard | high | yes | codex-root | AC-037 | A / Security Prefactor | in_progress |
 | T-02 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/02-bootstrap-and-admin-recovery.md</Path>` | 空库首管理员与离线恢复 | — | deep | critical | yes | unassigned | AC-001, AC-002, AC-003, AC-006, AC-007 | A / Identity Prefactor | ready |
 | T-03 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/03-login-session-hardening.md</Path>` | 持久限流与稳定 CSRF Session | — | deep | critical | yes | unassigned | AC-008~013 | A / Session Prefactor | ready |
 | T-04 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/04-organization-data-scopes.md</Path>` | 组织归属与五种数据范围 | — | deep | critical | yes | unassigned | AC-019~022 | A / Authorization Prefactor | ready |

@@ -304,12 +304,12 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@904d66a5afaff58037798d4d17b96bc69c1988f5`；执行时每 Ticket 重读 |
-| Tickets | T-01~T-21 全部 `ready`；尚无 in_progress/source/candidate/result |
-| Gate | G0 待 I-implement 启动时执行；G1~G8 关闭 |
-| Workspace records | 当前为空；Dispatch 时逐 Ticket 建立 `planned -> active` 记录 |
+| Parent | `main@96e33b8745d6cddf42c8d55e6da2b6d4254f9818`；执行时每 Ticket 重读 |
+| Tickets | T-01 `in_progress`；T-02~T-21 `ready` |
+| Gate | G0 已关闭；G1~G8 关闭 |
+| Workspace records | T-01 `active`；其余 Ticket 待依赖满足后建立 |
 | Authorization | local source commits、candidate integration 与 `main` fast-forward 已授权；远程/部署/清理未授权 |
-| Known dirty state | database 初始化三组路径、Desktop `main.rs`、Speculo 工件；均未被本 Plan 覆盖或清理 |
+| Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
 ### Pending Decisions and Blockers
