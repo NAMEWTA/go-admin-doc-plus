@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
+	platformdesktop "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/desktop"
 )
 
 func TestServerRuntimeProfileMapsOnlyServerDatabaseModes(t *testing.T) {
@@ -57,6 +59,11 @@ func TestServerRuntimeProfileMapsPostgresWithoutSQLiteState(t *testing.T) {
 	}
 	if dialect, err := database.DialectForProfile(profile.database.Profile); err != nil || dialect != database.DialectPostgres {
 		t.Fatalf("PostgreSQL dialect = %q, %v", dialect, err)
+	}
+	if _, err := NewServerHost(ServerLaunch{
+		Snapshot: snapshot, DataRoot: t.TempDir(), RepositoryRoot: t.TempDir(), Version: "test", WithWorker: true,
+	}); err == nil {
+		t.Fatal("PostgreSQL API accepted in-process workers")
 	}
 }
 
@@ -124,6 +131,12 @@ func TestNewServerHostBuildsSQLiteProductAndStopsCleanly(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("server did not start")
 	}
+	if lock, err := platformdesktop.AcquireInstanceLock(dataRoot); !errors.Is(err, platformdesktop.ErrInstanceLocked) {
+		if lock != nil {
+			_ = lock.Close()
+		}
+		t.Fatalf("SQLite server did not hold its runtime lock: %v", err)
+	}
 	cancel()
 	select {
 	case err := <-done:
@@ -132,6 +145,13 @@ func TestNewServerHostBuildsSQLiteProductAndStopsCleanly(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("server did not stop")
+	}
+	lock, err := platformdesktop.AcquireInstanceLock(dataRoot)
+	if err != nil {
+		t.Fatalf("SQLite runtime lock remained held after shutdown: %v", err)
+	}
+	if err := lock.Close(); err != nil {
+		t.Fatal(err)
 	}
 	for _, path := range []string{databasePath, filepath.Join(dataRoot, "files"), filepath.Join(dataRoot, "generated")} {
 		if _, err := os.Stat(path); err != nil {

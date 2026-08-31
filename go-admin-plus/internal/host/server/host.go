@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os/signal"
@@ -37,6 +38,7 @@ type Application interface {
 type Runtime struct {
 	Application Application
 	Readiness   []health.Checker
+	Logger      *slog.Logger
 	AfterStart  func(context.Context) error
 	Close       func(context.Context) error
 }
@@ -162,9 +164,13 @@ func (host *Host) Run(parent context.Context) (runErr error) {
 		}
 	}
 
+	applicationHandler := runtime.Application.Handler()
+	if runtime.Logger != nil {
+		applicationHandler = requestLogger(runtime.Logger, host.config.Capabilities.Database, applicationHandler)
+	}
 	httpServer := &http.Server{
 		Addr:         host.config.Address,
-		Handler:      operations.Wrap(runtime.Application.Handler()),
+		Handler:      operations.Wrap(applicationHandler),
 		ReadTimeout:  host.config.ReadTimeout,
 		WriteTimeout: host.config.WriteTimeout,
 	}
@@ -204,6 +210,31 @@ func (host *Host) Run(parent context.Context) (runErr error) {
 		applicationStopErr = runtime.Application.Stop(shutdownCtx)
 	}
 	return errors.Join(serveErr, serverStopErr, applicationStopErr)
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (writer *statusWriter) WriteHeader(status int) {
+	writer.status = status
+	writer.ResponseWriter.WriteHeader(status)
+}
+
+func requestLogger(logger *slog.Logger, databaseName string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+		started := time.Now()
+		writer := &statusWriter{ResponseWriter: response, status: http.StatusOK}
+		next.ServeHTTP(writer, request)
+		logger.InfoContext(request.Context(), "http_request",
+			slog.String("route", request.URL.Path),
+			slog.String("module", "http"),
+			slog.Int("status", writer.status),
+			slog.Int64("latency_ms", time.Since(started).Milliseconds()),
+			slog.String("database", databaseName),
+		)
+	})
 }
 
 func listenTCP(ctx context.Context, address string) (net.Listener, error) {

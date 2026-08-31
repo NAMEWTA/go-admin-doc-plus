@@ -53,7 +53,7 @@ jobs:
       - if: matrix.language == 'go'
         name: Build Go commands
         working-directory: go-admin-plus
-        run: CGO_ENABLED=0 go build ./cmd/go-admin-plus ./cmd/desktop-sidecar ./cmd/config-check ./cmd/migrate
+        run: CGO_ENABLED=0 go build ./cmd/go-admin-plus ./cmd/desktop-sidecar
       - if: matrix.language == 'javascript-typescript'
         name: Build TypeScript workspace
         working-directory: go-admin-plus-ui

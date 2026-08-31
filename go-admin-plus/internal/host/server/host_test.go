@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -14,6 +17,26 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
 )
+
+func TestRequestLoggerEmitsOperationalFieldsWithoutQueryOrHeaders(t *testing.T) {
+	var output bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&output, nil))
+	handler := requestLogger(logger, "postgres", http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+		response.WriteHeader(http.StatusAccepted)
+	}))
+	request := httptest.NewRequest(http.MethodPost, "/api/files/objects?token=private-query", nil)
+	request.Header.Set("Authorization", "Bearer private-header")
+	handler.ServeHTTP(httptest.NewRecorder(), request)
+	logged := output.String()
+	for _, required := range []string{`"route":"/api/files/objects"`, `"status":202`, `"database":"postgres"`, `"latency_ms"`} {
+		if !strings.Contains(logged, required) {
+			t.Fatalf("log missing %s: %s", required, logged)
+		}
+	}
+	if strings.Contains(logged, "private-query") || strings.Contains(logged, "private-header") {
+		t.Fatalf("request log leaked sensitive request material: %s", logged)
+	}
+}
 
 func TestHostServesOperationsAndStopsEveryOwnedResource(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")

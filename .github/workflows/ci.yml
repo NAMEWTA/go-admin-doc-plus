@@ -80,7 +80,7 @@ jobs:
           go test -tags sqlite ./... -count=1
           go test -race ./... -count=1
           go vet ./...
-          CGO_ENABLED=0 go build ./cmd/go-admin-plus ./cmd/desktop-sidecar ./cmd/config-check ./cmd/migrate
+          CGO_ENABLED=0 go build ./cmd/go-admin-plus ./cmd/desktop-sidecar
           go mod tidy
           git diff --exit-code -- go.mod go.sum
 

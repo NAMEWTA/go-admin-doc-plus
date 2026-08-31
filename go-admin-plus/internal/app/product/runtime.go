@@ -52,6 +52,16 @@ type schedulerParameters struct {
 }
 
 func Build(ctx context.Context, db *database.Database, options Options) (Runtime, error) {
+	return buildRuntime(ctx, db, options, true, true)
+}
+
+// BuildPrepared assembles a schema-prepared Server runtime with an explicit
+// worker role. Desktop continues to use Build and owns automatic migration.
+func BuildPrepared(ctx context.Context, db *database.Database, options Options, workersEnabled bool) (Runtime, error) {
+	return buildRuntime(ctx, db, options, false, workersEnabled)
+}
+
+func buildRuntime(ctx context.Context, db *database.Database, options Options, migrate, workersEnabled bool) (Runtime, error) {
 	if ctx == nil || db == nil || options.SessionPolicy == (config.SessionPolicy{}) ||
 		options.FilesRoot == "" || options.RepositoryRoot == "" || options.GeneratorOutputRoot == "" ||
 		options.GeneratorSchema == "" || len(options.GeneratorTables) == 0 || options.WorkerOwner == "" ||
@@ -65,12 +75,10 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 		return Runtime{}, errors.New("product generator output root is unavailable")
 	}
 
-	runner, err := NewMigrationRunner()
-	if err != nil {
-		return Runtime{}, errors.New("product migrations are invalid")
-	}
-	if _, err := runner.Up(ctx, db); err != nil {
-		return Runtime{}, errors.New("product migration failed")
+	if migrate {
+		if err := PrepareRuntimeSchema(ctx, db, true); err != nil {
+			return Runtime{}, errors.New("product migration failed")
+		}
 	}
 	capabilities, err := authorization.NewCapabilityRegistry(db)
 	if err != nil {
@@ -109,7 +117,15 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	if err != nil {
 		return Runtime{}, errors.New("product administration service failed")
 	}
-	adminHandler, err := administration.NewHTTPHandler(adminService, sessions, trace)
+	store, err := outbox.NewStore(db, append(audit.TopicSchemas(), administration.AccountDeletionRequestedTopicSchema())...)
+	if err != nil {
+		return Runtime{}, errors.New("product outbox store failed")
+	}
+	deletions, err := administration.NewDeletionService(db, store)
+	if err != nil {
+		return Runtime{}, errors.New("product deletion service failed")
+	}
+	adminHandler, err := administration.NewHTTPHandler(adminService, sessions, trace, administration.WithHTTPDeletionService(deletions))
 	if err != nil {
 		return Runtime{}, errors.New("product administration transport failed")
 	}
@@ -199,29 +215,40 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 	if err != nil {
 		return Runtime{}, errors.New("product files service failed")
 	}
-	if err := filesService.Reconcile(ctx); err != nil {
-		return Runtime{}, errors.New("product files reconciliation failed")
+	if workersEnabled {
+		if err := filesService.Reconcile(ctx); err != nil {
+			return Runtime{}, errors.New("product files reconciliation failed")
+		}
 	}
 	filesHandler, err := files.NewHTTPHandler(filesService, sessionAdapters.Files(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product files transport failed")
 	}
 
-	store, err := outbox.NewStore(db, audit.TopicSchemas()...)
-	if err != nil {
-		return Runtime{}, errors.New("product outbox store failed")
-	}
 	consumers, err := audit.TransactionalConsumers()
 	if err != nil {
 		return Runtime{}, errors.New("product audit consumers failed")
 	}
+	deletionConsumer, err := files.NewAccountDeletionRequestedConsumer()
+	if err != nil {
+		return Runtime{}, errors.New("product deletion consumer failed")
+	}
+	consumers[files.AccountDeletionRequestedTopic] = deletionConsumer
 	dispatcher, err := outbox.NewDispatcher(store, outbox.DispatcherConfig{
 		Owner: options.WorkerOwner, LeaseDuration: time.Minute, RetryDelay: time.Minute, BatchSize: 100,
 	}, consumers)
 	if err != nil {
 		return Runtime{}, errors.New("product outbox dispatcher failed")
 	}
-	workers := newWorkerGroup(db, options.WorkerOwner, options.WorkerInterval, schedulerExecutor, dispatcher)
+	lifecycle, err := files.NewAccountLifecycle(db, storage, deletions)
+	if err != nil {
+		return Runtime{}, errors.New("product account lifecycle worker failed")
+	}
+	workers := newWorkerGroup(db, options.WorkerOwner, options.WorkerInterval, schedulerExecutor, dispatcher, lifecycle, filesService.Reconcile)
+	var schedulerWorkers *workerGroup
+	if workersEnabled {
+		schedulerWorkers = workers
+	}
 
 	root := http.NewServeMux()
 	modules := []application.Module{
@@ -230,7 +257,7 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 		newRouteModule(ModuleOrganization, nil, route{"/api/organization/", organizationHandler}),
 		newRouteModule(ModuleSettings, nil, route{"/api/settings/", settingsHandler}),
 		newRouteModule(ModuleGenerator, nil, route{"/api/generator/", generatorHandler}),
-		newRouteModule(ModuleScheduler, workers, route{"/api/scheduler/", schedulerHandler}),
+		newRouteModule(ModuleScheduler, schedulerWorkers, route{"/api/scheduler/", schedulerHandler}),
 		newRouteModule(ModuleDemo, nil, route{"/api/demo/", demoHandler}),
 		newRouteModule(ModuleFiles, nil, route{"/api/files/", filesHandler}),
 	}
@@ -240,13 +267,14 @@ func Build(ctx context.Context, db *database.Database, options Options) (Runtime
 		return Runtime{}, errors.New("product application assembly failed")
 	}
 	storageOwnedByBuild = false
+	readiness := []health.Checker{{Name: "database", Check: func(ctx context.Context) error { return db.SQL().PingContext(ctx) }}}
+	if workersEnabled {
+		readiness = append(readiness, health.Checker{Name: "workers", Check: workers.Check})
+	}
 	return Runtime{
 		Application: app,
 		Sessions:    sessions,
-		Readiness: []health.Checker{
-			{Name: "database", Check: func(ctx context.Context) error { return db.SQL().PingContext(ctx) }},
-			{Name: "workers", Check: workers.Check},
-		},
+		Readiness:   readiness,
 	}, nil
 }
 

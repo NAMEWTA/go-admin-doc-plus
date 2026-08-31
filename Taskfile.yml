@@ -58,6 +58,16 @@ tasks:
     cmds:
       - '{{.RUN_SCRIPT}} scripts/go-admin-plus/migrate.sh "{{.PROFILE}}"'
 
+  worker:
+    desc: Run the dedicated backend worker role
+    cmds:
+      - '{{.RUN_SCRIPT}} scripts/go-admin-plus/worker.sh "{{.PROFILE}}"'
+
+  doctor:
+    desc: Run the read-only backend diagnostic report
+    cmds:
+      - '{{.RUN_SCRIPT}} scripts/go-admin-plus/doctor.sh "{{.PROFILE}}"'
+
   package:
     desc: Produce local packages for one target (TARGET=server|web|desktop)
     vars:

@@ -65,7 +65,6 @@ export const checkArchitecture = root => {
   const required = [
     'Taskfile.yml', '.github/workflows/ci.yml', 'go-admin-plus/go.mod',
     'go-admin-plus/cmd/go-admin-plus/main.go', 'go-admin-plus/cmd/desktop-sidecar/main.go',
-    'go-admin-plus/cmd/config-check/main.go', 'go-admin-plus/cmd/migrate/main.go',
     'go-admin-plus/internal/app/product/registry.go', 'go-admin-plus/internal/modules',
     'go-admin-plus-ui/package.json', 'go-admin-plus-ui/pnpm-workspace.yaml',
     'go-admin-plus-ui/tests/shell/vitest.config.ts',
@@ -77,7 +76,7 @@ export const checkArchitecture = root => {
     'scripts/go-admin-plus-ui/package.sh',
     'speculo/.speculo/specdev/config.json'
   ]
-  const forbidden = ['go-admin-ui-plus', 'go-admin-plus/app', 'go-admin-plus/common', 'go-admin-plus/api', 'go-admin-plus/cmd/go-admin-desktop']
+  const forbidden = ['go-admin-ui-plus', 'go-admin-plus/app', 'go-admin-plus/common', 'go-admin-plus/api', 'go-admin-plus/cmd/go-admin-desktop', 'go-admin-plus/cmd/config-check', 'go-admin-plus/cmd/migrate']
   for (const path of required) if (!existsSync(join(root, path))) failures.push(`missing canonical path: ${path}`)
   for (const path of forbidden) if (existsSync(join(root, path))) failures.push(`removed path still exists: ${path}`)
 
