@@ -29,30 +29,36 @@ describe('admin visual contract', () => {
     expect(shell).toContain('@media (max-width: 760px)')
   })
 
-  it('shares the established management tokens across both hosts', async () => {
-    const [theme, web, desktop, uiManifest] = await Promise.all([
-      source('packages/ui/src/admin-theme.css'),
+  it('shares the tokenized Element Plus design system across both hosts', async () => {
+    const [theme, tokens, components, web, desktop, uiManifest, workspaceManifest] = await Promise.all([
+      source('packages/ui/src/theme.scss'),
+      source('packages/ui/src/styles/_tokens.scss'),
+      source('packages/ui/src/components/runtime.mts'),
       source('apps/admin-web/src/main.ts'),
       source('apps/admin-desktop/src/main.ts'),
-      source('packages/ui/package.json')
+      source('packages/ui/package.json'),
+      source('package.json')
     ])
 
-    for (const token of ['--ga-brand', '--ga-sidebar-bg', '--ga-bg-container', '--ga-border-light']) {
-      expect(theme).toContain(token)
+    for (const token of ['--ga-brand', '--ga-sidebar-bg', '--ga-bg-container', '--ga-border-light', '--el-color-primary']) {
+      expect(`${theme}\n${tokens}`).toContain(token)
     }
-    for (const token of ['--ga-info', '--ga-bg-elevated', '--ga-text-inverse', '--ga-sidebar-light-bg']) {
-      expect(theme).toContain(token)
+    for (const mode of [':root', '[data-theme="dark"]', '[data-density="compact"]', 'prefers-reduced-motion']) {
+      expect(theme).toContain(mode)
     }
-    expect(theme).toContain('.product-shell__content')
-    for (const selector of ['.toolbar', '.filters', '.editor', '.pagination', '[data-action="delete"]']) {
-      expect(theme).toContain(selector)
+    for (const legacySelector of ['.product-shell__content button', '.product-shell__content :is(input', '.product-shell__content :is(table)']) {
+      expect(theme).not.toContain(legacySelector)
     }
-    for (const selector of ['.management-toolbar', '.management-dialog-backdrop', '.management-dialog__header', '.management-dialog__body', '.management-dialog__footer']) {
-      expect(theme).toContain(selector)
+    for (const component of ['AppPage', 'QueryBar', 'TableToolbar', 'DataTable', 'FormDialog', 'StatusTag', 'Pagination', 'EmptyState', 'FormGrid']) {
+      expect(components).toContain(component)
     }
     expect(web).toContain("@go-admin-plus/ui/admin-theme.css")
     expect(desktop).toContain("@go-admin-plus/ui/admin-theme.css")
     expect(uiManifest).toContain('"./admin-theme.css"')
+    expect(uiManifest).toContain('"./components"')
+    for (const dependency of ['element-plus', '@lucide/vue', 'sass']) {
+      expect(`${uiManifest}\n${workspaceManifest}`).toContain(`"${dependency}"`)
+    }
   })
 
   it('does not let domain-scoped styles override the shared compact page surface', async () => {
