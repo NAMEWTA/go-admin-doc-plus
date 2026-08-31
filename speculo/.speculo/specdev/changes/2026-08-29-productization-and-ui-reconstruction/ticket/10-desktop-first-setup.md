@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-10
 title: 实现 Desktop 原生首次设置与 Session 转换
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 跨 Tauri/Rust/Go/WebView 安全边界处理最高权限凭据、首次 Session 和不可重复 Bootstrap
 ready: true
 risk: critical
 blocked_by: [T-02, T-09, T-13]
 contract_ids: [AC-004, AC-005, AC-031]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/host/desktop/setup*</Path>", "<Path>go-admin-plus/internal/app/product/desktop_setup*</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/first_setup*</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/vault.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/first-setup/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/host/desktop/setup*</Path>", "<Path>go-admin-plus/internal/app/product/desktop_setup*</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/first_setup*</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/vault.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/first-setup/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/modules/iam/bootstrap/**</Path>", "<Path>go-admin-plus/internal/host/desktop/host.go</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>"]
