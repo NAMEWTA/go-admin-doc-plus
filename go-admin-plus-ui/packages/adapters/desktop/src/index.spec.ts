@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopTransport } from './index'
+import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSession, createDesktopSessionClient, createDesktopTransport } from './index'
 
 afterEach(() => { vi.unstubAllGlobals() })
 
@@ -119,5 +119,36 @@ describe('desktop adapter security boundary', () => {
   it('rejects logout responses that do not confirm local vault clearing', async () => {
     const session = createDesktopSession(async <T>() => ({ localCleared: false, remoteRevoked: true }) as T)
     await expect(session.logout()).rejects.toThrow('invalid desktop logout result')
+  })
+
+  it('routes heartbeat and renew through secret-free dedicated native commands', async () => {
+    const calls: Array<readonly [string, Record<string, unknown> | undefined]> = []
+    const client = createDesktopSessionClient(async <T>(command: string, args?: Record<string, unknown>) => {
+      calls.push([command, args])
+      return { id: 'account-1', username: 'admin', displayName: 'Admin', email: 'admin@example.test' } as T
+    })
+    await client.heartbeat()
+    await client.renew()
+    expect(calls).toEqual([
+      ['desktop_session_heartbeat', undefined],
+      ['desktop_session_renew', undefined]
+    ])
+    expect(JSON.stringify(calls)).not.toMatch(/csrf|token|cookie/i)
+  })
+
+  it.each([
+    ['desktop session authentication failed', 'authentication'],
+    ['desktop session authorization failed', 'authorization'],
+    ['desktop runtime unavailable', 'unavailable']
+  ])('maps native maintenance failure %s to %s', async (failure, category) => {
+    const client = createDesktopSessionClient(async () => { throw failure })
+    await expect(client.heartbeat()).rejects.toMatchObject({ name: 'SessionRequestError', category })
+  })
+
+  it('rejects native maintenance projections with extra session material', async () => {
+    const client = createDesktopSessionClient(async <T>() => ({
+      id: 'account-1', username: 'admin', displayName: 'Admin', email: 'admin@example.test', csrfToken: 'hidden'
+    }) as T)
+    await expect(client.renew()).rejects.toMatchObject({ name: 'SessionRequestError', category: 'unavailable' })
   })
 })

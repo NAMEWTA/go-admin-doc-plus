@@ -288,9 +288,21 @@ export const createDesktopSessionClient = (invoke: Invoke = tauriInvoke): Sessio
     if (!response.ok) throw sessionFailure(response.status)
     return response.status === 204 ? undefined as T : await response.json() as T
   }
+  const maintain = async (command: 'desktop_session_heartbeat' | 'desktop_session_renew'): Promise<AccountProfile> => {
+    try {
+      return parseProfile(await invoke<unknown>(command)) as AccountProfile
+    } catch (error) {
+      const message = typeof error === 'string' ? error : error instanceof Error ? error.message : ''
+      if (message === 'desktop session authentication failed') throw new SessionRequestError('authentication')
+      if (message === 'desktop session authorization failed') throw new SessionRequestError('authorization')
+      throw new SessionRequestError('unavailable')
+    }
+  }
   return {
     login: async credentials => parseProfile(await invoke<unknown>('desktop_login', credentials)) as AccountProfile,
     current: identityProfile,
+    heartbeat: () => maintain('desktop_session_heartbeat'),
+    renew: () => maintain('desktop_session_renew'),
     logout: async () => { await createDesktopSession(invoke).logout() },
     profile: identityProfile,
     updateProfile: update => json<AccountProfile>('/iam/account/profile', {

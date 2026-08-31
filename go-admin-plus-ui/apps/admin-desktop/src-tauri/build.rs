@@ -5,6 +5,8 @@ fn main() {
         "desktop_navigation",
         "desktop_login",
         "desktop_logout",
+        "desktop_session_heartbeat",
+        "desktop_session_renew",
         "desktop_pick_file",
         "desktop_save_file",
         "desktop_notify",

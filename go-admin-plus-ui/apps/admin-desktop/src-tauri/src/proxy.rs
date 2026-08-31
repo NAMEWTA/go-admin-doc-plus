@@ -228,6 +228,43 @@ impl TransportProxy {
         result
     }
 
+    pub fn heartbeat(&self) -> Result<PublicProfile, &'static str> {
+        self.maintain_session("/api/iam/session/heartbeat")
+    }
+
+    pub fn renew(&self) -> Result<PublicProfile, &'static str> {
+        self.maintain_session("/api/iam/session/renew")
+    }
+
+    fn maintain_session(&self, path: &'static str) -> Result<PublicProfile, &'static str> {
+        let response = self.send("POST", path, None, true)?;
+        if response.response.status != 200 {
+            if contains_secret_material(&response.response.body, &response.protected_values) {
+                return Err("desktop session maintenance response invalid");
+            }
+            let status = response.response.status;
+            if matches!(status, 401 | 403) {
+                self.vault
+                    .lock()
+                    .map_err(|_| "desktop vault unavailable")?
+                    .clear()?;
+            }
+            return Err(match status {
+                401 => "desktop session authentication failed",
+                403 => "desktop session authorization failed",
+                _ => "desktop session maintenance failed",
+            });
+        }
+        let session: SessionWire = serde_json::from_value(response.response.body)
+            .map_err(|_| "desktop session maintenance response invalid")?;
+        validate_profile(&session.profile)?;
+        if profile_contains_secret(&session.profile, &response.protected_values) {
+            return Err("desktop session maintenance response invalid");
+        }
+        self.commit_rotation(response.rotation, Some(session.csrf_token))?;
+        Ok(session.profile)
+    }
+
     pub fn business(&self, request: DesktopRequest) -> Result<DesktopResponse, &'static str> {
         #[cfg(feature = "native-e2e")]
         if request.path == "/__desktop/test-control" {

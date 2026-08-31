@@ -7,6 +7,8 @@ export type UpdateProfile = components['schemas']['UpdateProfileRequest']
 export interface SessionClient {
   login(credentials: LoginCredentials): Promise<AccountProfile>
   current(): Promise<AccountProfile>
+  heartbeat(): Promise<AccountProfile>
+  renew(): Promise<AccountProfile>
   logout(): Promise<void>
   profile(): Promise<AccountProfile>
   updateProfile(update: UpdateProfile): Promise<AccountProfile>
@@ -23,6 +25,8 @@ export interface SessionController {
   state(): SessionState
   subscribe(listener: (state: SessionState) => void): () => void
   restore(): Promise<void>
+  heartbeat(): Promise<void>
+  renew(): Promise<void>
   login(credentials: LoginCredentials): Promise<void>
   logout(): Promise<void>
   updateProfile(update: UpdateProfile): Promise<void>
@@ -49,10 +53,27 @@ export const createSessionController = (client: SessionClient): SessionControlle
       else publish({ status: 'error', profile: state.profile, error: publicError(error) })
     }
   }
+  const maintain = async (action: () => Promise<AccountProfile>) => {
+    const sequence = operation
+    try {
+      const profile = await action()
+      if (sequence === operation && state.status === 'authenticated') {
+        publish({ status: 'authenticated', profile, error: null })
+      }
+    } catch (error) {
+      if (sequence !== operation || state.status !== 'authenticated') return
+      if (requiresRelogin(error)) {
+        operation += 1
+        publish({ status: 'unauthenticated', profile: null, error: null })
+      }
+    }
+  }
   return {
     state: () => state,
     subscribe(listener) { listeners.add(listener); listener(state); return () => listeners.delete(listener) },
     restore: () => run(() => client.current(), false),
+    heartbeat: () => maintain(() => client.heartbeat()),
+    renew: () => maintain(() => client.renew()),
     login: (credentials) => run(() => client.login(credentials), false),
     async logout() {
       const sequence = ++operation
