@@ -38,11 +38,16 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-08-31T18:38:54+08:00",
+  "updated_at": "2026-08-31T19:29:32+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
-  "blockers": [],
+  "blockers": [
+    "T-01 source e80d08fc09138474979221f196561c5b246320f9: govulncheck passes, but required full Go/contract checks are blocked by pre-existing Windows portability failures owned by later Tickets; resume after those owning fixes are integrated or on a compatible runner.",
+    "T-02 implementation 6f6c2507ad0d9f47f879ca69f11c06c46d175102: targeted IAM/database checks pass, but required race and real PostgreSQL proofs need a CGO C compiler and GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN; neither is available on this host.",
+    "T-11 implementation a5f80acf95482c038aa8e6b3b4e9f138ab7a9451: frozen install, audit, lint, typecheck, 204 Vitest checks, and dual-App builds pass, but pnpm test is blocked by the T-20-owned Windows Desktop artifact-path assertion; no WSL/container runner is available.",
+    "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof."
+  ],
   "deviations": [],
   "worktrees": [
     {
@@ -85,8 +90,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-31T17:58:27+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-31T19:29:32+08:00"
     },
     {
       "ticket_id": "T-02",
@@ -128,8 +133,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-31T18:06:05+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-31T19:29:32+08:00"
     },
     {
       "ticket_id": "T-11",
@@ -171,8 +176,8 @@
         "attempts": 0,
         "promotion_status": "pending"
       },
-      "status": "active",
-      "updated_at": "2026-08-31T18:38:54+08:00"
+      "status": "blocked",
+      "updated_at": "2026-08-31T19:29:32+08:00"
     }
   ]
 }
