@@ -95,7 +95,7 @@ describe('admin visual contract', () => {
     ])
 
     for (const label of ['用户管理', '角色管理', '菜单管理', '部门管理', '参数设置', '代码生成', '任务调度', '文件管理']) {
-      expect(manifest).toContain(`label: '${label}'`)
+      expect(manifest).toContain(`title: '${label}'`)
     }
     for (const text of ['用户与权限', '新增用户', '角色管理', '菜单管理', '当前账号没有可用的管理视图']) {
       expect(administration).toContain(text)

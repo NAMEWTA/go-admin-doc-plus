@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSessionClient } from '@go-admin-plus/adapter-desktop'
-import { ProductWorkspace } from '@go-admin-plus/app-shell/product'
+import { createDesktopPlatform } from '@go-admin-plus/adapter-desktop'
+import { ProductWorkspace, type SessionClient } from '@go-admin-plus/app-shell/product'
+import type { ShellRuntimePort } from '@go-admin-plus/platform'
 
-const runtime = createDesktopRuntime()
+defineProps<{
+  runtime: ShellRuntimePort
+  fetcher: typeof globalThis.fetch
+  session: SessionClient
+}>()
 const platform = createDesktopPlatform()
-const fetcher = createDesktopFetch()
-const session = createDesktopSessionClient()
 </script>
 
 <template>

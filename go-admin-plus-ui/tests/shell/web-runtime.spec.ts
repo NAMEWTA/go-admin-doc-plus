@@ -79,5 +79,16 @@ describe('web runtime adapter', () => {
       { path: '/demo', permission: 'demo.products.write' }
     ]) as never)
     await expect(duplicate.loadNavigation()).rejects.toThrow('duplicate navigation path')
+
+    const remoteComponent = createWebRuntime(async () => response(200, [{
+      path: '/demo/products',
+      permission: 'demo.products.read',
+      component: 'https://outside.example/remote.js'
+    }]) as never)
+    await expect(remoteComponent.loadNavigation()).resolves.toEqual([{
+      path: '/demo/products',
+      permission: 'demo.products.read'
+    }])
+    expect(JSON.stringify(await remoteComponent.loadNavigation())).not.toContain('component')
   })
 })
