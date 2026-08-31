@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/google/uuid"
@@ -290,6 +291,11 @@ func (s *LocalStorage) Close() error {
 }
 
 func (s *LocalStorage) syncRoot() error {
+	if runtime.GOOS == "windows" {
+		// Windows does not expose portable directory fsync through os.File. The immutable link and
+		// file Sync still provide the durability boundary available to this process.
+		return nil
+	}
 	directory, err := s.root.Open(".")
 	if err != nil {
 		return ErrStorage

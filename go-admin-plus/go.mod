@@ -3,7 +3,7 @@ module github.com/NAMEWTA/go-admin-plus/go-admin-plus
 go 1.26.5
 
 require (
-	github.com/getkin/kin-openapi v0.142.0
+	github.com/getkin/kin-openapi v0.144.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/gofrs/flock v0.13.0

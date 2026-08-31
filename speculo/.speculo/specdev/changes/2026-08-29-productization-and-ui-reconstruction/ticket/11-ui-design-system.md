@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-11
 title: 建立 Element Plus 管理后台设计系统
-status: ready
+status: in_progress
 planning_depth: standard
 planning_depth_reason: 跨 workspace 共享依赖、主题 token 和基础组件，但不改变后端公共合同或持久数据
 ready: true
 risk: high
 blocked_by: []
 contract_ids: [AC-017, AC-018]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/apps/admin-web/package.json</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/list-form.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/visual-contract.spec.ts</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/pnpm-workspace.yaml</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/apps/admin-web/package.json</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/package.json</Path>", "<Path>go-admin-plus-ui/tests/shell/list-form.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/visual-contract.spec.ts</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: ["<Path>go-admin-plus-ui/package.json</Path> => T-11", "<Pat
 - [ ] lockfile frozen，核心组件状态、键盘/focus/reduced-motion tests 通过。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-11.md</Path>`。
 - [ ] shared owner、commit、integration/result 和 E2E disposition 完整。
-

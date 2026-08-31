@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-09
 title: 统一产品 CLI、运行拓扑与 Profile Migration
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 修改产品组合根、运行角色、迁移所有权、共享命令面和生产 readiness，事故半径覆盖所有 profile
 ready: true
 risk: critical
 blocked_by: [T-07, T-08]
 contract_ids: [AC-029, AC-030, AC-031, AC-032, AC-033]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/cmd/go-admin-plus/**</Path>", "<Path>go-admin-plus/cmd/migrate/**</Path>", "<Path>go-admin-plus/cmd/config-check/**</Path>", "<Path>go-admin-plus/internal/app/product/runtime.go</Path>", "<Path>go-admin-plus/internal/app/product/server.go</Path>", "<Path>go-admin-plus/internal/app/product/workers.go</Path>", "<Path>go-admin-plus/internal/app/product/migration.go</Path>", "<Path>go-admin-plus/internal/app/product/registry.go</Path>", "<Path>go-admin-plus/internal/app/product/*_test.go</Path>", "<Path>go-admin-plus/internal/host/server/**</Path>", "<Path>Taskfile.yml</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>deploy/compose/compose.yml</Path>"]
 writable_paths: ["<Path>go-admin-plus/cmd/go-admin-plus/**</Path>", "<Path>go-admin-plus/cmd/migrate/**</Path>", "<Path>go-admin-plus/cmd/config-check/**</Path>", "<Path>go-admin-plus/internal/app/product/runtime.go</Path>", "<Path>go-admin-plus/internal/app/product/server.go</Path>", "<Path>go-admin-plus/internal/app/product/workers.go</Path>", "<Path>go-admin-plus/internal/app/product/migration.go</Path>", "<Path>go-admin-plus/internal/app/product/registry.go</Path>", "<Path>go-admin-plus/internal/app/product/*_test.go</Path>", "<Path>go-admin-plus/internal/host/server/**</Path>", "<Path>Taskfile.yml</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>deploy/compose/compose.yml</Path>"]
 read_only_paths: ["<Path>go-admin-plus/internal/platform/logging/**</Path>", "<Path>go-admin-plus/internal/application/operations/doctor/**</Path>", "<Path>go-admin-plus/internal/modules/**</Path>", "<Path>release/linux/**</Path>"]
@@ -46,6 +46,13 @@ shared_path_owners: ["<Path>go-admin-plus/internal/app/product/**</Path> => T-09
 
 - 使用 Go 标准 flag 的子命令层，不新增 CLI framework；输出保持稳定机器退出码与简洁文本/JSON诊断。
 
+### 已批准执行偏差 DEV-09-001
+
+- **等级：** ticket + release sequencing；用户于 `2026-08-31T22:50:26+08:00` 以“都批准”明确批准。
+- **提前范围：** 可在 Lead-owned Wave A 后端联合候选上，先实现 `internal/app/product` 的 migration/provider registry 与所需最小 probe/readiness composition，使 T-02/T-03/T-04/T-06 的领域 migration 能在 parent-candidate 被发现和验证。
+- **禁止扩大：** early checkpoint 不得提前改 CLI、Task/scripts/Compose，不得修改 T-08 公共 wire contract，也不得宣称 T-09 result。
+- **closure 约束：** frontmatter 的 T-07/T-08 依赖仍约束完整 T-09 验收；只有依赖 result、全部本 Ticket 行为和 required Gate 均成立后才能完成。
+
 ### 未决问题
 
 无。
@@ -73,6 +80,7 @@ shared_path_owners: ["<Path>go-admin-plus/internal/app/product/**</Path> => T-09
 
 ## 6. 执行路线
 
+0. 在 DEV-09-001 联合候选上建立 migration/provider 最小组合红灯与 checkpoint，记录所有输入 source SHA；该 checkpoint 只解除 Wave A 组合闭环。
 1. 建立子命令解析、role graph、schema mismatch 和 secret 输出红灯 contract tests。
 2. 把 migration/worker/API composition 从通用 Build 中拆成显式角色。
 3. 注册 T-02~08 providers/use cases/handlers，并接入 logger/Doctor。
@@ -114,4 +122,3 @@ shared_path_owners: ["<Path>go-admin-plus/internal/app/product/**</Path> => T-09
 - [ ] 旧 Server 小命令和调用点为零，三 profile 构建/进程 contract 通过。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>`。
 - [ ] shared owner、commit、integration/result 和 E2E disposition 完整。
-

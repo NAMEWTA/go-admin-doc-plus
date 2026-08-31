@@ -16,6 +16,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	datascopemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0050-data-scope"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
 	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
@@ -41,7 +42,7 @@ func TestOrganizationPostgresDialectContract(t *testing.T) {
 func runOrganizationDialectContract(t *testing.T, db *database.Database) {
 	t.Helper()
 	ctx := context.Background()
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, organizationmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, datascopemigration.Provider{}, organizationmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,6 +65,18 @@ func runOrganizationDialectContract(t *testing.T, db *database.Database) {
 	}
 	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, actorID, "role-system-admin"); err != nil {
 		t.Fatal(err)
+	}
+	projection, err := organization.NewProjectionAdapter(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver, err := authorization.NewScopeResolver(db, projection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := resolver.Resolve(ctx, actorID, organization.PermissionDepartmentsRead)
+	if err != nil || !resolved.All {
+		t.Fatalf("%s data-scope resolver=%#v err=%v", db.Dialect(), resolved, err)
 	}
 	manifest, err := authorization.NewService(db).Manifest(ctx, actorID)
 	if err != nil || manifest.Scope != authorization.ScopeAll || !contains(manifest.Permissions, organization.PermissionDepartmentsRead) || !contains(manifest.Permissions, organization.PermissionPositionsWrite) {
