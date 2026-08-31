@@ -54,7 +54,8 @@
     "Required runner provisioning is active under USER-DECISION:2026-08-31-all-approved: install a CGO C compiler and create an isolated disposable PostgreSQL service/DSN; no required gate is waived."
   ],
   "deviations": [
-    "DEV-09-001 (ticket+release sequencing, approved by user 2026-08-31T22:50:26+08:00): Lead may build one audited Wave A backend candidate from reviewed T-01/T-02/T-03/T-04/T-06/T-07 sources and T-09 owner may provide an early migration/provider composition checkpoint; T-09 closure dependencies and T-18~21 required gates remain unchanged."
+    "DEV-09-001 (ticket+release sequencing, approved by user 2026-08-31T22:50:26+08:00): Lead may build one audited Wave A backend candidate from reviewed T-01/T-02/T-03/T-04/T-06/T-07 sources and T-09 owner may provide an early migration/provider composition checkpoint; T-09 closure dependencies and T-18~21 required gates remain unchanged.",
+    "DEV-03-001 (ticket path + release sequencing, approved under USER-DECISION:2026-08-31-all-approved): T-03 may update exactly two Audit disposable fixtures to compose its 0040 provider; two Authorization fixtures remain with T-04 owner via composition checkpoint c35237ca60a1f99518a65fe03bfcc2d62b591cc4; production fallback and old rotate-on-read behavior remain prohibited."
   ],
   "worktrees": [
     {
