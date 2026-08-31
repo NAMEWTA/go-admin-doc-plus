@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-12
 title: 建立 Vue Router 单一事实源与工作台 Shell
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 共享 App Shell、双宿主 history、权限路由和所有业务页面导航均受影响
 ready: true
 risk: high
 blocked_by: [T-11]
 contract_ids: [AC-014, AC-015, AC-016, AC-017, AC-018]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/styles.css</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/styles.css</Path>", "<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-web/src/styles.css</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/styles.css</Path>", "<Path>go-admin-plus-ui/tests/shell/app-shell.spec.ts</Path>", "<Path>go-admin-plus-ui/tests/shell/web-runtime.spec.ts</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/**</Path>", "<Path>go-admin-plus-ui/packages/adapters/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: ["<Path>go-admin-plus-ui/packages/app-shell/src/**</Path> =>
 - [ ] Web/Desktop history 不同但业务 route/权限一致，数据库不能加载任意组件。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-12.md</Path>`。
 - [ ] shared owner、commit、integration/result 和 E2E disposition 完整。
-
