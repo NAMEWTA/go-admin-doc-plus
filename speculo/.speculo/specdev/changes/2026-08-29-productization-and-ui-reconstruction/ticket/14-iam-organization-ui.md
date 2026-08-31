@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-14
 title: 重构 IAM 与 Organization 管理体验
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 页面承载认证、授权范围和不可逆账号删除交互，需跨 domain/Web Domain 且保持后端安全语义
 ready: true
 risk: high
 blocked_by: [T-04, T-05, T-08, T-11, T-12, T-13]
 contract_ids: [AC-014, AC-015, AC-016, AC-017, AC-018, AC-019, AC-020, AC-021, AC-022, AC-023, AC-024, AC-025, AC-026, AC-038]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/administration-controller*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/index.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/organization*</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/GopherMark.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/administration-controller*</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/administration/index.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/organization*</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/administration/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/LoginPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/AccountPage.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/GopherMark.vue</Path>", "<Path>go-admin-plus-ui/packages/web-domains/organization/src/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/domains/iam/src/administration/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/organization/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] deletion、scope、权限错误不会在 UI 中失真或绕过后端。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-14.md</Path>`。
 - [ ] commit、integration/result 和 T-19 E2E 归属完整。
-
