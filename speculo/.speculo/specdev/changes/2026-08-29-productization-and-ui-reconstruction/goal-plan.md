@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main` 已包含 T-14 result `49c690cdfbcad27e681f4e7575f8ed7245448c88`；IAM/Organization route、scope 与删除状态 UI 已进入父分支 |
-| Tickets | T-01~T-14 均 `done`；T-15 `in_progress`；T-16~T-21 `ready` |
-| Gate | G0~G2 已通过；G3 已完成 T-09/T-10/T-13/T-14，等待 T-15/T-16；G4~G8 尚未开启 |
-| Workspace records | T-14 source `1ceefc1`、candidate/result `49c690c` 已记录；T-15 从 `main@ceeb072` 冻结 source base；所有 source/candidate 与旧失败候选继续保留 |
+| Parent | `main` 已包含 T-15 result `d727faaf259fc0fcf2d91bc5c4b54b8ff9a87c40`；Operations 页面 route truth 与安全 Problem reference 已进入父分支 |
+| Tickets | T-01~T-15 均 `done`；T-16~T-21 `ready` |
+| Gate | G0~G2 已通过；G3 已完成 T-09/T-10/T-13/T-14/T-15，等待 T-16；G4~G8 尚未开启 |
+| Workspace records | T-15 source `e567989`、candidate/result `d727faa` 已记录；T-16 将从最新 `main` 冻结 source base；所有 source/candidate 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-10-001/DEV-12-001/DEV-13-001/DEV-14-001/DEV-15-001 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-14 已完成并晋升 result `49c690c`：五个业务 route、组织归属、五种数据范围和 transfer/purge/queued/claimed 删除状态均有确定性 domain/component 证明。T-15 已由 `codex-root` 从 `main@ceeb072` 启动，负责 Audit/Settings/Scheduler route-derived operations 页面；DEV-15-001 仅补齐 Settings/Scheduler 所需的两个直接 `vue-router` manifest/importer。所有 source/candidate 与保护 stash 均保留。
+T-15 已完成并晋升 result `d727faa`：Settings 与 Scheduler 页面只由精确二级 route 派生，Audit/Settings/Scheduler 的安全 trace reference、controller 清理和 248 项完整 Vitest 回归均有确定性证明。T-19 必须使用真实 router/API harness 验证对应 route，而不是继续直接挂载依赖 `useRoute` 的页面。所有 source/candidate 与保护 stash 均保留；下一项为 T-16。
 
 ### Resume Protocol
 

@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T07:16:00+08:00",
+  "updated_at": "2026-09-01T07:42:12+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -669,24 +669,24 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-15",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-15",
-      "source_checkpoint": null,
+      "source_checkpoint": "e567989e1fee295181c0aff23d14ff4a3837ac46",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "2777238e56edebf161961ba4507292150363af5e",
+        "source_sha": "e567989e1fee295181c0aff23d14ff4a3837ac46",
+        "candidate_sha": "d727faaf259fc0fcf2d91bc5c4b54b8ff9a87c40",
+        "candidate_tree_sha": "87cf96ede609c9d36f7a72c6cd78f168340b9748",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-15",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-15",
+        "result_sha": "d727faaf259fc0fcf2d91bc5c4b54b8ff9a87c40",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "T-15 requires deterministic Audit/Settings/Scheduler route and component coverage, package/workspace tests, lint, complete typecheck, workspace boundary, and dual-app builds",
+          "status": "passed",
+          "reason": "Source and candidate passed deterministic Audit/Settings/Scheduler route, controller and transport coverage; candidate also passed lint, complete typecheck, 41-file/248-test Vitest, 10/10 workspace boundary checks, and Web/Desktop production builds. The separately attributed Windows-only macOS artifact-path assertion remains owned by T-20",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-15.md</Path>"
         },
         "e2e": {
@@ -696,11 +696,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-15.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-01T07:16:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T07:42:12+08:00"
     }
   ]
 }

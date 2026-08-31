@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-15
 title: 重构 Audit、Settings 与 Scheduler 页面
-status: in_progress
+status: done
 planning_depth: standard
 planning_depth_reason: 三个独立 Web Domain 使用同一成熟页面模式，跨多文件但不改变公共 API 或数据模型
 ready: true
@@ -114,7 +114,7 @@ shared_path_owners: []
 
 ## 10. 验收标准
 
-- [ ] `AC-014~018、AC-038` 的 operations 页面合同成立。
-- [ ] 三领域既有业务功能、错误和权限语义完整。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-15.md</Path>`。
-- [ ] commit、integration/result 和 T-19 E2E 归属完整。
+- [x] `AC-014~018、AC-038` 的 operations 页面合同成立。
+- [x] 三领域既有业务功能、错误和权限语义完整。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-15.md</Path>`。
+- [x] commit、integration/result 和 T-19 E2E 归属完整。
