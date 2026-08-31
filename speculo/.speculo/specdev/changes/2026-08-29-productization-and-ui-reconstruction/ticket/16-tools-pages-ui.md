@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-16
 title: 重构 Files、Generator 与 Demo 页面
-status: ready
+status: in_progress
 planning_depth: standard
 planning_depth_reason: 三个工具型 Web Domain 使用稳定 API 和共享 UI，但包含文件容量错误与生成写入反馈
 ready: true
 risk: high
 blocked_by: [T-06, T-08, T-11, T-12]
 contract_ids: [AC-014, AC-015, AC-016, AC-017, AC-018, AC-027, AC-028, AC-029, AC-038]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/packages/web-domains/files/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/src/files*</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/generator*</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/product*</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/packages/web-domains/files/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/generator/src/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/src/**</Path>", "<Path>go-admin-plus-ui/packages/domains/files/src/files*</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/generator*</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/product*</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/domains/files/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/generator/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/domains/demo/src/generated/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: []
 - [ ] 文件低水位仍可下载/删除，Generator/Demo 功能完整。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-16.md</Path>`。
 - [ ] commit、integration/result 和 T-19 E2E 归属完整。
-
