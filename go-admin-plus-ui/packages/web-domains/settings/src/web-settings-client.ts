@@ -1,12 +1,12 @@
 import { createContractClient, SettingsRequestError, type SettingsClient, type SettingsFailure } from '@go-admin-plus/domain-settings'
 
-interface Problem { category?:string; code?:string }
+interface Problem { category?:string; code?:string; traceId?:string }
 const csrfPattern=/^[A-Za-z0-9_-]{43}$/
 export const createWebSettingsClient=(fetcher:typeof fetch=fetch,baseUrl='/api'):SettingsClient=>{
-  let csrf='';let classified:SettingsFailure|null=null;let tail=Promise.resolve()
+  let csrf='';let classified:SettingsFailure|null=null;let classifiedTraceId:string|null=null;let tail=Promise.resolve()
   const serialized=<T>(operation:()=>Promise<T>):Promise<T>=>{const result=tail.then(operation,operation);tail=result.then(()=>undefined,()=>undefined);return result}
-  const contract=createContractClient({baseUrl,fetch:async input=>{const headers=new Headers(input.headers);if(csrf&&input.method!=='GET')headers.set('X-CSRF-Token',csrf);const response=await fetcher(new Request(input,{credentials:'include',headers}));const next=response.headers.get('X-CSRF-Token');if(next!==null&&!csrfPattern.test(next)){csrf='';classified='relogin';throw new SettingsRequestError('relogin')}const body=response.status>=400?await response.clone().json().catch(()=>null) as Problem|null:null;classified=classify(response.status,body);if(next)csrf=next;else if(classified==='relogin')csrf='';return response}})
-  const failure=(error:unknown):never=>{const category=classified??problemCategory(error);classified=null;throw new SettingsRequestError(category)}
+  const contract=createContractClient({baseUrl,fetch:async input=>{const headers=new Headers(input.headers);if(csrf&&input.method!=='GET')headers.set('X-CSRF-Token',csrf);const response=await fetcher(new Request(input,{credentials:'include',headers}));const next=response.headers.get('X-CSRF-Token');if(next!==null&&!csrfPattern.test(next)){csrf='';classified='relogin';classifiedTraceId=null;throw new SettingsRequestError('relogin')}const body=response.status>=400?await response.clone().json().catch(()=>null) as Problem|null:null;classified=classify(response.status,body);classifiedTraceId=classified?safeTraceId(body?.traceId):null;if(next)csrf=next;else if(classified==='relogin')csrf='';return response}})
+  const failure=(error:unknown):never=>{const category=classified??problemCategory(error),traceId=classifiedTraceId??safeTraceId(typeof error==='object'&&error!==null?(error as Problem).traceId:null);classified=null;classifiedTraceId=null;throw new SettingsRequestError(category,traceId)}
   const required=<T>(data:T|undefined,error:unknown):T=>error===undefined&&data!==undefined?data:failure(error)
   const completed=(error:unknown)=>{if(error!==undefined)failure(error)}
   return {
@@ -27,3 +27,4 @@ export const createWebSettingsClient=(fetcher:typeof fetch=fetch,baseUrl='/api')
 }
 const classify=(status:number,value:Problem|null):SettingsFailure|null=>status===401||value?.code==='CSRF_REJECTED'?'relogin':status===403?'forbidden':status===400||status===422?'validation':status===404?'not-found':status===409?'conflict':status>=500?'unavailable':null
 const problemCategory=(value:unknown):SettingsFailure=>typeof value==='object'&&value!==null&&'category'in value?({authentication:'relogin',authorization:'forbidden',validation:'validation',not_found:'not-found',conflict:'conflict'} as const)[String((value as Problem).category) as 'authentication'|'authorization'|'validation'|'not_found'|'conflict']??'unavailable':'unavailable'
+const safeTraceId=(value:unknown):string|null=>typeof value==='string'&&/^[A-Za-z0-9_-]{8,128}$/.test(value)?value:null

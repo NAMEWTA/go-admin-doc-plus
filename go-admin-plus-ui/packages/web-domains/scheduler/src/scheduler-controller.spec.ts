@@ -10,6 +10,12 @@ const client = (): SchedulerClient => ({
 })
 
 describe('scheduler controller', () => {
+  it('retains a safe trace id for actionable failure feedback', async () => {
+    const api = client(); const controller = createSchedulerController(api, capability, async () => true)
+    vi.mocked(api.listDefinitions).mockRejectedValueOnce(new SchedulerRequestError('conflict', 'trace-scheduler-01234567'))
+    await expect(controller.definitions.refresh()).rejects.toBeInstanceOf(SchedulerRequestError)
+    expect(controller.failureTraceId()).toBe('trace-scheduler-01234567')
+  })
   it('returns a completed page operation result while always settling', async () => {
     const settled = vi.fn()
 

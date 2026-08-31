@@ -33,10 +33,12 @@ export type AuditFailure = 'validation' | 'forbidden' | 'conflict' | 'not-found'
 
 export class AuditRequestError extends Error {
   readonly category: AuditFailure
+  readonly traceId?: string
 
-  constructor(category: AuditFailure) {
+  constructor(category: AuditFailure, traceId: string | null = null) {
     super('Audit request failed')
     this.name = 'AuditRequestError'
     this.category = category
+    if (traceId !== null) this.traceId = traceId
   }
 }

@@ -13,8 +13,8 @@ describe('web scheduler client', () => {
   })
 
   it('maps stable problem categories without exposing detail', async () => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ category: 'conflict', detail: 'private SQL' }), { status: 409, headers: { 'Content-Type': 'application/problem+json' } }))
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ category: 'conflict', traceId: 'trace-scheduler-01234567', detail: 'private SQL' }), { status: 409, headers: { 'Content-Type': 'application/problem+json' } }))
     const api = createWebSchedulerClient(fetcher as typeof fetch, 'https://admin.test/api')
-    await expect(api.deleteDefinition('00000000-0000-4000-8000-000000000001', 1)).rejects.toMatchObject({ category: 'conflict', message: 'Scheduler request failed' })
+    await expect(api.deleteDefinition('00000000-0000-4000-8000-000000000001', 1)).rejects.toMatchObject({ category: 'conflict', traceId: 'trace-scheduler-01234567', message: 'Scheduler request failed' })
   })
 })

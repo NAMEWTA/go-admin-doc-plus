@@ -13,6 +13,7 @@ export interface AuditController {
   repairCleanup(): Promise<AuditCleanupRepairResult>
   lastCleanup(): CleanupResult | null
   lastFailure(): AuditFailure | null
+  lastTraceId(): string | null
 }
 
 export type AuditCleanupRunResult = RemovalRunResult | 'repair-required'
@@ -42,8 +43,10 @@ export const createAuditController = (
   })
   let cleanupResult: CleanupResult | null = null
   let cleanupFailure: AuditFailure | null = null
+  let cleanupTraceId: string | null = null
   const captureCleanupFailure = (error: unknown) => {
     cleanupFailure = error instanceof AuditRequestError ? error.category : 'unavailable'
+    cleanupTraceId = error instanceof AuditRequestError ? error.traceId ?? null : null
   }
   const removal = createRemovalController<string>({
     confirm: confirmCleanup,
@@ -76,6 +79,7 @@ export const createAuditController = (
       if (pendingRepairBoundary !== null) return 'repair-required'
       cleanupResult = null
       cleanupFailure = null
+      cleanupTraceId = null
       const result = await removal.run([before])
       if (result === 'refresh-failed') pendingRepairBoundary = before
       return result
@@ -85,6 +89,7 @@ export const createAuditController = (
       if (repairInFlight || removal.busy) return 'busy'
       repairInFlight = true
       cleanupFailure = null
+      cleanupTraceId = null
       try {
         await list.refresh()
         pendingRepairBoundary = null
@@ -98,5 +103,6 @@ export const createAuditController = (
     },
     lastCleanup: () => cleanupResult,
     lastFailure: () => cleanupFailure,
+    lastTraceId: () => cleanupTraceId,
   }
 }

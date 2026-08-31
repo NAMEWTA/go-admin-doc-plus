@@ -23,10 +23,12 @@ export interface SchedulerClient {
 
 export class SchedulerRequestError extends Error {
   readonly category: string
-  constructor(category: string) {
+  readonly traceId?: string
+  constructor(category: string, traceId: string | null = null) {
     super('Scheduler request failed')
     this.name = 'SchedulerRequestError'
     this.category = category
+    if (traceId !== null) this.traceId = traceId
   }
 }
 
