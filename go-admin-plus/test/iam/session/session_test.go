@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -14,7 +15,9 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session/protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
@@ -317,6 +320,86 @@ func TestPasswordWorkBudgetFailsFastWithoutEnumeratingAccounts(t *testing.T) {
 	}
 }
 
+func TestPersistentAccountAndSourceBucketsSurviveServiceRestart(t *testing.T) {
+	policy := protection.Policy{AccountLimit: 2, SourceLimit: 3, Window: 10 * time.Minute}
+	db, service, clock := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginProtectionPolicy(policy))
+	source, err := protection.NewSource("203.0.113.7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, username := range []string{"admin", "missing-account"} {
+		_, got := service.LoginFrom(context.Background(), session.LoginCommand{Username: username, Password: "wrong password value", Source: source})
+		if !errors.Is(got, session.ErrCredentials) || errors.Is(got, session.ErrRateLimited) {
+			t.Fatalf("ordinary credential failure for %q = %v", username, got)
+		}
+	}
+	_, err = service.LoginFrom(context.Background(), session.LoginCommand{Username: "admin", Password: "wrong password value", Source: source})
+	if !errors.Is(err, session.ErrCredentials) {
+		t.Fatalf("second account attempt = %v", err)
+	}
+	_, err = service.LoginFrom(context.Background(), session.LoginCommand{Username: "admin", Password: "correct horse battery", Source: source})
+	if !errors.Is(err, session.ErrRateLimited) {
+		t.Fatalf("account bucket did not reject = %v", err)
+	}
+	if retry, ok := session.RetryAfter(err); !ok || retry != 10*time.Minute {
+		t.Fatalf("coarse retry = %s, %t", retry, ok)
+	}
+
+	restarted, err := session.NewService(db, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute),
+		session.WithClock(func() time.Time { return *clock }), session.WithLoginFactPort(sessionTestLoginFactNoop{}), session.WithLoginProtectionPolicy(policy))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = restarted.LoginFrom(context.Background(), session.LoginCommand{Username: "admin", Password: "correct horse battery", Source: source})
+	if !errors.Is(err, session.ErrRateLimited) {
+		t.Fatalf("restart lost account bucket = %v", err)
+	}
+
+	otherSource, _ := protection.NewSource("203.0.113.8")
+	for index, username := range []string{"unknown-a", "unknown-b", "unknown-c", "unknown-d"} {
+		_, got := restarted.LoginFrom(context.Background(), session.LoginCommand{Username: username, Password: "wrong password value", Source: otherSource})
+		if index < 3 && !errors.Is(got, session.ErrCredentials) {
+			t.Fatalf("source attempt %d = %v", index+1, got)
+		}
+		if index == 3 && !errors.Is(got, session.ErrRateLimited) {
+			t.Fatalf("source bucket did not reject = %v", got)
+		}
+	}
+}
+
+func TestConcurrentLoginAttemptsCannotOverrunPersistentBudgets(t *testing.T) {
+	policy := protection.Policy{AccountLimit: 2, SourceLimit: 20, Window: 10 * time.Minute}
+	_, service, _ := newFixture(t, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginProtectionPolicy(policy))
+	source, err := protection.NewSource("198.51.100.22")
+	if err != nil || strings.Contains(fmt.Sprintf("%#v", source), "198.51.100.22") {
+		t.Fatal("trusted source was invalid or printable")
+	}
+	start := make(chan struct{})
+	results := make(chan error, 8)
+	for range 8 {
+		go func() {
+			<-start
+			_, loginErr := service.LoginFrom(context.Background(), session.LoginCommand{Username: "admin", Password: "wrong password value", Source: source})
+			results <- loginErr
+		}()
+	}
+	close(start)
+	ordinary, limited := 0, 0
+	for range 8 {
+		switch loginErr := <-results; {
+		case errors.Is(loginErr, session.ErrRateLimited):
+			limited++
+		case errors.Is(loginErr, session.ErrCredentials):
+			ordinary++
+		default:
+			t.Fatalf("unexpected concurrent login result: %v", loginErr)
+		}
+	}
+	if ordinary != 2 || limited != 6 {
+		t.Fatalf("persistent account budget admitted=%d limited=%d", ordinary, limited)
+	}
+}
+
 func TestSanitizePreservesContextTermination(t *testing.T) {
 	for _, sentinel := range []error{context.Canceled, context.DeadlineExceeded} {
 		service, err := session.NewService(errorDatabase{err: sentinel}, mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute), session.WithLoginFactPort(sessionTestLoginFactNoop{}))
@@ -335,7 +418,7 @@ func TestCallbackSQLFailuresPreserveContextTermination(t *testing.T) {
 		for _, stage := range []string{"query-scan", "exec", "rows-affected"} {
 			t.Run(sentinel.Error()+"/"+stage, func(t *testing.T) {
 				policy := mustPolicy(t, time.Hour, 8*time.Hour, 30*time.Minute)
-				db, healthy, _ := newFixture(t, policy)
+				db, healthy, clock := newFixture(t, policy)
 				failure := callbackFailureDatabase{db: db}
 				switch stage {
 				case "query-scan":
@@ -345,7 +428,7 @@ func TestCallbackSQLFailuresPreserveContextTermination(t *testing.T) {
 				case "rows-affected":
 					failure.resultErr = sentinel
 				}
-				service, err := session.NewService(failure, policy, session.WithLoginFactPort(sessionTestLoginFactNoop{}))
+				service, err := session.NewService(failure, policy, session.WithClock(func() time.Time { return *clock }), session.WithLoginFactPort(sessionTestLoginFactNoop{}))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -469,22 +552,19 @@ func TestSessionLifecyclePersistsOnlyDigests(t *testing.T) {
 	}
 
 	*clock = clock.Add(61 * time.Minute)
-	rotated, err := service.Current(context.Background(), issued.Token)
-	if err != nil || !rotated.Rotated || rotated.Token == issued.Token {
-		t.Fatalf("rotation failed: %#v %v", rotated, err)
+	current, err := service.Current(context.Background(), issued.Token)
+	if err != nil || current.Rotated || current.Token != "" || current.CSRF != "" {
+		t.Fatalf("read exposed replacement credentials: %#v %v", current, err)
 	}
-	if _, err := service.Current(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
-		t.Fatalf("rotated token recovered: %v", err)
-	}
-	refreshed, err := service.Current(context.Background(), rotated.Token)
-	if err != nil {
-		t.Fatalf("replacement token rejected: %v", err)
+	renewed, err := service.Renew(context.Background(), issued.Token, issued.CSRF)
+	if err != nil || renewed.CSRF != issued.CSRF || renewed.Token != "" || renewed.Rotated {
+		t.Fatalf("renew changed family credentials: %#v %v", renewed, err)
 	}
 
-	if err := service.Logout(context.Background(), rotated.Token, refreshed.CSRF); err != nil {
+	if err := service.Logout(context.Background(), issued.Token, issued.CSRF); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.Current(context.Background(), rotated.Token); !errors.Is(err, session.ErrAuthentication) {
+	if _, err := service.Current(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
 		t.Fatalf("revoked token recovered: %v", err)
 	}
 }
@@ -519,7 +599,7 @@ func TestCSRFPasswordAndTimeoutFailuresArePermanentAndAtomic(t *testing.T) {
 		t.Fatal("CSRF failure mutated profile")
 	}
 
-	if err := service.ChangePassword(context.Background(), issued.Token, afterAccess.CSRF, "correct horse battery", "replacement password value"); err != nil {
+	if err := service.ChangePassword(context.Background(), issued.Token, issued.CSRF, "correct horse battery", "replacement password value"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.Current(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
@@ -542,7 +622,7 @@ func TestCSRFPasswordAndTimeoutFailuresArePermanentAndAtomic(t *testing.T) {
 	}
 }
 
-func TestProtectedReadsTouchIdleButAbsoluteExpiryWins(t *testing.T) {
+func TestProtectedReadsAreZeroWriteAndHeartbeatCannotExtendAbsoluteExpiry(t *testing.T) {
 	db, service, clock := newFixture(t, mustPolicy(t, 10*time.Minute, 25*time.Minute, 10*time.Minute))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
@@ -553,15 +633,29 @@ func TestProtectedReadsTouchIdleButAbsoluteExpiryWins(t *testing.T) {
 		t.Fatal(err)
 	}
 	*clock = clock.Add(8 * time.Minute)
+	var changesBefore int64
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT total_changes()`).Scan(&changesBefore); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := service.Profile(context.Background(), issued.Token); err != nil {
 		t.Fatal(err)
+	}
+	var changesAfter int64
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT total_changes()`).Scan(&changesAfter); err != nil {
+		t.Fatal(err)
+	}
+	if changesAfter != changesBefore {
+		t.Fatalf("authenticated GET wrote %d rows", changesAfter-changesBefore)
 	}
 	var touchedIdle time.Time
 	if err := db.Bun().QueryRowContext(context.Background(), `SELECT idle_expires_at FROM iam_sessions WHERE state = 'active'`).Scan(&touchedIdle); err != nil {
 		t.Fatal(err)
 	}
-	if !touchedIdle.After(originalIdle) {
-		t.Fatal("successful protected read did not refresh idle timeout")
+	if !touchedIdle.Equal(originalIdle) {
+		t.Fatal("successful protected read refreshed idle timeout")
+	}
+	if _, err := service.Heartbeat(context.Background(), issued.Token, issued.CSRF); err != nil {
+		t.Fatal(err)
 	}
 	*clock = clock.Add(18 * time.Minute)
 	if _, err := service.Profile(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
@@ -571,41 +665,72 @@ func TestProtectedReadsTouchIdleButAbsoluteExpiryWins(t *testing.T) {
 	if err := db.Bun().QueryRowContext(context.Background(), `SELECT state FROM iam_sessions`).Scan(&state); err != nil {
 		t.Fatal(err)
 	}
-	if state != "expired" {
-		t.Fatalf("expired transition was not committed: %q", state)
+	if state != "active" {
+		t.Fatalf("expired GET mutated state: %q", state)
 	}
 }
 
-func TestEveryContinuingProtectedRoutePropagatesRotation(t *testing.T) {
+func TestSessionFamilyKeepsTokenAndCSRFAcrossReadsRenewalsAndWrites(t *testing.T) {
 	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	first, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
 		t.Fatal(err)
 	}
 	*clock = clock.Add(61 * time.Minute)
-	readReplacement, err := service.Profile(context.Background(), first.Token)
-	if err != nil || !readReplacement.Rotated || readReplacement.Token == "" || readReplacement.CSRF == "" {
-		t.Fatalf("profile route did not return replacement credentials: rotated=%t err=%v", readReplacement.Rotated, err)
+	read, err := service.Profile(context.Background(), first.Token)
+	if err != nil || read.Token != "" || read.CSRF != "" || read.Rotated {
+		t.Fatalf("profile read changed credentials: %#v %v", read, err)
 	}
-	if _, err := service.Current(context.Background(), first.Token); !errors.Is(err, session.ErrAuthentication) {
-		t.Fatal("profile rotation left the original token active")
+	renewed, err := service.Renew(context.Background(), first.Token, first.CSRF)
+	if err != nil || renewed.CSRF != first.CSRF || renewed.Token != "" || renewed.Rotated {
+		t.Fatalf("renew changed credentials: %#v %v", renewed, err)
 	}
-
-	second, err := service.Login(context.Background(), "admin", "correct horse battery")
-	if err != nil {
-		t.Fatal(err)
-	}
-	*clock = clock.Add(61 * time.Minute)
-	mutationReplacement, err := service.UpdateProfile(context.Background(), second.Token, second.CSRF, "Updated", "updated@example.test", nil)
-	if err != nil || !mutationReplacement.Rotated || mutationReplacement.Token == "" || mutationReplacement.CSRF == "" {
-		t.Fatalf("profile mutation did not return replacement credentials: rotated=%t err=%v", mutationReplacement.Rotated, err)
-	}
-	if _, err := service.Current(context.Background(), second.Token); !errors.Is(err, session.ErrAuthentication) {
-		t.Fatal("mutation rotation left the original token active")
+	written, err := service.UpdateProfile(context.Background(), first.Token, first.CSRF, "Updated", "updated@example.test", nil)
+	if err != nil || written.CSRF != first.CSRF || written.Token != "" || written.Rotated {
+		t.Fatalf("business write changed credentials: %#v %v", written, err)
 	}
 }
 
-func TestAuthorizeRequestFencesCSRFBeforeTouchAndPropagatesRotation(t *testing.T) {
+func TestConcurrentRenewalsKeepAbsoluteExpiryCSRFAndFamily(t *testing.T) {
+	db, service, _ := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
+	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var familyBefore, csrfBefore string
+	var absoluteBefore time.Time
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT family_id, csrf_hash, absolute_expires_at FROM iam_sessions WHERE state = 'active'`).Scan(&familyBefore, &csrfBefore, &absoluteBefore); err != nil {
+		t.Fatal(err)
+	}
+	start := make(chan struct{})
+	results := make(chan error, 8)
+	for range 8 {
+		go func() {
+			<-start
+			continued, renewErr := service.Renew(context.Background(), issued.Token, issued.CSRF)
+			if renewErr == nil && (continued.Token != "" || continued.CSRF != issued.CSRF || continued.Rotated) {
+				renewErr = errors.New("renewal changed credentials")
+			}
+			results <- renewErr
+		}()
+	}
+	close(start)
+	for range 8 {
+		if renewErr := <-results; renewErr != nil {
+			t.Fatal(renewErr)
+		}
+	}
+	var familyAfter, csrfAfter string
+	var absoluteAfter time.Time
+	if err := db.Bun().QueryRowContext(context.Background(), `SELECT family_id, csrf_hash, absolute_expires_at FROM iam_sessions WHERE state = 'active'`).Scan(&familyAfter, &csrfAfter, &absoluteAfter); err != nil {
+		t.Fatal(err)
+	}
+	if familyBefore == "" || familyAfter != familyBefore || csrfAfter != csrfBefore || !absoluteAfter.Equal(absoluteBefore) {
+		t.Fatal("concurrent renewal changed the session family, CSRF, or absolute expiry")
+	}
+}
+
+func TestAuthorizeRequestFencesCSRFFromIdleTouch(t *testing.T) {
 	db, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
@@ -628,20 +753,17 @@ func TestAuthorizeRequestFencesCSRFBeforeTouchAndPropagatesRotation(t *testing.T
 	}
 
 	read, err := service.AuthorizeRequest(context.Background(), issued.Token, "", false)
-	if err != nil || read.Profile.ID != issued.Profile.ID || read.CSRF == "" {
+	if err != nil || read.Profile.ID != issued.Profile.ID || read.CSRF != "" {
 		t.Fatalf("generic protected read = %#v, %v", read, err)
 	}
 	*clock = clock.Add(61 * time.Minute)
-	rotated, err := service.AuthorizeRequest(context.Background(), issued.Token, read.CSRF, true)
-	if err != nil || !rotated.Rotated || rotated.Token == "" || rotated.CSRF == "" {
-		t.Fatalf("generic mutation rotation = %#v, %v", rotated, err)
-	}
-	if _, err := service.AuthorizeRequest(context.Background(), issued.Token, "", false); !errors.Is(err, session.ErrAuthentication) {
-		t.Fatalf("old generic token recovered: %v", err)
+	continued, err := service.AuthorizeRequest(context.Background(), issued.Token, issued.CSRF, true)
+	if err != nil || continued.Rotated || continued.Token != "" || continued.CSRF != "" {
+		t.Fatalf("generic mutation changed credentials = %#v, %v", continued, err)
 	}
 }
 
-func TestHTTPProfileRotationSetsReplacementCookieAndCSRFHeader(t *testing.T) {
+func TestHTTPProfileReadDoesNotSetReplacementCredentials(t *testing.T) {
 	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	handler, err := session.NewHTTPHandler(service, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
@@ -657,14 +779,14 @@ func TestHTTPProfileRotationSetsReplacementCookieAndCSRFHeader(t *testing.T) {
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, request)
 	if response.Code != http.StatusOK {
-		t.Fatalf("profile rotation status=%d", response.Code)
+		t.Fatalf("profile read status=%d", response.Code)
 	}
-	if response.Header().Get("Set-Cookie") == "" || response.Header().Get("X-CSRF-Token") == "" {
-		t.Fatal("profile rotation omitted replacement credentials from response headers")
+	if response.Header().Get("Set-Cookie") != "" || response.Header().Get("X-CSRF-Token") != "" {
+		t.Fatal("profile GET emitted replacement credentials")
 	}
 }
 
-func TestAdministrativeRevokeFencesConcurrentRotation(t *testing.T) {
+func TestAdministrativeRevokeFencesConcurrentRenewal(t *testing.T) {
 	_, service, clock := newFixture(t, mustPolicy(t, 2*time.Hour, 8*time.Hour, time.Hour))
 	issued, err := service.Login(context.Background(), "admin", "correct horse battery")
 	if err != nil {
@@ -672,35 +794,33 @@ func TestAdministrativeRevokeFencesConcurrentRotation(t *testing.T) {
 	}
 	*clock = clock.Add(61 * time.Minute)
 	start := make(chan struct{})
-	rotated := make(chan session.Issued, 1)
-	rotationErr := make(chan error, 1)
+	renewed := make(chan session.Issued, 1)
+	renewErr := make(chan error, 1)
 	revokeErr := make(chan error, 1)
 	go func() {
 		<-start
-		value, currentErr := service.Current(context.Background(), issued.Token)
-		rotated <- value
-		rotationErr <- currentErr
+		value, currentErr := service.Renew(context.Background(), issued.Token, issued.CSRF)
+		renewed <- value
+		renewErr <- currentErr
 	}()
 	go func() {
 		<-start
 		revokeErr <- service.RevokeAccount(context.Background(), issued.Profile.ID)
 	}()
 	close(start)
-	value := <-rotated
-	currentErr := <-rotationErr
+	value := <-renewed
+	currentErr := <-renewErr
 	if currentErr != nil && !errors.Is(currentErr, session.ErrAuthentication) {
-		t.Fatalf("concurrent rotation returned an unexpected error: %v", currentErr)
+		t.Fatalf("concurrent renewal returned an unexpected error: %v", currentErr)
 	}
 	if err := <-revokeErr; err != nil {
 		t.Fatalf("concurrent revoke failed: %v", err)
 	}
-	for _, token := range []string{issued.Token, value.Token} {
-		if token == "" {
-			continue
-		}
-		if _, err := service.Current(context.Background(), token); !errors.Is(err, session.ErrAuthentication) {
-			t.Fatal("generation fence allowed a token after administrative revoke")
-		}
+	if value.Token != "" {
+		t.Fatal("renewal unexpectedly replaced the token")
+	}
+	if _, err := service.Current(context.Background(), issued.Token); !errors.Is(err, session.ErrAuthentication) {
+		t.Fatal("generation fence allowed a token after administrative revoke")
 	}
 }
 
@@ -753,7 +873,7 @@ func newFixture(t *testing.T, policy config.SessionPolicy, options ...session.Op
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	runner, err := migrations.NewRunner(sessionmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, sessionprotectionmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
