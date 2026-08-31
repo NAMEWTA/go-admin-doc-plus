@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-13
 title: 实现 Web 与 Desktop Session 协调客户端
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 跨浏览器标签和双宿主消费认证协议，错误会导致登录失效或客户端错误承担授权正确性
 ready: true
 risk: high
 blocked_by: [T-03, T-08]
 contract_ids: [AC-011, AC-013]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/packages/adapters/browser/src/session-fetch.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/session-fetch.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/src/index.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/session-controller.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/session-controller.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/web-session-client.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/web-session-client.spec.ts</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/packages/adapters/browser/src/session-fetch.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/session-fetch.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/browser/src/index.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/src/index.ts</Path>", "<Path>go-admin-plus-ui/packages/adapters/desktop/src/index.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/session-controller.ts</Path>", "<Path>go-admin-plus-ui/packages/domains/iam/src/session/session-controller.spec.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/web-session-client.ts</Path>", "<Path>go-admin-plus-ui/packages/web-domains/iam/src/session/web-session-client.spec.ts</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/packages/domains/iam/src/session/generated/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/**</Path>", "<Path>go-admin-plus/internal/modules/iam/session/**</Path>"]
@@ -114,4 +114,3 @@ Session controller 根据实际用户活动安排 heartbeat，并仅在续期窗
 - [ ] channel/fallback/leader failure 无 secret、无循环请求、无授权事实漂移。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-13.md</Path>`。
 - [ ] commit、integration/result 和 T-19 E2E 归属完整。
-

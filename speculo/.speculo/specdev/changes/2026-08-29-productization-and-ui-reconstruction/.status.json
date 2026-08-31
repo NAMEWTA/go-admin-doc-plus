@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T04:35:05+08:00",
+  "updated_at": "2026-09-01T04:37:31+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -525,6 +525,49 @@
       },
       "status": "integrated",
       "updated_at": "2026-09-01T04:35:05+08:00"
+    },
+    {
+      "ticket_id": "T-13",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "d8dcfd40645c65d47f0e6523425a2a4347c07b32",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-13",
+      "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-13",
+      "source_checkpoint": null,
+      "integration": {
+        "status": "pending",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": null,
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": null,
+        "candidate_workspace_ref": null,
+        "result_sha": null,
+        "method": null,
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "T-13 requires deterministic dual-client/channel/fallback/leader-failure tests, secret scans, lint, typecheck, and dual-app builds",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-13.md</Path>"
+        },
+        "e2e": {
+          "required": false,
+          "status": "not-required",
+          "reason": "T-13 proves deterministic dual-client coordination; real multi-tab browser behavior remains required under T-19",
+          "evidence": null
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-13.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-09-01T04:37:31+08:00"
     }
   ]
 }
