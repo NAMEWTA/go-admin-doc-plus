@@ -14,6 +14,7 @@ export interface SchedulerController {
   refreshTaskTypes(): Promise<void>
   can(permission: string): boolean
   failure(): SchedulerFailure | null
+  failureTraceId(): string | null
   clearFailure(): void
   hasPendingRepair(): boolean
   repairProjection(): Promise<SchedulerCommandResult>
@@ -31,15 +32,16 @@ export const createSchedulerController = (client: SchedulerClient, capabilities:
   let definitionsVisible = false
   let executionsVisible = false
   let failure: SchedulerFailure | null = null
+  let failureTraceId: string | null = null
   let mutationBusy = false
   let repairBusy = false
   let taskSequence = 0
   let definitionSequence = 0
   let executionSequence = 0
   const pendingRepairs = new Map<string, () => Promise<void>>()
-  const clearFailure = () => { failure = null }
+  const clearFailure = () => { failure = null; failureTraceId = null }
   const hideAll = () => { taskTypes = []; taskTypesVisible = false; definitionsVisible = false; executionsVisible = false; rawDefinitions.clearSelection(); rawExecutions.clearSelection() }
-  const recordFailure = (error: unknown) => { const category = error instanceof SchedulerRequestError ? error.category : 'unavailable'; failure = isFailure(category) ? category : 'unavailable' }
+  const recordFailure = (error: unknown) => { const category = error instanceof SchedulerRequestError ? error.category : 'unavailable'; failure = isFailure(category) ? category : 'unavailable'; failureTraceId = error instanceof SchedulerRequestError ? error.traceId ?? null : null }
   const canManage = (permission: string) => {
     if (capabilities.scope() !== 'all') { hideAll(); return false }
     const allowed = capabilities.can(permission)
@@ -69,11 +71,11 @@ export const createSchedulerController = (client: SchedulerClient, capabilities:
   const command = async (key: string, permission: string, operation: () => Promise<void>, options: { destructive?: boolean; valid?: boolean } = {}): Promise<SchedulerCommandResult> => {
     if (mutationBusy || repairBusy) return 'busy'
     if (pendingRepairs.size > 0) return 'refresh-failed'
-    if (options.valid === false) return 'invalid'
-    if (!canManage(permission)) { failure = 'forbidden'; return 'failed' }
+    if (options.valid === false) { clearFailure(); return 'invalid' }
+    if (!canManage(permission)) { failure = 'forbidden'; failureTraceId = null; return 'failed' }
     mutationBusy = true; clearFailure()
     try {
-      if (options.destructive) { if (!await confirm(1)) return 'cancelled'; if (!canManage(permission)) { failure = 'forbidden'; return 'failed' } }
+      if (options.destructive) { if (!await confirm(1)) return 'cancelled'; if (!canManage(permission)) { failure = 'forbidden'; failureTraceId = null; return 'failed' } }
       try { await operation() } catch (error) { recordFailure(error); if (failure === 'relogin' || failure === 'forbidden' || failure === 'unavailable') { taskSequence += 1; definitionSequence += 1; executionSequence += 1; hideAll() }; return 'failed' }
       pendingRepairs.set(key, refreshDefinitions)
       try { await refreshDefinitions(); pendingRepairs.delete(key); return 'completed' } catch (error) { recordFailure(error); return 'refresh-failed' }
@@ -82,7 +84,7 @@ export const createSchedulerController = (client: SchedulerClient, capabilities:
   return {
     definitions, executions,
     taskTypes: () => taskTypesVisible && canManage('scheduler.definitions.read') ? [...taskTypes] : [],
-    refreshTaskTypes, can: canManage, failure: () => failure, clearFailure,
+    refreshTaskTypes, can: canManage, failure: () => failure, failureTraceId: () => failureTraceId, clearFailure,
     hasPendingRepair: () => pendingRepairs.size > 0,
     async repairProjection() { if (repairBusy || mutationBusy) return 'busy'; const pending = pendingRepairs.entries().next().value as [string, () => Promise<void>] | undefined; if (!pending) return 'completed'; repairBusy = true; clearFailure(); try { try { await pending[1](); pendingRepairs.delete(pending[0]); return 'completed' } catch (error) { recordFailure(error); return 'refresh-failed' } } finally { repairBusy = false } },
     get busy() { return mutationBusy || repairBusy },

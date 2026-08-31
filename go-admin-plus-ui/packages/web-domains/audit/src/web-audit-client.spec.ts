@@ -30,4 +30,9 @@ describe('web audit client', () => {
       await expect(client.list({ filters: {}, page: 1, pageSize: 20 })).rejects.toEqual(new AuditRequestError('relogin'))
     }
   })
+
+  it('preserves only a safe problem trace reference', async () => {
+    const client = createWebAuditClient(async () => json({ category: 'conflict', traceId: 'trace-audit-01234567', detail: 'private SQL' }, { status: 409 }), 'https://app.example.test/api')
+    await expect(client.cleanup('2026-06-01T00:00:00Z')).rejects.toMatchObject({ category: 'conflict', traceId: 'trace-audit-01234567', message: 'Audit request failed' })
+  })
 })

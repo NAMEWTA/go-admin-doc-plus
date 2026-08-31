@@ -131,4 +131,11 @@ describe('audit controller', () => {
 		expect(controller.lastFailure()).toBe(category)
 		expect(controller.lastCleanup()).toBeNull()
 	})
+
+  it('retains a safe trace id for actionable cleanup feedback', async () => {
+    const api: AuditClient = { list: async () => ({ records: [], total: 0, page: 1, pageSize: 20 }), detail: async () => fact, cleanup: async () => { throw new AuditRequestError('conflict', 'trace-audit-01234567') } }
+    const controller = createAuditController(api, async () => true)
+    expect(await controller.cleanup('2026-06-01T00:00:00Z')).toBe('failed')
+    expect(controller.lastTraceId()).toBe('trace-audit-01234567')
+  })
 })

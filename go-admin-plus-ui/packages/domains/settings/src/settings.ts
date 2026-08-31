@@ -33,7 +33,7 @@ export interface SettingsClient {
   deleteItem(id:string,revision:number):Promise<void>
   options(dictionaryKey:string):Promise<ReadonlyArray<DictionaryOption>>
 }
-export class SettingsRequestError extends Error { readonly category:SettingsFailure;constructor(category:SettingsFailure){super(category);this.category=category} }
+export class SettingsRequestError extends Error { readonly category:SettingsFailure;readonly traceId?:string;constructor(category:SettingsFailure,traceId:string|null=null){super(category);this.category=category;if(traceId!==null)this.traceId=traceId} }
 export const codePointLength=(value:string)=>Array.from(value).length
 export const validSearch=(value:string)=>codePointLength(value.trim())<=100
 export const validKey=(value:string)=>/^[a-z0-9][a-z0-9_.-]{2,79}$/.test(value.trim().toLowerCase())

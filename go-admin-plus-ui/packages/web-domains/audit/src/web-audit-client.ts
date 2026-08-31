@@ -6,7 +6,7 @@ import {
   type AuditListRequest,
 } from '@go-admin-plus/domain-audit'
 
-interface Problem { category?: string; code?: string }
+interface Problem { category?: string; code?: string; traceId?: string }
 
 export const createWebAuditClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): AuditClient => {
   let csrf = ''
@@ -37,7 +37,7 @@ export const createWebAuditClient = (fetcher: typeof fetch = fetch, baseUrl = '/
     const problem = isProblem(value) ? value : {}
     const category = publicFailure(problem)
     if (category === 'relogin') csrf = ''
-    return new AuditRequestError(category)
+    return new AuditRequestError(category, safeTraceId(problem.traceId))
   }
 
   return {
@@ -58,6 +58,7 @@ export const createWebAuditClient = (fetcher: typeof fetch = fetch, baseUrl = '/
 }
 
 const isProblem = (value: unknown): value is Problem => typeof value === 'object' && value !== null
+const safeTraceId = (value: unknown): string | null => typeof value === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(value) ? value : null
 const publicFailure = (problem: Problem): AuditFailure => {
   if (problem.category === 'authentication' || problem.code === 'CSRF_REJECTED') return 'relogin'
   if (problem.category === 'authorization') return 'forbidden'

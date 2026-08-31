@@ -12,6 +12,7 @@ const selected = ref<AuditFact | null>(null)
 const detailDialog = ref<HTMLElement | null>(null)
 const detailTrigger = ref<HTMLButtonElement | null>(null)
 const failure = ref<AuditFailure | null>(null)
+const failureReference = ref<string | null>(null)
 const busy = ref(false)
 const cleanupStatus = ref<'completed' | 'refresh-failed' | 'repair-required' | null>(null)
 const snapshot = computed(() => { void version.value; return props.controller.list.snapshot() })
@@ -19,10 +20,12 @@ const run = async (action: () => Promise<unknown>) => {
 	if (busy.value) return
 	busy.value = true
 	failure.value = null
+	failureReference.value = null
 	try {
 		await action()
 	} catch (error) {
 		failure.value = error instanceof AuditRequestError ? error.category : 'unavailable'
+		failureReference.value = error instanceof AuditRequestError ? error.traceId ?? null : null
 		if (failure.value === 'relogin') emit('relogin')
 	} finally {
 		busy.value = false
@@ -57,12 +60,13 @@ const closeDetail = async () => {
 }
 const consumeRefreshFailure = () => {
 	failure.value = consumeCleanupFailure(props.controller, () => emit('relogin'))
+	failureReference.value = props.controller.lastTraceId()
 }
 const cleanup = () => run(async () => {
 	cleanupStatus.value = null
 	const result = await props.controller.cleanup(new Date(`${cleanupBefore.value}T00:00:00Z`).toISOString())
 	if (result === 'completed' || result === 'refresh-failed' || result === 'repair-required') cleanupStatus.value = result
-	if (result === 'failed') failure.value = consumeCleanupFailure(props.controller, () => emit('relogin'))
+	if (result === 'failed') { failure.value = consumeCleanupFailure(props.controller, () => emit('relogin')); failureReference.value = props.controller.lastTraceId() }
 	if (result === 'refresh-failed') consumeRefreshFailure()
 })
 const repairCleanup = () => run(async () => {
@@ -93,6 +97,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
     <p v-if="failure === 'relogin'" role="alert">会话已失效，请重新登录。</p>
     <p v-else-if="failure === 'forbidden'" role="alert">没有执行该审计操作的权限。</p>
     <p v-else-if="failure" role="alert">审计服务暂不可用。</p>
+    <p v-if="failureReference" class="problem-reference">参考编号：{{ failureReference }}</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>时间</th><th>类型</th><th>操作</th><th>结果</th><th>对象</th><th>来源</th><th>操作</th></tr></thead>
