@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T00:03:23+08:00",
+  "updated_at": "2026-09-01T00:58:46+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -276,25 +276,25 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-05",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-05",
-      "source_checkpoint": null,
+      "source_checkpoint": "7bb3432787b9d48c23d9a65457fa8d0897cb1968",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "ee2208680bc6ae69296dbd1c4855820ac3f36d76",
+        "source_sha": "7bb3432787b9d48c23d9a65457fa8d0897cb1968",
+        "candidate_sha": "f3dcfc1092e8652274c2ea9e6ee9b6e460299685",
+        "candidate_tree_sha": "98bcd636ff4d75e989006b05a55ae67a1ee52a7b",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-05",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-05",
+        "result_sha": "f3dcfc1092e8652274c2ea9e6ee9b6e460299685",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "T-05 requires dual-dialect lifecycle, outbox, destructive-state fault injection, race, and architecture checks on the parent candidate",
-          "evidence": null
+          "status": "passed",
+          "reason": "Passed lifecycle/outbox/fault-injection/race/real-PostgreSQL/product-migration gates plus source-vs-candidate full-suite attribution; only identical baseline and T-08-owned old Session HTTP assertions carry",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-05.md</Path>"
         },
         "e2e": {
           "required": false,
@@ -303,11 +303,11 @@
           "evidence": null
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-05.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 1,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-01T00:03:23+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T00:58:46+08:00"
     },
     {
       "ticket_id": "T-06",
@@ -422,7 +422,7 @@
         "full_suite": {
           "required": true,
           "status": "pending",
-          "reason": "DEV-09-001 early migration composition is integrated, but complete CLI/profile/runtime topology still requires T-08 result and full T-09 verification",
+          "reason": "DEV-09-001 migration composition checkpoints cb3dd5c and 5b09c2b are integrated, but complete CLI/profile/runtime topology still requires T-08 result and full T-09 verification",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-09.md</Path>"
         },
         "e2e": {
@@ -436,7 +436,7 @@
         "promotion_status": "pending"
       },
       "status": "review",
-      "updated_at": "2026-08-31T23:41:54+08:00"
+      "updated_at": "2026-09-01T00:58:46+08:00"
     }
   ]
 }

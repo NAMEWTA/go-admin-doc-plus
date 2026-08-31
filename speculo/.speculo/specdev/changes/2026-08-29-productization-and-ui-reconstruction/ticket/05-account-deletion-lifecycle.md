@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-05
 title: 建立账号 Tombstone 与文件处置生命周期
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 涉及不可逆账号/文件删除、跨模块事件、双方言迁移和系统管理员存续安全不变量
 ready: true
@@ -110,7 +110,7 @@ shared_path_owners: []
 
 ## 10. 验收标准
 
-- [ ] `AC-013、AC-023~026` 在双方言和故障注入中成立。
-- [ ] 不产生孤儿 owner，最后启用管理员不变量与 purge 不可逆边界成立。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-05.md</Path>`。
-- [ ] 路径、commit、集成、父分支 result 和 E2E disposition 完整。
+- [x] `AC-013、AC-023~026` 在双方言和故障注入中成立。
+- [x] 不产生孤儿 owner，最后启用管理员不变量与 purge 不可逆边界成立。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-05.md</Path>`。
+- [x] 路径、commit、集成、父分支 result 和 E2E disposition 完整。
