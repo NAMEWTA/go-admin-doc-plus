@@ -14,6 +14,7 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts/capabilities"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
+	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
@@ -371,12 +372,12 @@ func filesDatabase(t *testing.T) *database.Database {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	runner, err := migrations.NewRunner(filesmigration.Provider{})
+	runner, err := migrations.NewRunner(filesmigration.Provider{}, capacitymigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	first, err := runner.Up(context.Background(), db)
-	if err != nil || first.Applied != 1 {
+	if err != nil || first.Applied != 2 {
 		t.Fatalf("migration = %#v, %v", first, err)
 	}
 	second, err := runner.Up(context.Background(), db)
