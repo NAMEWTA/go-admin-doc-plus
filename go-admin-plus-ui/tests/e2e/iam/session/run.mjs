@@ -216,7 +216,11 @@ const waitForTarget = async (client, baseURL) => {
 
 const evaluate = async (client, sessionId, expression) => {
   const outcome = await client.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId)
-  if (outcome.exceptionDetails) fail('browser scenario raised an exception')
+  if (outcome.exceptionDetails) {
+    const description = String(outcome.exceptionDetails.exception?.description ?? outcome.exceptionDetails.text ?? '')
+    const category = description.match(/Error: ([a-zA-Z0-9 ]{1,80})/)?.[1]
+    fail(`browser scenario raised an exception${category ? `: ${category}` : ''}`)
+  }
   return outcome.result.value
 }
 
@@ -319,21 +323,31 @@ const runProfile = async (profile) => {
     assert(!String(readableCookies).includes('__Host-go-admin-session'), 'session cookie is readable by document.cookie')
 
     assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.verifyCSRF()') === true, 'CSRF scenarios failed')
-    const beforeRotation = await currentCookie(cdp, sessionId)
-    assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.rotate()') === true, 'rotation scenario failed')
-    const replacement = await currentCookie(cdp, sessionId)
-    assert(beforeRotation.value !== replacement.value, 'rotation did not replace the opaque cookie')
-    await cdp.send('Network.setCookie', {
-      name: beforeRotation.name, value: beforeRotation.value, url: baseURL, path: '/',
-      secure: true, httpOnly: true, sameSite: 'Strict',
-    }, sessionId)
-    const oldStatus = await evaluate(cdp, sessionId, "fetch('/api/iam/session/current').then((response) => response.status)")
-    assert(oldStatus === 401, 'rotated cookie recovered')
-    await cdp.send('Network.setCookie', {
-      name: replacement.name, value: replacement.value, url: baseURL, path: '/',
-      secure: true, httpOnly: true, sameSite: 'Strict',
-    }, sessionId)
-    assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.recoverReplacementCookie()') === true, 'replacement cookie recovery failed')
+
+    const { targetId: secondTargetID } = await cdp.send('Target.createTarget', { url: baseURL })
+    const { sessionId: secondSessionID } = await cdp.send('Target.attachToTarget', { targetId: secondTargetID, flatten: true })
+    await cdp.send('Runtime.enable', {}, secondSessionID)
+    await cdp.send('Network.enable', {}, secondSessionID)
+    for (let attempt = 0; attempt < 300; attempt += 1) {
+      if (await evaluate(cdp, secondSessionID, 'Boolean(globalThis.__iamE2E)')) break
+      if (attempt === 299) fail('second browser tab did not initialize')
+      await delay(100)
+    }
+    assert(await evaluate(cdp, secondSessionID, 'globalThis.__iamE2E.restoreSharedSession()') === 'authenticated', 'second tab did not restore the shared session')
+    const beforeCrossTabRenewal = await currentCookie(cdp, sessionId)
+    assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.renew()') === true, 'cross-tab renewal failed')
+    const afterCrossTabRenewal = await currentCookie(cdp, secondSessionID)
+    assert(beforeCrossTabRenewal.value === afterCrossTabRenewal.value, 'cross-tab renewal replaced the stable browser cookie')
+    assert(await evaluate(cdp, secondSessionID, 'globalThis.__iamE2E.updateFromSecondTab()') === true, 'second tab lost stable CSRF after renewal')
+    assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.logoutSharedSession()') === true, 'shared logout failed')
+    assert(await evaluate(cdp, secondSessionID, 'globalThis.__iamE2E.restoreSharedSession()') === 'unauthenticated', 'second tab survived shared revocation')
+    await cdp.send('Target.closeTarget', { targetId: secondTargetID })
+    assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.loginAndCheckState()') === true, 'cross-tab fixture could not restore the primary login')
+
+    const beforeRenewal = await currentCookie(cdp, sessionId)
+    assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.renew()') === true, 'renewal scenario failed')
+    const afterRenewal = await currentCookie(cdp, sessionId)
+    assert(beforeRenewal.value === afterRenewal.value, 'renewal replaced the stable opaque cookie')
     assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.updateProfile()') === true, 'profile scenario failed')
     assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.verifyLogoutRetry()') === true, 'logout retry scenario failed')
     assert(await evaluate(cdp, sessionId, 'globalThis.__iamE2E.verifyIdleTimeout()') === true, 'idle timeout scenario failed')

@@ -15,8 +15,8 @@ import { createOrganizationController, createWebOrganizationClient } from '@go-a
 import { createSchedulerController, createWebSchedulerClient } from '@go-admin-plus/web-domain-scheduler'
 import { createSettingsController, createWebSettingsClient, type SettingsRemovalKind } from '@go-admin-plus/web-domain-settings'
 
-import { productModuleFor, productRoutesFor, type ProductHost } from './manifest'
-import { productBreadcrumbs } from './router'
+import { productModuleFor, productRoutesFor, type ProductHost, type ProductRoute } from './manifest'
+import { productBreadcrumbs, resolveAuthorizedProductRoutes } from './router'
 
 const props = defineProps<{
   host: ProductHost
@@ -113,19 +113,19 @@ const navigate = (next: string) => {
   accountMenuOpen.value = false
   resolveView()
 }
-const resolveView = () => {
+const resolveView = (authorizedRoutes: readonly ProductRoute[] = routes.value) => {
   if (sessionState.value.status !== 'authenticated') { view.value = 'login'; return }
   if (currentRoute.name === 'unavailable') { view.value = 'unavailable'; return }
   if (currentRoute.name === 'forbidden') { view.value = 'forbidden'; return }
   if (currentRoute.name === 'not-found') { view.value = 'not-found'; return }
   if (routePath.value === '/account') { view.value = 'account'; return }
   if (routePath.value === '/' || routePath.value === '/login') {
-    const first = routes.value[0]?.path
+    const first = authorizedRoutes[0]?.path
     if (first) { replacePath(first); rememberRoute(first); view.value = 'workspace' } else view.value = 'forbidden'
     return
   }
   if (!productRoute.value) { view.value = 'not-found'; return }
-  if (routes.value.some(candidate => candidate.path === routePath.value)) {
+  if (authorizedRoutes.some(candidate => candidate.path === routePath.value)) {
     rememberRoute(routePath.value)
     view.value = 'workspace'
   } else {
@@ -147,9 +147,10 @@ const loadRuntime = async () => {
     dataScope.value = identity.dataScope
     const navigation = await props.runtime.loadNavigation()
     navigationPaths.value = new Set(navigation.map(entry => entry.path))
-    const reachable = new Set<string>(routes.value.map(route => route.path))
+    const authorizedRoutes = resolveAuthorizedProductRoutes(props.host, identity, navigation)
+    const reachable = new Set<string>(authorizedRoutes.map(route => route.path))
     visitedPaths.value = visitedPaths.value.filter(visited => reachable.has(visited))
-    resolveView()
+    resolveView(authorizedRoutes)
   } catch {
     view.value = 'unavailable'
   }
@@ -196,7 +197,10 @@ onUnmounted(() => {
 })
 watch(() => currentRoute.fullPath, () => {
   rememberRoute(routePath.value)
-  if (sessionState.value.status === 'authenticated') resolveView()
+  if (currentRoute.name === 'forbidden') { view.value = 'forbidden'; return }
+  if (currentRoute.name === 'not-found') { view.value = 'not-found'; return }
+  if (currentRoute.name === 'unavailable') { view.value = 'unavailable'; return }
+  if (sessionState.value.status === 'authenticated' && view.value !== 'loading' && view.value !== 'login') resolveView()
 })
 </script>
 
