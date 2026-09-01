@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T09:45:00+08:00",
+  "updated_at": "2026-09-01T10:15:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -47,6 +47,7 @@
     "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof."
   ],
   "deviations": [
+    "DEV-18-002 (ticket path ownership, approved under USER-DECISION:all-approved): T-18 may update go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.lock only to resolve plist 1.8.0 to 1.10.0 and remove vulnerable quick-xml 0.38.4. Cargo.toml, direct dependency pins, and unrelated lockfile resolutions remain unchanged.",
     "DEV-18-001 (ticket path ownership, approved under USER-DECISION:all-approved): T-18 may update go-admin-plus/test/files/dialect_contract_test.go only to compose the current 0020-capacity migration provider in the existing dual-dialect Files contract fixture. Product service code, migration contents, assertions, fixtures, and required/non-skip semantics remain unchanged.",
     "DEV-17-002 (ticket path ownership, approved under USER-DECISION:all-approved): T-17 may update scripts/contracts/cli.mjs and contract-cli.test.mjs only to wrap pnpm.cmd subprocess execution compatibly with Node 22 on Windows and add deterministic regression coverage. Contract lint/generate arguments, outputs, path guards, and failure semantics remain unchanged.",
     "DEV-17-001 (ticket path ownership, approved under USER-DECISION:all-approved): T-17 may update go-admin-plus/internal/modules/generator/renderer.go only to convert the canonical contract CLI local path into a cross-platform standard file URL so isolated generation can execute on Windows. Generated file scope, command semantics, timeout, minimal environment, and all other renderer behavior remain unchanged.",
