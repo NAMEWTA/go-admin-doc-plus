@@ -109,6 +109,7 @@ func TestAccountLifecycleOutboxProjectionFeedsOwnedInbox(t *testing.T) {
 	}
 	dispatcher, err := outbox.NewDispatcher(store, outbox.DispatcherConfig{
 		Owner: "lifecycle-worker", LeaseDuration: time.Minute, RetryDelay: time.Second, BatchSize: 10,
+		Now: func() time.Time { return now },
 	}, map[string]outbox.TransactionalConsumer{AccountDeletionRequestedTopic: consumer})
 	if err != nil {
 		t.Fatal(err)
