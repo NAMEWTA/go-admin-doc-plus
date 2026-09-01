@@ -300,7 +300,7 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
     'first-setup-recovery-root', 'first-setup-recovery-window', 'first-setup-recovery-window-frame', 'first-setup-recovery-submit',
     'first-setup-recovery-fault', 'first-setup-recovery-state', 'first-setup-recovery-restore',
     'first-setup-recovery-continue', 'first-setup-recovery-login', 'first-setup-recovery-restart',
-    'first-setup-root', 'first-setup-window', 'first-setup-window-frame', 'first-setup-submit', 'first-setup-workspace', 'first-setup-restart',
+    'first-setup-root', 'first-setup-window', 'first-setup-window-frame', 'first-setup-submit', 'first-setup-workspace', 'first-setup-boundary', 'first-setup-restart',
     'login-window-frame'
   ]) {
     assert.match(runner, new RegExp(`phase = '${phase}'`))
@@ -316,6 +316,7 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
     assert.match(runner, new RegExp(`return 'first-setup-workspace-${phase}'`))
   }
   assert.match(runner, /await poll\('native first setup workspace',[\s\S]*catch \(error\) \{[\s\S]*phase = await classifyFirstSetupWorkspaceFailure\(app\.child\.pid\)[\s\S]*throw error/)
+  assert.match(runner, /await poll\('native first setup workspace',[\s\S]*phase = 'first-setup-boundary'[\s\S]*await pollBoundary\(app\.child\.pid\)[\s\S]*await stopTracked\(app\)/)
   assert.match(runner, /await poll\('native partial setup recovery',[\s\S]*catch \(error\) \{[\s\S]*phase = await classifyFirstSetupRecoveryFailure\(app\.child\.pid\)[\s\S]*throw error/)
   assert.match(runner, /phase = 'first-setup-recovery-restore'[\s\S]*restoreRecoverySnapshot\(\)[\s\S]*phase = 'first-setup-recovery-continue'[\s\S]*clickButton\(app\.child\.pid, '\u8fdb\u5165\u767b\u5f55'\)[\s\S]*phase = 'first-setup-recovery-login'[\s\S]*poll\('native recovery login window'/)
   for (const phase of ['recovery', 'workspace', 'setup', 'unavailable', 'loading', 'unknown']) {
