@@ -18,6 +18,7 @@ export const desktopNativeControlMarkers = Object.freeze([
   'E2E all scope restored',
   'E2E authorization denied',
   'E2E control failed:',
+  'E2E open Demo',
   'E2E scope self',
   'E2E scope all',
   'E2E permissions off',

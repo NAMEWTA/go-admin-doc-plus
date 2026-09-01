@@ -7,7 +7,7 @@ import { createConnection } from 'node:net'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buttonCurrentScript, clickButtonScript, fillAndSubmitScript, pressButtonScript, windowBusyScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
+import { buttonCurrentScript, clickButtonScript, fillAndSubmitScript, windowBusyScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
 import { nativeAccessibilityFailure, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
@@ -380,7 +380,7 @@ const deleteProduct = pid => clickButton(pid, '删除 E2E-001')
 const logout = pid => runAppleScript(clickButtonScript(pid, '退出登录'))
 
 const clickButton = (pid, name) => runAppleScript(clickButtonScript(pid, name))
-const pressButton = (pid, name) => runAppleScript(pressButtonScript(pid, name))
+const openDemo = pid => runAppleScript(clickButtonScript(pid, 'E2E open Demo'))
 
 const main = async () => {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'go-admin-desktop-native-')))
@@ -551,7 +551,7 @@ const main = async () => {
     await assertWindowFrame(app.child.pid)
     phase = 'login-navigation'
     await poll('native Demo navigation', () => windowContains(app.child.pid, '产品示例'))
-    await pressButton(app.child.pid, '产品示例')
+    await openDemo(app.child.pid)
     phase = 'login-demo'
     try {
       await poll('native Demo page', () => windowContains(app.child.pid, '产品搜索'))
@@ -606,7 +606,7 @@ const main = async () => {
     }
     phase = 'session-revocation-navigation'
     await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
-    await pressButton(app.child.pid, '产品示例')
+    await openDemo(app.child.pid)
     phase = 'session-revocation-demo'
     try {
       await poll('native Demo page after relogin', () => windowContains(app.child.pid, '产品搜索'))
@@ -653,7 +653,7 @@ const main = async () => {
     phase = 'theme-dark-persistence'
     await poll('native dark theme after restart', () => windowContains(app.child.pid, '当前使用深色主题'))
     await poll('Stronghold Demo navigation', () => windowContains(app.child.pid, '产品示例'))
-    await pressButton(app.child.pid, '产品示例')
+    await openDemo(app.child.pid)
     try {
       await poll('Stronghold session restart', () => windowContains(app.child.pid, '产品搜索'))
     } catch (error) {
