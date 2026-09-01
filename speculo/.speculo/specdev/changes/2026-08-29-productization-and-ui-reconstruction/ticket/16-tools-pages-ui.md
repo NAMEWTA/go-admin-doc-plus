@@ -46,6 +46,10 @@ shared_path_owners: []
 
 - 容量展示只显示当前账号可公开汇总；后端未提供的精确值不在前端推断。
 
+### 已批准偏差
+
+- **DEV-16-001（USER-DECISION:all-approved）：** T-16 可更新 `<Path>go-admin-plus-ui/tests/shell/visual-contract.spec.ts</Path>` 中仅与 Demo 共享 `FormDialog` 识别和 Generator preview 成功逻辑源码排版有关的既有断言；不得改变其他 visual contract、共享 UI 实现、App Shell 或其他测试所有权。
+
 ### 未决问题
 
 无。
