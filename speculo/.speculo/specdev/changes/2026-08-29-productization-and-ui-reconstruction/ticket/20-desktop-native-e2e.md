@@ -223,6 +223,14 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** source `9562317868000618ce85f87f8f01a09764863fcb` 已形成；candidate `cc018bcba33a1a7f11ccf606b5367405d70f1236`（tree `5302b7eacf769eddc62b896268d5c0bd6af97252`）包含治理父 `b131dfe441d52281f0b3312c044f3e905ccb3079` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 资产标记检查、production build/asset scan、diff-check 与 clean tree。DEV-20-023 尚余 1 次 ordered attempt，native Gate 仍为 pending。
 
+### 已批准执行偏差 DEV-20-026
+
+- **触发事实：** DEV-20-023 attempt 3 使用 probe `c053fb89e07b68fb9682c58b1930b3272c8055bb`、Actions `33553644665`、job `100009067137`，在 macOS 15.7.7 arm64 与 AX enabled 环境通过 20:10:21Z~20:16:31Z prebuild，required gate 于 20:16:31Z~20:25:47Z 返回精确首红 `permission-restored`，无 skip、无 pass marker。它证明 disable control、403 后置条件、forbidden page 和 enable control click 均已越过。静态控制流确认权限关闭重挂载会由真实 router 把 hash 改为 `/forbidden`；权限恢复再次重挂载时该路由仍合法停留在 forbidden，原 runner 却未重新导航就等待“产品搜索”，错误地要求产品自动猜测回跳。DEV-20-023 的 3 次 attempt 已用尽。
+- **批准范围：** test-only native entry 可在 `permissions-on` 的 204 响应成功后设置固定 `E2E authorization restored`；runner 必须先用现有 `pollControl` 等待该握手，再点击既有 `E2E open Demo` 通过真实 hash router 返回 `/demo/products`，最后继续等待原“产品搜索”后置条件。production byte scanner 必须拒绝新标记，self-test 锁定 action、握手、导航和产品后置条件顺序。形成并验证新 source/candidate 后，最多 dispatch 3 次逐项归因的同一 workflow-only probe。
+- **禁止扩大：** 不修改产品 `ProductWorkspace`、router、权限自动跳转语义、后端权限 action、capability/config、timeout/retry/skip/allow-failure或其他场景；不直接写权限数据、Session、产品 DOM 或生产资产，不发布 artifact、deploy/migrate、重写或清理远端历史。每次首红必须先记录与精确修正。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-026 尚余 3 次 ordered attempt。
+
 ### 未决问题
 
 无。

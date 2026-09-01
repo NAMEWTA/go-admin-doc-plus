@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-023 attempt 2 failure: Actions 33551508113 / job 100001827771 / probe 7435ec4 passed prebuild and advanced through first-setup boundary, login navigation, Demo, theme, and scope self/all before returning permission-authorization with no skip or marker. That phase folds five permission substeps and cannot identify the first red precisely. DEV-20-025 only assigns fixed phases to the unchanged disable click, denied control postcondition, hidden page, enable click, and restored page calls, with self-tests locking their order. One ordered DEV-20-023 attempt remains after a recorded and verified candidate.",
+          "reason": "Pending after DEV-20-023 attempt 3 failure: Actions 33553644665 / job 100009067137 / probe c053fb8 passed prebuild and returned precise permission-restored after disable control, denied control postcondition, forbidden page, and enable control click all passed, with no skip or marker. Permission disable legitimately leaves the real router at /forbidden; remount after restore also legitimately retains that route, so the old runner incorrectly waited for Demo without navigating. DEV-20-026 adds only a fixed test-only restore handshake, then reuses the existing Demo control to traverse the real router before preserving the Product Search postcondition. Product permission and router behavior stay unchanged. Up to three ordered DEV-20-026 attempts are authorized after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T04:49:00+08:00"
+      "updated_at": "2026-09-02T05:01:00+08:00"
     }
   ]
 }
