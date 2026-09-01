@@ -283,6 +283,10 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
   }
   assert.match(runner, /await poll\('native partial setup recovery',[\s\S]*catch \(error\) \{[\s\S]*phase = await classifyFirstSetupRecoveryFailure\(app\.child\.pid\)[\s\S]*throw error/)
   assert.match(runner, /phase = 'first-setup-recovery-restore'[\s\S]*restoreRecoverySnapshot\(\)[\s\S]*phase = 'first-setup-recovery-continue'[\s\S]*clickButton\(app\.child\.pid, '\u8fdb\u5165\u767b\u5f55'\)[\s\S]*phase = 'first-setup-recovery-login'[\s\S]*poll\('native recovery login window'/)
+  for (const phase of ['recovery', 'workspace', 'setup', 'unavailable', 'loading', 'unknown']) {
+    assert.match(runner, new RegExp(`return 'first-setup-recovery-login-${phase}'`))
+  }
+  assert.match(runner, /await poll\('native recovery login window',[\s\S]*catch \(error\) \{[\s\S]*phase = await classifyFirstSetupRecoveryLoginFailure\(app\.child\.pid\)[\s\S]*throw error/)
   assert.match(runner, /completeFirstSetup\(app\.child\.pid\)/)
   assert.match(runner, /if \(width < 960 \|\| height < 640\)/)
   assert.match(runner, /hostTriple\('darwin', process\.arch\)/)

@@ -228,6 +228,19 @@ const classifyFirstSetupRecoveryFailure = async (pid) => {
   return 'first-setup-recovery-state-unknown'
 }
 
+const classifyFirstSetupRecoveryLoginFailure = async (pid) => {
+  try {
+    if (await windowContains(pid, '管理员已创建')) return 'first-setup-recovery-login-recovery'
+    if (await windowContains(pid, '账户菜单')) return 'first-setup-recovery-login-workspace'
+    if (await windowContains(pid, '创建首位管理员')) return 'first-setup-recovery-login-setup'
+    if (await windowContains(pid, '本地服务暂不可用')) return 'first-setup-recovery-login-unavailable'
+    if (await windowContains(pid, '正在加载')) return 'first-setup-recovery-login-loading'
+  } catch {
+    return 'first-setup-recovery-login-unknown'
+  }
+  return 'first-setup-recovery-login-unknown'
+}
+
 const pollBoundary = async (pid, timeout = 30_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
@@ -411,7 +424,12 @@ const main = async () => {
     phase = 'first-setup-recovery-continue'
     await clickButton(app.child.pid, '进入登录')
     phase = 'first-setup-recovery-login'
-    await poll('native recovery login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
+    try {
+      await poll('native recovery login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
+    } catch (error) {
+      phase = await classifyFirstSetupRecoveryLoginFailure(app.child.pid)
+      throw error
+    }
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, recoveryRoot])
     await assertNoNewSidecars(sidecarBaseline)
