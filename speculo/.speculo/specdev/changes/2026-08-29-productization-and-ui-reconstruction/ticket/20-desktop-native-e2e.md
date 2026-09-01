@@ -189,7 +189,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`，把 DEV-20-020 循环中的唯一 `key code 48` 改为 `key code 48 using option down`；起点、目标、固定 11 次、两次 AX scan、fresh focused 要求、唯一 `delay 0.2`、唯一 center click 与三类固定诊断全部不变。self-test 必须要求 Option 修饰并拒绝未修饰 Tab 或其他 key。新 source/candidate portable checks 通过后，只可继续使用 DEV-20-020 剩余 2 次 ordered attempt，不新增配额。
 - **禁止扩大：** 不修改系统/Safari/Keyboard 设置、产品、manifest、visual contract、diagnostics、workflow、调用点、timeout/retry/skip/allow-failure，不增加其他 modifier/key/click/action/delay/sleep；不输出 UI、输入、路径、坐标或 AppleScript 文本；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate。
+- **执行状态：** source `85d1f14c441771717c579b44d0b7c4adf7b52708` 已形成；candidate `d1b0d9c92d8e658064e7bea389bfc3d1ae8c473e`（tree `3d28be1020abf3892141ecb0e040eb8947e45133`）包含治理父 `71fadd9b8e3f00ebfbff4dac7bffb6a235a21142` 与 source，普通 merge 无冲突。Vitest 41/41 files / 256/256 tests、Node 48/48、lint、diff-check 与 clean tree 已通过；self-test 要求唯一 11 步循环使用 Option-Tab 并拒绝未修饰 Tab 或其他 key。DEV-20-020 尚余 2 次 ordered attempt，native Gate 仍为 pending。
 
 ### 未决问题
 
