@@ -155,7 +155,7 @@ T-17 + T-18 + T-19 + T-20 ─────────────────→
 | T-15 | T-16 | 无 | 否 | 独立 Web Domain 可并行 |
 | T-17 | T-18 | architecture checks | 是 | T-17 先升级生成规则，T-18 再接入 CI |
 | T-18 | T-19/T-20 | CI/security gate | 是 | T-18 冻结 required CI 后启动 E2E |
-| T-19 | T-20 | `tests/e2e/**` 与其 desktop 子树 | 是 | T-19 先建公共 Web runner，T-20 串行接管 desktop 子树 |
+| T-19 | T-20 | `tests/e2e/**` 与其 desktop 子树 | 是 | T-19 先建公共 Web runner，T-20 串行接管 desktop 子树；DEV-20-003 仅开放 Web Shell 的 lazy-route DOM 等待 |
 | T-21 | T-02/T-09/T-18/T-19/T-20 | database/deploy/release/docs 投影 | 是（直接或传递） | 最终串行收敛，不提前改发布文档 |
 
 唯一 shared owner 汇总：T-08（公共合同/生成物）、T-09（产品组合根/CLI/Task）、T-10（`main.rs`）、T-11（lockfile/UI package）、T-12（App Shell）、T-18（CI/security）、T-19（Web E2E 根）、T-20（Desktop E2E 子树）、T-21（docs/deploy/release）。
