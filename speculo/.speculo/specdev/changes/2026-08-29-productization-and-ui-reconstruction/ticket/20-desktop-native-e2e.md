@@ -221,7 +221,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可把现有 permission sequence 拆成五个固定 phase：`permission-disable-control`、`permission-denied-boundary`、`permission-hidden`、`permission-enable-control`、`permission-restored`；各 phase 必须紧邻原有 click/poll 调用，并由 Desktop runner self-test 锁定完整顺序。形成并验证新 source/candidate 后，继续使用 DEV-20-023 最后 1 次 ordered attempt。
 - **禁止扩大：** 不修改任何 click/poll target、control action、产品权限逻辑、timeout/retry/skip/allow-failure、test-only UI、后端、Session、主题、router、capability/config 或 workflow；不输出任意 DOM、secret、路径或凭据，不发布 artifact、deploy/migrate、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-023 尚余 1 次 ordered attempt。
+- **执行状态：** source `9562317868000618ce85f87f8f01a09764863fcb` 已形成；candidate `cc018bcba33a1a7f11ccf606b5367405d70f1236`（tree `5302b7eacf769eddc62b896268d5c0bd6af97252`）包含治理父 `b131dfe441d52281f0b3312c044f3e905ccb3079` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 资产标记检查、production build/asset scan、diff-check 与 clean tree。DEV-20-023 尚余 1 次 ordered attempt，native Gate 仍为 pending。
 
 ### 未决问题
 
