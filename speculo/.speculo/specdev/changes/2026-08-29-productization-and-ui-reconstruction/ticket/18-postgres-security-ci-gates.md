@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-18
 title: 建立真实 PostgreSQL 与安全供应链 CI 门禁
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: required CI 决定发布证据真实性，跨数据库服务、并发测试、漏洞/secret/SBOM 且缺环境必须失败
 ready: true
 risk: high
 blocked_by: [T-01, T-09, T-17]
 contract_ids: [AC-002, AC-006, AC-008, AC-019, AC-023, AC-027, AC-030, AC-035, AC-037]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>", "<Path>go-admin-plus/test/postgres/**</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
 writable_paths: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>", "<Path>go-admin-plus/test/postgres/**</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.lock</Path>"]
@@ -114,4 +114,3 @@ CI 启动隔离 PostgreSQL，等待健康后创建/传入 disposable DSN，并�
 - [ ] 缺 DSN、Skip、零目标测试与 scan finding 的反向验证能使 Gate 失败。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-18.md</Path>`。
 - [ ] shared owner、commit、CI integration/result 与 E2E disposition 完整。
-
