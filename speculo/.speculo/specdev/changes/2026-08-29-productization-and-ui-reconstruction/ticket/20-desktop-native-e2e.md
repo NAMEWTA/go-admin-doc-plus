@@ -102,6 +102,13 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **禁止扩大：** 不修改任何产品 migration SQL/provider、公开 API、生产数据库策略、sidecar 诊断、安全日志、runner timeout/retry/skip、workflow 或其他 fixture；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-010
+
+- **触发事实：** DEV-20-008 attempt 2 `33515309949`（job `99880740594`）在真实 macOS 15.7.7 arm64 上通过 prebuild，修正后的 `previous` fixture sidecar 不再提前退出，但 90 秒内未出现登录页。fixture 现在应用 `6210000000000_iam_bootstrap_recovery.sql` 并创建一个账号和角色，却未写 `iam_bootstrap_state`；产品 `desktopSetup.state` 对 `accounts=1, markers=0` 必然返回 inconsistent，因此页面不会进入普通登录。
+- **批准范围：** T-20 仍只可修改 `go-admin-plus/test/desktop/fixture/main.go` 与 `main_test.go`；将固定的 `marker=1`、`account-desktop-e2e` bootstrap marker 与账号、system-admin 角色在同一 fixture transaction 原子写入，并用测试锁定 marker/account/role 一致性。修正形成新 source/candidate 后，只可使用 DEV-20-008 最后 1 次有序 hosted attempt，不新增配额。
+- **禁止扩大：** 不修改产品 bootstrap/setup、migration SQL/provider、公开 API、runner diagnostics/timeout/retry/skip、workflow、fixture credential 或其他 fixture；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
@@ -110,7 +117,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 
 | IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |
 |---|---|---|
-| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合、DEV-20-006 feature-only Context 注入、DEV-20-007 固定 phase 归因、DEV-20-008 recovery-only Session 清理、DEV-20-009 previous fixture 基线 | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller、既有 `desktop_logout` 与产品 migration composition | 修改 production migration/Context/配置、签名、公证、Windows native E2E |
+| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合、DEV-20-006 feature-only Context 注入、DEV-20-007 固定 phase 归因、DEV-20-008 recovery-only Session 清理、DEV-20-009 migration baseline、DEV-20-010 fixture bootstrap marker | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller、既有 `desktop_logout` 与产品 migration composition | 修改 production migration/bootstrap/setup/Context/配置、签名、公证、Windows native E2E |
 
 ## 4. 要构建什么
 
