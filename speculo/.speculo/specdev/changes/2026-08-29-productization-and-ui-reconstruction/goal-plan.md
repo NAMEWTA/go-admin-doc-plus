@@ -120,7 +120,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 | F | T-17 | T-04~06、T-11、T-14、T-16 result | Generator 与 architecture checks | — | G4 / F1 |
 | G | T-18 | T-01、T-09、T-17 result | CI、PG/security scripts | T-18 | G5 / G1 |
 | H | T-19 | T-13~16、T-18 result | Web E2E root | T-19 | G6 / H1 |
-| I | T-20 | T-10、T-14~16、T-19 result | Desktop E2E + DEV-20-002 theme composition + DEV-20-003 Web observation wait | T-20；精确接管 App Shell theme composition 与单一 Web driver 接缝 | G7 / I1 |
+| I | T-20 | T-10、T-14~16、T-19 result | Desktop E2E + DEV-20-002 theme composition + DEV-20-003/004 Web verification | T-20；精确接管 App Shell theme composition 与单一 Web driver 接缝 | G7 / I1 |
 | J | T-21 | T-17~20 result | README/docs/deploy/release | T-21 | G8 / J1 |
 
 同一 Wave 内最多激活 3 个 implementation subagent；Lead 可根据测试资源、上下文和写路径降低并发。T-08、T-09、T-10、T-11、T-12、T-18、T-19、T-20、T-21 是其 frontmatter 所列 shared path 的唯一写 owner。
@@ -236,7 +236,7 @@ Gate 的关闭依据是行为和不可变 checkpoint，不是“完成了若干 
 | T-17 | 所列当前架构 result | `WT/T-17` / `specdev/.../T-17` | isolated generate/compile/test | required/non-empty | candidate architecture/generator；E2E N/R | result 后关闭 G4 |
 | T-18 | T-01+T-09+T-17 result | `WT/T-18` / `specdev/.../T-18` | CI scripts/negative policy | required/non-empty | candidate real PG/race/security/SBOM；E2E N/R | result 后关闭 G5 |
 | T-19 | T-13~16+T-18 result | `WT/T-19` / `specdev/.../T-19` | runner/unit/type checks only | required/non-empty | candidate required SQLite+PG browser E2E | result 后关闭 G6 |
-| T-20 | T-10+T-14~16+T-19 result | `WT/T-20` / `specdev/.../T-20` | runner/Rust/script checks + DEV-20-002 theme composition + DEV-20-003 observation wait | required/non-empty | candidate required macOS native E2E | result 后关闭 G7 |
+| T-20 | T-10+T-14~16+T-19 result | `WT/T-20` / `specdev/.../T-20` | runner/Rust/script checks + DEV-20-002 theme composition + DEV-20-003/004 Web verification | required/non-empty | candidate required macOS native E2E | result 后关闭 G7 |
 | T-21 | T-17~20 result | `WT/T-21` / `specdev/.../T-21` | docs/release policy checks | required/non-empty | candidate required full regression + three-profile clean-room | final `result_sha` 后评估 completion |
 
 对每个 Ticket，Lead 从最新依赖已集成的 `main` 创建唯一 source worktree；source worktree 不运行 E2E。Lead 接收 source commit 后冻结 `parent_before_sha`，在 Lead-owned detached candidate checkout 合并并运行 integration checks/适用 E2E；父 HEAD 漂移则 candidate 标记 stale 并重建。验证通过且 HEAD 未漂移后，Lead 才 fast-forward `main`、重读 tree 并记录 `result_sha`。候选失败时 `main` 不动，Ticket 回到同一 source worktree修正；成功集成不自动清理 branch/worktree。
@@ -268,7 +268,7 @@ Subagent 只返回候选事实与 source commit，不写 Evidence。Lead 核对�
 - Server 仅 SQLite/PostgreSQL，Desktop 仅 SQLite；租户、Redis、JWT、refresh token、Casbin 和默认管理员保持零保留。
 - 无固定 password SQL、未认证 Bootstrap/Recovery HTTP、argv secret、WebView secret、日志/审计 secret。
 - 后端是 capability/data scope/删除不变量事实源；前端可见性不能替代授权。
-- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 test-only native App、ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer，DEV-20-003 仅开放 Web Shell 的 lazy-route DOM 等待。
+- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 test-only native App、ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer，DEV-20-003/004 仅开放 Web Shell 的 lazy-route DOM 等待和主题 reload 验证。
 - Migration forward-only；PostgreSQL 生产显式 migrate，Server SQLite 自动 migrate，Desktop 备份成功后自动 migrate。
 - 不可逆 purge 只有 worker claim 前可取消；最后系统管理员不可删除；recover-admin 不创建或复活账号。
 - required Gate 不允许 skip/allow-failure/静默 retry；签名和公证只记 `not-required`。
