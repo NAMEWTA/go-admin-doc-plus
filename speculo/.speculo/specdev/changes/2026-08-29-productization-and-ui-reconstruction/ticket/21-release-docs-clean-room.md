@@ -62,6 +62,14 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** 已授权，尚未形成修正 checkpoint；`task compatibility:zero` 与 `task release:verify` 保持红灯。
 
+### 已批准执行偏差 DEV-21-003
+
+- **触发事实：** 首个 T-21 integration candidate `07a2e3bcf2df6cfaf1b9afcebefc20ba01dbc70d` 的 `task architecture:check` 精确返回 `frontend root typecheck omits test project tests/e2e/web-shell/tsconfig.json`。T-20 已增加并实际使用该测试项目，但 workspace 根 `typecheck` 仍只串列此前 10 个 E2E tsconfig，导致 required full candidate 不覆盖 Web Shell 类型边界。
+- **批准范围：** T-21 临时拥有 `go-admin-plus-ui/package.json` 的 `scripts.typecheck` 单一字符串，只在既有 E2E `vue-tsc -p` 链末尾追加 `tests/e2e/web-shell/tsconfig.json`；architecture check 与完整 typecheck 必须同时通过。
+- **禁止扩大：** 不修改依赖、lockfile、任何 tsconfig、T-20 测试/产品代码、lint/test/build 命令或 workspace package；不增加 skip、并行掩盖或类型排除。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成修正 checkpoint；candidate `07a2e3b` 保留为 architecture 首红。
+
 ### 未决问题
 
 无。
