@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-023 attempt 3 failure: Actions 33553644665 / job 100009067137 / probe c053fb8 passed prebuild and returned precise permission-restored after disable control, denied control postcondition, forbidden page, and enable control click all passed, with no skip or marker. Permission disable legitimately leaves the real router at /forbidden; remount after restore also legitimately retains that route, so the old runner incorrectly waited for Demo without navigating. DEV-20-026 adds only a fixed test-only restore handshake, then reuses the existing Demo control to traverse the real router before preserving the Product Search postcondition. Product permission and router behavior stay unchanged. Up to three ordered DEV-20-026 attempts are authorized after a recorded and verified candidate.",
+          "reason": "Pending after DEV-20-026 attempt 1 failure: Actions 33556103488 / job 100017206579 / probe d24003e passed prebuild and advanced through permission restore, real Demo navigation, and Session revoke/relogin before returning product-create accessibility button unavailable with no skip or marker. This proves DEV-20-026 effective. The product page exposes the exact create label New Product (新增产品), while the runner queried the stale shortened label 新增. DEV-20-027 only aligns that runner target and locks it against the product source; form, CRUD, product behavior, timeouts, and postconditions remain unchanged. Two ordered DEV-20-026 attempts remain after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T05:16:00+08:00"
+      "updated_at": "2026-09-02T05:31:00+08:00"
     }
   ]
 }
