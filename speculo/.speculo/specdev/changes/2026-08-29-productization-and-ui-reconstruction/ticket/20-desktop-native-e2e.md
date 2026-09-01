@@ -229,7 +229,15 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** test-only native entry 可在 `permissions-on` 的 204 响应成功后设置固定 `E2E authorization restored`；runner 必须先用现有 `pollControl` 等待该握手，再点击既有 `E2E open Demo` 通过真实 hash router 返回 `/demo/products`，最后继续等待原“产品搜索”后置条件。production byte scanner 必须拒绝新标记，self-test 锁定 action、握手、导航和产品后置条件顺序。形成并验证新 source/candidate 后，最多 dispatch 3 次逐项归因的同一 workflow-only probe。
 - **禁止扩大：** 不修改产品 `ProductWorkspace`、router、权限自动跳转语义、后端权限 action、capability/config、timeout/retry/skip/allow-failure或其他场景；不直接写权限数据、Session、产品 DOM 或生产资产，不发布 artifact、deploy/migrate、重写或清理远端历史。每次首红必须先记录与精确修正。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-026 尚余 3 次 ordered attempt。
+- **执行状态：** source `6d611a5a8e0e387d190e82db722473b9a75128d9` 已形成；candidate `c8d90d739f54f088b4a1ac3c6c17b6d3adcd3ed3`（tree `9e6c4b14a9a22919e48a4523d114e5bc0bf715be`）包含治理父 `34a01dc77ed3210c420c60165f5b509cef030615` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 恢复标记检查、production build/asset scan、diff-check 与 clean tree。DEV-20-026 尚余 3 次 ordered attempt，native Gate 仍为 pending。
+
+### 已批准执行偏差 DEV-20-027
+
+- **触发事实：** DEV-20-026 attempt 1 使用 probe `d24003efe357c112db741b6629321c2b462df561`、Actions `33556103488`、job `100017206579`，在 macOS 15.7.7 arm64 与 AX enabled 环境通过 20:35:28Z~20:41:31Z prebuild，required gate 于 20:41:31Z~20:49:50Z 返回新首红 `product-create`: `desktop native accessibility button unavailable`，无 skip、无 pass marker。它已越过权限恢复握手、真实 Demo 回跳与 Session revoke/relogin，证明 DEV-20-026 有效。静态产品页唯一创建入口的可访问名称是 `新增产品`，runner 却 exact 查询旧名称 `新增`，因此首个 create click 必然不可用。
+- **批准范围：** T-20 只可把 `product-create` 的 runner click target 从 `新增` 改为产品现有 exact `新增产品`，并让 Desktop runner self-test 同时读取 `DemoProductsPage.vue` 锁定产品按钮标签和 runner target；其后原“新增产品”dialog、“保存”与 `E2E-001` 后置条件不变。形成并验证新 source/candidate 后，继续使用 DEV-20-026 剩余 2 次 ordered attempt。
+- **禁止扩大：** 不修改产品页、表单、CRUD API、输入/提交动作、timeout/retry/skip/allow-failure、test-only UI、后端、Session、router、capability/config 或 workflow；不发布 artifact、deploy/migrate、重写或清理远端历史。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-026 尚余 2 次 ordered attempt。
 
 ### 未决问题
 
