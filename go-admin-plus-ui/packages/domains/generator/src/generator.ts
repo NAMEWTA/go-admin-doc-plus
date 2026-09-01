@@ -26,7 +26,12 @@ export interface GeneratorClient {
 
 export class GeneratorRequestError extends Error {
   readonly category: GeneratorFailure
-  constructor(category: GeneratorFailure) { super(`generator request failed: ${category}`); this.category = category }
+  readonly traceId?: string
+  constructor(category: GeneratorFailure, traceId?: string) {
+    super(`generator request failed: ${category}`)
+    this.category = category
+    if (traceId !== undefined) this.traceId = traceId
+  }
 }
 
 const databaseIdentifier = /^[a-z][a-z0-9_]{0,62}$/

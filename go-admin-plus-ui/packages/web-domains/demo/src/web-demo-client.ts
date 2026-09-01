@@ -1,11 +1,13 @@
 import { createContractClient, DemoRequestError, type DemoClient, type DemoFailure } from '@go-admin-plus/domain-demo'
 
-interface Problem { category?: string; code?: string }
+interface Problem { category?: string; code?: string; traceId?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/
+const tracePattern = /^[A-Za-z0-9_-]{8,128}$/
 
 export const createWebDemoClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): DemoClient => {
   let csrf = ''
   let classified: DemoFailure | null = null
+  let classifiedTraceId: string | undefined
   let tail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
     const result = tail.then(operation, operation)
@@ -20,14 +22,17 @@ export const createWebDemoClient = (fetcher: typeof fetch = fetch, baseUrl = '/a
     if (next !== null && !csrfPattern.test(next)) { csrf = ''; classified = 'relogin'; throw new DemoRequestError('relogin') }
     const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
     classified = classify(response.status, body)
+    classifiedTraceId = safeTraceId(body?.traceId)
     if (next) csrf = next
     else if (classified === 'relogin') csrf = ''
     return response
   } })
   const failure = (error: unknown): never => {
     const category = classified ?? problemCategory(error)
+    const traceId = classifiedTraceId ?? (error instanceof DemoRequestError ? error.traceId : undefined)
     classified = null
-    throw new DemoRequestError(category)
+    classifiedTraceId = undefined
+    throw new DemoRequestError(category, traceId)
   }
   const required = <T>(data: T | undefined, error: unknown): T => error === undefined && data !== undefined ? data : failure(error)
   const completed = (error: unknown): void => { if (error !== undefined) failure(error) }
@@ -53,3 +58,4 @@ const problemCategory = (value: unknown): DemoFailure => typeof value === 'objec
   && ['authentication', 'authorization', 'validation', 'not-found', 'conflict'].includes(String((value as Problem).category))
   ? ({ authentication: 'relogin', authorization: 'forbidden', validation: 'validation', 'not-found': 'not-found', conflict: 'conflict' } as const)[String((value as Problem).category) as 'authentication'|'authorization'|'validation'|'not-found'|'conflict']
   : 'unavailable'
+const safeTraceId = (value: unknown): string | undefined => typeof value === 'string' && tracePattern.test(value) ? value : undefined

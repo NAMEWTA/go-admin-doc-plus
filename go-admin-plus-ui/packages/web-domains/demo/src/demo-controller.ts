@@ -12,6 +12,7 @@ export interface DemoController {
   readonly pendingRepair: boolean
   readonly projectionVisible: boolean
   failure(): DemoFailure | null
+  failureTraceId(): string | null
   clearFailure(): void
   can(permissionCode: DemoPermissionCode): boolean
   takeCompletion(): CompletedIntent | null
@@ -27,10 +28,14 @@ export const createDemoController = (client: DemoClient, confirm: (count: number
   let pending: CompletedIntent | null = null
   let completion: CompletedIntent | null = null
   let failure: DemoFailure | null = null
+  let failureTraceId: string | null = null
   let projectionVisible = false
   let projectionGeneration = 0
   let requestSequence = 0
-  const record = (error: unknown) => { failure = error instanceof DemoRequestError ? error.category : 'unavailable' }
+  const record = (error: unknown) => {
+    failure = error instanceof DemoRequestError ? error.category : 'unavailable'
+    failureTraceId = error instanceof DemoRequestError ? error.traceId ?? null : null
+  }
   let rawList!: ListController<DemoFilters, Product, string>
   const hiddenProjection = () => { projectionVisible = false; rawList.clearSelection() }
   const failMutation = (error: unknown) => {
@@ -53,12 +58,12 @@ export const createDemoController = (client: DemoClient, confirm: (count: number
     rowKey: row => row.id,
     load: async request => {
       const sequence = ++requestSequence
-      failure = null
+      failure = null; failureTraceId = null
       try {
         if (!capabilities.can(demoPermissions.read)) throw new DemoRequestError('forbidden')
         const result = await client.list({ search: request.filters.search, page: request.page, pageSize: request.pageSize,
           sort: (request.sort?.key ?? 'updatedAt') as 'sku'|'name'|'priceCents'|'updatedAt', direction: request.sort?.direction ?? 'descending' })
-        if (sequence === requestSequence) { failure = null; projectionVisible = true; projectionGeneration += 1 }
+        if (sequence === requestSequence) { failure = null; failureTraceId = null; projectionVisible = true; projectionGeneration += 1 }
         return result
       } catch (error) {
         if (sequence === requestSequence) { record(error); hiddenProjection() }
@@ -82,7 +87,7 @@ export const createDemoController = (client: DemoClient, confirm: (count: number
     clearSelection: () => rawList.clearSelection(),
   }
   const refresh = async (): Promise<MutationResult> => {
-    failure = null
+    failure = null; failureTraceId = null
     const previousGeneration = projectionGeneration
     try {
       await list.refresh()
@@ -97,7 +102,8 @@ export const createDemoController = (client: DemoClient, confirm: (count: number
     get pendingRepair() { return pending !== null },
     get projectionVisible() { return projectionVisible && capabilities.can(demoPermissions.read) },
     failure: () => failure,
-    clearFailure: () => { failure = null },
+    failureTraceId: () => failureTraceId,
+    clearFailure: () => { failure = null; failureTraceId = null },
     can: permissionCode => projectionVisible && capabilities.can(demoPermissions.read) && capabilities.can(permissionCode),
     takeCompletion() { const value = completion; completion = null; return value },
     empty: emptyProduct,
@@ -106,7 +112,7 @@ export const createDemoController = (client: DemoClient, confirm: (count: number
       if (pending) return 'refresh-failed'
       if (!projectionVisible || !capabilities.can(demoPermissions.write)) { failMutation(new DemoRequestError('forbidden')); return 'failed' }
       if (Object.keys(validateProduct(model)).length > 0 || (model.id !== undefined && (!Number.isSafeInteger(model.revision) || (model.revision ?? 0) < 1))) return 'invalid'
-      mutationBusy = true; failure = null
+      mutationBusy = true; failure = null; failureTraceId = null
       try {
         try {
           const input = { sku: model.sku.trim().toUpperCase(), name: model.name.trim(), description: model.description.trim(), priceCents: model.priceCents, status: model.status }
@@ -121,7 +127,7 @@ export const createDemoController = (client: DemoClient, confirm: (count: number
       if (pending) return 'refresh-failed'
       if (!projectionVisible || !capabilities.can(demoPermissions.delete)) { failMutation(new DemoRequestError('forbidden')); return 'failed' }
       if (products.length === 0) return 'empty'
-      mutationBusy = true; failure = null
+      mutationBusy = true; failure = null; failureTraceId = null
       try {
         if (!await confirm(products.length)) return 'cancelled'
         const targets: DeleteTarget[] = products.map(({ id, revision }) => ({ id, revision }))

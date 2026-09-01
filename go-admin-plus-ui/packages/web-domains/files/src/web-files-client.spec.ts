@@ -45,4 +45,20 @@ describe('web files client', () => {
     expect(await blob.text()).toBe('hello')
     expect(Object.keys(createWebFilesClient(fetcher))).toEqual(['list', 'upload', 'download', 'delete'])
   })
+
+  it.each([
+    [409, 'FILES_QUOTA_EXCEEDED', 'quota'],
+    [507, 'FILES_CAPACITY_UNAVAILABLE', 'capacity'],
+    [415, 'MEDIA_TYPE_REJECTED', 'content'],
+  ] as const)('maps %s/%s to %s and preserves a safe reference', async (status, code, category) => {
+    const client = createWebFilesClient(vi.fn<typeof fetch>().mockResolvedValue(json(status, { category: status === 415 ? 'validation' : 'conflict', code, traceId: 'trace_files_123', detail: 'discard me' })), 'https://files.test/api')
+    await expect(client.upload({ name: 'notes.txt', type: 'text/plain', size: 5, body: new Blob(['hello'], { type: 'text/plain' }) })).rejects.toMatchObject({ category, traceId: 'trace_files_123' })
+  })
+
+  it('discards a malformed problem reference', async () => {
+    const client = createWebFilesClient(vi.fn<typeof fetch>().mockResolvedValue(json(507, { category: 'conflict', code: 'FILES_CAPACITY_UNAVAILABLE', traceId: '<raw>' })), 'https://files.test/api')
+    const failure = await client.upload({ name: 'notes.txt', type: 'text/plain', size: 5, body: new Blob(['hello'], { type: 'text/plain' }) }).catch(error => error)
+    expect(failure).toMatchObject({ category: 'capacity' })
+    expect(failure.traceId).toBeUndefined()
+  })
 })

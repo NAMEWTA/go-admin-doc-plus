@@ -34,10 +34,15 @@ describe('generator controller', () => {
     await controller.select(table.table)
     expect(client.describe).not.toHaveBeenCalled(); expect(controller.projectionVisible).toBe(false); expect(controller.failure()).toBe('forbidden')
   })
-  it('consumes a failed preview projection and never retries a write implicitly', async () => {
+  it('keeps a gate-failed preview visible and never retries a write implicitly', async () => {
     const { client, controller } = fixture(); await controller.tables.refresh(); await controller.select(table.table); await controller.createPreview()
-    vi.mocked(client.write).mockRejectedValue(new GeneratorRequestError('gate'))
+    vi.mocked(client.write).mockRejectedValue(new GeneratorRequestError('gate', 'trace_gate_123'))
     expect(await controller.confirmWrite(true)).toBe('failed')
-    expect(controller.previewValue).toBeNull(); expect(controller.step).toBe('configure'); expect(client.write).toHaveBeenCalledTimes(1)
+    expect(controller.previewValue).toEqual(preview); expect(controller.step).toBe('preview'); expect(client.write).toHaveBeenCalledTimes(1)
+    expect(controller.failureTraceId()).toBe('trace_gate_123')
+    expect(pageSource).toContain('必需门禁未通过')
+    controller.returnToConfiguration()
+    expect(controller.step).toBe('configure'); expect(controller.previewValue).toBeNull(); expect(controller.draft).not.toBeNull()
+    expect(controller.failure()).toBeNull(); expect(controller.failureTraceId()).toBeNull()
   })
 })

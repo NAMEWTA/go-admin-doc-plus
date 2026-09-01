@@ -25,6 +25,19 @@ describe('files controller', () => {
     expect(pageSource).toContain('data-testid="files-delete-selected"')
   })
 
+  it.each(['quota', 'capacity'] as const)('keeps release actions available after an upload %s failure', async category => {
+    const { client, controller } = fixture()
+    await controller.list.refresh()
+    vi.mocked(client.upload).mockRejectedValueOnce(new FilesRequestError(category, 'trace_files_123'))
+    expect(await controller.upload(candidate)).toBe('failed')
+    expect(controller.failure()).toBe(category)
+    expect(controller.failureTraceId()).toBe('trace_files_123')
+    expect(controller.projectionVisible).toBe(true)
+    expect(controller.can(filesPermissions.read)).toBe(true)
+    expect(controller.can(filesPermissions.delete)).toBe(true)
+    expect(pageSource).toContain("failure.value === 'quota' || failure.value === 'capacity'")
+  })
+
   it('searches, resets, pages, sorts and selects through the shared list controller', async () => {
     const { client, controller } = fixture()
     await controller.list.search({ search: ' notes ' })
