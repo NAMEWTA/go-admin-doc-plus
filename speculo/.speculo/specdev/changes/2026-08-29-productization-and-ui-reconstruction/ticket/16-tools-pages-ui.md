@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-16
 title: 重构 Files、Generator 与 Demo 页面
-status: in_progress
+status: done
 planning_depth: standard
 planning_depth_reason: 三个工具型 Web Domain 使用稳定 API 和共享 UI，但包含文件容量错误与生成写入反馈
 ready: true
@@ -114,7 +114,7 @@ shared_path_owners: []
 
 ## 10. 验收标准
 
-- [ ] frontmatter 所列 route/visual/capacity/regression AC 成立。
-- [ ] 文件低水位仍可下载/删除，Generator/Demo 功能完整。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-16.md</Path>`。
-- [ ] commit、integration/result 和 T-19 E2E 归属完整。
+- [x] frontmatter 所列 route/visual/capacity/regression AC 成立。
+- [x] 文件低水位仍可下载/删除，Generator/Demo 功能完整。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-16.md</Path>`。
+- [x] commit、integration/result 和 T-19 E2E 归属完整。
