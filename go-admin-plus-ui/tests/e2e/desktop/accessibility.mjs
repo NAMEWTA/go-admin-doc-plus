@@ -19,6 +19,57 @@ if not didClick then error ${quoteAppleScript(`native button unavailable: ${name
 return "clicked"
 end tell`
 
+export const pressButtonScript = (pid, name) => `tell application "System Events"
+if not (exists (first process whose unix id is ${pid})) then error "native process unavailable"
+tell (first process whose unix id is ${pid})
+  set frontmost to true
+  set didPress to false
+  set elementsToScan to entire contents of window 1
+  repeat with currentElement in elementsToScan
+    try
+      if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(name)} and enabled of currentElement is true then
+        set focused of currentElement to true
+        perform action "AXPress" of currentElement
+        set didPress to true
+        exit repeat
+      end if
+    end try
+  end repeat
+end tell
+if not didPress then error ${quoteAppleScript(`native button unavailable: ${name}`)}
+return "pressed"
+end tell`
+
+export const buttonCurrentScript = (pid, name) => `tell application "System Events"
+if not (exists (first process whose unix id is ${pid})) then return "false"
+tell (first process whose unix id is ${pid})
+  if (count of windows) is 0 then return "false"
+  set elementsToScan to entire contents of window 1
+  repeat with currentElement in elementsToScan
+    try
+      if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(name)} then
+        if (value of attribute "AXARIACurrent" of currentElement as text) is "page" then return "true"
+      end if
+    end try
+  end repeat
+end tell
+return "false"
+end tell`
+
+export const windowBusyScript = pid => `tell application "System Events"
+if not (exists (first process whose unix id is ${pid})) then return "false"
+tell (first process whose unix id is ${pid})
+  if (count of windows) is 0 then return "false"
+  set elementsToScan to entire contents of window 1
+  repeat with currentElement in elementsToScan
+    try
+      if value of attribute "AXBusy" of currentElement is true then return "true"
+    end try
+  end repeat
+end tell
+return "false"
+end tell`
+
 export const fillAndSubmitScript = (pid, fields, button) => {
   const actions = fields.map(({ name, role = 'AXTextField', value }, index) => `  set targetField${index} to missing value
   set elementsToScan to entire contents of window 1

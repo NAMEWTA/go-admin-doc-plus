@@ -14,7 +14,7 @@ import {
   verifyDesktopProductionFiles
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
-import { clickButtonScript, fillAndSubmitScript, quoteAppleScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
+import { buttonCurrentScript, clickButtonScript, fillAndSubmitScript, pressButtonScript, quoteAppleScript, windowBusyScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
 import { nativeAccessibilityFailure, nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
@@ -222,7 +222,7 @@ test('native session revocation exposes bounded lifecycle phases', () => {
 
 test('native Demo waits expose only fixed failure classifications', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  for (const state of ['route-load', 'product-unavailable', 'no-projection', 'forbidden', 'not-found', 'runtime-unavailable', 'loading', 'login', 'workspace', 'unknown']) {
+  for (const state of ['current-busy', 'current', 'route-load', 'product-unavailable', 'no-projection', 'forbidden', 'not-found', 'runtime-unavailable', 'loading', 'login', 'workspace', 'unknown']) {
     assert.match(runner, new RegExp(`\\$\\{prefix\\}-${state}`))
   }
   for (const phase of ['login-demo', 'session-revocation-demo', 'stronghold-restart-demo']) {
@@ -231,6 +231,10 @@ test('native Demo waits expose only fixed failure classifications', () => {
   assert.match(runner, /poll\('native Demo page'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'login-demo'\)/)
   assert.match(runner, /poll\('native Demo page after relogin'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'session-revocation-demo'\)/)
   assert.match(runner, /poll\('Stronghold session restart'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'stronghold-restart-demo'\)/)
+  assert.equal((runner.match(/pressButton\(app\.child\.pid, '产品示例'\)/g) ?? []).length, 3)
+  assert.doesNotMatch(runner, /clickButton\(app\.child\.pid, '产品示例'\)/)
+  assert.ok(runner.indexOf("buttonCurrentScript(pid, '产品示例')") < runner.indexOf("windowContains(pid, '页面加载失败')"))
+  assert.ok(runner.indexOf('windowBusyScript(pid)') < runner.indexOf("windowContains(pid, '页面加载失败')"))
 })
 
 test('native delete uses the uniquely named product action and a test-only confirmation port', () => {
@@ -254,6 +258,14 @@ test('accessibility query walks the native flattened element collection', () => 
   assert.match(script, /if \(name of currentElement as text\) contains expectedValue/)
   assert.doesNotMatch(script, /every UI element of entire contents/)
   assert.match(clickButtonScript(42, '保存'), /role of currentElement is "AXButton" and name of currentElement is "\u4fdd\u5b58"/)
+  const press = pressButtonScript(42, '产品示例')
+  assert.match(press, /set frontmost to true/)
+  assert.match(press, /role of currentElement is "AXButton" and name of currentElement is "产品示例" and enabled of currentElement is true/)
+  assert.match(press, /set focused of currentElement to true/)
+  assert.match(press, /perform action "AXPress" of currentElement/)
+  assert.doesNotMatch(press, /click currentElement/)
+  assert.match(buttonCurrentScript(42, '产品示例'), /value of attribute "AXARIACurrent" of currentElement as text\) is "page"/)
+  assert.match(windowBusyScript(42), /value of attribute "AXBusy" of currentElement is true/)
   const form = fillAndSubmitScript(42, [{ name: '名称', value: 'Native product' }], '保存')
   assert.match(form, /name of currentElement is "\u540d\u79f0"/)
   assert.match(form, /keystroke "Native product"/)
