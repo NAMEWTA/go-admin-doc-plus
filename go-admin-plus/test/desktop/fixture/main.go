@@ -5,18 +5,26 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	productsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo/migrations/0010-products"
+	filesaccountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/account_lifecycle_migration"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
+	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
 	configmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator/migrations/0010-config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	bootstraprecoverymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
+	datascopemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0050-data-scope"
+	accountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle"
 	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
 	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
 	settingsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/migrations/0010-settings"
@@ -27,6 +35,7 @@ import (
 )
 
 const fixturePassword = "administrator password"
+const pendingAuditMigration = "8100000000000_audit.sql"
 
 func main() {
 	root := flag.String("root", "", "isolated native E2E root")
@@ -63,12 +72,8 @@ func main() {
 	if *mode != "previous" && *mode != "migration-failure" {
 		fail()
 	}
-	runner, err := migrations.NewRunner(
-		reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{},
-		productsmigration.Provider{}, configmigration.Provider{}, settingsmigration.Provider{},
-		organizationmigration.Provider{}, schedulermigration.Provider{}, filesmigration.Provider{},
-	)
-	if err != nil {
+	runner, err := previousMigrationRunner()
+	if err != nil || validatePreviousMigrationBaseline(runner) != nil {
 		fail()
 	}
 	if _, err := runner.Up(ctx, db); err != nil {
@@ -101,6 +106,76 @@ func main() {
 		}
 	}
 	_, _ = fmt.Fprintln(os.Stdout, `{"state":"ready"}`)
+}
+
+func previousMigrationRunner() (*migrations.Runner, error) {
+	return migrations.NewRunner(
+		sessionmigration.Provider{},
+		administrationmigration.Provider{},
+		bootstraprecoverymigration.Provider{},
+		sessionprotectionmigration.Provider{},
+		datascopemigration.Provider{},
+		accountlifecyclemigration.Provider{},
+		organizationmigration.Provider{},
+		productsmigration.Provider{},
+		configmigration.Provider{},
+		settingsmigration.Provider{},
+		schedulermigration.Provider{},
+		filesmigration.Provider{},
+		capacitymigration.Provider{},
+		filesaccountlifecyclemigration.Provider{},
+		reliablemigration.Provider{},
+	)
+}
+
+func validatePreviousMigrationBaseline(previous *migrations.Runner) error {
+	current, err := product.NewMigrationRunner()
+	if err != nil {
+		return err
+	}
+	previousNames, err := composedMigrationNames(previous)
+	if err != nil {
+		return err
+	}
+	currentNames, err := composedMigrationNames(current)
+	if err != nil {
+		return err
+	}
+	for name := range previousNames {
+		if _, exists := currentNames[name]; !exists {
+			return errors.New("desktop fixture migration baseline invalid")
+		}
+		delete(currentNames, name)
+	}
+	if len(currentNames) != 1 {
+		return errors.New("desktop fixture migration baseline invalid")
+	}
+	if _, exists := currentNames[pendingAuditMigration]; !exists {
+		return errors.New("desktop fixture migration baseline invalid")
+	}
+	return nil
+}
+
+func composedMigrationNames(runner *migrations.Runner) (map[string]struct{}, error) {
+	if runner == nil {
+		return nil, errors.New("desktop fixture migration baseline invalid")
+	}
+	composed, err := runner.Compose(database.DialectSQLite)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := fs.ReadDir(composed, ".")
+	if err != nil {
+		return nil, err
+	}
+	names := make(map[string]struct{}, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return nil, errors.New("desktop fixture migration baseline invalid")
+		}
+		names[entry.Name()] = struct{}{}
+	}
+	return names, nil
 }
 
 func verifyFixture(ctx context.Context, db *database.Database, data, expectedProduct string) {
