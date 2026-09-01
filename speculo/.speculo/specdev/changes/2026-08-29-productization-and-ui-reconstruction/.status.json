@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T01:23:00+08:00",
+  "updated_at": "2026-09-02T01:24:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -916,14 +916,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "4f840d347c6b3210ef39370d5f59234421daf797",
+      "source_checkpoint": "70db7a2773e336ab23c879e8c4ebb69d6f167118",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "ffd15bd0a53e3a485a03c1b748c0208ca5cce154",
-        "source_sha": "4f840d347c6b3210ef39370d5f59234421daf797",
-        "candidate_sha": "9b47a86ee8008e170f0446bc0c94eba0de78370f",
-        "candidate_tree_sha": "f98ff829785d3eee292e993f912cb90f2907d30f",
+        "parent_before_sha": "b4a69f7d0c5311f102b80590a8c983a221c02036",
+        "source_sha": "70db7a2773e336ab23c879e8c4ebb69d6f167118",
+        "candidate_sha": "2d302d215e59ad3e7f64ed62716005bb30da041d",
+        "candidate_tree_sha": "5fde3a796d1dab6a94d8e6d720d176c4885b5ee9",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -933,13 +933,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 9b47a86 contains governance parent ffd15bd and source 4f840d3. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including the exact single AXScrollToVisible before focus/delay/position/size/center/click, lint, Speculo 0/0, diff-check, and clean-tree verification. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 2d302d2 contains governance parent b4a69f7 and source 70db7a2. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including scroll then one fresh exact-enabled-button query before the existing focus/delay/position/size/center/click, lint, Speculo 0/0, diff-check, and clean-tree verification. Self-tests preserve exactly one AXScrollToVisible, one 0.2-second delay, and one click while rejecting pre-scroll geometry use. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-017 attempt 1 ran candidate 9b47a86 as Actions 33535248320 (job 99947849962, probe acd5a91), passed native prebuild, then returned login-demo-workspace after the required gate ran from 17:08:11Z to 17:16:27Z. AXScrollToVisible did not throw, but the existing center-point click still did not activate the Demo route; no pass marker was produced. The failure must be attributed and corrected before either of the two remaining ordered attempts, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/action/delay, or security-boundary changes.",
+          "reason": "Pending: DEV-20-017 attempt 1 remains a recorded login-demo-workspace failure with no pass marker. DEV-20-018 candidate 2d302d2 now reacquires the same exact enabled AXButton after AXScrollToVisible and uses only the refreshed element for existing focus/geometry/center click; all portable checks pass. The same workflow-only probe may run the next ordered attempt from the two remaining attempts, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/action/delay, or security-boundary changes.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -947,7 +947,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T01:23:00+08:00"
+      "updated_at": "2026-09-02T01:24:00+08:00"
     }
   ]
 }
