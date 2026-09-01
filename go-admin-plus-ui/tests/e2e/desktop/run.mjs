@@ -241,6 +241,23 @@ const classifyFirstSetupRecoveryLoginFailure = async (pid) => {
   return 'first-setup-recovery-login-unknown'
 }
 
+const classifyDemoPageFailure = async (pid, prefix) => {
+  try {
+    if (await windowContains(pid, '页面加载失败')) return `${prefix}-route-load`
+    if (await windowContains(pid, '产品服务暂不可用')) return `${prefix}-product-unavailable`
+    if (await windowContains(pid, '暂无可用产品数据')) return `${prefix}-no-projection`
+    if (await windowContains(pid, '无权访问')) return `${prefix}-forbidden`
+    if (await windowContains(pid, '页面不存在')) return `${prefix}-not-found`
+    if (await windowContains(pid, '服务暂不可用')) return `${prefix}-runtime-unavailable`
+    if (await windowContains(pid, '正在加载页面')) return `${prefix}-loading`
+    if (await windowContains(pid, '使用管理员账号登录控制台')) return `${prefix}-login`
+    if (await windowContains(pid, '账户菜单')) return `${prefix}-workspace`
+  } catch {
+    return `${prefix}-unknown`
+  }
+  return `${prefix}-unknown`
+}
+
 const pollBoundary = async (pid, timeout = 30_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
@@ -513,7 +530,12 @@ const main = async () => {
     await poll('native Demo navigation', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
     phase = 'login-demo'
-    await poll('native Demo page', () => windowContains(app.child.pid, '产品搜索'))
+    try {
+      await poll('native Demo page', () => windowContains(app.child.pid, '产品搜索'))
+    } catch (error) {
+      phase = await classifyDemoPageFailure(app.child.pid, 'login-demo')
+      throw error
+    }
     phase = 'login-boundary'
     await pollBoundary(app.child.pid)
     phase = 'theme-dark-toggle'
@@ -563,7 +585,12 @@ const main = async () => {
     await poll('native Demo navigation after relogin', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
     phase = 'session-revocation-demo'
-    await poll('native Demo page after relogin', () => windowContains(app.child.pid, '产品搜索'))
+    try {
+      await poll('native Demo page after relogin', () => windowContains(app.child.pid, '产品搜索'))
+    } catch (error) {
+      phase = await classifyDemoPageFailure(app.child.pid, 'session-revocation-demo')
+      throw error
+    }
     phase = 'single-instance'
     const firstSidecar = await newSidecarPid(sidecarBaseline)
     await assertLoopbackOnly(firstSidecar)
@@ -604,7 +631,12 @@ const main = async () => {
     await poll('native dark theme after restart', () => windowContains(app.child.pid, '当前使用深色主题'))
     await poll('Stronghold Demo navigation', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
-    await poll('Stronghold session restart', () => windowContains(app.child.pid, '产品搜索'))
+    try {
+      await poll('Stronghold session restart', () => windowContains(app.child.pid, '产品搜索'))
+    } catch (error) {
+      phase = await classifyDemoPageFailure(app.child.pid, 'stronghold-restart-demo')
+      throw error
+    }
     await pollBoundary(app.child.pid)
     await poll('SQLite product restart', () => windowContains(app.child.pid, 'Native product updated'))
     phase = 'product-delete'
