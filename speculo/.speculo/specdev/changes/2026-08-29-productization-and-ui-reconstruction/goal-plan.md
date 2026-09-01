@@ -316,9 +316,9 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
 | Parent | `main` 已包含 T-19 result `84ac0ca12c82668f2e308b5c4b9c033e2193b9b7`；required PostgreSQL/security 与 required Web 门禁均已进入父分支 |
-| Tickets | T-01~T-19 均 `done`；T-20~T-21 `ready` |
-| Gate | G0~G6 已通过；G7~G8 尚未开启 |
-| Workspace records | T-19 source `df8e88b`、candidate/result `84ac0ca` 已记录；六个 T-19 candidate 及既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
+| Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
+| Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
+| Workspace records | T-19 source `df8e88b`、candidate/result `84ac0ca` 已记录；T-20 从治理后 `main@22bbbe6` 冻结 source base；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-19 已完成并晋升 result `84ac0ca`：最终 parent-candidate 以真实 Chromium 执行 10 个 suite、20 个 SQLite/PostgreSQL profile、0 skip，覆盖产品 Shell、route/history、权限、CRUD、双标签 Session、Files 与 Generator generated PostgreSQL runtime；G6 已关闭。T-20 仍需真实 macOS Tauri/Keychain/native-window 证据。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
+T-19 已完成并晋升 result `84ac0ca`：最终 parent-candidate 以真实 Chromium 执行 10 个 suite、20 个 SQLite/PostgreSQL profile、0 skip，覆盖产品 Shell、route/history、权限、CRUD、双标签 Session、Files 与 Generator generated PostgreSQL runtime；G6 已关闭。T-20 已由 `codex-root` 从治理后 `main@22bbbe6` 启动，先收敛 Desktop runner 自测、required/non-skip、production asset 与 cleanup 合同，再在真实 macOS parent-candidate 完成 Tauri/Keychain/native-window Gate。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash均保留。
 
 ### Resume Protocol
 

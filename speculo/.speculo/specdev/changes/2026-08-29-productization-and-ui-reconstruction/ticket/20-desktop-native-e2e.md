@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-20
 title: 建立 macOS Desktop 原生端到端门禁
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: required native E2E 跨 Tauri、Go sidecar、SQLite、Keychain、原生窗口和进程清理安全边界
 ready: true
 risk: high
 blocked_by: [T-10, T-14, T-15, T-16, T-19]
 contract_ids: [AC-004, AC-005, AC-016, AC-017, AC-018, AC-031, AC-036]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
@@ -114,4 +114,3 @@ Lead 在 macOS parent-candidate/current-workspace 构建 production-like Desktop
 - [ ] production assets、loopback、capability、vault、SQLite 重启和清理验证通过。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>`。
 - [ ] required E2E、candidate/result、父分支包含和 Lead 审查完整。
-
