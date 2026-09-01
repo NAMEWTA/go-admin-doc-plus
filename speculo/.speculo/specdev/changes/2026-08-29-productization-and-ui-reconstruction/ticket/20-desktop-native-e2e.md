@@ -229,7 +229,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** test-only native entry 可在 `permissions-on` 的 204 响应成功后设置固定 `E2E authorization restored`；runner 必须先用现有 `pollControl` 等待该握手，再点击既有 `E2E open Demo` 通过真实 hash router 返回 `/demo/products`，最后继续等待原“产品搜索”后置条件。production byte scanner 必须拒绝新标记，self-test 锁定 action、握手、导航和产品后置条件顺序。形成并验证新 source/candidate 后，最多 dispatch 3 次逐项归因的同一 workflow-only probe。
 - **禁止扩大：** 不修改产品 `ProductWorkspace`、router、权限自动跳转语义、后端权限 action、capability/config、timeout/retry/skip/allow-failure或其他场景；不直接写权限数据、Session、产品 DOM 或生产资产，不发布 artifact、deploy/migrate、重写或清理远端历史。每次首红必须先记录与精确修正。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-026 尚余 3 次 ordered attempt。
+- **执行状态：** source `6d611a5a8e0e387d190e82db722473b9a75128d9` 已形成；candidate `c8d90d739f54f088b4a1ac3c6c17b6d3adcd3ed3`（tree `9e6c4b14a9a22919e48a4523d114e5bc0bf715be`）包含治理父 `34a01dc77ed3210c420c60165f5b509cef030615` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 恢复标记检查、production build/asset scan、diff-check 与 clean tree。DEV-20-026 尚余 3 次 ordered attempt，native Gate 仍为 pending。
 
 ### 未决问题
 
