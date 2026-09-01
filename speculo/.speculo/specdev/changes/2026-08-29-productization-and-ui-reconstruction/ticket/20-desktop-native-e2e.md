@@ -165,7 +165,14 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`；在既有唯一 `AXScrollToVisible` 后立即重新扫描一次 `entire contents of window 1`，重新取得同名 exact enabled AXButton，并只用该 refreshed element 执行既有 focus、`delay 0.2`、position/size/center 与唯一 click。self-test 必须锁定 scroll -> fresh query -> click 顺序，以及唯一 action/delay/click。形成新 source/candidate 并通过 portable checks 后，可使用 DEV-20-017 剩余 2 次中的下一次 ordered attempt。
 - **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure，不输出任意 UI 或坐标，不增加 attempt 配额、其他 click/action/delay/sleep；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** source `70db7a2773e336ab23c879e8c4ebb69d6f167118` 已实现 scroll 后 fresh query；candidate `2d302d215e59ad3e7f64ed62716005bb30da041d`（tree `5fde3a796d1dab6a94d8e6d720d176c4885b5ee9`）包含治理父 `b4a69f7` 与 source，Node 48/48、Vitest 41/41 files / 256/256 tests、lint、Speculo 0/0、diff-check 与 clean tree 已通过。下一 ordered hosted attempt 尚未执行。
+- **执行状态：** source `70db7a2773e336ab23c879e8c4ebb69d6f167118` 已实现 scroll 后 fresh query；candidate `2d302d215e59ad3e7f64ed62716005bb30da041d`（tree `5fde3a796d1dab6a94d8e6d720d176c4885b5ee9`）包含治理父 `b4a69f7` 与 source，Node 48/48、Vitest 41/41 files / 256/256 tests、lint、Speculo 0/0、diff-check 与 clean tree 已通过。hosted attempt 2 为 Actions `33537653264`（job `99955810105`，probe `b3244c0`）：prebuild 通过，required gate 从 17:31:54Z 运行至 17:39:53Z 后仍返回 `login-demo-workspace`；fresh query 排除了 stale reference，但 route 仍未激活，无 native pass marker。最后 1 次 attempt 在下一修正验证前不执行。
+
+### 已批准执行偏差 DEV-20-019
+
+- **触发事实：** DEV-20-017/018 两次 hosted attempt 中 `AXScrollToVisible` 均未抛错但 route 后置条件均为 `login-demo-workspace`；attempt 2 已在 action 后 fresh query exact enabled button，故 stale AX reference 不再能解释红灯。Apple AX 合同提供 `AXParent`、滚动容器的 `AXVerticalScrollBar`、可写 scroller `AXValue` 与 `AXMaxValue`，可以直接验证并移动真实 overflow container。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`；移除 `AXScrollToVisible`，从同一 exact enabled Demo AXButton 沿 `AXParent` 在固定有限层数内找到 enclosing `AXScrollArea`，取得其 `AXVerticalScrollBar` 并把 value 唯一一次设为 `AXMaxValue`；随后保留现有 fresh exact-enabled-button query，只用 refreshed element 执行既有 focus、`delay 0.2`、position/size/center 与唯一 click。self-test 锁定 target -> bounded parent -> scrollbar max -> refresh -> click 顺序、唯一 value mutation/delay/click，并拒绝任何 `perform action`。新 source/candidate portable checks 通过后，可使用 DEV-20-017 最后 1 次 ordered attempt。
+- **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure，不输出任意 UI 或坐标，不增加 attempt 配额、其他 click/action/value mutation/delay/sleep；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
 ### 未决问题
 
