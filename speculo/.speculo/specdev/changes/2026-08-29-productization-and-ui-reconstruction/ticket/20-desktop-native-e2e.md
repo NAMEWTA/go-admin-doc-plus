@@ -116,6 +116,13 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、30 秒上限、retry/sleep/skip/allow-failure；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。每个前一红灯必须先归因并修正，hosted 失败不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-012
+
+- **触发事实：** DEV-20-011 attempt 1 `33520584846`（job `99898523529`，probe `b714d6a`）在真实 macOS 15.7.7 arm64 上通过 prebuild，随后在既有 30 秒 Demo page wait 后精确返回 `login-demo-workspace`。该后缀只观察到全局“账户菜单”；该控件存在于所有 authenticated product routes，不能证明既有 accessibility `click` 是否已激活导航，也不能排除 Demo route 已进入但 projection 仍 busy。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs`、`run.mjs` 与 `run.test.mjs`；三个既有 Demo 导航动作必须定位精确、enabled 的 `AXButton`，聚焦后执行标准 `AXPress` action。失败分类只可在既有固定枚举前检查同一按钮的 `AXARIACurrent=page` 与页面 `AXBusy` 固定属性，由 self-test 锁定名称、action 和顺序。形成新 source/candidate 后，只可使用 DEV-20-011 剩余 2 次有序 hosted attempt，不新增配额。
+- **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、30 秒上限、retry/sleep/skip/allow-failure；不输出任意 UI；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
@@ -124,7 +131,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 
 | IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |
 |---|---|---|
-| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合、DEV-20-006 feature-only Context 注入、DEV-20-007/011 固定 phase 归因、DEV-20-008 recovery-only Session 清理、DEV-20-009 migration baseline、DEV-20-010 fixture bootstrap marker | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller、既有 `desktop_logout` 与产品 migration composition | 修改 production migration/bootstrap/setup/Context/配置、签名、公证、Windows native E2E |
+| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合、DEV-20-006 feature-only Context 注入、DEV-20-007/011/012 固定 phase 与导航归因、DEV-20-008 recovery-only Session 清理、DEV-20-009 migration baseline、DEV-20-010 fixture bootstrap marker | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller、既有 `desktop_logout` 与产品 migration composition | 修改 production migration/bootstrap/setup/Context/配置、签名、公证、Windows native E2E |
 
 ## 4. 要构建什么
 

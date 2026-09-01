@@ -318,8 +318,8 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Parent | 当前 `main@d935d4f` 仍未包含 T-20 产品树；最新 candidate 包含此前治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 latest source `03c6a94`、portable candidate `0935004`/tree `b4b818f` 已记录并通过 portable checks；probe `88179bf` 的 DEV-20-008 attempt 3 红灯保留，既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005/006/008 各 3 次 probe 均已用尽；DEV-20-007 已用 2 次且剩余 runner-only attempt 不用于产品修正；DEV-20-011 只开放固定 Demo failure classifier，并授权 3 次新的逐个归因 hosted attempt；其他远程写入/部署/发布/生产迁移/清理未授权 |
+| Workspace records | T-20 latest source `03c6a94`、portable candidate `0935004`/tree `b4b818f` 已记录并通过 portable checks；probe `b714d6a` 的 DEV-20-011 attempt 1 `login-demo-workspace` 红灯保留，既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005/006/008 各 3 次 probe 均已用尽；DEV-20-007 已用 2 次且剩余 runner-only attempt 不用于产品修正；DEV-20-011 已用 1/3 次；DEV-20-012 只开放标准 AXPress 与固定 current-route/busy 分类并沿用剩余 2 次配额；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
@@ -328,10 +328,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 当前执行 active；DEV-09-001 已解除 Wave A/T-09 的执行闭环并完成本轮候选晋升：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
-- G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-008 三次 attempt 依次暴露并收敛 migration baseline、bootstrap marker 与导航后的 Demo page observation；第三次已越过 fixture startup、login、authenticated workspace 和 window frame。DEV-20-011 只为 Demo wait 失败加入固定分类，不改变产品、fixture 或等待上限。
+- G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-011 attempt 1 通过 prebuild 后返回 `login-demo-workspace`；该后缀只命中所有 authenticated routes 共有的账户菜单，不能区分导航未激活与 Demo projection busy。DEV-20-012 只把三个 Demo 导航切换为精确 AXButton 的标准 `AXPress`，并固定检查 current-route/busy 属性，不改变产品、fixture 或等待上限。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `0935004` 的产品/fixture 修正和 DEV-20-011 固定 Demo classifier 均通过便携检查；此前 hosted execution 已逐段证明 fixture/login/workspace。下一步使用 DEV-20-011 attempt 1 获取精确 Demo page 状态。G7 仍必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
+T-20 portable candidate `0935004` 的产品/fixture 修正和 DEV-20-011 固定 Demo classifier 均通过便携检查；attempt 1 红灯不重标。下一 source/candidate 只实现 DEV-20-012 的确定性 AXPress/current-route/busy 收敛，再使用剩余 attempt 2。G7 仍必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
 
 ### Resume Protocol
 
