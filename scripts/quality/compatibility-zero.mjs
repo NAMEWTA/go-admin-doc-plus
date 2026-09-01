@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { dirname, extname, join, relative, resolve } from 'node:path'
+import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const removedPaths = [
@@ -34,12 +34,14 @@ const allowedMatches = new Map(Object.entries({
   'go-admin-plus-ui/apps/admin-desktop/src-tauri/src/proxy.rs': ['MySQL', 'refresh token'],
   'go-admin-plus/internal/application/architecture_test.go': ['Wails runtime'],
   'go-admin-plus/internal/modules/files/migrations/0010-files/provider_test.go': ['tenant feature'],
+  'go-admin-plus/internal/modules/files/migrations/0020-capacity/provider_test.go': ['tenant feature'],
   'go-admin-plus/internal/modules/generator/generator_test.go': ['Casbin', 'Redis', 'tenant feature', 'GORM'],
   'go-admin-plus/internal/modules/generator/writer.go': ['Casbin', 'Redis', 'tenant feature', 'GORM'],
   'go-admin-plus/internal/modules/iam/authorization/capability_registry_test.go': ['MySQL'],
   'go-admin-plus/internal/modules/organization/migrations/provider_test.go': ['Casbin', 'tenant feature', 'JWT'],
   'go-admin-plus/internal/modules/settings/security.go': ['MySQL', 'refresh token'],
   'go-admin-plus/internal/modules/settings/service_test.go': ['JWT'],
+  'go-admin-plus/internal/platform/logging/redaction.go': ['MySQL'],
   'go-admin-plus/test/demo/products_sqlite_test.go': ['tenant feature'],
   'go-admin-plus/test/iam/authorization/administration_test.go': ['Casbin', 'tenant feature', 'JWT'],
   'release/macos/README.md': ['Wails runtime'],
@@ -70,7 +72,7 @@ export const checkCompatibility = root => {
     const absolute = join(root, rootPath)
     const files = existsSync(absolute) && !readdirSafe(absolute) ? [absolute] : walk(absolute)
     for (const file of files) {
-      const path = relative(root, file)
+      const path = relative(root, file).split(sep).join('/')
       if (ownFiles.has(path) || !textExtensions.has(extname(file))) continue
       const content = readFileSync(file)
       if (content.includes(0)) continue
