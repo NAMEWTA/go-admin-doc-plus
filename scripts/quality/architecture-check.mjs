@@ -314,6 +314,30 @@ export const checkArchitecture = root => {
       if (!typecheck.includes(projectPath)) failures.push(`frontend root typecheck omits test project ${projectPath}`)
     }
   }
+  const generatorTemplatePath = join(root, 'go-admin-plus/internal/modules/generator/templates.go')
+  if (existsSync(generatorTemplatePath)) {
+    const templates = readFileSync(generatorTemplatePath, 'utf8')
+    const currentListContracts = ['AppPage', 'EmptyState', 'FormDialog', 'FormGrid', 'Pagination', 'QueryBar', 'StatusTag', 'TableToolbar']
+    if (currentListContracts.some(contract => !templates.includes(contract))) {
+      failures.push('generator list page must compose the current shared UI components')
+    }
+    if (templates.includes('class="generated-records"') || templates.includes('class="editor"')) {
+      failures.push('generator list page must not emit the legacy inline workspace/editor layout')
+    }
+    if (!templates.includes('const tracePattern = /^[A-Za-z0-9_-]{8,128}$/') || !templates.includes('readonly traceId?: string')) {
+      failures.push('generator failure contract must retain only a validated trace reference')
+    }
+  }
+  const generatorGatePath = join(root, 'go-admin-plus/internal/modules/generator/compile_gate.go')
+  if (existsSync(generatorGatePath)) {
+    const gate = readFileSync(generatorGatePath, 'utf8')
+    if (!gate.includes('scripts/quality/architecture-check.mjs')) {
+      failures.push('generator compile gate must run the repository architecture check')
+    }
+    if (!gate.includes('[]string{"build"}')) {
+      failures.push('generator compile gate must build the frontend applications')
+    }
+  }
   return failures
 }
 

@@ -108,6 +108,7 @@ func compileGateCommands(goRoot, uiRoot, module string) []gateCommand {
 		{fixture, "node", []string{"scripts/contracts/cli.mjs", "lint", "--contract", "contracts/openapi/modules/" + module + ".yaml"}},
 		{fixture, "node", []string{"scripts/contracts/cli.mjs", "generate"}},
 		{fixture, "node", []string{"scripts/contracts/cli.mjs", "generate", "--check"}},
+		{fixture, "node", []string{"scripts/quality/architecture-check.mjs", fixture}},
 		{goRoot, "go", []string{"test", "./internal/application"}},
 		{goRoot, "go", []string{"test", "./internal/modules/" + module + "/..."}},
 		{goRoot, "go", []string{"build", "./internal/modules/" + module + "/..."}},
@@ -117,6 +118,7 @@ func compileGateCommands(goRoot, uiRoot, module string) []gateCommand {
 		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + module, "typecheck"}},
 		{uiRoot, pnpmExecutable(), []string{"--filter", "@go-admin-plus/web-domain-" + module, "test"}},
 		{uiRoot, pnpmExecutable(), []string{"check:workspace"}},
+		{uiRoot, pnpmExecutable(), []string{"build"}},
 	}
 }
 
@@ -148,8 +150,12 @@ func pnpmExecutable() string {
 }
 
 var compileSkeletonPrefixes = []string{
+	".github/",
 	"contracts/openapi/",
-	"scripts/contracts/",
+	"deploy/",
+	"docs/",
+	"release/",
+	"scripts/",
 	"go-admin-plus/",
 	"go-admin-plus-ui/apps/",
 	"go-admin-plus-ui/packages/",
@@ -157,10 +163,13 @@ var compileSkeletonPrefixes = []string{
 }
 
 var compileSkeletonFiles = map[string]struct{}{
+	"README.md":                            {},
+	"Taskfile.yml":                         {},
 	"go-admin-plus-ui/.npmrc":              {},
 	"go-admin-plus-ui/package.json":        {},
 	"go-admin-plus-ui/pnpm-lock.yaml":      {},
 	"go-admin-plus-ui/pnpm-workspace.yaml": {},
+	"speculo/.speculo/specdev/config.json": {},
 }
 
 func copyTrackedSkeleton(ctx context.Context, source, destination string) error {
@@ -259,6 +268,16 @@ func minimalCommandEnvironment(safeHome string) []string {
 			"GOPROXY=off",
 			"GOSUMDB=off",
 		)
+		if output, err := exec.Command("go", "env", "GOCACHE", "GOMODCACHE", "GOPATH").Output(); err == nil {
+			values := strings.Split(strings.TrimSpace(string(output)), "\n")
+			if len(values) == 3 {
+				baseEnvironment = append(baseEnvironment,
+					"GOCACHE="+strings.TrimSpace(values[0]),
+					"GOMODCACHE="+strings.TrimSpace(values[1]),
+					"GOPATH="+strings.TrimSpace(values[2]),
+				)
+			}
+		}
 	})
 	result := append([]string(nil), baseEnvironment...)
 	if safeHome != "" {
@@ -272,16 +291,8 @@ func toolchainPath(path string) string {
 	if node, err := resolveToolExecutable("node"); err == nil {
 		prefixes = append(prefixes, filepath.Dir(node))
 	}
-	pnpm, err := exec.LookPath(pnpmExecutable())
-	if err == nil {
-		clean := filepath.ToSlash(filepath.Clean(pnpm))
-		marker := "/.volta/bin/"
-		if index := strings.Index(clean, marker); index >= 0 {
-			candidate := filepath.FromSlash(clean[:index] + "/.volta/tools/image/packages/pnpm/bin")
-			if info, statErr := os.Stat(filepath.Join(candidate, pnpmExecutable())); statErr == nil && !info.IsDir() {
-				prefixes = append(prefixes, candidate)
-			}
-		}
+	if pnpm, err := resolveToolExecutable(pnpmExecutable()); err == nil {
+		prefixes = append(prefixes, filepath.Dir(pnpm))
 	}
 	if len(prefixes) == 0 {
 		return path
@@ -295,13 +306,7 @@ func resolveToolExecutable(name string) (string, error) {
 		return "", err
 	}
 	if name == "pnpm" || name == "pnpm.cmd" {
-		clean := filepath.ToSlash(filepath.Clean(path))
-		if index := strings.Index(clean, "/.volta/bin/"); index >= 0 {
-			candidate := filepath.FromSlash(clean[:index] + "/.volta/tools/image/packages/pnpm/bin/" + pnpmExecutable())
-			if info, statErr := os.Stat(candidate); statErr == nil && info.Mode().IsRegular() && (runtime.GOOS == "windows" || info.Mode().Perm()&0o111 != 0) {
-				path = candidate
-			}
-		}
+		path = resolveVoltaPnpmExecutable(path)
 	} else if name == "node" {
 		path = resolveVoltaNodeExecutable(path)
 	}
@@ -314,6 +319,23 @@ func resolveToolExecutable(name string) (string, error) {
 		return "", ErrInvalid
 	}
 	return absolute, nil
+}
+
+func resolveVoltaPnpmExecutable(path string) string {
+	clean := filepath.ToSlash(filepath.Clean(path))
+	if index := strings.Index(clean, "/.volta/bin/"); index >= 0 {
+		candidate := filepath.FromSlash(clean[:index] + "/.volta/tools/image/packages/pnpm/bin/" + pnpmExecutable())
+		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() && (runtime.GOOS == "windows" || info.Mode().Perm()&0o111 != 0) {
+			return candidate
+		}
+	}
+	if runtime.GOOS == "windows" {
+		candidate := filepath.Join(os.Getenv("LOCALAPPDATA"), "Volta", "tools", "image", "packages", "pnpm", pnpmExecutable())
+		if info, err := os.Stat(candidate); err == nil && info.Mode().IsRegular() {
+			return candidate
+		}
+	}
+	return path
 }
 
 func resolveVoltaNodeExecutable(path string) string {

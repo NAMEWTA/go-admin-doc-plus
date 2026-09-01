@@ -661,7 +661,7 @@ describe('%s domain contract', () => {
     expect(permissions.read).toBe('%s.%s.read')
     expect(empty%sInput()).not.toBe(empty%sInput())
   })
-  it('keeps stable failure categories', () => { expect(new RequestError('conflict').category).toBe('conflict') })
+  it('keeps stable failure categories and safe references', () => { const error = new RequestError('conflict', 'safeTrace_01'); expect(error.category).toBe('conflict'); expect(error.traceId).toBe('safeTrace_01') })
 })
 `, model.Entity, model.Module, model.Module, model.Plural, model.Entity, model.Entity)
 }
@@ -701,25 +701,32 @@ describe('{{MODULE}} web domain', () => {
     await controller.remove(row)
     expect(client.create).toHaveBeenCalledOnce(); expect(client.update).toHaveBeenCalledOnce(); expect(client.delete).toHaveBeenCalledOnce(); expect(confirm).toHaveBeenCalledOnce()
   })
+  it('records denied reads and keeps the projection hidden', async () => {
+    const client: {{ENTITY}}Client = { list: vi.fn(async () => ({ rows: [row], total: 1 })), get: vi.fn(async () => row), create: vi.fn(async () => row), update: vi.fn(async () => row), delete: vi.fn(async () => undefined) }
+    const controller = create{{ENTITY}}Controller(client, vi.fn(async () => true), { can: () => false })
+    await expect(controller.list.refresh()).rejects.toMatchObject({ category: 'forbidden' })
+    expect(controller.failure()).toBe('forbidden'); expect(controller.projectionVisible).toBe(false); expect(controller.list.snapshot().rows).toEqual([])
+  })
 })
 `
 	return strings.NewReplacer("{{ENTITY}}", model.Entity, "{{MODULE}}", model.Module, "{{INPUT}}", values.String()).Replace(template)
 }
 func generatedWebClient(model Model) string {
 	template := `import { createContractClient, RequestError, type {{ENTITY}}Client, type RequestFailure } from '@go-admin-plus/domain-{{MODULE}}'
-interface Problem { category?: string; code?: string }
+interface Problem { category?: string; code?: string; traceId?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/
+const tracePattern = /^[A-Za-z0-9_-]{8,128}$/
 export const createWebClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): {{ENTITY}}Client => {
-  let csrf = ''; let classified: RequestFailure | null = null; let tail: Promise<void> = Promise.resolve()
+  let csrf = ''; let classified: RequestFailure | null = null; let classifiedTraceId: string | undefined; let tail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => { const result = tail.then(operation, operation); tail = result.then(() => undefined, () => undefined); return result }
   const contract = createContractClient({ baseUrl, fetch: async input => {
     const headers = new Headers(input.headers); if (csrf && input.method !== 'GET') headers.set('X-CSRF-Token', csrf)
     const response = await fetcher(new Request(input, { credentials: 'include', headers })); const next = response.headers.get('X-CSRF-Token')
     if (next !== null && !csrfPattern.test(next)) { csrf = ''; classified = 'relogin'; throw new RequestError('relogin') }
     const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
-    classified = classify(response.status, body); if (next) csrf = next; else if (classified === 'relogin') csrf = ''; return response
+    classified = classify(response.status, body); classifiedTraceId = safeTraceId(body?.traceId); if (next) csrf = next; else if (classified === 'relogin') csrf = ''; return response
   } })
-  const failure = (error: unknown): never => { const category = classified ?? problemCategory(error); classified = null; throw new RequestError(category) }
+  const failure = (error: unknown): never => { const category = classified ?? problemCategory(error); const traceId = classifiedTraceId ?? (error instanceof RequestError ? error.traceId : undefined); classified = null; classifiedTraceId = undefined; throw new RequestError(category, traceId) }
   const required = <T>(data: T | undefined, error: unknown): T => error === undefined && data !== undefined ? data : failure(error)
   const completed = (error: unknown): void => { if (error !== undefined) failure(error) }
   return {
@@ -735,6 +742,7 @@ const classify = (status: number, value: Problem | null): RequestFailure | null 
 }
 const problemCategory = (value: unknown): RequestFailure => typeof value === 'object' && value !== null && 'category' in value
   ? ({ authentication: 'relogin', authorization: 'forbidden', validation: 'validation', 'not-found': 'not-found', conflict: 'conflict' } as const)[String((value as Problem).category) as 'authentication'|'authorization'|'validation'|'not-found'|'conflict'] ?? 'unavailable' : 'unavailable'
+const safeTraceId = (value: unknown): string | undefined => typeof value === 'string' && tracePattern.test(value) ? value : undefined
 `
 	return strings.NewReplacer("{{ENTITY}}", model.Entity, "{{MODULE}}", model.Module, "{{PLURAL}}", model.Plural).Replace(template)
 }
@@ -926,7 +934,7 @@ export interface {{ENTITY}}Client {
   create(input: {{ENTITY}}Input): Promise<{{ENTITY}}>; update(id: string, input: Update{{ENTITY}}Request): Promise<{{ENTITY}}>;
   delete(id: string, revision: number): Promise<void>
 }
-export class RequestError extends Error { readonly category: RequestFailure; constructor(category: RequestFailure) { super(category); this.category = category } }
+export class RequestError extends Error { readonly category: RequestFailure; readonly traceId?: string; constructor(category: RequestFailure, traceId?: string) { super(category); this.category = category; this.traceId = traceId } }
 export const empty{{ENTITY}}Input = (): {{ENTITY}}Input => ({ {{EMPTY}} })
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 export const validate{{ENTITY}}Input = (input: Readonly<{{ENTITY}}Input>): boolean => {
@@ -943,20 +951,21 @@ export interface Filters { readonly search: string }
 export interface CapabilityPort { can(permission: PermissionCode): boolean }
 export interface {{ENTITY}}Controller {
   readonly list: ListController<Filters, {{ENTITY}}, string>; readonly busy: boolean; readonly pendingRepair: boolean; readonly projectionVisible: boolean
-  failure(): RequestFailure | null; can(permission: PermissionCode): boolean; empty(): {{ENTITY}}Input
+  failure(): RequestFailure | null; failureTraceId(): string | null; clearFailure(): void; can(permission: PermissionCode): boolean; empty(): {{ENTITY}}Input
   save(value: {{ENTITY}}Input & { id?: string; revision?: number }): Promise<'completed'|'failed'|'refresh-failed'|'busy'>
   remove(value: {{ENTITY}}): Promise<'completed'|'cancelled'|'failed'|'refresh-failed'|'busy'>; repairProjection(): Promise<'completed'|'refresh-failed'|'busy'>
 }
 export const create{{ENTITY}}Controller = (client: {{ENTITY}}Client, confirmDelete: () => Promise<boolean>, capabilities: CapabilityPort): {{ENTITY}}Controller => {
-  let busy = false; let pending = false; let failure: RequestFailure | null = null; let visible = false
-	  const record = (error: unknown) => { failure = error instanceof RequestError ? error.category : 'unavailable'; if (failure === 'relogin' || failure === 'forbidden' || failure === 'unavailable') { visible = false; rawList.clearSelection() } }
+  let busy = false; let pending = false; let failure: RequestFailure | null = null; let traceId: string | null = null; let visible = false; let requestSequence = 0
+	  const record = (error: unknown) => { failure = error instanceof RequestError ? error.category : 'unavailable'; traceId = error instanceof RequestError ? error.traceId ?? null : null; if (failure === 'relogin' || failure === 'forbidden' || failure === 'unavailable') { requestSequence += 1; visible = false; rawList.clearSelection() } }
 	  const rawList = createListController<Filters, {{ENTITY}}, string>({ initialFilters: () => ({ search: '' }), normalizeFilters: value => ({ search: value.search.trim() }), rowKey: row => row.id,
-	    load: async request => { if (!capabilities.can(permissions.read)) throw new RequestError('forbidden'); try { const result = await client.list({ search: request.filters.search, page: request.page, pageSize: request.pageSize, sort: request.sort?.key ?? 'updatedAt', direction: request.sort?.direction ?? 'descending' }); failure = null; visible = true; return result } catch (error) { record(error); throw error } } })
+	    load: async request => { const sequence = ++requestSequence; failure = null; traceId = null; try { if (!capabilities.can(permissions.read)) throw new RequestError('forbidden'); const result = await client.list({ search: request.filters.search, page: request.page, pageSize: request.pageSize, sort: request.sort?.key ?? 'updatedAt', direction: request.sort?.direction ?? 'descending' }); if (sequence === requestSequence) { failure = null; traceId = null; visible = true }; return result } catch (error) { if (sequence === requestSequence) record(error); throw error } } })
 	  const list: ListController<Filters, {{ENTITY}}, string> = { snapshot() { const value = rawList.snapshot(); return visible && capabilities.can(permissions.read) ? value : { ...value, rows: [], total: 0, selectedKeys: [] } }, refresh: () => rawList.refresh(), search: value => rawList.search(value), reset: () => rawList.reset(), setPage: value => rawList.setPage(value), setPageSize: value => rawList.setPageSize(value), setSort: value => rawList.setSort(value), select: rows => { if (visible && capabilities.can(permissions.read)) rawList.select(rows) }, clearSelection: () => rawList.clearSelection() }
-  const refresh = async () => { try { await list.refresh(); pending = false; return 'completed' as const } catch (error) { record(error); return 'refresh-failed' as const } }
+  const refresh = async () => { failure = null; traceId = null; try { await list.refresh(); if (!visible) return 'refresh-failed' as const; pending = false; return 'completed' as const } catch (error) { record(error); return 'refresh-failed' as const } }
   return { list, get busy() { return busy }, get pendingRepair() { return pending }, get projectionVisible() { return visible && capabilities.can(permissions.read) }, failure: () => failure,
+    failureTraceId: () => traceId, clearFailure: () => { failure = null; traceId = null },
     can: permission => visible && capabilities.can(permissions.read) && capabilities.can(permission), empty: empty{{ENTITY}}Input,
-	    async save(value) { if (busy) return 'busy'; if (pending) return 'refresh-failed'; if (!visible || !capabilities.can(permissions.write)) { record(new RequestError('forbidden')); return 'failed' }; const { id: _id, revision: _revision, ...candidate } = value; if (!validate{{ENTITY}}Input(candidate)) { failure = 'validation'; return 'failed' }; busy = true; failure = null; try { try { if (value.id) { if (!Number.isSafeInteger(value.revision) || value.revision! < 1) return 'failed'; const { id, revision, ...input } = value; await client.update(id, { ...input, revision: revision! }) } else await client.create(value) } catch (error) { record(error); return 'failed' }; pending = true; return await refresh() } finally { busy = false } },
+	    async save(value) { if (busy) return 'busy'; if (pending) return 'refresh-failed'; if (!visible || !capabilities.can(permissions.write)) { record(new RequestError('forbidden')); return 'failed' }; const { id: _id, revision: _revision, ...candidate } = value; if (!validate{{ENTITY}}Input(candidate)) { failure = 'validation'; traceId = null; return 'failed' }; busy = true; failure = null; traceId = null; try { try { if (value.id) { if (!Number.isSafeInteger(value.revision) || value.revision! < 1) { failure = 'validation'; return 'failed' }; const { id, revision, ...input } = value; await client.update(id, { ...input, revision: revision! }) } else await client.create(value) } catch (error) { record(error); return 'failed' }; pending = true; return await refresh() } finally { busy = false } },
 	    async remove(value) { if (busy) return 'busy'; if (pending) return 'refresh-failed'; if (!visible || !capabilities.can(permissions.delete)) { record(new RequestError('forbidden')); return 'failed' }; busy = true; try { if (!await confirmDelete()) return 'cancelled'; if (!visible || !capabilities.can(permissions.delete)) { record(new RequestError('forbidden')); return 'failed' }; try { await client.delete(value.id, value.revision) } catch (error) { record(error); return 'failed' }; pending = true; return await refresh() } finally { busy = false } },
     async repairProjection() { if (busy) return 'busy'; if (!pending) return 'completed'; busy = true; try { return await refresh() } finally { busy = false } },
   }
@@ -977,45 +986,67 @@ func generatedVuePage(model Model) string {
 		fmt.Fprintf(&editValues, "%s: row.%s, ", name, name)
 		switch column.Kind {
 		case KindBoolean:
-			fmt.Fprintf(&formFields, "<label><input v-model=\"form.%s\" type=\"checkbox\"> %s</label>", name, column.Field)
+			fmt.Fprintf(&formFields, "<label class=\"check-field\"><input v-model=\"form.%s\" name=\"%s\" type=\"checkbox\">%s</label>", name, name, column.Field)
 		case KindInt64, KindDecimal:
-			fmt.Fprintf(&formFields, "<label>%s <input v-model.number=\"form.%s\" name=\"%s\" type=\"number\"></label>", column.Field, name, name)
+			fmt.Fprintf(&formFields, "<label>%s<input v-model.number=\"form.%s\" name=\"%s\" type=\"number\"></label>", column.Field, name, name)
 		default:
-			fmt.Fprintf(&formFields, "<label>%s <input v-model=\"form.%s\" name=\"%s\"></label>", column.Field, name, name)
+			fmt.Fprintf(&formFields, "<label>%s<input v-model=\"form.%s\" name=\"%s\" maxlength=\"500\"></label>", column.Field, name, name)
 		}
 	}
 	template := `<script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
-import { permissions, type {{ENTITY}}, type {{ENTITY}}Input } from '@go-admin-plus/domain-{{MODULE}}'
+import { permissions, validate{{ENTITY}}Input, type {{ENTITY}}, type {{ENTITY}}Input } from '@go-admin-plus/domain-{{MODULE}}'
+import { AppPage, EmptyState, FormDialog, FormGrid, Pagination, QueryBar, StatusTag, TableToolbar } from '@go-admin-plus/ui/components'
 import type { {{ENTITY}}Controller } from './index'
 const props = defineProps<{ controller: {{ENTITY}}Controller }>()
-const revision = ref(0); const search = ref(''); const editing = ref<{{ENTITY}} | null>(null)
+const emit = defineEmits<{ sessionRequired: []; forbidden: [] }>()
+const revision = ref(0); const search = ref(''); const formOpen = ref(false); const editing = ref<{{ENTITY}} | null>(null); const formError = ref('')
 const form = reactive<{{ENTITY}}Input & { id?: string; revision?: number }>(props.controller.empty())
 const snapshot = computed(() => { void revision.value; return props.controller.list.snapshot() })
 const failure = computed(() => { void revision.value; return props.controller.failure() })
+const failureReference = computed(() => { void revision.value; return props.controller.failureTraceId() })
 const visible = computed(() => { void revision.value; return props.controller.projectionVisible })
-const canWrite = computed(() => props.controller.can(permissions.write)); const canDelete = computed(() => props.controller.can(permissions.delete))
-const settle = async (operation: () => Promise<unknown>) => { try { await operation() } finally { revision.value += 1 } }
-const reset = () => { editing.value = null; Object.assign(form, props.controller.empty()); delete form.id; delete form.revision }
-const edit = (row: {{ENTITY}}) => { editing.value = row; Object.assign(form, { {{EDIT_VALUES}}id: row.id, revision: row.revision }) }
-const save = async () => { const result = await props.controller.save({ ...form }); if (result === 'completed') reset(); revision.value += 1 }
+const canWrite = computed(() => { void revision.value; return props.controller.can(permissions.write) }); const canDelete = computed(() => { void revision.value; return props.controller.can(permissions.delete) })
+const blocked = computed(() => { void revision.value; return props.controller.busy || props.controller.pendingRepair })
+const pageBusy = computed(() => snapshot.value.loading && !visible.value)
+const failureMessage = computed(() => failure.value ? ({ relogin: 'Your session has expired. Sign in again.', forbidden: 'You do not have permission for this operation.', validation: 'Check the form or search values.', conflict: 'This record changed. Refresh and try again.', 'not-found': 'This record no longer exists.', unavailable: 'The service is temporarily unavailable.' } as const)[failure.value] : '')
+const settle = async (operation: () => Promise<unknown>) => { try { await operation() } catch {} finally { revision.value += 1; if (props.controller.failure() === 'relogin') emit('sessionRequired'); if (props.controller.failure() === 'forbidden') emit('forbidden') } }
+const refresh = () => settle(() => props.controller.pendingRepair ? props.controller.repairProjection() : props.controller.list.refresh())
+const searchRecords = () => settle(() => props.controller.list.search({ search: search.value }))
+const resetSearch = () => { search.value = ''; void settle(() => props.controller.list.reset()) }
+const reset = () => { editing.value = null; formError.value = ''; Object.assign(form, props.controller.empty()); delete form.id; delete form.revision }
+const closeForm = () => { formOpen.value = false; reset() }
+const create = () => { reset(); formOpen.value = true }
+const edit = (row: {{ENTITY}}) => { editing.value = row; formError.value = ''; Object.assign(form, { {{EDIT_VALUES}}id: row.id, revision: row.revision }); formOpen.value = true }
+const save = async () => { if (!validate{{ENTITY}}Input(form)) { formError.value = 'Check the required fields and values.'; return }; formError.value = ''; const result = await props.controller.save({ ...form }); if (result === 'completed') closeForm(); revision.value += 1; if (props.controller.failure() === 'relogin') emit('sessionRequired'); if (props.controller.failure() === 'forbidden') emit('forbidden') }
 const remove = (row: {{ENTITY}}) => settle(() => props.controller.remove(row))
 onMounted(() => { void settle(() => props.controller.list.refresh()) })
 </script>
-<template><section class="generated-records" aria-labelledby="records-title">
-  <header><div><h1 id="records-title">{{ENTITY}} records</h1><p>{{ visible ? snapshot.total : 0 }} records</p></div><button v-if="controller.pendingRepair" type="button" :disabled="controller.busy" @click="settle(() => controller.repairProjection())">Refresh results</button></header>
-  <p v-if="failure" role="alert">{{ failure }}</p>
-  <form v-if="visible" class="search" @submit.prevent="settle(() => controller.list.search({ search }))"><label>Search <input v-model="search"></label><button :disabled="controller.busy">Search</button><button type="button" :disabled="controller.busy" @click="search = ''; settle(() => controller.list.reset())">Reset</button></form>
-  <div v-if="visible" class="workspace"><div class="table"><table><thead><tr>{{HEADERS}}<th>Actions</th></tr></thead><tbody><tr v-for="row in snapshot.rows" :key="row.id">{{CELLS}}<td><button v-if="canWrite" type="button" @click="edit(row)">Edit</button><button v-if="canDelete" type="button" @click="remove(row)">Delete</button></td></tr></tbody></table>
-    <nav aria-label="Pagination"><button :disabled="controller.busy || snapshot.page <= 1" @click="settle(() => controller.list.setPage(snapshot.page - 1))">Previous</button><span>Page {{ snapshot.page }}</span><button :disabled="controller.busy || snapshot.page * snapshot.pageSize >= snapshot.total" @click="settle(() => controller.list.setPage(snapshot.page + 1))">Next</button></nav></div>
-    <form v-if="canWrite" class="editor" @submit.prevent="save"><h2>{{ editing ? 'Edit' : 'Create' }} {{ENTITY}}</h2>{{FORM_FIELDS}}<div><button type="submit" :disabled="controller.busy">Save</button><button type="button" :disabled="controller.busy" @click="reset">Cancel</button></div></form>
-  </div>
-</section></template>
+<template>
+  <AppPage title="{{ENTITY}} records" description="Manage {{ENTITY}} records" :busy="pageBusy">
+    <template #actions><StatusTag tone="info" :label="String(visible ? snapshot.total : 0) + ' records'" /></template>
+    <p v-if="failure" class="page-alert" role="alert" :data-failure="failure">{{ failureMessage }}<span v-if="failureReference"> Reference: {{ failureReference }}</span></p>
+    <template v-if="visible">
+      <QueryBar :busy="blocked" :reset-disabled="!search" @search="searchRecords" @reset="resetSearch"><label>Search<input v-model="search" name="search" maxlength="100"></label></QueryBar>
+      <TableToolbar :selected-count="0" :busy="blocked" @refresh="refresh"><button v-if="canWrite" type="button" data-testid="open-record-form" :disabled="blocked" @click="create">Create {{ENTITY}}</button></TableToolbar>
+      <div class="table-scroll" role="region" aria-label="{{ENTITY}} records">
+        <table v-if="snapshot.rows.length"><thead><tr>{{HEADERS}}<th>Actions</th></tr></thead><tbody><tr v-for="row in snapshot.rows" :key="row.id">{{CELLS}}<td class="row-actions"><button v-if="canWrite" type="button" :disabled="blocked" @click="edit(row)">Edit</button><button v-if="canDelete" type="button" :disabled="blocked" @click="remove(row)">Delete</button></td></tr></tbody></table>
+        <EmptyState v-else title="No records" :action-label="canWrite ? 'Create record' : undefined" @action="create" />
+      </div>
+      <Pagination :page="snapshot.page" :page-size="snapshot.pageSize" :total="snapshot.total" :disabled="blocked" @update:page="settle(() => controller.list.setPage($event))" @update:page-size="settle(() => controller.list.setPageSize($event))" />
+    </template>
+    <EmptyState v-else-if="!pageBusy" :title="failureMessage || 'No records are available'" action-label="Retry" @action="refresh" />
+    <FormDialog :model-value="formOpen && canWrite" :title="editing ? 'Edit {{ENTITY}}' : 'Create {{ENTITY}}'" :busy="controller.busy" @update:model-value="$event ? formOpen = true : closeForm()" @cancel="closeForm" @submit="save">
+      <p v-if="formError" role="alert">{{ formError }}</p>
+      <FormGrid :columns="2">{{FORM_FIELDS}}</FormGrid>
+    </FormDialog>
+  </AppPage>
+</template>
 <style scoped>
-.generated-records { display:grid; gap:16px; color:#17202a } header,nav { display:flex; align-items:center; justify-content:space-between; gap:12px } h1,h2,p { margin:0 }.search { display:flex; align-items:end; gap:8px }.workspace { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,340px); gap:16px }.table { min-width:0; overflow:auto } table { width:100%%; border-collapse:collapse } th,td { padding:8px; border-bottom:1px solid #dfe6e9; text-align:left }.editor { display:grid; align-content:start; gap:10px; padding-left:16px; border-left:1px solid #dfe6e9 } label { display:grid; gap:4px } input,button { font:inherit } [role="alert"] { padding:8px; border-left:3px solid #b42318; background:#fff1f0 } @media(max-width:720px){.workspace{grid-template-columns:1fr}.editor{padding-left:0;border-left:0;border-top:1px solid #dfe6e9;padding-top:16px}}
+.page-alert{margin:0;padding:10px 12px;border-left:3px solid var(--ga-danger);background:var(--ga-danger-soft)}.table-scroll{min-width:0;overflow:auto}.row-actions{display:flex;gap:8px;white-space:nowrap}label{display:grid;gap:4px}.check-field{display:flex;align-items:center;gap:8px}
 </style>
 `
-	return strings.NewReplacer("{{ENTITY}}", model.Entity, "{{MODULE}}", model.Module, "{{EDIT_VALUES}}", editValues.String(), "{{FORM_FIELDS}}", formFields.String(), "{{HEADERS}}", vueHeaders(model), "{{CELLS}}", vueCells(model), "100%%", "100%").Replace(template)
+	return strings.NewReplacer("{{ENTITY}}", model.Entity, "{{MODULE}}", model.Module, "{{EDIT_VALUES}}", editValues.String(), "{{FORM_FIELDS}}", formFields.String(), "{{HEADERS}}", vueHeaders(model), "{{CELLS}}", vueCells(model)).Replace(template)
 }
 
 func vueHeaders(model Model) string {

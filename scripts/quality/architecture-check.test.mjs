@@ -3,10 +3,11 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import { checkArchitecture } from './architecture-check.mjs'
 
 test('current repository satisfies canonical architecture', () => {
-  assert.deepEqual(checkArchitecture(new URL('../..', import.meta.url).pathname), [])
+  assert.deepEqual(checkArchitecture(fileURLToPath(new URL('../..', import.meta.url))), [])
 })
 
 test('rejects the historical short Go module path', () => {
@@ -27,6 +28,21 @@ test('rejects the historical frontend workspace scope', () => {
   assert.ok(checkArchitecture(root).includes(
     'frontend workspace name must be @go-admin-plus/workspace'
   ))
+})
+
+test('rejects legacy generator pages and incomplete failure or compile contracts', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const generatorRoot = join(root, 'go-admin-plus/internal/modules/generator')
+  mkdirSync(generatorRoot, { recursive: true })
+  writeFileSync(join(generatorRoot, 'templates.go'), 'class="generated-records" class="editor"\n')
+  writeFileSync(join(generatorRoot, 'compile_gate.go'), 'package generator\n')
+
+  const failures = checkArchitecture(root)
+  assert.ok(failures.includes('generator list page must compose the current shared UI components'))
+  assert.ok(failures.includes('generator list page must not emit the legacy inline workspace/editor layout'))
+  assert.ok(failures.includes('generator failure contract must retain only a validated trace reference'))
+  assert.ok(failures.includes('generator compile gate must run the repository architecture check'))
+  assert.ok(failures.includes('generator compile gate must build the frontend applications'))
 })
 
 test('rejects stale SpecDev verification commands', () => {

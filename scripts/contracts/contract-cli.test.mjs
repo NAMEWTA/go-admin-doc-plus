@@ -19,6 +19,12 @@ test('lints the canonical OpenAPI 3.1 contract', () => {
   assert.match(result.stdout, /CONTRACT_LINT_PASS/)
 })
 
+test('starts the managed pnpm command shim on Windows Node 22', { skip: process.platform !== 'win32' }, () => {
+  const result = run('lint')
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  assert.doesNotMatch(`${result.stdout}\n${result.stderr}`, /spawnSync pnpm\.cmd EINVAL/)
+})
+
 test('checks deterministic Go and TypeScript transport generation', () => {
   const result = run('generate', '--check')
   assert.equal(result.status, 0, result.stderr || result.stdout)
