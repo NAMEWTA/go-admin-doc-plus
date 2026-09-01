@@ -29,6 +29,15 @@ const nativeTarget = hostTriple('darwin', process.arch)
 const productionArtifacts = desktopProductionArtifactPaths(root, 'darwin', process.arch)
 const sidecarBinary = productionArtifacts.sidecar
 const hostBinary = productionArtifacts.host
+const nativeE2eTauriConfig = JSON.stringify({
+  identifier: 'com.goadmin.plus.native-e2e',
+  app: {
+    windows: [{
+      label: 'main', title: 'Go Admin Plus', width: 1280, height: 800, minWidth: 960, minHeight: 640, visible: false,
+      dataStoreIdentifier: [103, 111, 97, 100, 109, 105, 78, 80, 172, 117, 115, 101, 50, 101, 48, 49]
+    }]
+  }
+})
 
 if (process.env[enabled] !== '1') {
   process.stderr.write(`desktop native E2E requires ${enabled}=1\n`)
@@ -316,6 +325,7 @@ const clickButton = (pid, name) => runAppleScript(clickButtonScript(pid, name))
 
 const main = async () => {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'go-admin-desktop-native-')))
+  const nativeRunId = randomBytes(16).toString('hex')
   const failedKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
   const recoveryKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
   const setupKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
@@ -349,10 +359,12 @@ const main = async () => {
     phase = 'native-ui-build'
     await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts', '--mode', 'native-e2e'], {
       cwd: appRoot,
-      env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
+      env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '', VITE_GO_ADMIN_NATIVE_E2E_RUN_ID: nativeRunId }
     })
     phase = 'native-host-build'
-    await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'native-e2e'], { cwd: rustRoot, timeout: 600_000 })
+    await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'native-e2e'], {
+      cwd: rustRoot, env: { ...process.env, TAURI_CONFIG: nativeE2eTauriConfig }, timeout: 600_000
+    })
     const binary = hostBinary
 
     phase = 'first-setup-recovery-root'
@@ -459,6 +471,9 @@ const main = async () => {
     await poll('native Demo page', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'login-boundary'
     await pollBoundary(app.child.pid)
+    phase = 'theme-dark-toggle'
+    await clickButton(app.child.pid, '使用深色主题')
+    await poll('native dark theme', () => windowContains(app.child.pid, '当前使用深色主题'))
     phase = 'scope-authorization'
     await clickButton(app.child.pid, 'E2E scope self')
     await pollControl(app.child.pid, 'self scope ownership enforced', 'E2E self scope enforced')
@@ -540,6 +555,8 @@ const main = async () => {
     phase = 'stronghold-restart'
     app = startTracked(binary, liveRoot, liveKeyring)
     await pollRestoredIdentity(app.child.pid)
+    phase = 'theme-dark-persistence'
+    await poll('native dark theme after restart', () => windowContains(app.child.pid, '当前使用深色主题'))
     await poll('Stronghold Demo navigation', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
     await poll('Stronghold session restart', () => windowContains(app.child.pid, '产品搜索'))
@@ -560,6 +577,9 @@ const main = async () => {
     app = startTracked(binary, liveRoot, liveKeyring)
     await poll('logout persistence after restart', () => windowContains(app.child.pid, '使用管理员账号登录控制台'), 90_000)
     if (await windowContains(app.child.pid, '产品搜索')) throw new Error('logout left a restartable desktop session')
+    phase = 'theme-storage-cleanup'
+    await clickButton(app.child.pid, 'E2E reset theme')
+    await poll('native theme storage cleanup', () => windowContains(app.child.pid, 'E2E theme storage cleared'))
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, liveRoot])
     await deleteTestKeyring(liveKeyring)

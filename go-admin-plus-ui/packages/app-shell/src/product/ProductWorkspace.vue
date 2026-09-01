@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { MonitorIcon, MoonIcon, SunIcon } from '@lucide/vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import type { AccountProfile, SessionClient, SessionState } from '@go-admin-plus/domain-iam/session'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import type { PlatformPort, ShellRuntimePort } from '@go-admin-plus/platform'
+import { createThemeController } from '@go-admin-plus/ui'
+import type { ThemePreference } from '@go-admin-plus/ui'
 import { createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
 import { createDemoController, createWebDemoClient } from '@go-admin-plus/web-domain-demo'
 import { createFilesController, createWebFilesClient } from '@go-admin-plus/web-domain-files'
@@ -42,6 +45,8 @@ const sidebarCollapsed = ref(false)
 const mobileNavigationOpen = ref(false)
 const accountMenuOpen = ref(false)
 const visitedPaths = ref<string[]>([])
+const theme = createThemeController()
+const themeSnapshot = ref(theme.snapshot())
 
 const capability = {
   can: (permission: string) => permissions.value.has(permission),
@@ -101,6 +106,10 @@ const routeComponentProps = computed(() => {
 
 const replacePath = (next: string) => {
   void router.replace(next)
+}
+const setThemePreference = (preference: ThemePreference) => {
+  theme.setPreference(preference)
+  themeSnapshot.value = theme.snapshot()
 }
 const rememberRoute = (next: string) => {
   if (!productRoutesFor(props.host).some(candidate => candidate.path === next)) return
@@ -194,6 +203,7 @@ onMounted(() => {
 })
 onUnmounted(() => {
   unsubscribe()
+  theme.destroy()
 })
 watch(() => currentRoute.fullPath, () => {
   rememberRoute(routePath.value)
@@ -244,6 +254,29 @@ watch(() => currentRoute.fullPath, () => {
             </template>
           </nav>
           <div class="product-shell__identity">
+            <div class="product-shell__theme" role="group" aria-label="主题模式">
+              <button
+                type="button"
+                :aria-label="themeSnapshot.preference === 'system' ? '当前跟随系统主题' : '跟随系统主题'"
+                :aria-pressed="themeSnapshot.preference === 'system'"
+                title="跟随系统主题"
+                @click="setThemePreference('system')"
+              ><MonitorIcon :size="16" aria-hidden="true" /></button>
+              <button
+                type="button"
+                :aria-label="themeSnapshot.preference === 'light' ? '当前使用浅色主题' : '使用浅色主题'"
+                :aria-pressed="themeSnapshot.preference === 'light'"
+                title="使用浅色主题"
+                @click="setThemePreference('light')"
+              ><SunIcon :size="16" aria-hidden="true" /></button>
+              <button
+                type="button"
+                :aria-label="themeSnapshot.preference === 'dark' ? '当前使用深色主题' : '使用深色主题'"
+                :aria-pressed="themeSnapshot.preference === 'dark'"
+                title="使用深色主题"
+                @click="setThemePreference('dark')"
+              ><MoonIcon :size="16" aria-hidden="true" /></button>
+            </div>
             <span class="product-shell__host">{{ host === 'desktop' ? 'Desktop' : 'Web' }}</span>
             <button v-if="profile" class="product-shell__profile" type="button" aria-label="账户菜单" :aria-expanded="accountMenuOpen" @click="accountMenuOpen = !accountMenuOpen">
               <span class="product-shell__avatar">{{ profileMark }}</span><span>{{ profile.displayName }}</span><span aria-hidden="true">⌄</span>
@@ -315,6 +348,11 @@ watch(() => currentRoute.fullPath, () => {
 .product-shell__breadcrumb span { color: var(--ga-text-3); }
 .product-shell__breadcrumb strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .product-shell__identity { position: relative; display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.product-shell__theme { display: grid; height: 34px; flex: 0 0 90px; grid-template-columns: repeat(3, 30px); overflow: hidden; background: var(--ga-bg-subtle); border: 1px solid var(--ga-border-light); border-radius: 4px; }
+.product-shell__theme button { display: grid; width: 30px; height: 32px; place-items: center; padding: 0; color: var(--ga-text-2); background: transparent; border: 0; border-right: 1px solid var(--ga-border-light); cursor: pointer; }
+.product-shell__theme button:last-child { border-right: 0; }
+.product-shell__theme button:hover { color: var(--ga-brand); background: var(--ga-bg-hover); }
+.product-shell__theme button[aria-pressed='true'] { color: #fff; background: var(--ga-brand); }
 .product-shell__host { padding: 3px 8px; color: var(--ga-text-3); background: var(--ga-bg-subtle); border: 1px solid var(--ga-border-light); border-radius: 4px; font-size: 11px; font-weight: 600; }
 .product-shell__profile { display: flex; height: 42px; align-items: center; gap: 7px; padding: 0 4px; color: var(--ga-text-2); background: transparent; border: 0; cursor: pointer; }
 .product-shell__profile:hover { color: var(--ga-brand); background: var(--ga-bg-hover); }

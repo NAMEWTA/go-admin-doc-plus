@@ -50,6 +50,34 @@ test('native runner accessibility labels match the current Session UI', () => {
   assert.doesNotMatch(runner, /name: '(?:Username|Password)'|, 'Sign in'\)\)|, 'Sign out'\)\)|windowContains\([^\n]+, '(?:Sign in|Sign out)'\)/)
 })
 
+test('shared workspace composes a persistent theme toggle and native restart verifies it', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  const shell = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
+  const manifest = JSON.parse(readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/app-shell/package.json'), 'utf8'))
+  assert.equal(manifest.dependencies['@go-admin-plus/ui'], 'workspace:*')
+  assert.equal(manifest.dependencies['@lucide/vue'], 'catalog:')
+  assert.match(shell, /import \{ MonitorIcon, MoonIcon, SunIcon \} from '@lucide\/vue'/)
+  assert.match(shell, /import \{ createThemeController \} from '@go-admin-plus\/ui'/)
+  assert.match(shell, /const theme = createThemeController\(\)/)
+  assert.match(shell, /const setThemePreference = \(preference: ThemePreference\) => \{[\s\S]*theme\.setPreference\(preference\)/)
+  assert.match(shell, /theme\.destroy\(\)/)
+  assert.match(shell, /role="group" aria-label="主题模式"/)
+  assert.match(shell, /<MonitorIcon[^>]+aria-hidden="true"/)
+  assert.match(shell, /<SunIcon[^>]+aria-hidden="true"/)
+  assert.match(shell, /<MoonIcon[^>]+aria-hidden="true"/)
+  assert.match(shell, /themeSnapshot\.preference === 'dark' \? '当前使用深色主题' : '使用深色主题'/)
+  assert.match(runner, /phase = 'theme-dark-toggle'[\s\S]*clickButton\(app\.child\.pid, '使用深色主题'\)/)
+  assert.match(runner, /phase = 'theme-dark-persistence'[\s\S]*windowContains\(app\.child\.pid, '当前使用深色主题'\)/)
+  assert.match(runner, /identifier: 'com\.goadmin\.plus\.native-e2e'[\s\S]*dataStoreIdentifier: \[103, 111, 97, 100, 109, 105, 78, 80, 172, 117, 115, 101, 50, 101, 48, 49\]/)
+  assert.match(runner, /TAURI_CONFIG: nativeE2eTauriConfig/)
+  assert.match(runner, /phase = 'theme-storage-cleanup'[\s\S]*clickButton\(app\.child\.pid, 'E2E reset theme'\)/)
+  const nativeApp = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue'), 'utf8')
+  assert.match(nativeApp, /window\.localStorage\.getItem\(nativeE2eRunStorageKey\) !== nativeE2eRunId[\s\S]*window\.localStorage\.clear\(\)/)
+  assert.match(nativeApp, /!themeStorageIsSafe\(\) \? 'local-storage' : ''/)
+  assert.match(nativeApp, /window\.localStorage\.removeItem\(ADMIN_THEME_STORAGE_KEY\)[\s\S]*window\.localStorage\.removeItem\(nativeE2eRunStorageKey\)/)
+  assert.match(nativeApp, /window\.localStorage\.length === 0[\s\S]*'E2E theme storage cleared'[\s\S]*'E2E control failed: theme-storage-cleanup'/)
+})
+
 test('production Desktop entry contains no native E2E controls', () => {
   const appRoot = join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop')
   const app = readFileSync(join(appRoot, 'src/App.vue'), 'utf8')
@@ -110,6 +138,8 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
     'E2E permissions off',
     'E2E permissions on',
     'E2E revoke session',
+    'E2E reset theme',
+    'E2E theme storage cleared',
     'E2E-FOREIGN',
     'E2E-001',
     'native E2E credential identity'

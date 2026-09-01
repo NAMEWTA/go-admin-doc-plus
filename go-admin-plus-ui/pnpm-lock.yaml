@@ -236,6 +236,9 @@ importers:
       '@go-admin-plus/platform':
         specifier: workspace:*
         version: link:../platform
+      '@go-admin-plus/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@go-admin-plus/web-domain-audit':
         specifier: workspace:*
         version: link:../web-domains/audit
@@ -260,6 +263,9 @@ importers:
       '@go-admin-plus/web-domain-settings':
         specifier: workspace:*
         version: link:../web-domains/settings
+      '@lucide/vue':
+        specifier: 'catalog:'
+        version: 1.33.0(vue@3.5.41(typescript@6.0.3))
       vue:
         specifier: 'catalog:'
         version: 3.5.41(typescript@6.0.3)
