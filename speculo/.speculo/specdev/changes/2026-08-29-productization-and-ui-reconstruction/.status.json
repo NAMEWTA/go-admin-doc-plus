@@ -917,14 +917,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "7c2e7c3fc0dae510c4d65fdb1e30f13c5baecc94",
+      "source_checkpoint": "66d70030e0601f913d63b83f0205c06fc0f45299",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "3ca4abf6ff57566241ebf51ba3980456d6b44b56",
-        "source_sha": "7c2e7c3fc0dae510c4d65fdb1e30f13c5baecc94",
-        "candidate_sha": "1e175790a7f5ea598f0adb53b454f13f9fd7cd4e",
-        "candidate_tree_sha": "90cc12f4d42b0247baf02809af9150d5e8ebe8e0",
+        "parent_before_sha": "25c8ec1dd7caf3fd2497886427cb67a65438ffe9",
+        "source_sha": "66d70030e0601f913d63b83f0205c06fc0f45299",
+        "candidate_sha": "2582a4bc575bd941a9ecb47001ea92f8d083c8a8",
+        "candidate_tree_sha": "7be9540499c38fa5764a13e59be96335ad3b5630",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -934,21 +934,21 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 1e17579 contains governance parent 3ca4abf and source 7c2e7c3. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including the fixed 12-level target AXParent traversal, enclosing AXScrollArea and associated AXVerticalScrollBar/AXMaxValue ordering, fresh exact-enabled-button query, and existing focus/delay/position/size/center/click, lint, Speculo 0/0, diff-check, and clean-tree verification. Self-tests preserve exactly one scrollbar value mutation, one 0.2-second delay, and one click while rejecting every perform action and pre-scroll geometry use. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 2582a4b contains governance parent 25c8ec1 and source 66d7003 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, lint, diff-check, and clean-tree verification. Self-tests lock manifest route indices 0 and 11, exact enabled start/target lookup, exactly 11 Tab steps, fresh focused-target query, fixed navigation diagnostics, two AX scans, one 0.2-second delay, and one center click while rejecting AX scroll actions/parents/areas/scrollbar values, perform action, Enter, extra keys, and extra clicks. Prior unchanged targeted Go/vet, full typecheck, Desktop production build/assets, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after failure: DEV-20-019 candidate 1e17579 passed portable checks, but Actions 33539914535 / job 99963330288 / probe 2f3e87d passed prebuild and failed inside the scrollbar helper at login-navigation with no skip or marker; DEV-20-017's quota is exhausted. DEV-20-020 independently authorizes a bounded replacement: focus the visible first admin route, use exactly 11 standard Tab steps so WebKit reveals the twelfth Demo route, then fresh-query and single-click it with fixed navigation substep diagnostics. Product, manifest, visual dimensions, workflow, timeouts, retry/skip, and security boundaries remain unchanged; up to three newly attributed hosted attempts are authorized after a verified candidate.",
+          "reason": "Pending after DEV-20-020 attempt 1 failure: Actions 33542592499 / job 99972252465 / probe c955fcb passed prebuild and then returned fixed navigation-traversal with no skip or marker. Exact start/target lookup and ordinary Tab sending did not error, but the fresh target was not focused. Apple documents that Option-Tab, rather than default Tab, highlights clickable webpage items when full keyboard navigation is not enabled. DEV-20-021 changes only the existing 11-step loop to Option-Tab and retains every other query, diagnostic, delay, click, product, workflow, timeout, and security boundary; two ordered attempts remain after a verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 6,
+        "attempts": 7,
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T02:18:00+08:00"
+      "updated_at": "2026-09-02T02:32:06+08:00"
     }
   ]
 }
