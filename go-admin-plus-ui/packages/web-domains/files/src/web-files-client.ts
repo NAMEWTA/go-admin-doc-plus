@@ -12,13 +12,15 @@ import {
   type UploadCandidate,
 } from '@go-admin-plus/domain-files'
 
-interface Problem { category?: string; code?: string }
+interface Problem { category?: string; code?: string; traceId?: string }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const tracePattern = /^[A-Za-z0-9_-]{8,128}$/
 
 export const createWebFilesClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): FilesClient => {
   let csrf = ''
   let classified: FilesFailure | null = null
+  let classifiedTraceId: string | undefined
   let tail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
     const result = tail.then(operation, operation)
@@ -37,6 +39,7 @@ export const createWebFilesClient = (fetcher: typeof fetch = fetch, baseUrl = '/
     }
     const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
     classified = classify(response.status, body)
+    classifiedTraceId = safeTraceId(body?.traceId)
     if (next) csrf = next
     else if (classified === 'relogin') csrf = ''
     return response
@@ -44,8 +47,10 @@ export const createWebFilesClient = (fetcher: typeof fetch = fetch, baseUrl = '/
   const contract = createContractClient({ baseUrl, fetch: guardedFetch })
   const failure = (error: unknown): never => {
     const category = classified ?? problemCategory(error)
+    const traceId = classifiedTraceId ?? (error instanceof FilesRequestError ? error.traceId : undefined)
     classified = null
-    throw new FilesRequestError(category)
+    classifiedTraceId = undefined
+    throw new FilesRequestError(category, traceId)
   }
   const responseData = <T>(data: T | undefined, error: unknown): T => error === undefined && data !== undefined ? data : failure(error)
   const direct = async (path: string, init: RequestInit): Promise<Response> => {
@@ -112,12 +117,16 @@ const validDate = (value: string) => Number.isFinite(Date.parse(value)) && value
 const classify = (status: number, value: Problem | null): FilesFailure | null => {
   if (status === 401 || value?.code === 'CSRF_REJECTED') return 'relogin'
   if (status === 403) return 'forbidden'
-  if (status === 400 || status === 413 || status === 415 || status === 422) return 'validation'
+  if (value?.code === 'FILES_QUOTA_EXCEEDED') return 'quota'
+  if (value?.code === 'FILES_CAPACITY_UNAVAILABLE' || status === 507) return 'capacity'
+  if (value?.code === 'CONTENT_TOO_LARGE' || value?.code === 'MEDIA_TYPE_REJECTED' || value?.code === 'FILE_SIZE_MISMATCH' || status === 413 || status === 415) return 'content'
+  if (status === 400 || status === 422) return 'validation'
   if (status === 404) return 'not-found'
   if (status === 409) return 'conflict'
   if (status >= 500) return 'unavailable'
   return null
 }
 const problemCategory = (value: unknown): FilesFailure => value instanceof FilesRequestError ? value.category : 'unavailable'
+const safeTraceId = (value: unknown): string | undefined => typeof value === 'string' && tracePattern.test(value) ? value : undefined
 
 export type { DeleteFileTarget, FileQuery, UploadCandidate }

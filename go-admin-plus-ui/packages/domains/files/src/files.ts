@@ -3,7 +3,7 @@ import type { components } from './generated/client'
 export type FileMetadata = components['schemas']['FileMetadata']
 export type FilePage = components['schemas']['FilePage']
 export type DeleteFileTarget = components['schemas']['DeleteFileTarget']
-export type FilesFailure = 'relogin' | 'forbidden' | 'validation' | 'not-found' | 'conflict' | 'unavailable'
+export type FilesFailure = 'relogin' | 'forbidden' | 'validation' | 'content' | 'not-found' | 'conflict' | 'quota' | 'capacity' | 'unavailable'
 export type FilesPermissionCode = 'files.objects.read' | 'files.objects.write' | 'files.objects.delete'
 
 export const filesPermissions = {
@@ -36,7 +36,12 @@ export interface FilesClient {
 
 export class FilesRequestError extends Error {
   readonly category: FilesFailure
-  constructor(category: FilesFailure) { super(category); this.category = category }
+  readonly traceId?: string
+  constructor(category: FilesFailure, traceId?: string) {
+    super(category)
+    this.category = category
+    if (traceId !== undefined) this.traceId = traceId
+  }
 }
 
 export const fileMediaTypes = ['application/pdf', 'image/jpeg', 'image/png', 'text/plain'] as const

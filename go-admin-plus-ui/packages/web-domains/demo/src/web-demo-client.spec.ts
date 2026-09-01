@@ -20,6 +20,15 @@ describe('web demo client', () => {
     await expect(client.delete([{ id: '00000000-0000-4000-8000-000000000001', revision: 1 }])).rejects.toMatchObject({ category: 'relogin' })
   })
 
+  it('preserves only an allowlisted problem reference', async () => {
+    const accepted = createWebDemoClient(vi.fn<typeof fetch>().mockResolvedValue(json(409, { category: 'conflict', code: 'RESOURCE_CONFLICT', traceId: 'trace_demo_123', detail: 'discard me' })), 'https://demo.test/api')
+    await expect(accepted.update('00000000-0000-4000-8000-000000000001', { sku: 'DEMO-01', name: 'Demo product', description: '', priceCents: 1, status: 'active', revision: 1 })).rejects.toMatchObject({ category: 'conflict', traceId: 'trace_demo_123' })
+    const rejected = createWebDemoClient(vi.fn<typeof fetch>().mockResolvedValue(json(409, { category: 'conflict', code: 'RESOURCE_CONFLICT', traceId: '<raw>' })), 'https://demo.test/api')
+    const failure = await rejected.delete([{ id: '00000000-0000-4000-8000-000000000001', revision: 1 }]).catch(error => error)
+    expect(failure).toMatchObject({ category: 'conflict' })
+    expect(failure.traceId).toBeUndefined()
+  })
+
   it('fails closed when a response carries a malformed CSRF replacement', async () => {
     const fetcher = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(json(200, { rows: [], total: 0 }, { 'X-CSRF-Token': 'invalid+csrf' }))

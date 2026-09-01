@@ -12,6 +12,7 @@ export interface FilesController {
   readonly pendingRepair: boolean
   readonly projectionVisible: boolean
   failure(): FilesFailure | null
+  failureTraceId(): string | null
   clearFailure(): void
   can(permissionCode: FilesPermissionCode): boolean
   takeCompletion(): FilesCompletedIntent | null
@@ -27,10 +28,14 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
   let pending: FilesCompletedIntent | null = null
   let completion: FilesCompletedIntent | null = null
   let failure: FilesFailure | null = null
+  let failureTraceId: string | null = null
   let projectionVisible = false
   let projectionGeneration = 0
   let requestSequence = 0
-  const record = (error: unknown) => { failure = error instanceof FilesRequestError ? error.category : 'unavailable' }
+  const record = (error: unknown) => {
+    failure = error instanceof FilesRequestError ? error.category : 'unavailable'
+    failureTraceId = error instanceof FilesRequestError ? error.traceId ?? null : null
+  }
   let rawList!: ListController<FilesFilters, FileMetadata, string>
   const hideProjection = () => { projectionVisible = false; rawList.clearSelection() }
   const failOperation = (error: unknown) => {
@@ -53,12 +58,12 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
     rowKey: row => row.id,
     load: async request => {
       const sequence = ++requestSequence
-      failure = null
+      failure = null; failureTraceId = null
       try {
         if (!capabilities.can(filesPermissions.read)) throw new FilesRequestError('forbidden')
         const result = await client.list({ search: request.filters.search, page: request.page, pageSize: request.pageSize,
           sort: (request.sort?.key ?? 'createdAt') as 'name'|'sizeBytes'|'createdAt', direction: request.sort?.direction ?? 'descending' })
-        if (sequence === requestSequence) { failure = null; projectionVisible = true; projectionGeneration += 1 }
+        if (sequence === requestSequence) { failure = null; failureTraceId = null; projectionVisible = true; projectionGeneration += 1 }
         return result
       } catch (error) {
         if (sequence === requestSequence) { record(error); hideProjection() }
@@ -82,7 +87,7 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
     clearSelection: () => rawList.clearSelection(),
   }
   const refresh = async (): Promise<FilesMutationResult> => {
-    failure = null
+    failure = null; failureTraceId = null
     const previousGeneration = projectionGeneration
     try {
       await list.refresh()
@@ -101,7 +106,8 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
     get pendingRepair() { return pending !== null },
     get projectionVisible() { return projectionVisible && capabilities.can(filesPermissions.read) },
     failure: () => failure,
-    clearFailure: () => { failure = null },
+    failureTraceId: () => failureTraceId,
+    clearFailure: () => { failure = null; failureTraceId = null },
     can: permissionCode => projectionVisible && capabilities.can(filesPermissions.read) && capabilities.can(permissionCode),
     takeCompletion() { const value = completion; completion = null; return value },
     async upload(candidate) {
@@ -110,7 +116,7 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
       if (!projectionVisible || !capabilities.can(filesPermissions.write)) { failOperation(new FilesRequestError('forbidden')); return 'failed' }
       if (!validUploadCandidate(candidate)) return 'invalid'
       mutationBusy = true
-      failure = null
+      failure = null; failureTraceId = null
       try {
         try { await client.upload(candidate) } catch (error) { failOperation(error); return 'failed' }
         pending = 'upload'
@@ -123,7 +129,7 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
       if (!projectionVisible || !capabilities.can(filesPermissions.delete)) { failOperation(new FilesRequestError('forbidden')); return 'failed' }
       if (files.length === 0) return 'empty'
       mutationBusy = true
-      failure = null
+      failure = null; failureTraceId = null
       try {
         if (!await confirm(files.length)) return 'cancelled'
         if (!projectionVisible || !capabilities.can(filesPermissions.delete)) { failOperation(new FilesRequestError('forbidden')); return 'failed' }
@@ -137,7 +143,7 @@ export const createFilesController = (client: FilesClient, confirm: (count: numb
       if (mutationBusy || repairBusy) return null
       if (!projectionVisible || !capabilities.can(filesPermissions.read)) { failOperation(new FilesRequestError('forbidden')); return null }
       mutationBusy = true
-      failure = null
+      failure = null; failureTraceId = null
       try {
         try { return await client.download(file.id) } catch (error) { failOperation(error); return null }
       } finally { mutationBusy = false }

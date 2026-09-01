@@ -165,8 +165,11 @@ describe('admin visual contract', () => {
     ]
     pages.forEach((page, index) => {
       expect(page).toContain(`data-testid="${openControls[index]}"`)
-      expect(page).toContain('management-dialog-backdrop')
-      expect(page).toContain('role="dialog"')
+      if (index === 2) expect(page).toContain('<FormDialog')
+      else {
+        expect(page).toContain('management-dialog-backdrop')
+        expect(page).toContain('role="dialog"')
+      }
       expect(page).not.toMatch(/class="[^"]*\beditor\b[^"]*"/)
     })
   })
@@ -216,7 +219,8 @@ describe('admin visual contract', () => {
     expect(generator).toContain('data-testid="generator-table-pagination"')
     expect(generator).toContain('controller.tables.setPage(')
     expect(generator).toContain('controller.tables.setPageSize(')
-    expect(generator).toContain("if (await props.controller.createPreview() === 'completed') selectedFile.value = 0")
+    expect(generator).toContain("if (await props.controller.createPreview() === 'completed')")
+    expect(generator).toContain('selectedFile.value = 0')
     expect(generator).toContain('props.controller.reset(); selectedFile.value = 0; confirmed.value = false')
     for (const pattern of ['[a-z][a-z0-9]{1,31}', '[A-Z][A-Za-z0-9]{0,63}', '[a-z][a-z0-9-]{1,63}']) {
       expect(generator).toContain(`pattern="${pattern}"`)

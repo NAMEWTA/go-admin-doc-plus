@@ -27,9 +27,10 @@ const fixture = () => {
 
 describe('demo controller', () => {
   it('binds the page data and action regions to the fail-closed projection', () => {
-    expect(pageSource).toContain('v-if="projectionVisible && canRead" class="demo-products__search"')
-    expect(pageSource).toContain('v-if="projectionVisible && canRead" class="demo-products__grid"')
-    expect(pageSource).toContain('v-else-if="failure === \'unavailable\'"')
+    expect(pageSource).toContain('<template v-if="projectionVisible && canRead">')
+    expect(pageSource).toContain('<QueryBar')
+    expect(pageSource).toContain('<TableToolbar')
+    expect(pageSource).toContain('<FormDialog')
   })
 
   it('searches, resets, pages, sorts and selects through the shared list state', async () => {
@@ -232,9 +233,19 @@ describe('demo controller', () => {
     expect(controller.failure()).toBe('unavailable')
     expect(controller.projectionVisible).toBe(false)
     expect(controller.list.snapshot()).toMatchObject({ rows: [], total: 0, selectedKeys: [] })
-    expect(pageSource).toContain('data-testid="retry"')
+    expect(pageSource).toContain("action-label=\"重试\" @action=\"refresh\"")
     await controller.list.refresh()
     expect(controller.projectionVisible).toBe(true)
+  })
+
+  it('preserves a safe failure reference until the next operation', async () => {
+    const { client, controller } = fixture()
+    await controller.list.refresh()
+    vi.mocked(client.update).mockRejectedValueOnce(new DemoRequestError('conflict', 'trace_demo_123'))
+    expect(await controller.save({ ...input, id: product().id, revision: 1 })).toBe('failed')
+    expect(controller.failureTraceId()).toBe('trace_demo_123')
+    await controller.list.refresh()
+    expect(controller.failureTraceId()).toBeNull()
   })
 
   it('normalizes search and keeps the stable projection when a local invalid request stales remote work', async () => {

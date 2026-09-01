@@ -31,7 +31,12 @@ export interface DemoClient {
 
 export class DemoRequestError extends Error {
   readonly category: DemoFailure
-  constructor(category: DemoFailure) { super(category); this.category = category }
+  readonly traceId?: string
+  constructor(category: DemoFailure, traceId?: string) {
+    super(category)
+    this.category = category
+    if (traceId !== undefined) this.traceId = traceId
+  }
 }
 
 export const emptyProduct = (): ProductInput => ({ sku: '', name: '', description: '', priceCents: 0, status: 'active' })
