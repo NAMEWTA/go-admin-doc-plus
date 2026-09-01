@@ -35,6 +35,7 @@ import (
 )
 
 const fixturePassword = "administrator password"
+const fixtureAccountID = "account-desktop-e2e"
 const pendingAuditMigration = "8100000000000_audit.sql"
 
 func main() {
@@ -83,21 +84,7 @@ func main() {
 	if err != nil || demo.RegisterCapabilities(ctx, registry) != nil {
 		fail()
 	}
-	hash, err := account.HashPassword(fixturePassword)
-	if err != nil {
-		fail()
-	}
-	repository := account.NewRepository(db.Dialect())
-	err = db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
-		return repository.Create(ctx, tx, account.Credential{
-			Profile:      account.Profile{ID: "account-desktop-e2e", Username: "admin", DisplayName: "Administrator", Email: "admin@example.test"},
-			PasswordHash: hash,
-		}, time.Now().UTC())
-	})
-	if err != nil && !errors.Is(err, account.ErrConflict) {
-		fail()
-	}
-	if _, err := db.Bun().ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?) ON CONFLICT(account_id, role_id) DO NOTHING`, "account-desktop-e2e", "role-system-admin"); err != nil {
+	if err := seedPreviousAdmin(ctx, db, time.Now().UTC()); err != nil {
 		fail()
 	}
 	if *mode == "migration-failure" {
@@ -106,6 +93,35 @@ func main() {
 		}
 	}
 	_, _ = fmt.Fprintln(os.Stdout, `{"state":"ready"}`)
+}
+
+func seedPreviousAdmin(ctx context.Context, db *database.Database, now time.Time) error {
+	hash, err := account.HashPassword(fixturePassword)
+	if err != nil {
+		return err
+	}
+	repository := account.NewRepository(db.Dialect())
+	return db.WithinTx(ctx, func(ctx context.Context, tx database.Tx) error {
+		err := repository.Create(ctx, tx, account.Credential{
+			Profile:      account.Profile{ID: fixtureAccountID, Username: "admin", DisplayName: "Administrator", Email: "admin@example.test"},
+			PasswordHash: hash,
+		}, now)
+		if err != nil && !errors.Is(err, account.ErrConflict) {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `INSERT INTO iam_bootstrap_state(marker, account_id, initialized_at) VALUES (1, ?, ?) ON CONFLICT(marker) DO NOTHING`, fixtureAccountID, now); err != nil {
+			return err
+		}
+		var markerAccountID string
+		if err := tx.QueryRowContext(ctx, `SELECT account_id FROM iam_bootstrap_state WHERE marker = 1`).Scan(&markerAccountID); err != nil {
+			return err
+		}
+		if markerAccountID != fixtureAccountID {
+			return errors.New("desktop fixture bootstrap marker invalid")
+		}
+		_, err = tx.ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?) ON CONFLICT(account_id, role_id) DO NOTHING`, fixtureAccountID, "role-system-admin")
+		return err
+	})
 }
 
 func previousMigrationRunner() (*migrations.Runner, error) {
