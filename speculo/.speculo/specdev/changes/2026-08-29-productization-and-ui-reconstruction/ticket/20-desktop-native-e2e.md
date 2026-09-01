@@ -81,6 +81,13 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 - **禁止扩大：** 不修改 production Tauri 配置、Cargo 依赖/锁、capability、窗口合同、主题存储、Keychain namespace 或产品运行行为；生产 build 不得包含测试 data store identifier；不得 retry/skip/allow-failure、发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-007
+
+- **触发事实：** DEV-20-006 第三次且最后一次 probe `33504927079` 使用带固定枚举恢复态诊断的 candidate；日志仍为无后缀 `first-setup-recovery-state`。按 runner 控制流，这反证 90 秒“管理员已创建”等待已通过，失败只可能在随后恢复 snapshot、点击“进入登录”或等待登录页三步之一；这三步共用旧 phase，受控命令错误还会删除原始 AppleScript 内容，现有安全日志无法继续细分。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/run.mjs` 与 `run.test.mjs`，在既有 restore、click、login poll 之前分别设置固定 phase，并由 self-test 锁定顺序；不得读取或输出任意 UI 内容、输入、路径或秘密。形成新的非空 source checkpoint 和规范 candidate 后，Lead 可更新同一 workflow-only probe descendant、push 同一具名 probe branch，并最多再 dispatch 3 次逐个归因的 `macos-15` attempt。
+- **禁止扩大：** 不修改 FirstSetupGate、产品行为、Stronghold/Keychain、Tauri Context/config、workflow job、30/90 秒上限、retry/skip/allow-failure；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。每次前一红灯必须先归因并修正，hosted 失败不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
@@ -89,7 +96,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 
 | IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |
 |---|---|---|
-| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合、DEV-20-006 feature-only Context 注入 | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller | 修改 production Context/配置、签名、公证、Windows native E2E |
+| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合、DEV-20-006 feature-only Context 注入、DEV-20-007 固定 phase 归因 | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller | 修改 production Context/配置、签名、公证、Windows native E2E |
 
 ## 4. 要构建什么
 
