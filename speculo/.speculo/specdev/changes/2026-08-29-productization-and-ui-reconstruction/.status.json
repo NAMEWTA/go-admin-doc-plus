@@ -2,13 +2,14 @@
   "schema_version": 6,
   "artifact": "change-status",
   "change": "2026-08-29-productization-and-ui-reconstruction",
-  "change_status": "active",
-  "current_work": "specdev/implement",
+  "change_status": "completed",
+  "current_work": null,
   "works_run": [
     "specdev/grill-with-docs",
     "specdev/spec",
     "specdev/tickets",
-    "specdev/goal-plan"
+    "specdev/goal-plan",
+    "specdev/implement"
   ],
   "claimed_investigations": [],
   "execution_authorization": {
@@ -38,8 +39,8 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T06:40:00+08:00",
-  "completed_at": null,
+  "updated_at": "2026-09-02T07:34:40+08:00",
+  "completed_at": "2026-09-02T07:34:40+08:00",
   "archived": false,
   "archive_path": null,
   "blockers": [],
@@ -958,38 +959,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-21",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-21",
-      "source_checkpoint": "1b5b7c14504c86cacd7a36decfee1fccd73812b9",
+      "source_checkpoint": "c888fffec8ee2c2c5f21b7588128a7b3f9faa66c",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "67c09ac3daf58d6830da8fe72bd3672bc57b7040",
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
+        "parent_before_sha": "082c496775f5deb18531620f78bd1f11babeb748",
+        "source_sha": "c888fffec8ee2c2c5f21b7588128a7b3f9faa66c",
+        "candidate_sha": "b1821e0fe8a0f7fba1333113b951ee10e0011bff",
+        "candidate_tree_sha": "e4548effed47fdb75e94d9c34e0e2ef9ff3fd366",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-21",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-21",
-        "result_sha": null,
+        "result_sha": "b1821e0fe8a0f7fba1333113b951ee10e0011bff",
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "Pending T-21 docs/release implementation, parent-candidate full regression, and three-profile clean-room rehearsal.",
+          "status": "passed",
+          "reason": "Candidate b1821e0 passed governance, architecture, compatibility, docs, Task contract, 29/29 contract lint, deterministic generate, pnpm install/typecheck/lint/test/workspace/build, targeted Go and vet, Rust 27/27 and clippy, PostgreSQL 18/18, Web 10 suites/20 profiles, sidecar build, release policy 16/16, release preflight, diff/ancestor/clean checks, and isolated standards/specification review. The broad Windows task test command remained nonzero only for recorded OS baselines and is not claimed as passed; the new Files date-dependent failure was fixed and passed 20 exact repetitions plus related packages.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "Server SQLite, Server PostgreSQL, and Desktop SQLite must each run from disposable empty state through setup/login/core/restart with zero skipped required gates.",
+          "status": "passed",
+          "reason": "Server SQLite and PostgreSQL disposable empty states completed migrate=17/version=8100000000000, bootstrap, healthy Doctor, API/worker readiness, login/core management and same-root restart with runtime_stopped and zero residual listeners/processes. Required PostgreSQL emitted REQUIRED_POSTGRES_PASS executed=18 skipped=0 and real Chrome emitted REQUIRED_WEB_E2E_PASS suites=10 profiles=20 skipped=0. Desktop/native product paths are unchanged from T-20 checkpoint 3ab6ee5, whose macOS 15.7.7 arm64 run emitted DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0 after empty setup, recovery, core flows, restart and cleanup.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 6,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-02T06:40:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-02T07:34:40+08:00"
     }
   ]
 }

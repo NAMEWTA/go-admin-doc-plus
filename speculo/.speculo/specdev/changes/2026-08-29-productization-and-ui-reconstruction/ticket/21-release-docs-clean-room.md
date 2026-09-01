@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-21
 title: 收敛文档并完成三 Profile Clean-room 候选
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 最终 Gate 跨数据库迁移、部署、Desktop、本地持久化、运维恢复和发布证据，决定 change 是否可完成
 ready: true
@@ -52,7 +52,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准范围：** T-21 临时拥有 `scripts/quality/compatibility-zero.mjs` 与 `compatibility-zero.test.mjs`，只把扫描所得相对路径归一化为 `/` 后再执行既有 own-file/allowlist 比较和诊断；测试必须在当前 Windows host 锁定 forward-slash 结果。
 - **禁止扩大：** 不修改 removed paths、forbidden regex、allowed match 项、扫描根/扩展名、失败语义或任何产品/CI/release 行为；不新增 skip、平台豁免或宽泛目录排除。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** T-21 source `1b5b7c14504c86cacd7a36decfee1fccd73812b9` 已形成并通过 docs/policy 定向验证；兼容扫描修正尚未形成 checkpoint。
+- **执行状态：** source `3391294de32faaf48e9c1f45ae89b2cd2faf4a72` 已形成；路径归一化与反向测试通过，完整 compatibility/release gate 通过。
 
 ### 已批准执行偏差 DEV-21-002
 
@@ -60,7 +60,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准范围：** 只向既有精确 `allowedMatches` 增加上述路径各自的单一现有名称：Files 测试允许 `tenant feature`，日志 redaction 允许 `MySQL`；现有单测继续要求活动模块中的同名引用失败，并锁定诊断使用 `/`。
 - **禁止扩大：** 不允许其他路径、名称、目录或 regex 豁免，不改变被扫描源码、forbidden/removed 集合、扫描根、失败语义或发布行为。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成修正 checkpoint；`task compatibility:zero` 与 `task release:verify` 保持红灯。
+- **执行状态：** source `3391294de32faaf48e9c1f45ae89b2cd2faf4a72` 已形成；仅两个精确 allowlist 负例，完整 compatibility/release gate 通过。
 
 ### 已批准执行偏差 DEV-21-003
 
@@ -68,7 +68,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准范围：** T-21 临时拥有 `go-admin-plus-ui/package.json` 的 `scripts.typecheck` 单一字符串，只在既有 E2E `vue-tsc -p` 链末尾追加 `tests/e2e/web-shell/tsconfig.json`；architecture check 与完整 typecheck 必须同时通过。
 - **禁止扩大：** 不修改依赖、lockfile、任何 tsconfig、T-20 测试/产品代码、lint/test/build 命令或 workspace package；不增加 skip、并行掩盖或类型排除。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成修正 checkpoint；candidate `07a2e3b` 保留为 architecture 首红。
+- **执行状态：** source `408d9d2a495b06f08ccfd7a726620b4e1028dfbe` 已形成；Web Shell tsconfig 已纳入根 typecheck，architecture 与完整 typecheck 通过；candidate `07a2e3b` 首红保留。
 
 ### 已批准执行偏差 DEV-21-004
 
@@ -76,7 +76,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准范围：** T-21 临时拥有 `scripts/contracts/modules.test.mjs`，只允许用 `path.resolve()` 构造跨平台绝对 fixture root，并用相同 `resolve()` 语义断言 Go/TypeScript 输出；完整 29 项 Generator 契约测试与 `task generate:check` 必须重新通过。
 - **禁止扩大：** 不修改 `scripts/contracts/modules.mjs`、模块路径语法、生成输出、manifest、负向夹具、测试数量或失败语义；不新增平台分支、skip、allow-failure 或目录豁免。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成修正 checkpoint；candidate `85daa41` 及本次 `28 pass / 1 fail / 0 skip` 输出保留为 Generator 首红。
+- **执行状态：** source `06c5c58` 已形成；完整 29/29 Generator 契约测试与 `CONTRACT_GENERATE_CHECK_PASS` 通过，candidate `85daa41` 的 `28 pass / 1 fail / 0 skip` 首红保留。
 
 ### 已批准执行偏差 DEV-21-005
 
@@ -84,7 +84,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准范围：** T-21 临时拥有 `go-admin-plus/internal/modules/files/account_lifecycle_test.go` 中该单一测试的 Dispatcher 配置，只允许把既有固定 `now` 注入 `Now`，使 claim、consumer settle 与既有断言使用同一确定性时钟；该测试必须以 `-count=20` 通过，Files 包与相关 outbox fault tests 必须通过。
 - **禁止扩大：** 不修改 outbox/coordination 产品实现、lease duration、claim fence、migration、consumer、事件内容或其他测试；不延长租约、不读取当前日期、不增加 retry、skip 或 allow-failure。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成修正 checkpoint；`task test` 非零与定向 `0/10` 输出保留为日期首红。
+- **执行状态：** source `b040a8d` 已形成；精确测试 `-count=20`、Files 与 outbox 相关包通过。宽泛 Windows `task test` 的非零和日期定向 `0/10` 首红均在 Evidence 保留。
 
 ### 未决问题
 
@@ -150,7 +150,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 
 ## 10. 验收标准
 
-- [ ] `AC-030~039` 的最终候选和文档合同成立。
-- [ ] 三 profile 从空库可复现，签名/公证正确记为 not-required。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>`。
-- [ ] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。
+- [x] `AC-030~039` 的最终候选和文档合同成立。
+- [x] 三 profile 从空库可复现，签名/公证正确记为 not-required。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>`。
+- [x] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。

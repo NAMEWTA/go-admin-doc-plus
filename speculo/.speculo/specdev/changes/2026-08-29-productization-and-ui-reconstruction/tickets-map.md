@@ -2,7 +2,7 @@
 schema_version: 3
 artifact: tickets-map
 change: 2026-08-29-productization-and-ui-reconstruction
-status: ready
+status: completed
 ---
 
 # Tickets Map: 产品化补强与管理端 UI 重构
@@ -48,7 +48,7 @@ status: ready
 | T-18 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/18-postgres-security-ci-gates.md</Path>` | 真实 PostgreSQL 与安全供应链 CI | T-01, T-09, T-17 | deep | high | yes | codex-root | AC-002, AC-006, AC-008, AC-019, AC-023, AC-027, AC-030, AC-035, AC-037 | G / Required CI | done |
 | T-19 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/19-web-browser-e2e.md</Path>` | SQLite/PostgreSQL 真实 Web E2E | T-13, T-14, T-15, T-16, T-18 | deep | high | yes | codex-root | AC-011, AC-013~018, AC-036, AC-038 | H / Required Web E2E | done |
 | T-20 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/20-desktop-native-e2e.md</Path>` | macOS Tauri 原生 E2E | T-10, T-14, T-15, T-16, T-19 | deep | high | yes | codex-root | AC-004, AC-005, AC-016~018, AC-031, AC-036 | I / Required Native E2E | done |
-| T-21 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/21-release-docs-clean-room.md</Path>` | 文档收敛与三 Profile clean-room | T-17, T-18, T-19, T-20 | deep | high | yes | codex-root | AC-030~039 | J / Release Gate | in_progress |
+| T-21 | `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/ticket/21-release-docs-clean-room.md</Path>` | 文档收敛与三 Profile clean-room | T-17, T-18, T-19, T-20 | deep | high | yes | codex-root | AC-030~039 | J / Release Gate | done |
 
 Ticket frontmatter 是状态、依赖、深度和路径访问契约的权威；本表是同步投影，不得独立修改出另一套真相。
 

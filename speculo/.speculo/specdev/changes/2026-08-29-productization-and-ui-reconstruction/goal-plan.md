@@ -2,7 +2,7 @@
 schema_version: 6
 artifact: goal-plan
 change: 2026-08-29-productization-and-ui-reconstruction
-status: ready
+status: completed
 modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root@2026-08-29-productization-and-ui-reconstruction/epoch-1
@@ -10,7 +10,7 @@ implementation_agent_limit: 3
 integration_attempt_limit: 6
 ticket_workspace_policy: required
 integration_gate: candidate-merge
-ready_for_execution: true
+ready_for_execution: false
 ---
 
 # Goal Plan: Go Admin Plus 产品化与 UI 重构
@@ -314,24 +314,24 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 
 | 项目 | 当前事实 |
 |---|---|
-| Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@6d09aee71389014bb969eba0de1a99fce608f1b2` 已 `--ff-only` 包含 T-20 result；`4870670` 误合并及 `8e8855b` 前向撤销继续保留审计历史 |
-| Tickets | T-01~T-20 均 `done`；T-21 `in_progress` |
-| Gate | G0~G7 已通过；G8/T-21 执行中 |
-| Workspace records | T-20 source `4ddfdaa`、native 已验证 checkpoint `3ab6ee5`、result `6d09aee`/tree `f0e3e31` 已记录；probe `e83a460` / Actions `33558345476` / job `100024584867` 成功，全部历史红灯 candidate/probe 继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward 和 required runner 已授权；T-20 hosted probe 成功后停止使用剩余配额。T-21 本地 source/candidate 与 disposable clean-room 在既有范围内授权；其他远程写入/部署/发布/生产迁移/清理未授权 |
+| Plan | `completed`；required worktree + candidate-merge；Lead epoch 1 |
+| Parent | `main@b1821e0fe8a0f7fba1333113b951ee10e0011bff` 已 `--ff-only` 包含 T-21 result；全部历史误操作、前向恢复与红灯 checkpoint 继续保留 |
+| Tickets | T-01~T-21 均 `done` |
+| Gate | G0~G8 全部通过；change completion gate 关闭 |
+| Workspace records | T-21 source `c888fff`、result `b1821e0`/tree `e4548ef` 已记录；required PostgreSQL `18/18`、Web `10 suites / 20 profiles`、native exact marker 与三 profile clean-room 均成功，历史红灯 candidate/probe 继续保留 |
+| Authorization | local source commits、candidate integration、`main` fast-forward 和 required runner 已执行完毕；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
-| Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
+| Validation baseline | final implement/complete validator `0 error / 0 warning`；全部适用 required Gate 有 Lead Evidence |
 
 ### Pending Decisions and Blockers
 
-当前执行 active；DEV-09-001 已解除 Wave A/T-09 的执行闭环并完成本轮候选晋升：
+无未决决定或 blocker。T-21/G8 已完成并将最终候选晋升 main：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
-- G7/T-20 已由 hosted macOS 15.7.7 arm64 probe `e83a460` / Actions `33558345476` / job `100024584867` 关闭；AX enabled，required gate 精确输出 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，完整 job 16m39s、结论 success。
-- 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
+- G7/T-20 由 hosted macOS 15.7.7 arm64 probe `e83a460` / Actions `33558345476` / job `100024584867` 关闭；required gate 精确输出 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`。
+- G8/T-21 在 disposable SQLite/PostgreSQL root 与数据库完成 migrate/bootstrap/Doctor/login/core/restart；required PostgreSQL 精确输出 `REQUIRED_POSTGRES_PASS executed=18 skipped=0`，required Web 精确输出 `REQUIRED_WEB_E2E_PASS suites=10 profiles=20 skipped=0`。
 
-T-20 native 已验证 checkpoint `3ab6ee5`（source `4ddfdaa`）通过 Vitest 256/256、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 标记检查、production build/逐文件 asset scan 和真实 macOS required Gate。最终 result `6d09aee`（tree `f0e3e31`）相对该 checkpoint 只合入四个 Speculo 治理文件，已 `--ff-only` 晋升 main。G7 已关闭，T-21/G8 现负责三 Profile clean-room、文档/发布合同与最终全量候选；所有既有 source/candidate/probe、扫描 artifacts 与保护 stash 均保留。
+T-21 result `b1821e0`（tree `e4548ef`，source `c888fff`）通过 portable、PG、Web、native reuse、release rehearsal、双轴审查与 SpecDev validator 后已 `--ff-only` 晋升 main。签名/公证为 `not-required`；未执行 publish、deploy、production migration、archive 或 cleanup。所有 source/candidate/probe、disposable rehearsal artifacts、测试数据库与保护 stash 均按授权边界保留。
 
 ### Resume Protocol
 
