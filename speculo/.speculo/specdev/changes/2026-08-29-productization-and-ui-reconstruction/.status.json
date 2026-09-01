@@ -38,12 +38,12 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T19:26:00+08:00",
+  "updated_at": "2026-09-01T19:44:12+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-006 attempt 1 (Actions 33500422333) showed that chmod on an already-open Stronghold snapshot did not deterministically inject the intended save failure. Source 526f7f0 and candidate 83544da replace it with a disposable-root path collision and pass portable verification. Two ordered follow-up hosted attempts remain authorized; no native pass marker has been claimed."
+    "G7 remains pending. DEV-20-006 attempt 2 (Actions 33502511066, job 99838877690) passed the macOS arm64 release prebuild and started the complete native runner, but again failed at first-setup-recovery-state with no pass marker. The deterministic snapshot path collision was active; the runner currently collapses setup/workspace/login/unavailable/unknown alternate pages into the same timeout phase. One ordered follow-up hosted attempt remains authorized after fixed-enum attribution is added and portably verified."
   ],
   "deviations": [
     "DEV-20-006 (native-e2e Tauri Context correction and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): T-20 may update only src-tauri/src/main.rs under the native-e2e feature plus tests/e2e/desktop/run.mjs and its self-test so the fixed test WebKit data-store identifier is injected as Rust [u8; 16] after generate_context instead of being passed through tauri-utils 2.9.3's incorrect Vec-generating config code. Production Context/config, Cargo dependencies and lock, capabilities, window contract, theme storage, Keychain namespace, and product behavior remain unchanged. After a new source checkpoint and canonical candidate are built, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after precise attribution and correction of the prior first honest failure. No retry/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
@@ -927,7 +927,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-006 attempt 1 ran as Actions 33500422333 and failed at first-setup-recovery-state because chmod did not deterministically fail a save on the already-open snapshot. Source 526f7f0 and candidate 83544da now use a disposable-root path collision and restore the original snapshot before login or during cleanup. Two ordered follow-up attempts remain.",
+          "reason": "Pending: DEV-20-006 attempt 2 ran as Actions 33502511066 (job 99838877690) on macOS 15.7.7 arm64. The release prebuild passed and the complete native runner started, but the deterministic snapshot path collision still ended in the collapsed first-setup-recovery-state timeout with no pass marker. One ordered follow-up attempt remains after the runner adds fixed-enum alternate-page attribution without changing product behavior, retry policy, or the 90-second bound.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -935,7 +935,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T19:26:00+08:00"
+      "updated_at": "2026-09-01T19:44:12+08:00"
     }
   ]
 }
