@@ -213,7 +213,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可在普通 first-setup workspace poll 成功后、现有 `pollBoundary` 调用前设置固定 `first-setup-boundary` phase，并在既有 Desktop runner self-test 中锁定 `workspace poll -> boundary phase -> pollBoundary -> stop` 的顺序。形成并验证新 source/candidate 后，继续使用 DEV-20-023 剩余 2 次 ordered attempt。
 - **禁止扩大：** 不修改 `pollBoundary`、30/90 秒 timeout、retry/skip/allow-failure、产品 boundary 逻辑、first setup、Session、主题、router、capability/config 或 workflow；不输出任意 DOM、secret、路径或凭据，不发布 artifact、deploy/migrate、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-023 尚余 2 次 ordered attempt。
+- **执行状态：** source `6999c642ebea740438233499d4b09df9ef26a2c1` 已形成；candidate `7c446eb31729b7e83906a2fb25d22b5636f4fccf`（tree `641b756fdf4671838b62d7621a7e89aafdfcb1ad`）包含治理父 `5fa466a272fa8fa6ba6d1d85507989cd731cb48f` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 48/48、Desktop runner 21/21、完整 typecheck、lint、native-e2e 资产标记检查、production build/asset scan、diff-check 与 clean tree。DEV-20-023 尚余 2 次 ordered attempt，native Gate 仍为 pending。
 
 ### 未决问题
 

@@ -934,7 +934,7 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate be1f74a contains governance parent 64c6154 and source 1c285f8 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, lint, production build/asset scanning, diff-check, and clean-tree verification; the source also passed full typecheck and native-e2e build with both exact theme markers present, followed by a clean production rebuild. Self-tests lock the exact real-product theme selector and DOM click, fixed failure marker, aria-label postcondition, runner target, production App absence, and marker rejection. Product shell/theme controller/router/permissions, capabilities, workflow, timeouts, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 7c446eb contains governance parent 5fa466a and source 6999c64 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, full typecheck, lint, native-e2e asset marker verification, production build/asset scanning, diff-check, and clean-tree verification. Self-tests lock the workspace poll, fixed first-setup-boundary phase, unchanged pollBoundary call, and host stop order. Product code, boundary logic, timeouts, retry/skip behavior, theme, router, permissions, capabilities, workflow, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T04:04:00+08:00"
+      "updated_at": "2026-09-02T04:19:00+08:00"
     }
   ]
 }
