@@ -15,3 +15,7 @@ task release VERSION=0.1.0
 ```
 
 该命令只执行本地预检，不上传制品、不触发远端 workflow。
+
+本地发布候选还必须运行 `task release:verify` 与文档规定的 three-profile clean-room。该演练只用
+disposable 数据；个人自用签名和公证为 `not-required`。正式跨平台分发仍由受保护 workflow
+执行签名、公证和安装验证，不能用本地未签名构建替代。

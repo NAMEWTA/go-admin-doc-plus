@@ -31,27 +31,59 @@ corepack pnpm@11.1.3 --dir go-admin-plus-ui install --frozen-lockfile
 
 根 Task 优先使用 PATH 中精确匹配 11.1.3 的 pnpm。Node 工具管理器未把 pnpm shim 传给子进程时，命令面会在根 `.artifacts/tool-shims/` 中原子生成并使用固定 `pnpm@11.1.3` 的 Corepack shim；该目录不进入源码或发行制品。Desktop 开发建议使用 CI 基线 Rust 1.96.0；最低版本只表示 Cargo 允许编译，不替代 CI 基线验证。
 
-## Server 与 Web
+## Server SQLite 与 Web
 
-SQLite 是本地默认 profile，数据库写入根目录 `.data/server/`：
+`server-sqlite` 数据库位于根目录 `.data/server/`。空库严格按 migrate、bootstrap、doctor、
+serve 顺序启动。先用密码管理器或本地编辑器创建只允许当前用户读取的 `$SECRET_FILE`；
+变量值是文件路径，文件内容不得进入 shell history、argv、环境变量或仓库。
 
 ```bash
+task migrate PROFILE=server-sqlite
+
+cd go-admin-plus
+go run ./cmd/go-admin-plus bootstrap --profile server-sqlite \
+  --sqlite-path ../.data/server/go-admin-plus.sqlite3 --data-root ../.data/server \
+  --username first.admin --display-name "First Administrator" \
+  --email first.admin@example.test --secret-file "$SECRET_FILE"
+cd ..
+
+GO_ADMIN_LOG_LEVEL=info task doctor PROFILE=server-sqlite
 task dev TARGET=server PROFILE=server-sqlite
-task dev TARGET=web
 ```
 
-Web 开发服务器默认连接 `127.0.0.1:8080` 的 Server。PostgreSQL 的连接材料只能通过环境或只读 secret 文件传入：
+另开终端执行 `task dev TARGET=web`。Web 默认连接 `127.0.0.1:8080`；使用刚创建的账号
+登录后，可验证账号与角色、组织、设置、调度、文件容量和 Demo CRUD。SQLite Server 用
+`serve --with-worker` 单进程运行，且由实例锁阻止两个写入宿主同时打开同一数据库。
+
+## Server PostgreSQL
+
+`server-postgres` 的 DSN 只通过 `GO_ADMIN_DATABASE_DSN_FILE` 指向权限受限文件。生产拓扑
+要求 migrate 独占运行并成功退出，之后才分别启动 API 与 worker；二者遇到过旧、过新或
+未知 schema 都会不 ready 并退出，不会执行迁移。
 
 ```bash
-GO_ADMIN_DATABASE_DSN='postgres://user:password@127.0.0.1:5432/go_admin_plus?sslmode=disable' \
-  task dev TARGET=server PROFILE=server-postgres
+GO_ADMIN_DATABASE_DSN_FILE="$DSN_FILE" task migrate PROFILE=server-postgres
+
+cd go-admin-plus
+GO_ADMIN_DATABASE_DSN_FILE="$DSN_FILE" go run ./cmd/go-admin-plus bootstrap \
+  --profile server-postgres --data-root ../.data/server \
+  --username first.admin --display-name "First Administrator" \
+  --email first.admin@example.test --secret-file "$SECRET_FILE"
+cd ..
+
+GO_ADMIN_DATABASE_DSN_FILE="$DSN_FILE" task doctor PROFILE=server-postgres
+GO_ADMIN_DATABASE_DSN_FILE="$DSN_FILE" task dev TARGET=server PROFILE=server-postgres
+GO_ADMIN_DATABASE_DSN_FILE="$DSN_FILE" task worker PROFILE=server-postgres
 ```
 
 非敏感配置可通过 `GO_ADMIN_CONFIG_FILE` 指向符合 `go-admin-plus/config/schema/` 的 JSON 文件。
 
 ## Desktop
 
-Desktop 是 Tauri 2 App。开发命令先为当前平台构建 Go sidecar，再启动 Tauri；sidecar 只使用 App 数据目录中的 SQLite，不连接 Server PostgreSQL。
+Desktop 是 Tauri 2 App，运行 profile 为 `desktop-sqlite`。开发命令先为当前平台构建 Go
+sidecar，再启动 Tauri；sidecar 只使用 App 数据目录中的 SQLite，不连接 Server PostgreSQL。
+空状态由原生首次设置页收集管理员信息，密码通过 Tauri command 进入宿主，不进入 WebView
+持久存储。宿主先备份已有库再自动执行 Desktop SQLite 向前迁移。
 
 ```bash
 task dev TARGET=desktop
@@ -65,6 +97,17 @@ task dev TARGET=desktop
 task migrate PROFILE=server-sqlite
 GO_ADMIN_DATABASE_DSN_FILE=/absolute/path/to/dsn task migrate PROFILE=server-postgres
 ```
+
+已有系统全部管理员不可用时必须先停止 API 与 worker，再运行统一 CLI 的 `recover-admin`。
+完整的 `--account-id`、`--reason` 与 `--secret-file` 流程见[运维与恢复](operations.md)。
+
+## Doctor、日志与 readiness
+
+`task doctor PROFILE=server-sqlite` 或带 DSN 文件的 PostgreSQL 形式输出机器可读 JSON。
+`healthy` 与 `degraded` 可为零退出；无效配置、schema mismatch 或依赖失败非零。日志级别由
+`GO_ADMIN_LOG_LEVEL=debug|info|warn|error` 或 profile JSON 的 `log.level` 控制。日志包含服务、
+版本、profile、trace/request、route/module、状态、延迟、数据库与错误分类，但不记录请求正文、
+密码、Session 或 DSN。故障处理见[运维与恢复](operations.md)。
 
 ## 构建与本地打包
 
