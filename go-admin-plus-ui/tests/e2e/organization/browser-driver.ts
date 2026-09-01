@@ -1,10 +1,12 @@
 import { createApp, h, type Component } from 'vue'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import { OrganizationRequestError } from '@go-admin-plus/domain-organization'
 import { createOrganizationController, createWebOrganizationClient, OrganizationPage } from '@go-admin-plus/web-domain-organization'
 import { createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
+import { safeBrowserDiagnostic } from '../iam/administration/diagnostics.mjs'
 
 const assert: (condition: unknown, message: string) => asserts condition = (condition, message) => { if (!condition) throw new Error(message) }
 const waitUntil = async (condition: () => boolean, message: string, timeout = 10_000) => {
@@ -34,11 +36,22 @@ const rowAction = (key: string, action: string) => {
   assert(button, `missing ${action} for ${key}`)
   button.click()
 }
-const openTab = async (label: string, heading: string) => {
-  const button = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find((candidate) => candidate.textContent === label)
-  assert(button, `missing tab: ${label}`)
-  button.click()
-  await waitUntil(() => document.querySelector(`#${heading}`) !== null, `${label} tab did not render`)
+const mountRouter = async (app: ReturnType<typeof createApp>, path: '/organization/departments' | '/organization/positions') => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/organization/departments', component: OrganizationPage as Component },
+      { path: '/organization/positions', component: OrganizationPage as Component },
+    ],
+  })
+  app.use(router)
+  await router.push(path)
+  await router.isReady()
+  return router
+}
+const openView = async (router: Router, path: '/organization/departments' | '/organization/positions', heading: string) => {
+  await router.push(path)
+  await waitUntil(() => document.querySelector(`#${heading}`) !== null, `${path} did not render`)
 }
 const control = async (path: string, method: 'GET' | 'POST' = 'GET', body?: unknown) => {
   const response = body === undefined
@@ -88,6 +101,7 @@ const scenario = async () => {
   document.body.innerHTML = '<div id="app"></div>'
   const selfController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const selfApp = createApp({ render: () => h(OrganizationPage as Component, { controller: selfController }) })
+  await mountRouter(selfApp, '/organization/departments')
   selfApp.mount('#app')
   await Promise.resolve()
   await Promise.resolve()
@@ -102,6 +116,7 @@ const scenario = async () => {
   const controller = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
   const app = createApp({ render: () => h(OrganizationPage as Component, { controller }) })
+  const router = await mountRouter(app, '/organization/departments')
   app.mount('#app')
   await waitUntil(() => row('root') !== null, 'department root did not render')
 
@@ -137,7 +152,7 @@ const scenario = async () => {
   await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('受保护或仍被引用') === true, 'department cycle conflict was not visible')
   assert(controller.departments().find((item) => item.key === 'browser-operations')?.parentId === 'department-root-001', 'department cycle changed state')
 
-  await openTab('岗位管理', 'positions-heading')
+  await openView(router, '/organization/positions', 'positions-heading')
   const createPosition = async (key: string, name: string) => {
     element<HTMLButtonElement>('[data-testid="open-create-position"]').click()
     await waitUntil(() => document.querySelector('[data-testid="create-position"]') !== null, `position ${key} create dialog did not render`)
@@ -170,18 +185,18 @@ const scenario = async () => {
   element<HTMLButtonElement>('[data-testid="position-search"] button[type="button"]').click()
   await waitUntil(() => ['browser-lead', 'browser-ascii', 'browser-percent', 'browser-under', 'browser-unicode'].every((key) => row(key) !== null), 'position search reset did not restore projection')
 
-  await openTab('部门管理', 'departments-heading')
+  await openView(router, '/organization/departments', 'departments-heading')
   rowAction('browser-operations', 'delete')
   await waitUntil(() => document.querySelector('[role="alert"]')?.textContent?.includes('仍被引用') === true, 'referenced department conflict was not visible')
   assert(row('browser-operations') !== null, 'referenced department was deleted')
   await expectOrganizationFailure(() => api.deleteDepartment('department-root-001'), 'conflict')
 
-  await openTab('岗位管理', 'positions-heading')
+  await openView(router, '/organization/positions', 'positions-heading')
   for (const key of ['browser-lead', 'browser-ascii', 'browser-percent', 'browser-under', 'browser-unicode']) {
     rowAction(key, 'delete')
     await waitUntil(() => row(key) === null, `position ${key} delete did not render`)
   }
-  await openTab('部门管理', 'departments-heading')
+  await openView(router, '/organization/departments', 'departments-heading')
   rowAction('browser-team', 'delete')
   await waitUntil(() => row('browser-team') === null, 'child department delete did not render')
   rowAction('browser-operations', 'delete')
@@ -209,9 +224,10 @@ const scenario = async () => {
   document.body.innerHTML = '<div id="app"></div>'
   const revokedController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const revokedApp = createApp({ render: () => h(OrganizationPage as Component, { controller: revokedController }) })
+  await mountRouter(revokedApp, '/organization/departments')
   revokedApp.mount('#app')
   await waitUntil(() => row('root') !== null, 'authorized department projection did not recover')
-  assert(![...document.querySelectorAll('.tabs button')].some((item) => item.textContent === '岗位管理'), 'revoked organization navigation remained visible')
+  assert(!capability.can('organization.positions.read'), 'revoked organization navigation remained available')
 
   revokedApp.unmount()
   await control('revoke-session', 'POST')
@@ -220,6 +236,7 @@ const scenario = async () => {
   let sessionRequired = false
   const expiredController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const expiredApp = createApp({ render: () => h(OrganizationPage as Component, { controller: expiredController, onSessionRequired: () => { sessionRequired = true } }) })
+  await mountRouter(expiredApp, '/organization/departments')
   expiredApp.mount('#app')
   await waitUntil(() => sessionRequired && expiredController.failure() === 'relogin', 'revoked session did not enter relogin state')
   assert(document.querySelector('[data-row-key]') === null && document.querySelector('[role="alert"]')?.textContent?.includes('请重新登录') === true, 'revoked session kept organization data visible')
@@ -229,19 +246,20 @@ const scenario = async () => {
   document.body.innerHTML = '<div id="app"></div>'
   const unauthorizedController = createOrganizationController(api, { can: (permission) => capability.can(permission), scope: organizationScope }, async () => true)
   const unauthorizedApp = createApp({ render: () => h(OrganizationPage as Component, { controller: unauthorizedController }) })
+  await mountRouter(unauthorizedApp, '/organization/departments')
   unauthorizedApp.mount('#app')
   await Promise.resolve()
-  assert(document.querySelector('.tabs button') === null, 'revoked session retained organization navigation')
+  assert(document.querySelector('section[aria-labelledby]') === null, 'revoked session retained organization navigation')
   unauthorizedApp.unmount()
   document.body.innerHTML = '<pre id="result">ORGANIZATION_E2E_PASS</pre>'
   await control('shutdown', 'POST')
 }
 
-await scenario().catch(async () => {
+await scenario().catch(async (error: unknown) => {
   document.body.replaceChildren()
   const result = document.createElement('pre')
   result.id = 'result'
-  result.textContent = 'ORGANIZATION_E2E_FAIL|ASSERTION'
+  result.textContent = `ORGANIZATION_E2E_FAIL|ASSERTION|${safeBrowserDiagnostic(error)}`
   document.body.append(result)
   await control('shutdown', 'POST').catch(() => undefined)
 })

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { activeChildren, assertChildHealthy, CDPClient, delay, spawnTracked, terminateChild, withTimeout } from '../iam/administration/runner-support.mjs'
+import { safeRunnerDiagnostic } from '../iam/administration/diagnostics.mjs'
 
 const required = process.env.GO_ADMIN_REQUIRE_ORGANIZATION_E2E === '1'
 if (!required) { console.log('ORGANIZATION_E2E_SKIP required opt-in is disabled'); process.exit(0) }
@@ -81,7 +82,8 @@ const waitForResult = async (client, sessionId, browser, profile) => {
     assertChildHealthy(browser, 'Chromium')
     const result = await evaluate(client, sessionId, "document.querySelector('#result')?.textContent ?? ''")
     if (result.includes('ORGANIZATION_E2E_PASS')) return
-    if (result.includes('ORGANIZATION_E2E_FAIL|ASSERTION')) throw new Error(`${profile} browser scenario failed`)
+    const failure = result.match(/ORGANIZATION_E2E_FAIL\|ASSERTION\|([^<\r\n]{1,200})/)
+    if (failure) throw new Error(`${profile} browser scenario failed: ${safeRunnerDiagnostic(failure[1])}`)
     await delay(100)
   }
   throw new Error(`${profile} browser result timed out`)
@@ -143,7 +145,7 @@ try {
   await runProfile('sqlite')
   await runProfile('postgres')
 } catch (error) {
-  failure = error instanceof Error && ['overall deadline exceeded', 'browser fixture build failed', 'HTTPS host compile self-check failed', 'test child cleanup failed'].includes(error.message) ? error.message : 'organization E2E execution failed'
+  failure = safeRunnerDiagnostic(error)
 }
 for (const child of activeChildren) await terminateChild(child)
 if (activeChildren.size === 0) {
