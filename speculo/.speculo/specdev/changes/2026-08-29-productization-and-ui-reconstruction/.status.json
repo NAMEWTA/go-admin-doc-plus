@@ -38,12 +38,12 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T17:45:34+08:00",
+  "updated_at": "2026-09-01T17:54:07+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof."
+    "G7 requires a real macOS GUI session with terminal Accessibility permission, Tauri, Keychain, and native-window access. The current Windows host has no macOS VM; configured SSH profiles provide no usable noninteractive macOS session; the GitHub repository has no self-hosted runner; and GitHub-hosted macOS runners do not provide the required Accessibility authorization, so none can substitute for the required proof."
   ],
   "deviations": [
     "DEV-20-004 (missing real Web AC-018 theme persistence proof, approved under USER-DECISION:all-approved): T-20 may extend only tests/e2e/web-shell/browser-driver.ts to select the shared dark theme control, verify the root theme token, and verify the same preference after the existing deep-link reload in the disposable browser profile. Test backdoors, product storage APIs, browser profiles, viewports, retries/skips, and other business assertions remain unchanged.",
@@ -933,7 +933,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T17:45:34+08:00"
+      "updated_at": "2026-09-01T17:54:07+08:00"
     }
   ]
 }

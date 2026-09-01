@@ -328,7 +328,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 当前执行 active；DEV-09-001 已解除 Wave A/T-09 的执行闭环并完成本轮候选晋升：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
-- G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
+- G7/T-20 最终仍需要已登录 GUI 会话、已授予终端 Accessibility、测试 Keychain 可用的真实 macOS/self-hosted runner；当前 Windows host 无 macOS VM，SSH profiles 无可用无交互 macOS 会话，GitHub 仓库无 self-hosted runner，hosted macOS 又不提供所需 AX 授权，因此当前可见通道均不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
 T-20 portable candidate `2bce131` 已通过 Node 47/47、Desktop runner 20/20、Vitest 256/256、type/lint、Go、Rust 26/26/clippy、Tauri release no-bundle、production marker 与精确 configuration/remote/devtools/privilege-growth negative 验证；真实 Web Shell 在 SQLite/PostgreSQL 与 desktop/mobile 通过，并证明 dark mode 跨 deep-link reload 恢复。native runner 已覆盖 required/non-skip、arm64/x64、空库 setup、部分成功恢复、隔离 theme store、vault/SQLite restart、AX keyboard submit、960x640 native window 与 cleanup phases。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，当前 Windows host 明确 not-run，candidate 不晋升。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
