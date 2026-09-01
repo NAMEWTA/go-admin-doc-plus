@@ -181,7 +181,15 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs`、`diagnostics.mjs` 与 `run.test.mjs`；`pressButtonScript` 删除 AX parent/scrollbar 路径，必须同时定位 exact enabled 的固定“用户管理”起点与目标“产品示例”，先聚焦可见起点，再且只执行固定 11 次 `key code 48`，沿用唯一 `delay 0.2` 后 fresh query 并要求目标为 focused，最后只用 fresh target 的 position/size 执行既有单次 center click。只可增加固定 `navigation-start`、`navigation-traversal`、`navigation-action` 安全诊断，不输出 UI、输入、路径、坐标或底层 AppleScript 文本。self-test 必须锁定完整顺序、11 次 Tab、两次 AX scan、唯一 delay/click，并拒绝 AXScrollToVisible、AXParent、AXScrollArea、scrollbar value、perform action、Enter 与额外 click。形成新 source/candidate 且 portable checks 通过后，Lead 可更新同一 workflow-only probe descendant、push 同一具名 probe branch，并最多 dispatch 3 次逐个归因的 `macos-15` attempt。
 - **禁止扩大：** 不修改产品、manifest、API、capability、migration、fixture、workflow、调用点、50px 视觉合同、30/90 秒上限、retry/skip/allow-failure，不增加其他 key、click/action/delay/sleep；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。每个前一红灯必须先归因并修正，hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** source `66d70030e0601f913d63b83f0205c06fc0f45299` 已实现固定可见起点、11 次 Tab、fresh focused target 与固定诊断；candidate `2582a4bc575bd941a9ecb47001ea92f8d083c8a8`（tree `7be9540499c38fa5764a13e59be96335ad3b5630`）包含治理父 `25c8ec1` 与 source 且无冲突，Vitest 41/41 files / 256/256 tests、Node 48/48、lint、diff-check 与 clean tree 已通过。尚未执行 DEV-20-020 hosted attempt。
+- **执行状态：** source `66d70030e0601f913d63b83f0205c06fc0f45299` 已实现固定可见起点、11 次 Tab、fresh focused target 与固定诊断；candidate `2582a4bc575bd941a9ecb47001ea92f8d083c8a8`（tree `7be9540499c38fa5764a13e59be96335ad3b5630`）包含治理父 `25c8ec1` 与 source 且无冲突，Vitest 41/41 files / 256/256 tests、Node 48/48、lint、diff-check 与 clean tree 已通过。hosted attempt 1 为 Actions `33542592499`（job `99972252465`，probe `c955fcb`）：prebuild 从 18:16:41Z 至 18:23:21Z 通过，required gate 从 18:23:21Z 至 18:31:57Z 后精确返回 `login-navigation`: `desktop native accessibility navigation-traversal unavailable`；起点/目标初始查询与 key 发送未抛错，但普通 Tab 后目标没有 focused。无 skip、无 pass marker，DEV-20-020 尚余 2 次 attempt。
+
+### 已批准执行偏差 DEV-20-021
+
+- **触发事实：** DEV-20-020 attempt 1 的固定 `navigation-traversal` 证明可见起点和目标存在、11 次普通 Tab 已发送，但目标未获得焦点。Apple 官方 Safari 键盘合同明确：普通 Tab 默认只高亮字段或弹出菜单；`Option-Tab` 高亮下一字段、弹出菜单或网页可点击项，Safari 的“Press Tab to highlight each item”设置会交换两者行为（`https://support.apple.com/guide/safari/cpsh003/mac`）。hosted runner 未开启全键盘导航与该结果一致。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`，把 DEV-20-020 循环中的唯一 `key code 48` 改为 `key code 48 using option down`；起点、目标、固定 11 次、两次 AX scan、fresh focused 要求、唯一 `delay 0.2`、唯一 center click 与三类固定诊断全部不变。self-test 必须要求 Option 修饰并拒绝未修饰 Tab 或其他 key。新 source/candidate portable checks 通过后，只可继续使用 DEV-20-020 剩余 2 次 ordered attempt，不新增配额。
+- **禁止扩大：** 不修改系统/Safari/Keyboard 设置、产品、manifest、visual contract、diagnostics、workflow、调用点、timeout/retry/skip/allow-failure，不增加其他 modifier/key/click/action/delay/sleep；不输出 UI、输入、路径、坐标或 AppleScript 文本；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate。
 
 ### 未决问题
 

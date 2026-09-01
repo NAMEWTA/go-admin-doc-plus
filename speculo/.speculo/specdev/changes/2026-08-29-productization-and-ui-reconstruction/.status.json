@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-020 candidate 2582a4b passed all portable checks. It replaces the failed AX scrollbar helper with a fixed visible-start plus exactly 11 Tab traversal, fresh focused-target query, and single center click, with fixed navigation-start/traversal/action diagnostics. Product, manifest, visual dimensions, workflow, timeouts, retry/skip, and security boundaries remain unchanged. Up to three newly attributed hosted attempts are authorized; none has run yet. Prior Actions 33539914535 remains an honest failure with no marker.",
+          "reason": "Pending after DEV-20-020 attempt 1 failure: Actions 33542592499 / job 99972252465 / probe c955fcb passed prebuild and then returned fixed navigation-traversal with no skip or marker. Exact start/target lookup and ordinary Tab sending did not error, but the fresh target was not focused. Apple documents that Option-Tab, rather than default Tab, highlights clickable webpage items when full keyboard navigation is not enabled. DEV-20-021 changes only the existing 11-step loop to Option-Tab and retains every other query, diagnostic, delay, click, product, workflow, timeout, and security boundary; two ordered attempts remain after a verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T02:27:00+08:00"
+      "updated_at": "2026-09-02T02:32:06+08:00"
     }
   ]
 }
