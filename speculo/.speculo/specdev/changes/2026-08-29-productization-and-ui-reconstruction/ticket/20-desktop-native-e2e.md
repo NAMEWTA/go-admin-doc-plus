@@ -215,6 +215,14 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** source `6999c642ebea740438233499d4b09df9ef26a2c1` 已形成；candidate `7c446eb31729b7e83906a2fb25d22b5636f4fccf`（tree `641b756fdf4671838b62d7621a7e89aafdfcb1ad`）包含治理父 `5fa466a272fa8fa6ba6d1d85507989cd731cb48f` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 48/48、Desktop runner 21/21、完整 typecheck、lint、native-e2e 资产标记检查、production build/asset scan、diff-check 与 clean tree。DEV-20-023 尚余 2 次 ordered attempt，native Gate 仍为 pending。
 
+### 已批准执行偏差 DEV-20-025
+
+- **触发事实：** DEV-20-023 attempt 2 使用 probe `7435ec4cfc0196be7cc45e8cb6bcb6f067dbcb38`、Actions `33551508113`、job `100001827771`，在 macOS 15.7.7 arm64 与 AX enabled 环境通过 19:48:00Z~19:54:13Z prebuild，required gate 于 19:54:13Z~20:03:00Z 返回新的首红 `permission-authorization`，无 skip、无 pass marker。它已越过 first-setup boundary、登录导航、Demo、主题切换与 scope self/all，证明 DEV-20-023/024 有效；当前单一 phase 同时覆盖关闭权限控件、403 control 后置条件、无权页、恢复权限控件和页面恢复，不能继续归因。
+- **批准范围：** T-20 只可把现有 permission sequence 拆成五个固定 phase：`permission-disable-control`、`permission-denied-boundary`、`permission-hidden`、`permission-enable-control`、`permission-restored`；各 phase 必须紧邻原有 click/poll 调用，并由 Desktop runner self-test 锁定完整顺序。形成并验证新 source/candidate 后，继续使用 DEV-20-023 最后 1 次 ordered attempt。
+- **禁止扩大：** 不修改任何 click/poll target、control action、产品权限逻辑、timeout/retry/skip/allow-failure、test-only UI、后端、Session、主题、router、capability/config 或 workflow；不输出任意 DOM、secret、路径或凭据，不发布 artifact、deploy/migrate、重写或清理远端历史。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-023 尚余 1 次 ordered attempt。
+
 ### 未决问题
 
 无。

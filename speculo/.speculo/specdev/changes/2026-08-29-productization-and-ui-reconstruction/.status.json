@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-023 attempt 1 failure: Actions 33549802770 / job 99996186434 / probe a356e77 passed prebuild and returned unsuffixed first-setup-workspace with no skip or marker. The workspace poll catch always replaces failures with a fixed suffix, so this proves the workspace appeared and the first red was the following 30-second authenticated boundary poll inheriting the old phase. DEV-20-024 only assigns first-setup-boundary immediately before that existing poll and locks the order in self-tests; product behavior, timeouts, and postconditions remain unchanged. Two ordered DEV-20-023 attempts remain after a recorded and verified candidate.",
+          "reason": "Pending after DEV-20-023 attempt 2 failure: Actions 33551508113 / job 100001827771 / probe 7435ec4 passed prebuild and advanced through first-setup boundary, login navigation, Demo, theme, and scope self/all before returning permission-authorization with no skip or marker. That phase folds five permission substeps and cannot identify the first red precisely. DEV-20-025 only assigns fixed phases to the unchanged disable click, denied control postcondition, hidden page, enable click, and restored page calls, with self-tests locking their order. One ordered DEV-20-023 attempt remains after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T04:19:00+08:00"
+      "updated_at": "2026-09-02T04:34:00+08:00"
     }
   ]
 }
