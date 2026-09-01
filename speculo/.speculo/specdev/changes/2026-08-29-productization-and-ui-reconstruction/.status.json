@@ -38,14 +38,15 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T19:52:27+08:00",
+  "updated_at": "2026-09-01T20:08:10+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-006 attempt 2 (Actions 33502511066, job 99838877690) passed the macOS arm64 release prebuild and started the complete native runner, but again failed at first-setup-recovery-state with no pass marker. Source 892e27a and candidate ae887e9 now classify setup/workspace/login/unavailable/unknown only after the unchanged 90-second recovery wait fails, and pass portable verification. One final ordered hosted attempt remains authorized."
+    "G7 remains pending. DEV-20-006 attempt 3 (Actions 33504927079, job 99846682939) passed the macOS arm64 release prebuild and reached the complete native runner. Its unsuffixed first-setup-recovery-state failure proves the recovery-state wait passed and narrows the red to snapshot restore, the continue click, or the login-page wait, which still shared the old phase. DEV-20-006 is exhausted. DEV-20-007 authorizes only fixed phase attribution for those three existing steps and at most three ordered hosted attempts; no pass marker has been claimed."
   ],
   "deviations": [
+    "DEV-20-007 (recovery-to-login fixed phase attribution and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-006 attempt 3 returned unsuffixed first-setup-recovery-state even though its new classifier would suffix every recovery-state timeout, proving the recovery UI was observed and narrowing the red to the following existing snapshot restore, continue click, or login-page wait. T-20 may update only tests/e2e/desktop/run.mjs and run.test.mjs to assign fixed phases immediately before those three steps and verify their order. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after attribution and correction of the prior first honest failure. No product change, arbitrary UI diagnostics, timeout/retry/skip change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-006 (native-e2e Tauri Context correction and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): T-20 may update only src-tauri/src/main.rs under the native-e2e feature plus tests/e2e/desktop/run.mjs and its self-test so the fixed test WebKit data-store identifier is injected as Rust [u8; 16] after generate_context instead of being passed through tauri-utils 2.9.3's incorrect Vec-generating config code. Production Context/config, Cargo dependencies and lock, capabilities, window contract, theme storage, Keychain namespace, and product behavior remain unchanged. After a new source checkpoint and canonical candidate are built, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after precise attribution and correction of the prior first honest failure. No retry/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-005 (isolated remote macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): Lead may create one workflow-only descendant of candidate 2bce131, push one named temporary probe branch, and manually dispatch at most three ordered macos-15 CI attempts that run the complete required native E2E, provided each prior first honest failure is precisely attributed and corrected. The probe may not enter source or the canonical candidate, modify product/test code, use production environments or signing/notarization secrets, publish artifacts, deploy, migrate, perform unattributed retries, rewrite/clean remote history, or convert a hosted-runner failure into G7 pass evidence.",
     "DEV-20-004 (missing real Web AC-018 theme persistence proof, approved under USER-DECISION:all-approved): T-20 may extend only tests/e2e/web-shell/browser-driver.ts to select the shared dark theme control, verify the root theme token, and verify the same preference after the existing deep-link reload in the disposable browser profile. Test backdoors, product storage APIs, browser profiles, viewports, retries/skips, and other business assertions remain unchanged.",
@@ -927,7 +928,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-006 attempt 2 ran as Actions 33502511066 (job 99838877690) on macOS 15.7.7 arm64. The release prebuild passed and the complete native runner started, but the deterministic snapshot path collision still ended in the collapsed first-setup-recovery-state timeout with no pass marker. Candidate ae887e9 adds the portably verified fixed-enum alternate-page attribution without changing product behavior, retry policy, or the 90-second bound. One final ordered follow-up attempt remains.",
+          "reason": "Pending: DEV-20-006 attempt 3 ran as Actions 33504927079 (job 99846682939) on macOS 15.7.7 arm64. The release prebuild passed and the complete native runner observed the recovery state, then failed in one of the following restore/click/login-wait steps that still shared first-setup-recovery-state. DEV-20-006 is exhausted with no pass marker. DEV-20-007 authorizes fixed phase attribution for those three existing steps and at most three ordered follow-up attempts without product, retry, timeout, or security-boundary changes.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -935,7 +936,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T19:52:27+08:00"
+      "updated_at": "2026-09-01T20:08:10+08:00"
     }
   ]
 }
