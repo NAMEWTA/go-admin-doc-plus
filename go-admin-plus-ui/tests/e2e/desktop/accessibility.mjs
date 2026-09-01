@@ -41,7 +41,7 @@ tell (first process whose unix id is ${pid})
   try
     set focused of navigationStart to true
     repeat with traversalIndex from 1 to 11
-      key code 48
+      key code 48 using option down
     end repeat
     delay 0.2
   on error
