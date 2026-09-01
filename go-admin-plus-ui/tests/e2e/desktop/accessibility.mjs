@@ -28,6 +28,7 @@ tell (first process whose unix id is ${pid})
   repeat with currentElement in elementsToScan
     try
       if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(name)} and enabled of currentElement is true then
+        perform action "AXScrollToVisible" of currentElement
         set focused of currentElement to true
         delay 0.2
         set buttonPosition to position of currentElement
