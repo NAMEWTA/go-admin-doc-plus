@@ -12,8 +12,8 @@ risk: high
 blocked_by: [T-04, T-05, T-06, T-09, T-11, T-14, T-16]
 contract_ids: [AC-034]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/renderer.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
-writable_paths: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/renderer.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
+expected_changes: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/renderer.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/contracts/cli.mjs</Path>", "<Path>scripts/contracts/contract-cli.test.mjs</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
+writable_paths: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/renderer.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/contracts/cli.mjs</Path>", "<Path>scripts/contracts/contract-cli.test.mjs</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
 read_only_paths: ["<Path>contracts/openapi/**</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>.agents/skills/new-business-module/**</Path>"]
 shared_paths: []
 shared_path_owners: []
@@ -49,6 +49,7 @@ shared_path_owners: []
 ### 已批准偏差
 
 - **DEV-17-001（USER-DECISION:all-approved）：** T-17 可更新 `<Path>go-admin-plus/internal/modules/generator/renderer.go</Path>`，仅将 canonical contract CLI 的本地路径转换为跨平台标准 file URL，使 Windows 隔离生成能够执行；不得改变生成文件集合、命令语义、超时、安全环境或其他 renderer 行为。
+- **DEV-17-002（USER-DECISION:all-approved）：** T-17 可更新 `<Path>scripts/contracts/cli.mjs</Path>` 与 `<Path>scripts/contracts/contract-cli.test.mjs</Path>`，仅修复 Node 22 在 Windows 启动 `pnpm.cmd` 返回 `EINVAL` 的跨平台子进程包装并补确定性回归；不得改变 contract lint/generate 参数、输出、路径守卫或失败语义。
 
 ### 未决问题
 
