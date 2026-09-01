@@ -11,7 +11,7 @@ import { clickButtonScript, fillAndSubmitScript, windowContainsScript, windowFra
 import { nativeAccessibilityFailure, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
-import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
+import { verifyDesktopProductionAssets, verifyDesktopProductionConfiguration, verifyDesktopProductionFiles } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { hostTriple } from '../../../../release/shared/sidecar/build.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
@@ -105,6 +105,7 @@ const restoreProductionArtifacts = async () => {
     cwd: appRoot, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
   })
   await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'custom-protocol'], { cwd: rustRoot, timeout: 300_000 })
+  await verifyDesktopProductionConfiguration(appRoot)
   await verifyDesktopProductionAssets(join(appRoot, 'dist'))
   await verifyDesktopProductionFiles([sidecarBinary, hostBinary])
 }

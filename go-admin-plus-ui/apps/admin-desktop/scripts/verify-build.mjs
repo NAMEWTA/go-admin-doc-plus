@@ -4,7 +4,7 @@ import { dirname, posix, resolve, win32 } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { hostTriple, outputName } from '../../../../release/shared/sidecar/build.mjs'
-import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from './verify-production.mjs'
+import { verifyDesktopProductionAssets, verifyDesktopProductionConfiguration, verifyDesktopProductionFiles } from './verify-production.mjs'
 
 export const desktopProductionArtifactPaths = (repository, platform = process.platform, architecture = process.arch) => {
   const triple = hostTriple(platform, architecture)
@@ -20,6 +20,7 @@ export const desktopProductionArtifactPaths = (repository, platform = process.pl
 
 export const verifyDesktopProductionBuild = async (repository, platform = process.platform, architecture = process.arch) => {
   const artifacts = desktopProductionArtifactPaths(repository, platform, architecture)
+  await verifyDesktopProductionConfiguration(resolve(repository, 'go-admin-plus-ui/apps/admin-desktop'))
   await verifyDesktopProductionAssets(artifacts.webview)
   await verifyDesktopProductionFiles([artifacts.sidecar, artifacts.host])
 }
