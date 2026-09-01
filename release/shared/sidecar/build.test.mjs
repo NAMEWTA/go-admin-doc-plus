@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import path from 'node:path'
 import test from 'node:test'
 
 import { buildEnvironment, hostTriple, outputName, parseBuildRequest, parseTargets, targets } from './build.mjs'
@@ -19,7 +20,7 @@ test('maps supported Tauri target triples to exact external binary names', () =>
 
 test('uses a deterministic secret-free Go build environment', () => {
   const environment = buildEnvironment(
-    targets['aarch64-apple-darwin'], '/private/tmp/build', '/opt/go/bin/go', '/opt/go-mod'
+    targets['aarch64-apple-darwin'], '/private/tmp/build', '/opt/go/bin/go', '/opt/go-mod', path.posix
   )
   assert.equal(environment.GOWORK, 'off')
   assert.equal(environment.GOPROXY, 'off')
@@ -31,10 +32,16 @@ test('uses a deterministic secret-free Go build environment', () => {
   assert.equal(Object.hasOwn(environment, 'GOAUTH'), false)
 
   const windows = buildEnvironment(
-    targets['x86_64-pc-windows-msvc'], 'C:\\build', 'C:\\Go\\bin\\go.exe', 'C:\\go-mod'
+    targets['x86_64-pc-windows-msvc'], 'C:\\build', 'C:\\Go\\bin\\go.exe', 'C:\\go-mod', path.win32
   )
   assert.equal(windows.HOME, 'C:\\build\\home')
   assert.equal(windows.PATH, 'C:\\Go\\bin')
+
+  const crossCompiledWindows = buildEnvironment(
+    targets['x86_64-pc-windows-msvc'], '/build', '/usr/local/go/bin/go', '/go-mod', path.posix
+  )
+  assert.equal(crossCompiledWindows.HOME, '/build/home')
+  assert.equal(crossCompiledWindows.PATH, '/usr/local/go/bin')
 })
 
 test('rejects arbitrary targets and extra arguments', () => {
