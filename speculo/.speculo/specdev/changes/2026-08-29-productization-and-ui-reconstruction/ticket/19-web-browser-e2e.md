@@ -27,7 +27,7 @@ read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-a
 # remain unchanged.
 # Approved deviation DEV-19-003 (USER-DECISION:all-approved): T-19 may update
 # go-admin-plus/test/iam/authorization/browser_harness_test.go only to compose the
-# current 0060 account-lifecycle and reliable-runtime migrations, production outbox,
+# current 0030 bootstrap-recovery, 0060 account-lifecycle, and reliable-runtime migrations, production outbox,
 # and production account deletion service in the existing dual-dialect browser fixture.
 # Product services, migration contents, assertions, and required semantics remain unchanged.
 shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>"]
