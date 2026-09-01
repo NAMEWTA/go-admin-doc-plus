@@ -33,6 +33,8 @@ const post = async (path: string) => {
 }
 const shellState = () => document.querySelector<HTMLElement>('[data-shell-state]')?.dataset.shellState
 const noHorizontalOverflow = () => document.documentElement.scrollWidth <= window.innerWidth
+const darkThemeSelected = () => document.documentElement.dataset.theme === 'dark' &&
+  document.querySelector('button[aria-label="当前使用深色主题"]') !== null
 
 let consoleErrors = 0
 const originalConsoleError = console.error
@@ -75,6 +77,10 @@ const firstLoad = async () => {
   assert(form, 'login form is missing')
   form.requestSubmit()
   await wait(() => shellState() === 'workspace' && location.pathname === '/iam/users', 'authenticated workspace did not render')
+  const darkTheme = document.querySelector<HTMLButtonElement>('button[aria-label="使用深色主题"]')
+  assert(darkTheme, 'dark theme control did not render')
+  darkTheme.click()
+  await wait(darkThemeSelected, 'dark theme did not apply')
   await router.push('/iam/roles')
   await wait(() => location.pathname === '/iam/roles' && shellState() === 'workspace' && document.querySelector('section[aria-labelledby="roles-heading"]') !== null, 'role route did not render')
   await new Promise(resolve => setTimeout(resolve, 100))
@@ -92,6 +98,7 @@ const deepLinkAndHistory = async () => {
     const menu = navigation.some(entry => entry.path === '/iam/roles')
     throw new Error(`deep link state ${shellState() ?? 'missing'} path ${location.pathname} permission ${permission} menu ${menu} route ${routeTrace.join('-')} trace ${runtimeTrace.join('-')}`)
   }
+  await wait(darkThemeSelected, 'dark theme was not restored after reload')
   assert(document.title === '角色管理 - Go Admin Plus', 'deep link title is incorrect')
   assert(document.querySelector('.product-shell__breadcrumb')?.textContent?.includes('角色管理'), 'deep link breadcrumb is incorrect')
   assert(matchMedia('(prefers-reduced-motion: reduce)').matches, 'reduced-motion media was not applied')
