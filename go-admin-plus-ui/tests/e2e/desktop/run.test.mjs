@@ -267,7 +267,8 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   for (const phase of [
     'first-setup-recovery-root', 'first-setup-recovery-window', 'first-setup-recovery-window-frame', 'first-setup-recovery-submit',
-    'first-setup-recovery-fault', 'first-setup-recovery-state', 'first-setup-recovery-restart',
+    'first-setup-recovery-fault', 'first-setup-recovery-state', 'first-setup-recovery-restore',
+    'first-setup-recovery-continue', 'first-setup-recovery-login', 'first-setup-recovery-restart',
     'first-setup-root', 'first-setup-window', 'first-setup-window-frame', 'first-setup-submit', 'first-setup-workspace', 'first-setup-restart',
     'login-window-frame'
   ]) {
@@ -281,6 +282,7 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
     assert.match(runner, new RegExp(`return 'first-setup-recovery-state-${phase}'`))
   }
   assert.match(runner, /await poll\('native partial setup recovery',[\s\S]*catch \(error\) \{[\s\S]*phase = await classifyFirstSetupRecoveryFailure\(app\.child\.pid\)[\s\S]*throw error/)
+  assert.match(runner, /phase = 'first-setup-recovery-restore'[\s\S]*restoreRecoverySnapshot\(\)[\s\S]*phase = 'first-setup-recovery-continue'[\s\S]*clickButton\(app\.child\.pid, '\u8fdb\u5165\u767b\u5f55'\)[\s\S]*phase = 'first-setup-recovery-login'[\s\S]*poll\('native recovery login window'/)
   assert.match(runner, /completeFirstSetup\(app\.child\.pid\)/)
   assert.match(runner, /if \(width < 960 \|\| height < 640\)/)
   assert.match(runner, /hostTriple\('darwin', process\.arch\)/)

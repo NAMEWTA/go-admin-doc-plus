@@ -406,8 +406,11 @@ const main = async () => {
       phase = await classifyFirstSetupRecoveryFailure(app.child.pid)
       throw error
     }
+    phase = 'first-setup-recovery-restore'
     await restoreRecoverySnapshot()
+    phase = 'first-setup-recovery-continue'
     await clickButton(app.child.pid, '进入登录')
+    phase = 'first-setup-recovery-login'
     await poll('native recovery login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, recoveryRoot])
