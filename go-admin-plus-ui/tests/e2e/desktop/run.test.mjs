@@ -66,7 +66,7 @@ test('shared workspace composes a persistent theme toggle and native restart ver
   assert.match(shell, /<SunIcon[^>]+aria-hidden="true"/)
   assert.match(shell, /<MoonIcon[^>]+aria-hidden="true"/)
   assert.match(shell, /themeSnapshot\.preference === 'dark' \? '当前使用深色主题' : '使用深色主题'/)
-  assert.match(runner, /phase = 'theme-dark-toggle'[\s\S]*clickButton\(app\.child\.pid, '使用深色主题'\)/)
+  assert.match(runner, /phase = 'theme-dark-toggle'[\s\S]*clickButton\(app\.child\.pid, 'E2E use dark theme'\)[\s\S]*windowContains\(app\.child\.pid, '当前使用深色主题'\)/)
   assert.match(runner, /phase = 'theme-dark-persistence'[\s\S]*windowContains\(app\.child\.pid, '当前使用深色主题'\)/)
   assert.match(runner, /identifier: 'com\.goadmin\.plus\.native-e2e'/)
   assert.doesNotMatch(runner, /dataStoreIdentifier/)
@@ -82,6 +82,8 @@ test('shared workspace composes a persistent theme toggle and native restart ver
   assert.match(nativeApp, /window\.localStorage\.length === 0[\s\S]*'E2E theme storage cleared'[\s\S]*'E2E control failed: theme-storage-cleanup'/)
   assert.match(nativeApp, /const openDemo = \(\) => \{\n  window\.location\.hash = '#\/demo\/products'\n\}/)
   assert.match(nativeApp, /<button type="button" @click="openDemo">E2E open Demo<\/button>/)
+  assert.match(nativeApp, /const useDarkTheme = \(\) => \{[\s\S]*document\.querySelector<HTMLButtonElement>\('button\[aria-label="使用深色主题"\]'\)[\s\S]*'E2E control failed: theme-dark'[\s\S]*control\.click\(\)/)
+  assert.match(nativeApp, /<button type="button" @click="useDarkTheme">E2E use dark theme<\/button>/)
 })
 
 test('production Desktop entry contains no native E2E controls', () => {
@@ -91,7 +93,7 @@ test('production Desktop entry contains no native E2E controls', () => {
   const vite = readFileSync(join(appRoot, 'vite.config.ts'), 'utf8')
   const manifest = JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8'))
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  assert.doesNotMatch(app, /VITE_GO_ADMIN_NATIVE_E2E|__desktop\/test-control|native-e2e|window\.confirm\s*=|E2E open Demo|E2E scope self/)
+  assert.doesNotMatch(app, /VITE_GO_ADMIN_NATIVE_E2E|__desktop\/test-control|native-e2e|window\.confirm\s*=|E2E open Demo|E2E use dark theme|E2E scope self/)
   assert.match(app, /<ProductWorkspace/)
   assert.match(main, /import App from '@desktop-entry'/)
   assert.match(vite, /mode === 'native-e2e' \? '\.\/src\/native-e2e\/App\.vue' : '\.\/src\/App\.vue'/)
@@ -146,8 +148,10 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
     'E2E self scope enforced',
     'E2E all scope restored',
     'E2E authorization denied',
+    'E2E control failed: theme-dark',
     'E2E control failed:',
     'E2E open Demo',
+    'E2E use dark theme',
     'E2E scope self',
     'E2E scope all',
     'E2E permissions off',

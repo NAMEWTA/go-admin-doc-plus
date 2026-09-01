@@ -562,7 +562,7 @@ const main = async () => {
     phase = 'login-boundary'
     await pollBoundary(app.child.pid)
     phase = 'theme-dark-toggle'
-    await clickButton(app.child.pid, '使用深色主题')
+    await clickButton(app.child.pid, 'E2E use dark theme')
     await poll('native dark theme', () => windowContains(app.child.pid, '当前使用深色主题'))
     phase = 'scope-authorization'
     await clickButton(app.child.pid, 'E2E scope self')
