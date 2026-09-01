@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/product"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
@@ -51,6 +52,36 @@ func TestMigrationFailureFixtureRetainsAuditConflict(t *testing.T) {
 	}
 	if _, err := current.Up(context.Background(), db); err == nil || err.Error() != "migration execution failed" {
 		t.Fatalf("audit conflict error = %v", err)
+	}
+}
+
+func TestPreviousFixtureSeedsConsistentBootstrapState(t *testing.T) {
+	db := openFixtureDatabase(t)
+	runner, err := previousMigrationRunner()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runner.Up(context.Background(), db); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, time.September, 1, 0, 0, 0, 0, time.UTC)
+	if err := seedPreviousAdmin(context.Background(), db, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := seedPreviousAdmin(context.Background(), db, now); err != nil {
+		t.Fatal(err)
+	}
+	var accounts, markers, roles int
+	err = db.Bun().NewRaw(`SELECT
+		(SELECT COUNT(*) FROM iam_accounts WHERE id = ?),
+		(SELECT COUNT(*) FROM iam_bootstrap_state WHERE marker = 1 AND account_id = ?),
+		(SELECT COUNT(*) FROM iam_account_roles WHERE account_id = ? AND role_id = 'role-system-admin')`,
+		fixtureAccountID, fixtureAccountID, fixtureAccountID).Scan(context.Background(), &accounts, &markers, &roles)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if accounts != 1 || markers != 1 || roles != 1 {
+		t.Fatalf("fixture bootstrap state = accounts %d, markers %d, roles %d", accounts, markers, roles)
 	}
 }
 
