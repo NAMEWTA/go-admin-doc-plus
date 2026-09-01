@@ -196,6 +196,27 @@ export const checkArchitecture = root => {
     if (!/timeout-minutes: 60/.test(backendJob)) {
       failures.push('backend CI must reserve 60 minutes for the three generator test matrices')
     }
+    const postgresJob = workflowJob(ciWorkflow, 'postgres-required')
+    const postgresContracts = [
+      ['postgres:17.11-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0', 'required PostgreSQL CI must pin the service version and manifest digest'],
+      ['GO_ADMIN_CI_REQUIRE_POSTGRES: "1"', 'required PostgreSQL CI must enable the non-skip contract'],
+      ['GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN:', 'required PostgreSQL CI must inject a disposable DSN'],
+      ['pg_isready -h 127.0.0.1', 'required PostgreSQL CI must assert service health'],
+      ['node scripts/ci/required-postgres.mjs', 'required PostgreSQL CI must use the counted non-skip runner']
+    ]
+    for (const [contract, message] of postgresContracts) if (!postgresJob.includes(contract)) failures.push(message)
+    if (/continue-on-error:|\|\|\s*true/.test(postgresJob)) failures.push('required PostgreSQL CI must not allow failures')
+    const securityJob = workflowJob(ciWorkflow, 'security-supply-chain')
+    const securityContracts = [
+      ['GO_ADMIN_CI_REQUIRE_SECURITY: "1"', 'security CI must enable the required gate contract'],
+      ['govulncheck@v1.1.4', 'security CI must pin govulncheck'],
+      ['cargo-audit --version 0.22.2 --locked', 'security CI must pin cargo-audit'],
+      ['cargo-deny --version 0.20.2 --locked', 'security CI must pin cargo-deny'],
+      ['node scripts/security/required-security.mjs', 'security CI must run the repository security gate'],
+      ['actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02', 'security CI must pin evidence upload']
+    ]
+    for (const [contract, message] of securityContracts) if (!securityJob.includes(contract)) failures.push(message)
+    if (/continue-on-error:|\|\|\s*true/.test(securityJob)) failures.push('security CI must not allow failures')
     const desktopJob = workflowJob(ciWorkflow, 'desktop-rust')
     if (!/pnpm --dir go-admin-plus-ui install --frozen-lockfile/.test(desktopJob)) {
       failures.push('Desktop CI must install the frozen frontend workspace')
@@ -208,6 +229,29 @@ export const checkArchitecture = root => {
     }
     if (!/node go-admin-plus-ui\/apps\/admin-desktop\/scripts\/verify-build\.mjs/.test(desktopJob)) {
       failures.push('Desktop CI must verify production WebView, sidecar, and host artifacts')
+    }
+  }
+
+  const requiredPostgresRunnerPath = join(root, 'scripts/ci/required-postgres.mjs')
+  if (existsSync(requiredPostgresRunnerPath)) {
+    const runner = readFileSync(requiredPostgresRunnerPath, 'utf8')
+    for (const contract of ['counts.skip !== 0', 'counts.run !== 1', 'suites.length === 0', 'GO_ADMIN_CI_REQUIRE_POSTGRES']) {
+      if (!runner.includes(contract)) failures.push(`required PostgreSQL runner is missing non-skip contract: ${contract}`)
+    }
+  }
+  const requiredSecurityRunnerPath = join(root, 'scripts/security/required-security.mjs')
+  if (existsSync(requiredSecurityRunnerPath)) {
+    const runner = readFileSync(requiredSecurityRunnerPath, 'utf8')
+    for (const contract of ['govulncheck', 'pnpm-production-audit', 'cargo-audit', 'cargo-deny', 'secret-scan', 'sbom', 'generate-drift', 'GO_ADMIN_CI_REQUIRE_SECURITY']) {
+      if (!runner.includes(contract)) failures.push(`required security runner is missing gate: ${contract}`)
+    }
+    for (const image of runner.matchAll(/['"]([^'"]+@sha256:[0-9a-f]+)['"]/g)) {
+      if (!/@sha256:[0-9a-f]{64}$/.test(image[1])) failures.push('security scanner image digest must contain 64 hexadecimal characters')
+    }
+    const denyPolicyPath = join(root, 'scripts/security/deny.toml')
+    const denyPolicy = existsSync(denyPolicyPath) ? readFileSync(denyPolicyPath, 'utf8') : ''
+    for (const contract of ['wildcards = "deny"', 'unknown-registry = "deny"', 'unknown-git = "deny"']) {
+      if (!denyPolicy.includes(contract)) failures.push(`cargo-deny policy is missing required contract: ${contract}`)
     }
   }
 

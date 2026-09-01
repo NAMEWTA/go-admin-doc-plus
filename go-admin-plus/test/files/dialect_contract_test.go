@@ -18,6 +18,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
+	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
@@ -55,7 +56,7 @@ func TestFilesPostgresContract(t *testing.T) {
 func runFilesContract(t *testing.T, db *database.Database, root string) {
 	t.Helper()
 	ctx := context.Background()
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, filesmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, filesmigration.Provider{}, capacitymigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
