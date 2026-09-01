@@ -319,7 +319,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
 | Workspace records | T-20 source `151bc21`、portable candidate `2bce131`/tree `cb3fb9d` 已记录；candidate 包含 frozen `main@d260a3d` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005 另精确授权一个 workflow-only probe branch push 与一次 macOS workflow dispatch；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 

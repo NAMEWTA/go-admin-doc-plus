@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T17:54:07+08:00",
+  "updated_at": "2026-09-01T17:57:16+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -46,6 +46,7 @@
     "G7 requires a real macOS GUI session with terminal Accessibility permission, Tauri, Keychain, and native-window access. The current Windows host has no macOS VM; configured SSH profiles provide no usable noninteractive macOS session; the GitHub repository has no self-hosted runner; and GitHub-hosted macOS runners do not provide the required Accessibility authorization, so none can substitute for the required proof."
   ],
   "deviations": [
+    "DEV-20-005 (isolated remote macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): Lead may create one workflow-only descendant of candidate 2bce131, push one named temporary probe branch, and manually dispatch one macos-15 CI attempt that runs the complete required native E2E. The probe may not enter source or the canonical candidate, modify product/test code, use production environments or signing/notarization secrets, publish artifacts, deploy, migrate, rewrite/clean remote history, or convert a hosted-runner failure into G7 pass evidence.",
     "DEV-20-004 (missing real Web AC-018 theme persistence proof, approved under USER-DECISION:all-approved): T-20 may extend only tests/e2e/web-shell/browser-driver.ts to select the shared dark theme control, verify the root theme token, and verify the same preference after the existing deep-link reload in the disposable browser profile. Test backdoors, product storage APIs, browser profiles, viewports, retries/skips, and other business assertions remain unchanged.",
     "DEV-20-003 (ticket path ownership and Web Shell lazy-route observation race, approved under USER-DECISION:all-approved): T-20 may update only tests/e2e/web-shell/browser-driver.ts so the existing user-search revocation check waits for that same stable DOM seam after the /iam/users workspace route resolves. Whole-suite retry, fixed sleep, skip, allow-failure, product behavior, viewport, timeout limit, and other Web E2E scenarios remain unchanged.",
     "DEV-20-002 (ticket path ownership and missing AC-018 behavior, approved under USER-DECISION:all-approved): T-20 may update ProductWorkspace.vue, the App Shell package manifest, only its exact pnpm-lock importer, and the test-only native-e2e App to compose the existing theme controller, expose a Lucide light/dark toggle, run with an isolated native Tauri identifier/WebKit data store, verify persistence across a native restart, and clear the test theme storage. Theme storage/API, routes, Session, domain pages, production Desktop entry/native host, other importers, and dependency versions remain unchanged.",
@@ -933,7 +934,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T17:54:07+08:00"
+      "updated_at": "2026-09-01T17:57:16+08:00"
     }
   ]
 }

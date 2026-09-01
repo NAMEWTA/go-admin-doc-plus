@@ -67,6 +67,13 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 - **禁止扩大：** 不修改测试后门、产品存储 API、浏览器 profile、viewport、retry/skip 或其他业务断言；浏览器 user-data 仍使用 runner 的 disposable root 并清理。
 - **批准来源：** 用户“都批准”及“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-005
+
+- **触发事实：** 当前 Windows host 无 macOS VM 或可用 SSH macOS 会话，仓库无 self-hosted runner；GitHub-hosted macOS 对 Accessibility 的支持存在官方已知限制，但它是当前唯一仍可实测的真实 macOS 通道。
+- **批准范围：** Lead 可从规范 candidate `2bce131` 创建一个只修改 `.github/workflows/ci.yml` 的隔离 probe descendant，增加一次 `macos-15` 完整 native E2E job；可 push 一个具名临时 probe branch 并手动 dispatch 一次该 workflow，观察真实 AX、Keychain、窗口、sidecar 与精确 marker。
+- **禁止扩大：** probe 不进入 source 或规范 candidate，不修改产品/测试代码，不使用 production environment 或签名/公证 secrets，不发布 artifact，不 deploy/migrate，不重写或清理远端历史；hosted runner 失败不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
