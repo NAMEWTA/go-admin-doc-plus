@@ -251,6 +251,31 @@ test('rejects backend CI that omits the generator Node and pnpm toolchain', () =
   assert.ok(failures.includes('backend CI must reserve 60 minutes for the three generator test matrices'))
 })
 
+test('rejects optional or incomplete PostgreSQL and supply-chain CI jobs', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const workflowRoot = join(root, '.github/workflows')
+  mkdirSync(workflowRoot, { recursive: true })
+  writeFileSync(join(workflowRoot, 'ci.yml'), `jobs:
+  postgres-required:
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:latest
+  security-supply-chain:
+    continue-on-error: true
+    steps:
+      - run: npm audit || true
+`)
+
+  const failures = checkArchitecture(root)
+  assert.ok(failures.includes('required PostgreSQL CI must pin the service version and manifest digest'))
+  assert.ok(failures.includes('required PostgreSQL CI must enable the non-skip contract'))
+  assert.ok(failures.includes('required PostgreSQL CI must not allow failures'))
+  assert.ok(failures.includes('security CI must pin govulncheck'))
+  assert.ok(failures.includes('security CI must run the repository security gate'))
+  assert.ok(failures.includes('security CI must not allow failures'))
+})
+
 test('rejects frontend task scripts that bypass managed pnpm resolution', () => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
   const scriptRoot = join(root, 'scripts/go-admin-plus-ui')
