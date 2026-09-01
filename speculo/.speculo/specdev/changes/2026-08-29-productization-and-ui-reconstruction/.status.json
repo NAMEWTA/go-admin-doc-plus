@@ -917,14 +917,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "66d70030e0601f913d63b83f0205c06fc0f45299",
+      "source_checkpoint": "85d1f14c441771717c579b44d0b7c4adf7b52708",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "25c8ec1dd7caf3fd2497886427cb67a65438ffe9",
-        "source_sha": "66d70030e0601f913d63b83f0205c06fc0f45299",
-        "candidate_sha": "2582a4bc575bd941a9ecb47001ea92f8d083c8a8",
-        "candidate_tree_sha": "7be9540499c38fa5764a13e59be96335ad3b5630",
+        "parent_before_sha": "71fadd9b8e3f00ebfbff4dac7bffb6a235a21142",
+        "source_sha": "85d1f14c441771717c579b44d0b7c4adf7b52708",
+        "candidate_sha": "d1b0d9c92d8e658064e7bea389bfc3d1ae8c473e",
+        "candidate_tree_sha": "3d28be1020abf3892141ecb0e040eb8947e45133",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -934,13 +934,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 2582a4b contains governance parent 25c8ec1 and source 66d7003 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, lint, diff-check, and clean-tree verification. Self-tests lock manifest route indices 0 and 11, exact enabled start/target lookup, exactly 11 Tab steps, fresh focused-target query, fixed navigation diagnostics, two AX scans, one 0.2-second delay, and one center click while rejecting AX scroll actions/parents/areas/scrollbar values, perform action, Enter, extra keys, and extra clicks. Prior unchanged targeted Go/vet, full typecheck, Desktop production build/assets, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate d1b0d9c contains governance parent 71fadd9 and source 85d1f14 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, lint, diff-check, and clean-tree verification. Self-tests lock manifest route indices 0 and 11, exact enabled start/target lookup, exactly 11 Option-Tab steps, fresh focused-target query, fixed navigation diagnostics, two AX scans, one 0.2-second delay, and one center click while rejecting unmodified Tab, other keys, AX scroll actions/parents/areas/scrollbar values, perform action, Enter, and extra clicks. Prior unchanged targeted Go/vet, full typecheck, Desktop production build/assets, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-020 attempt 1 failure: Actions 33542592499 / job 99972252465 / probe c955fcb passed prebuild and then returned fixed navigation-traversal with no skip or marker. Exact start/target lookup and ordinary Tab sending did not error, but the fresh target was not focused. Apple documents that Option-Tab, rather than default Tab, highlights clickable webpage items when full keyboard navigation is not enabled. DEV-20-021 changes only the existing 11-step loop to Option-Tab and retains every other query, diagnostic, delay, click, product, workflow, timeout, and security boundary; two ordered attempts remain after a verified candidate.",
+          "reason": "Pending after DEV-20-020 attempt 2 failure: Actions 33544806661 / job 99979569584 / probe 5717707 passed prebuild and then returned fixed navigation-traversal with no skip or marker. Ordinary Tab and Option-Tab both failed to give the offscreen sidebar target fresh AX focus in the hosted Tauri WebView. DEV-20-022 adds one fixed visible Demo button only to the isolated native-e2e entry, drives the same real hash router, removes the failed unused traversal helper, and adds the new marker to production byte rejection; product shell, permissions, capabilities, workflow, timeouts, and required postconditions remain unchanged. One ordered attempt remains after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T02:32:06+08:00"
+      "updated_at": "2026-09-02T03:01:00+08:00"
     }
   ]
 }

@@ -77,6 +77,10 @@ const clearThemeStorage = () => {
     : 'E2E control failed: theme-storage-cleanup'
 }
 
+const openDemo = () => {
+  window.location.hash = '#/demo/products'
+}
+
 const nativeControl = async (action: 'scope-self' | 'scope-all' | 'permissions-off' | 'permissions-on' | 'session-revoke') => {
   nativeAuthorization.value = ''
   let stage = 'control-request'
@@ -125,6 +129,7 @@ onUnmounted(() => {
     <aside class="native-e2e" aria-live="polite">
       <span v-if="nativeBoundary">{{ nativeBoundary }}</span>
       <span v-if="nativeAuthorization">{{ nativeAuthorization }}</span>
+      <button type="button" @click="openDemo">E2E open Demo</button>
       <button type="button" @click="nativeControl('scope-self')">E2E scope self</button>
       <button type="button" @click="nativeControl('scope-all')">E2E scope all</button>
       <button type="button" @click="nativeControl('permissions-off')">E2E permissions off</button>

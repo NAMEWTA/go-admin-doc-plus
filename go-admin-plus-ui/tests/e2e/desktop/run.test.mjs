@@ -14,7 +14,7 @@ import {
   verifyDesktopProductionFiles
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
-import { buttonCurrentScript, clickButtonScript, fillAndSubmitScript, pressButtonScript, quoteAppleScript, windowBusyScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
+import { buttonCurrentScript, clickButtonScript, fillAndSubmitScript, quoteAppleScript, windowBusyScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
 import { nativeAccessibilityFailure, nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
@@ -80,6 +80,8 @@ test('shared workspace composes a persistent theme toggle and native restart ver
   assert.match(nativeApp, /!themeStorageIsSafe\(\) \? 'local-storage' : ''/)
   assert.match(nativeApp, /window\.localStorage\.removeItem\(ADMIN_THEME_STORAGE_KEY\)[\s\S]*window\.localStorage\.removeItem\(nativeE2eRunStorageKey\)/)
   assert.match(nativeApp, /window\.localStorage\.length === 0[\s\S]*'E2E theme storage cleared'[\s\S]*'E2E control failed: theme-storage-cleanup'/)
+  assert.match(nativeApp, /const openDemo = \(\) => \{\n  window\.location\.hash = '#\/demo\/products'\n\}/)
+  assert.match(nativeApp, /<button type="button" @click="openDemo">E2E open Demo<\/button>/)
 })
 
 test('production Desktop entry contains no native E2E controls', () => {
@@ -89,7 +91,7 @@ test('production Desktop entry contains no native E2E controls', () => {
   const vite = readFileSync(join(appRoot, 'vite.config.ts'), 'utf8')
   const manifest = JSON.parse(readFileSync(join(appRoot, 'package.json'), 'utf8'))
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  assert.doesNotMatch(app, /VITE_GO_ADMIN_NATIVE_E2E|__desktop\/test-control|native-e2e|window\.confirm\s*=|E2E scope self/)
+  assert.doesNotMatch(app, /VITE_GO_ADMIN_NATIVE_E2E|__desktop\/test-control|native-e2e|window\.confirm\s*=|E2E open Demo|E2E scope self/)
   assert.match(app, /<ProductWorkspace/)
   assert.match(main, /import App from '@desktop-entry'/)
   assert.match(vite, /mode === 'native-e2e' \? '\.\/src\/native-e2e\/App\.vue' : '\.\/src\/App\.vue'/)
@@ -145,6 +147,7 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
     'E2E all scope restored',
     'E2E authorization denied',
     'E2E control failed:',
+    'E2E open Demo',
     'E2E scope self',
     'E2E scope all',
     'E2E permissions off',
@@ -234,7 +237,8 @@ test('native Demo waits expose only fixed failure classifications', () => {
   assert.match(runner, /poll\('native Demo page'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'login-demo'\)/)
   assert.match(runner, /poll\('native Demo page after relogin'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'session-revocation-demo'\)/)
   assert.match(runner, /poll\('Stronghold session restart'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'stronghold-restart-demo'\)/)
-  assert.equal((runner.match(/pressButton\(app\.child\.pid, '产品示例'\)/g) ?? []).length, 3)
+  assert.match(runner, /const openDemo = pid => runAppleScript\(clickButtonScript\(pid, 'E2E open Demo'\)\)/)
+  assert.equal((runner.match(/openDemo\(app\.child\.pid\)/g) ?? []).length, 3)
   assert.doesNotMatch(runner, /clickButton\(app\.child\.pid, '产品示例'\)/)
   assert.ok(runner.indexOf("buttonCurrentScript(pid, '产品示例')") < runner.indexOf("windowContains(pid, '页面加载失败')"))
   assert.ok(runner.indexOf('windowBusyScript(pid)') < runner.indexOf("windowContains(pid, '页面加载失败')"))
@@ -254,10 +258,6 @@ test('native delete uses the uniquely named product action and a test-only confi
 })
 
 test('accessibility query walks the native flattened element collection', () => {
-  const manifest = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/app-shell/src/product/manifest.ts'), 'utf8')
-  const routeTitles = [...manifest.matchAll(/\{ name: '[^']+', module: '[^']+', title: '([^']+)'/g)].map(match => match[1])
-  assert.equal(routeTitles.indexOf('用户管理'), 0)
-  assert.equal(routeTitles.indexOf('产品示例'), 11)
   assert.equal(quoteAppleScript('a\\"b'), '"a\\\\\\"b"')
   const script = windowContainsScript(42, '产品搜索')
   assert.match(script, /set elementsToScan to entire contents of window 1/)
@@ -265,20 +265,6 @@ test('accessibility query walks the native flattened element collection', () => 
   assert.match(script, /if \(name of currentElement as text\) contains expectedValue/)
   assert.doesNotMatch(script, /every UI element of entire contents/)
   assert.match(clickButtonScript(42, '保存'), /role of currentElement is "AXButton" and name of currentElement is "\u4fdd\u5b58"/)
-  const press = pressButtonScript(42, '产品示例')
-  assert.match(press, /set frontmost to true/)
-  assert.match(press, /role of currentElement is "AXButton" and name of currentElement is "产品示例" and enabled of currentElement is true/)
-  assert.match(press, /name of currentElement is "用户管理" and enabled of currentElement is true[\s\S]*set navigationStart to contents of currentElement[\s\S]*set focused of navigationStart to true[\s\S]*repeat with traversalIndex from 1 to 11[\s\S]*key code 48 using option down[\s\S]*delay 0\.2[\s\S]*set refreshedElementsToScan to entire contents of window 1[\s\S]*repeat with refreshedCandidate in refreshedElementsToScan[\s\S]*name of refreshedCandidate is "产品示例" and enabled of refreshedCandidate is true and focused of refreshedCandidate is true[\s\S]*set refreshedElement to contents of refreshedCandidate[\s\S]*set buttonPosition to position of refreshedElement[\s\S]*set buttonSize to size of refreshedElement[\s\S]*set clickPoint to \{[\s\S]*click at clickPoint/)
-  assert.equal((press.match(/entire contents of window 1/g) ?? []).length, 2)
-  assert.equal((press.match(/key code 48 using option down/g) ?? []).length, 1)
-  assert.deepEqual([...press.matchAll(/delay ([0-9.]+)/g)].map(match => match[1]), ['0.2'])
-  assert.equal((press.match(/click at clickPoint/g) ?? []).length, 1)
-  assert.doesNotMatch(press, /set focused of currentElement/)
-  assert.doesNotMatch(press, /position of currentElement/)
-  assert.doesNotMatch(press, /size of currentElement/)
-  assert.doesNotMatch(press, /perform action|AXScrollToVisible|AXParent|AXScrollArea|AXVerticalScrollBar|AXMaxValue|scrollMaximum/)
-  assert.doesNotMatch(press, /click currentElement/)
-  assert.doesNotMatch(press, /key code 48(?! using option down)|key code (?!48)/)
   assert.match(buttonCurrentScript(42, '产品示例'), /value of attribute "AXARIACurrent" of currentElement as text\) is "page"/)
   assert.match(windowBusyScript(42), /value of attribute "AXBusy" of currentElement is true/)
   const form = fillAndSubmitScript(42, [{ name: '名称', value: 'Native product' }], '保存')
