@@ -12,11 +12,11 @@ risk: high
 blocked_by: [T-10, T-14, T-15, T-16, T-19]
 contract_ids: [AC-004, AC-005, AC-016, AC-017, AC-018, AC-031, AC-036]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>"]
-read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20"]
+expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/first-setup/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
+shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-20 via DEV-20-002"]
 ---
 
 # Ticket T-20: 建立 macOS Desktop 原生端到端门禁
@@ -46,6 +46,13 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 
 - 复用现有 AppleScript/CDP/native process harness，在 macOS runner 上使用独立测试 Keychain namespace。
 
+### 已批准执行偏差 DEV-20-002
+
+- **触发事实：** AC-018 要求 Web/Desktop 用户切换并持久化暗色主题，但当前共享主题控制器只存在于 UI 包单元层，双宿主未实例化且工作台无主题控件；现有 T-11/T-12/T-19 Evidence 因合同映射过宽未证明该外部行为。
+- **批准范围：** T-20 临时拥有 `ProductWorkspace.vue`、App Shell package manifest、lockfile 的精确 importer 与 test-only `src/native-e2e/App.vue`；只组合既有主题控制器、Lucide 明暗切换按钮，以独立 native Tauri identifier/WebKit data store 验证重启持久化，并在结束前清除测试主题存储。
+- **禁止扩大：** 不改变主题存储格式、路由、Session、领域页面、native host、其他 lock importer 或 dependency version。
+- **批准来源：** 用户“都批准”及“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
@@ -54,7 +61,7 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 
 | IN（本 Ticket 构建） | REUSE（复用且不改变契约） | OUT（明确不做） |
 |---|---|---|
-| native runner、first setup/restart/window/accessibility/secret/process checks | T-10 product、现有 sidecar build、production verifiers | 修改产品 main.rs、签名、公证、Windows native E2E |
+| native runner、first setup/restart/window/accessibility/secret/process checks、DEV-20-002 主题组合 | T-10 product、现有 sidecar build、production verifiers、T-11 theme controller | 修改产品 main.rs、签名、公证、Windows native E2E |
 
 ## 4. 要构建什么
 
@@ -64,7 +71,7 @@ Lead 在 macOS parent-candidate/current-workspace 构建 production-like Desktop
 
 - **入口或接缝：** required Desktop native E2E command、Tauri binary、macOS accessibility/Keychain/process tools。
 - **输入与输出：** clean temp roots/test keychain；输出脱敏 phase results 和 artifact verification。
-- **公共接口变化：** 无产品变化；native Gate 强化。
+- **公共接口变化：** 仅增加工作台主题切换 UI；主题存储/API 与其他产品合同不变。
 - **不变量：** production binary 无 test control；Keychain/data/process 全清理；不修改真实用户数据。
 - **状态或数据流：** build -> launch empty -> setup/session -> workspace -> restart -> verify -> cleanup。
 - **错误与失败行为：** opt-in 缺失、非 macOS、window timeout、secret leak、sidecar leak 均 required fail。
@@ -75,15 +82,15 @@ Lead 在 macOS parent-candidate/current-workspace 构建 production-like Desktop
 
 1. 强化 runner self-tests 与缺环境/Skip/cleanup 反向验证。
 2. 加入 empty DB first setup、部分成功恢复和工作区场景。
-3. 加入重启/SQLite/vault/route/目标窗口/accessibility 场景。
+3. 加入重启/SQLite/vault/route/目标窗口/accessibility/暗色主题持久化场景。
 4. 验证 production asset、capability、loopback 和进程/Keychain 清理。
 5. 在 macOS candidate 运行完整 native required Gate 并核对 Evidence。
 
 ## 7. 路径访问契约
 
-- **预计修改点/可写范围：** Desktop E2E、专用 scripts 和 production verifiers。
+- **预计修改点/可写范围：** Desktop E2E、专用 scripts、production verifiers，以及 DEV-20-002 精确开放的 App Shell 主题组合路径。
 - **只读上下文：** main.rs、Tauri product code、WebView、sidecar build。
-- **共享路径：** Desktop E2E tree 由 T-20 唯一拥有；main.rs 只读且归 T-10。
+- **共享路径：** Desktop E2E tree 由 T-20 唯一拥有；DEV-20-002 临时开放 test-only native App、ProductWorkspace/App Shell manifest/lock importer；main.rs 与 production Desktop entry 只读且归 T-10。
 - **保留或不动：** 不增测试后门，不触碰签名/公证或真实 Keychain/data。
 
 ## 8. 验证矩阵

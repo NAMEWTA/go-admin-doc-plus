@@ -120,7 +120,7 @@ Wave J: T-17 + T-18 + T-19 + T-20 -> T-21
 | F | T-17 | T-04~06、T-11、T-14、T-16 result | Generator 与 architecture checks | — | G4 / F1 |
 | G | T-18 | T-01、T-09、T-17 result | CI、PG/security scripts | T-18 | G5 / G1 |
 | H | T-19 | T-13~16、T-18 result | Web E2E root | T-19 | G6 / H1 |
-| I | T-20 | T-10、T-14~16、T-19 result | Desktop E2E subtree/scripts | T-20 | G7 / I1 |
+| I | T-20 | T-10、T-14~16、T-19 result | Desktop E2E subtree/scripts + DEV-20-002 theme composition | T-20；精确接管 App Shell theme composition | G7 / I1 |
 | J | T-21 | T-17~20 result | README/docs/deploy/release | T-21 | G8 / J1 |
 
 同一 Wave 内最多激活 3 个 implementation subagent；Lead 可根据测试资源、上下文和写路径降低并发。T-08、T-09、T-10、T-11、T-12、T-18、T-19、T-20、T-21 是其 frontmatter 所列 shared path 的唯一写 owner。
@@ -236,7 +236,7 @@ Gate 的关闭依据是行为和不可变 checkpoint，不是“完成了若干 
 | T-17 | 所列当前架构 result | `WT/T-17` / `specdev/.../T-17` | isolated generate/compile/test | required/non-empty | candidate architecture/generator；E2E N/R | result 后关闭 G4 |
 | T-18 | T-01+T-09+T-17 result | `WT/T-18` / `specdev/.../T-18` | CI scripts/negative policy | required/non-empty | candidate real PG/race/security/SBOM；E2E N/R | result 后关闭 G5 |
 | T-19 | T-13~16+T-18 result | `WT/T-19` / `specdev/.../T-19` | runner/unit/type checks only | required/non-empty | candidate required SQLite+PG browser E2E | result 后关闭 G6 |
-| T-20 | T-10+T-14~16+T-19 result | `WT/T-20` / `specdev/.../T-20` | runner/Rust/script checks only | required/non-empty | candidate required macOS native E2E | result 后关闭 G7 |
+| T-20 | T-10+T-14~16+T-19 result | `WT/T-20` / `specdev/.../T-20` | runner/Rust/script checks + DEV-20-002 theme composition | required/non-empty | candidate required macOS native E2E | result 后关闭 G7 |
 | T-21 | T-17~20 result | `WT/T-21` / `specdev/.../T-21` | docs/release policy checks | required/non-empty | candidate required full regression + three-profile clean-room | final `result_sha` 后评估 completion |
 
 对每个 Ticket，Lead 从最新依赖已集成的 `main` 创建唯一 source worktree；source worktree 不运行 E2E。Lead 接收 source commit 后冻结 `parent_before_sha`，在 Lead-owned detached candidate checkout 合并并运行 integration checks/适用 E2E；父 HEAD 漂移则 candidate 标记 stale 并重建。验证通过且 HEAD 未漂移后，Lead 才 fast-forward `main`、重读 tree 并记录 `result_sha`。候选失败时 `main` 不动，Ticket 回到同一 source worktree修正；成功集成不自动清理 branch/worktree。
@@ -268,7 +268,7 @@ Subagent 只返回候选事实与 source commit，不写 Evidence。Lead 核对�
 - Server 仅 SQLite/PostgreSQL，Desktop 仅 SQLite；租户、Redis、JWT、refresh token、Casbin 和默认管理员保持零保留。
 - 无固定 password SQL、未认证 Bootstrap/Recovery HTTP、argv secret、WebView secret、日志/审计 secret。
 - 后端是 capability/data scope/删除不变量事实源；前端可见性不能替代授权。
-- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写。
+- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 test-only native App、ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer。
 - Migration forward-only；PostgreSQL 生产显式 migrate，Server SQLite 自动 migrate，Desktop 备份成功后自动 migrate。
 - 不可逆 purge 只有 worker claim 前可取消；最后系统管理员不可删除；recover-admin 不创建或复活账号。
 - required Gate 不允许 skip/allow-failure/静默 retry；签名和公证只记 `not-required`。
@@ -318,7 +318,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Parent | `main@8e8855b` 文件树仍停在 T-20 实现前状态；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 source `968bead`、portable candidate `2066c7d`/tree `d037037` 已记录；candidate 包含 frozen `main@c1e57dd` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
+| Workspace records | T-20 source `4a34b13`、portable candidate `84a3b8e`/tree `1ec7ed2` 已记录；candidate 包含 frozen `main@a1b54c1` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `2066c7d` 已通过 Node 45/45、Vitest 256/256、type/lint、Go、Rust 26/26/clippy、Tauri release no-bundle 和 production marker 验证；runner 已覆盖 required/non-skip、arm64/x64、空库 setup、部分成功恢复、vault/SQLite restart、AX keyboard submit、960x640 native window 与 cleanup phases。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，当前 Windows host 明确 not-run，candidate 不晋升。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
+T-20 portable candidate `84a3b8e` 已通过 Node 46/46、Vitest 256/256、type/lint、Go、Rust 26/26/clippy、Tauri release no-bundle、production marker 与精确 capability configuration/privilege-growth negative 验证；runner 已覆盖 required/non-skip、arm64/x64、空库 setup、部分成功恢复、vault/SQLite restart、AX keyboard submit、960x640 native window 与 cleanup phases。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，当前 Windows host 明确 not-run，candidate 不晋升。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
 
 ### Resume Protocol
 
