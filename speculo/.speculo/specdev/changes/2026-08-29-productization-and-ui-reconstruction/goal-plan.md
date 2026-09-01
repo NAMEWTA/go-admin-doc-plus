@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main` 已包含 T-16 result `6b9fe9c136ca6cee1c3d9746eb80d1a2c3f2083d`；Files/Generator/Demo 成熟工具页已进入父分支 |
-| Tickets | T-01~T-17 均 `done`；T-18 `in_progress`；T-19~T-21 `ready` |
-| Gate | G0~G4 已通过；G5/T-18 执行中；G6~G8 尚未开启 |
-| Workspace records | T-17 source `eb27e0a`、candidate/result `b4ff4a0` 已记录；T-18 从 `main@083f1bd` 冻结 source base；所有 source/candidate 与旧失败候选继续保留 |
+| Parent | `main` 已包含 T-18 result `3fce364f67d9a468238e710e635ff77886c3a1d0`；required PostgreSQL 与供应链门禁已进入父分支 |
+| Tickets | T-01~T-18 均 `done`；T-19~T-21 `ready` |
+| Gate | G0~G5 已通过；G6~G8 尚未开启 |
+| Workspace records | T-18 source `c28d447`、candidate/result `3fce364` 已记录；source/candidate、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-10-001/DEV-12-001/DEV-13-001/DEV-14-001/DEV-15-001/DEV-16-001/DEV-18-001/DEV-18-002 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-17 已完成并晋升 result `b4ff4a0`：当前全垂直 scaffold、双方言、modular OpenAPI、Go/domain/Web Domain、共享组件页面、安全 trace、真实 PostgreSQL 与生产 compile gate 均有 source/candidate 实测证据；G4 已关闭。T-18 已由 `codex-root` 从 `main@083f1bd` 启动，负责真实 PostgreSQL、non-skip、安全扫描、SBOM 与 generate drift 的 required CI 合同；Taskfile、产品脚本和 lockfiles 保持只读。所有 source/candidate 与保护 stash 均保留。
+T-18 已完成并晋升 result `3fce364`：PostgreSQL 17.11 最终执行 18/18、0 skip，固定版本漏洞/依赖/secret/SBOM/generate 门禁和负向 policy 均有 candidate 实测证据；G5 已关闭。DEV-18-001/002 仅修正 Files contract fixture 的当前 migration composition 与 Cargo.lock advisory resolution。所有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留；T-19 将从该 result 建立真实 Web 浏览器 required E2E。
 
 ### Resume Protocol
 

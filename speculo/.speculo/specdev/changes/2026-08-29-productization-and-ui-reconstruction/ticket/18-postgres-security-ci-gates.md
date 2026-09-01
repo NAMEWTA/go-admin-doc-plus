@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-18
 title: 建立真实 PostgreSQL 与安全供应链 CI 门禁
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: required CI 决定发布证据真实性，跨数据库服务、并发测试、漏洞/secret/SBOM 且缺环境必须失败
 ready: true
@@ -119,7 +119,7 @@ CI 启动隔离 PostgreSQL，等待健康后创建/传入 disposable DSN，并�
 
 ## 10. 验收标准
 
-- [ ] frontmatter 所列 PG/security AC 由真实 service 和非 Skip reports 覆盖。
-- [ ] 缺 DSN、Skip、零目标测试与 scan finding 的反向验证能使 Gate 失败。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-18.md</Path>`。
-- [ ] shared owner、commit、CI integration/result 与 E2E disposition 完整。
+- [x] frontmatter 所列 PG/security AC 由真实 service 和非 Skip reports 覆盖。
+- [x] 缺 DSN、Skip、零目标测试与 scan finding 的反向验证能使 Gate 失败。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-18.md</Path>`。
+- [x] shared owner、commit、CI integration/result 与 E2E disposition 完整。
