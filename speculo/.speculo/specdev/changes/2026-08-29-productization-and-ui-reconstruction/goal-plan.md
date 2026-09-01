@@ -318,7 +318,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Parent | 当前 `main@d935d4f` 仍未包含 T-20 产品树；最新 candidate 包含此前治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 latest source `075a043`、portable candidate `f1e7b28`/tree `a375d05` 已记录并通过 portable checks；probe `84e97c9` 的 DEV-20-014 attempt 3 `login-demo-workspace` 红灯保留，既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
+| Workspace records | T-20 latest source `4f840d3`、portable candidate `9b47a86`/tree `f98ff82` 已记录并通过 portable checks；probe `84e97c9` 的 DEV-20-014 attempt 3 `login-demo-workspace` 红灯保留，既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005/006/008/011/014 各 3 次 probe 均已用尽；DEV-20-007 已用 2 次且剩余 runner-only attempt 不用于产品修正；DEV-20-017 只开放 exact enabled button AXScrollToVisible + 既有 center click 与最多 3 次逐项归因 attempt；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-014 attempt 3 再次返回 `login-demo-workspace`，且 center click command 未报错。静态产品壳证明 order 600 的 Demo 位于 576px overflow-auto sidebar 的屏外位置而 AX tree 仍可见；DEV-20-017 只在同一 exact enabled button 上先执行 AXScrollToVisible 再 center click，不改变产品、fixture、调用点或等待上限。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `f1e7b28` 与 DEV-20-014 attempt 3 红灯均保留，且旧配额已用尽。下一 source/candidate 只实现 DEV-20-017 的 AXScrollToVisible + existing center click，然后更新同一 workflow-only probe并使用新配额 attempt 1。G7 仍必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
+T-20 portable candidate `9b47a86` 已实现 DEV-20-017 的 AXScrollToVisible + existing center click 并通过 Node 48/48、Vitest 41/41 files / 256/256 tests、lint、Speculo 0/0、diff-check 与 clean-tree verification。probe `acd5a91` 的 DEV-20-017 attempt 1（Actions `33535248320`，job `99947849962`）通过 prebuild，但 required gate 从 17:08:11Z 运行至 17:16:27Z 后仍返回 `login-demo-workspace`：scroll action 未抛错，center click 仍未激活 route，且没有 pass marker。DEV-20-018 只在 scroll 后 fresh query 同一 exact enabled button，再用刷新引用执行既有 focus/delay/center click；不增加 action、click、delay 或 attempt 配额。新 source/candidate portable checks 通过后才可使用剩余 2 次中的下一次 ordered attempt。G7 仍必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
 
 ### Resume Protocol
 
