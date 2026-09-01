@@ -113,6 +113,7 @@ const deepLinkAndHistory = async () => {
 
   await router.push('/iam/users')
   await wait(() => shellState() === 'workspace' && location.pathname === '/iam/users', 'allowed route did not recover from forbidden state')
+  await wait(() => document.querySelector('[data-testid="user-search"]') !== null, 'user search was not available for revocation check')
   await post('/__test/revoke-sessions')
   const search = document.querySelector<HTMLFormElement>('[data-testid="user-search"]')
   assert(search, 'user search was not available for revocation check')
