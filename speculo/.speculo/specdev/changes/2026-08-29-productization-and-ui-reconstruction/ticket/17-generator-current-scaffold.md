@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-17
 title: 升级 Generator 为当前全垂直脚手架
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 模板会写入双方言 schema、公共 API、后端模块、前端 workspace 和权限注册，事故半径覆盖未来所有生成模块
 ready: true
 risk: high
 blocked_by: [T-04, T-05, T-06, T-09, T-11, T-14, T-16]
 contract_ids: [AC-034]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
 writable_paths: ["<Path>go-admin-plus/internal/modules/generator/templates.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator.go</Path>", "<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>", "<Path>go-admin-plus/internal/modules/generator/compile_gate.go</Path>", "<Path>go-admin-plus/internal/modules/generator/*_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
 read_only_paths: ["<Path>contracts/openapi/**</Path>", "<Path>go-admin-plus/internal/modules/demo/**</Path>", "<Path>go-admin-plus-ui/packages/web-domains/demo/**</Path>", "<Path>go-admin-plus-ui/packages/ui/**</Path>", "<Path>.agents/skills/new-business-module/**</Path>"]
