@@ -268,7 +268,7 @@ Subagent 只返回候选事实与 source commit，不写 Evidence。Lead 核对�
 - Server 仅 SQLite/PostgreSQL，Desktop 仅 SQLite；租户、Redis、JWT、refresh token、Casbin 和默认管理员保持零保留。
 - 无固定 password SQL、未认证 Bootstrap/Recovery HTTP、argv secret、WebView secret、日志/审计 secret。
 - 后端是 capability/data scope/删除不变量事实源；前端可见性不能替代授权。
-- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer。
+- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 test-only native App、ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer。
 - Migration forward-only；PostgreSQL 生产显式 migrate，Server SQLite 自动 migrate，Desktop 备份成功后自动 migrate。
 - 不可逆 purge 只有 worker claim 前可取消；最后系统管理员不可删除；recover-admin 不创建或复活账号。
 - required Gate 不允许 skip/allow-failure/静默 retry；签名和公证只记 `not-required`。

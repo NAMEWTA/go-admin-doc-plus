@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T17:12:29+08:00",
+  "updated_at": "2026-09-01T17:15:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -46,7 +46,7 @@
     "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof."
   ],
   "deviations": [
-    "DEV-20-002 (ticket path ownership and missing AC-018 behavior, approved under USER-DECISION:all-approved): T-20 may update ProductWorkspace.vue, the App Shell package manifest, and only its exact pnpm-lock importer to compose the existing theme controller, expose a Lucide light/dark toggle, and verify persistence across a native restart. Theme storage/API, routes, Session, domain pages, native host, other importers, and dependency versions remain unchanged.",
+    "DEV-20-002 (ticket path ownership and missing AC-018 behavior, approved under USER-DECISION:all-approved): T-20 may update ProductWorkspace.vue, the App Shell package manifest, only its exact pnpm-lock importer, and the test-only native-e2e App to compose the existing theme controller, expose a Lucide light/dark toggle, run with an isolated native Tauri identifier/WebKit data store, verify persistence across a native restart, and clear the test theme storage. Theme storage/API, routes, Session, domain pages, production Desktop entry/native host, other importers, and dependency versions remain unchanged.",
     "DEV-20-001 (integration procedure, resolved under existing local-candidate authorization): the first T-20 merge command ran in the main worktree instead of the new candidate. Commit 4870670 records that merge and 8e8855b immediately forward-reverts its tree before any promotion claim; candidate lineage e6a83fc -> 2066c7d -> 84a3b8e contains the frozen parent plus explicit reapplication and the final source checkpoint. No history was rewritten, no unreviewed tree remains on main, and native E2E stays pending.",
     "DEV-19-010 (ticket path ownership, approved under USER-DECISION:all-approved): T-19 may update go-admin-plus-ui/tests/shell/visual-contract.spec.ts only to replace stale paused-tab driver assertions with exact current IAM, Organization, and Scheduler product route assertions. Localized label and stale-English-label checks remain unchanged.",
     "DEV-19-009 (ticket path ownership, approved under USER-DECISION:all-approved): T-19 may update go-admin-plus/test/generator/browser_harness_test.go only to compose the current 0040 session-protection migration provider in the existing dual-dialect browser fixture. Product services, migration contents, assertions, and required semantics remain unchanged.",
@@ -931,7 +931,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T17:12:29+08:00"
+      "updated_at": "2026-09-01T17:15:00+08:00"
     }
   ]
 }
