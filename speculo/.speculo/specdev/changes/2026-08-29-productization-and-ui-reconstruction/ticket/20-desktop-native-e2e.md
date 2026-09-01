@@ -237,7 +237,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可把 `product-create` 的 runner click target 从 `新增` 改为产品现有 exact `新增产品`，并让 Desktop runner self-test 同时读取 `DemoProductsPage.vue` 锁定产品按钮标签和 runner target；其后原“新增产品”dialog、“保存”与 `E2E-001` 后置条件不变。形成并验证新 source/candidate 后，继续使用 DEV-20-026 剩余 2 次 ordered attempt。
 - **禁止扩大：** 不修改产品页、表单、CRUD API、输入/提交动作、timeout/retry/skip/allow-failure、test-only UI、后端、Session、router、capability/config 或 workflow；不发布 artifact、deploy/migrate、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-026 尚余 2 次 ordered attempt。
+- **执行状态：** source `4ddfdaa0e45078bf0b0bbf593cf1c8476a4e4731` 已形成；candidate `3ab6ee5dcd1e69051e4ed918689361b1a313c0d9`（tree `a745cc7812964c4c61c09428d49b16591f179cd4`）包含治理父 `b8d708d266a844183f888c67b764f30a8854dea5` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 标记检查、production build/逐文件 asset scan、diff-check 与 clean tree；self-test 同时锁定产品 `新增产品` 标签与 runner exact target。DEV-20-026 尚余 2 次 ordered attempt，native Gate 仍为 pending。
 
 ### 未决问题
 
