@@ -144,6 +144,13 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure 或其他 sleep/delay；不输出任意 UI；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-016
+
+- **触发事实：** DEV-20-014 attempt 2 `33530698516`（job `99932815718`，probe `f062e11`）在真实 macOS 15.7.7 arm64 上通过 prebuild，随后仍精确返回 `login-demo-workspace`。同一个 exact enabled Demo AXButton 的 standard AXPress、element click、focus + Enter 以及与已通过 native submit 对齐的 `delay 0.2` focus synchronization 均未激活 WebKit/Vue route。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`；`pressButtonScript` 继续定位同一 exact enabled AXButton，从其 AX position/size 计算中心点，并在既有 frontmost/focus synchronization 后只发送一次 System Events `click at`。self-test 必须锁定 position/size/center/single-click 顺序并拒绝 AXPress、`click currentElement` 与 `key code`。形成新 source/candidate 后使用 DEV-20-014 最后 1 次有序 hosted attempt，不新增配额。
+- **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure，不输出任意 UI 或坐标，不增加其他 click/sleep/delay；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
