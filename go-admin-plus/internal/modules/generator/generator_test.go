@@ -8,7 +8,6 @@ import (
 	"errors"
 	"go/parser"
 	"go/token"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -96,7 +95,7 @@ func (gate rootReplacingGate) Check(context.Context, string, Preview) error {
 	if err := os.Rename(gate.root, gate.moved); err != nil {
 		return err
 	}
-	return os.Symlink(gate.replacement, gate.root)
+	return os.Rename(gate.replacement, gate.root)
 }
 func (rootReplacingGate) CompleteOutputGate() {}
 
@@ -197,6 +196,69 @@ func TestGeneratedServiceDeduplicatesPrimarySortAndUsesConditionalSearchImports(
 	}
 }
 
+func TestGeneratedScaffoldUsesCurrentListAndSafeFailureContracts(t *testing.T) {
+	model, err := normalize(testTable(), testDraft())
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := renderBase(model)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := make(map[string]string, len(files))
+	for _, file := range files {
+		content[file.Path] = file.Content
+	}
+	page := content["go-admin-plus-ui/packages/web-domains/catalog/src/ProductPage.vue"]
+	for _, required := range []string{"AppPage", "QueryBar", "TableToolbar", "Pagination", "EmptyState", "StatusTag", "FormDialog", "FormGrid", "@go-admin-plus/ui/components"} {
+		if !strings.Contains(page, required) {
+			t.Fatalf("generated page is missing current UI contract %q", required)
+		}
+	}
+	for _, forbidden := range []string{`class="generated-records"`, `class="editor"`, `aria-label="Pagination"`, "#17202a", "#dfe6e9"} {
+		if strings.Contains(page, forbidden) {
+			t.Fatalf("generated page retained legacy UI contract %q", forbidden)
+		}
+	}
+	domain := content["go-admin-plus-ui/packages/domains/catalog/src/index.ts"]
+	client := content["go-admin-plus-ui/packages/web-domains/catalog/src/web-client.ts"]
+	controller := content["go-admin-plus-ui/packages/web-domains/catalog/src/index.ts"]
+	for name, source := range map[string]string{"domain": domain, "client": client, "controller": controller} {
+		if !strings.Contains(source, "traceId") {
+			t.Fatalf("generated %s does not retain a safe trace reference", name)
+		}
+	}
+	if !strings.Contains(client, "tracePattern") || !strings.Contains(client, "safeTraceId") {
+		t.Fatal("generated web client does not validate trace references")
+	}
+}
+
+func TestGeneratedBaseFileTreeCoversTheCurrentVerticalModule(t *testing.T) {
+	model, err := normalize(testTable(), testDraft())
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := renderBase(model)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := []string{
+		"contracts/openapi/modules/catalog.yaml",
+		"go-admin-plus/internal/modules/catalog/http.go", "go-admin-plus/internal/modules/catalog/http_records.go", "go-admin-plus/internal/modules/catalog/mapping.go", "go-admin-plus/internal/modules/catalog/model.go", "go-admin-plus/internal/modules/catalog/permissions.go", "go-admin-plus/internal/modules/catalog/repository.go", "go-admin-plus/internal/modules/catalog/service.go", "go-admin-plus/internal/modules/catalog/service_postgres_test.go", "go-admin-plus/internal/modules/catalog/service_test.go",
+		"go-admin-plus/internal/modules/catalog/migrations/0010-products/postgres/7000000000000_products.sql", "go-admin-plus/internal/modules/catalog/migrations/0010-products/provider.go", "go-admin-plus/internal/modules/catalog/migrations/0010-products/sqlite/7000000000000_products.sql",
+		"go-admin-plus-ui/packages/domains/catalog/package.json", "go-admin-plus-ui/packages/domains/catalog/src/index.ts", "go-admin-plus-ui/packages/domains/catalog/src/model.spec.ts", "go-admin-plus-ui/packages/domains/catalog/src/tsconfig.json",
+		"go-admin-plus-ui/packages/web-domains/catalog/package.json", "go-admin-plus-ui/packages/web-domains/catalog/src/ProductPage.vue", "go-admin-plus-ui/packages/web-domains/catalog/src/controller.spec.ts", "go-admin-plus-ui/packages/web-domains/catalog/src/index.ts", "go-admin-plus-ui/packages/web-domains/catalog/src/tsconfig.json", "go-admin-plus-ui/packages/web-domains/catalog/src/web-client.ts", "go-admin-plus-ui/packages/web-domains/catalog/vitest.config.ts",
+	}
+	actual := make([]string, 0, len(files))
+	for _, file := range files {
+		actual = append(actual, file.Path)
+	}
+	sort.Strings(expected)
+	if strings.Join(actual, "\n") != strings.Join(expected, "\n") {
+		t.Fatalf("generated base tree drifted\nactual:\n%s\nexpected:\n%s", strings.Join(actual, "\n"), strings.Join(expected, "\n"))
+	}
+}
+
 func TestPreviewIsDeterministicAndUsesOneNormalizedModel(t *testing.T) {
 	root := t.TempDir()
 	writer, err := NewAtomicWriter(root, passingGate{})
@@ -284,7 +346,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*compileGateTimeout)
 	defer cancel()
 	files, err := renderer.Render(ctx, model)
 	if err != nil {
@@ -303,7 +365,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		if mkdirErr := os.Mkdir(outputRoot, 0o750); mkdirErr != nil {
 			t.Fatal(mkdirErr)
 		}
-		cliURL := (&url.URL{Scheme: "file", Path: filepath.Join(repositoryRoot, "scripts/contracts/cli.mjs")}).String()
+		cliURL := localFileURL(filepath.Join(repositoryRoot, "scripts/contracts/cli.mjs"))
 		script := `const { generate, lintContracts } = await import(process.argv[1]); lintContracts([process.argv[3]]); generate(process.argv[2], [process.argv[3]]);`
 		command := exec.CommandContext(ctx, requireToolExecutable(t, "node"), "--input-type=module", "-e", script, cliURL, outputRoot, contractPath)
 		command.Dir = repositoryRoot
@@ -314,6 +376,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 	for _, path := range []string{
 		"go-admin-plus/internal/modules/catalog/transport/openapi.gen.go",
 		"go-admin-plus/internal/modules/catalog/transport/openapi.json",
+		"go-admin-plus/internal/modules/catalog/transport/openapi.manifest.json",
 		"go-admin-plus-ui/packages/domains/catalog/src/generated/client.ts",
 		"go-admin-plus-ui/packages/domains/catalog/src/generated/schema.ts",
 	} {
@@ -349,6 +412,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		{"scripts/contracts/cli.mjs", "lint", "--contract", "contracts/openapi/modules/catalog.yaml"},
 		{"scripts/contracts/cli.mjs", "generate"},
 		{"scripts/contracts/cli.mjs", "generate", "--check"},
+		{"scripts/quality/architecture-check.mjs", fixture},
 	} {
 		command := exec.CommandContext(ctx, requireToolExecutable(t, "node"), arguments...)
 		command.Dir = fixture
@@ -391,6 +455,7 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 		{"--filter", "@go-admin-plus/web-domain-catalog", "typecheck"},
 		{"--filter", "@go-admin-plus/web-domain-catalog", "test"},
 		{"check:workspace"},
+		{"build"},
 	} {
 		command := exec.CommandContext(ctx, requireToolExecutable(t, pnpmExecutable()), arguments...)
 		command.Dir = uiRoot
@@ -462,21 +527,28 @@ func TestCompileSkeletonRejectsEnvironmentFiles(t *testing.T) {
 }
 
 func TestCompileGateRunsRepositoryArchitectureBeforeGeneratedModule(t *testing.T) {
-	commands := compileGateCommands("/fixture/go-admin-plus", "/fixture/go-admin-plus-ui", "catalog")
-	architecture, moduleTest, moduleBuild := -1, -1, -1
+	fixture := filepath.Join(string(filepath.Separator), "fixture")
+	goRoot := filepath.Join(fixture, "go-admin-plus")
+	uiRoot := filepath.Join(fixture, "go-admin-plus-ui")
+	commands := compileGateCommands(goRoot, uiRoot, "catalog")
+	repositoryArchitecture, backendArchitecture, moduleTest, moduleBuild, frontendBuild := -1, -1, -1, -1, -1
 	for index, command := range commands {
 		arguments := strings.Join(command.arguments, " ")
 		switch {
-		case command.directory == "/fixture/go-admin-plus" && command.name == "go" && arguments == "test ./internal/application":
-			architecture = index
-		case command.directory == "/fixture/go-admin-plus" && command.name == "go" && arguments == "test ./internal/modules/catalog/...":
+		case command.directory == fixture && command.name == "node" && strings.HasPrefix(arguments, "scripts/quality/architecture-check.mjs "):
+			repositoryArchitecture = index
+		case command.directory == goRoot && command.name == "go" && arguments == "test ./internal/application":
+			backendArchitecture = index
+		case command.directory == goRoot && command.name == "go" && arguments == "test ./internal/modules/catalog/...":
 			moduleTest = index
-		case command.directory == "/fixture/go-admin-plus" && command.name == "go" && arguments == "build ./internal/modules/catalog/...":
+		case command.directory == goRoot && command.name == "go" && arguments == "build ./internal/modules/catalog/...":
 			moduleBuild = index
+		case command.directory == uiRoot && command.name == pnpmExecutable() && arguments == "build":
+			frontendBuild = index
 		}
 	}
-	if architecture < 0 || moduleTest < 0 || moduleBuild < 0 || architecture >= moduleTest || moduleTest >= moduleBuild {
-		t.Fatalf("compile gate architecture/module order = %d/%d/%d", architecture, moduleTest, moduleBuild)
+	if repositoryArchitecture < 0 || backendArchitecture < 0 || moduleTest < 0 || moduleBuild < 0 || frontendBuild < 0 || repositoryArchitecture >= backendArchitecture || backendArchitecture >= moduleTest || moduleTest >= moduleBuild || moduleBuild >= frontendBuild {
+		t.Fatalf("compile gate repository/backend/module/build order = %d/%d/%d/%d/%d", repositoryArchitecture, backendArchitecture, moduleTest, moduleBuild, frontendBuild)
 	}
 }
 
@@ -669,10 +741,17 @@ func TestAtomicWriterRejectsOutputRootReplacementDuringGate(t *testing.T) {
 		t.Fatal(err)
 	}
 	preview := signedPreview("catalog", []PreviewFile{{Path: "module/file.txt", Content: "stable\n"}})
-	if _, err := writer.Write(context.Background(), preview); !errors.Is(err, ErrInvalid) {
-		t.Fatalf("root replacement: %v", err)
+	_, writeErr := writer.Write(context.Background(), preview)
+	directories := []string{moved, root}
+	if runtime.GOOS == "windows" {
+		if !errors.Is(writeErr, ErrGateFailed) {
+			t.Fatalf("OS-blocked root replacement: %v", writeErr)
+		}
+		directories = []string{root, replacement}
+	} else if !errors.Is(writeErr, ErrInvalid) {
+		t.Fatalf("root replacement: %v", writeErr)
 	}
-	for _, directory := range []string{moved, replacement} {
+	for _, directory := range directories {
 		entries, readErr := os.ReadDir(directory)
 		if readErr != nil || len(entries) != 0 {
 			t.Fatalf("root replacement published in %s: entries=%v err=%v", directory, entries, readErr)
@@ -759,12 +838,19 @@ func TestWriterRejectsSymlinkRoot(t *testing.T) {
 		t.Fatal(err)
 	}
 	link := filepath.Join(parent, "link")
-	if err := os.Symlink(realRoot, link); err != nil {
+	if err := createDirectoryLink(realRoot, link); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := NewAtomicWriter(link); !errors.Is(err, ErrInvalid) {
 		t.Fatalf("symlink root: %v", err)
 	}
+}
+
+func createDirectoryLink(target, link string) error {
+	if runtime.GOOS == "windows" {
+		return exec.Command("cmd.exe", "/d", "/c", "mklink", "/J", link, target).Run()
+	}
+	return os.Symlink(target, link)
 }
 
 func TestSQLiteMetadataIsCurrentProfileAndAllowlistOnly(t *testing.T) {

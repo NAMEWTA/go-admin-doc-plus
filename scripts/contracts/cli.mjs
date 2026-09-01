@@ -91,10 +91,15 @@ const fail = (message, exitCode = 1) => {
 }
 
 const run = (command, args, options = {}) => {
+  const commandShim = process.platform === 'win32' && /\.(?:cmd|bat)$/i.test(command)
+  if (commandShim && args.some(argument => /[\r\n"&|<>^%!]/.test(argument))) {
+    fail(`${command} received an unsafe Windows command argument`)
+  }
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? repositoryRoot,
     encoding: 'utf8',
-    stdio: options.capture ? 'pipe' : 'inherit'
+    stdio: options.capture ? 'pipe' : 'inherit',
+    shell: commandShim
   })
   if (result.error) fail(`${command} is required: ${result.error.message}`, 127)
   if (result.status !== 0) {

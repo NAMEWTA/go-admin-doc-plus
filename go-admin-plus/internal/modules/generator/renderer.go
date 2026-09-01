@@ -95,7 +95,7 @@ func (generator *CanonicalTransportGenerator) Generate(ctx context.Context, mode
 	if err := os.Mkdir(output, 0o750); err != nil {
 		return nil, ErrInternal
 	}
-	cliURL := (&url.URL{Scheme: "file", Path: filepath.Join(generator.repositoryRoot, "scripts/contracts/cli.mjs")}).String()
+	cliURL := localFileURL(filepath.Join(generator.repositoryRoot, "scripts/contracts/cli.mjs"))
 	script := `const { generate, lintContracts } = await import(process.argv[1]); lintContracts([process.argv[3]]); generate(process.argv[2], [process.argv[3]]);`
 	nodeExecutable, err := resolveToolExecutable("node")
 	if err != nil {
@@ -131,6 +131,14 @@ func (generator *CanonicalTransportGenerator) Generate(ctx context.Context, mode
 		files = append(files, PreviewFile{Path: path, Content: string(content)})
 	}
 	return files, nil
+}
+
+func localFileURL(path string) string {
+	normalized := filepath.ToSlash(path)
+	if filepath.VolumeName(path) != "" && normalized[0] != '/' {
+		normalized = "/" + normalized
+	}
+	return (&url.URL{Scheme: "file", Path: normalized}).String()
 }
 
 func copyDirectory(source, destination string) error {
