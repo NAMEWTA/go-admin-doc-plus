@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-014 attempt 3 再次返回 `login-demo-workspace`，且 center click command 未报错。静态产品壳证明 order 600 的 Demo 位于 576px overflow-auto sidebar 的屏外位置而 AX tree 仍可见；DEV-20-017 只在同一 exact enabled button 上先执行 AXScrollToVisible 再 center click，不改变产品、fixture、调用点或等待上限。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `9b47a86` 已实现 DEV-20-017 的 AXScrollToVisible + existing center click 并通过 Node 48/48、Vitest 41/41 files / 256/256 tests、lint、Speculo 0/0、diff-check 与 clean-tree verification；DEV-20-014 attempt 3 红灯仍保留。下一步更新同一 workflow-only probe并使用 DEV-20-017 新配额 attempt 1。G7 仍必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
+T-20 portable candidate `9b47a86` 已实现 DEV-20-017 的 AXScrollToVisible + existing center click 并通过 Node 48/48、Vitest 41/41 files / 256/256 tests、lint、Speculo 0/0、diff-check 与 clean-tree verification。probe `acd5a91` 的 DEV-20-017 attempt 1（Actions `33535248320`，job `99947849962`）通过 prebuild，但 required gate 从 17:08:11Z 运行至 17:16:27Z 后仍返回 `login-demo-workspace`：scroll action 未抛错，center click 仍未激活 route，且没有 pass marker。下一步先完成该红灯归因与受限修正，再决定是否使用剩余 2 次 ordered attempt。G7 仍必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
 
 ### Resume Protocol
 
