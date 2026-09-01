@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-21
 title: 收敛文档并完成三 Profile Clean-room 候选
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 最终 Gate 跨数据库迁移、部署、Desktop、本地持久化、运维恢复和发布证据，决定 change 是否可完成
 ready: true
 risk: high
 blocked_by: [T-17, T-18, T-19, T-20]
 contract_ids: [AC-030, AC-031, AC-032, AC-033, AC-034, AC-035, AC-036, AC-037, AC-038, AC-039]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>README.md</Path>", "<Path>docs/**</Path>", "<Path>database/README.md</Path>", "<Path>deploy/**</Path>", "<Path>release/**</Path>", "<Path>scripts/release/**</Path>", "<Path>scripts/quality/docs-check.mjs</Path>", "<Path>scripts/quality/docs-check.test.mjs</Path>"]
 writable_paths: ["<Path>README.md</Path>", "<Path>docs/**</Path>", "<Path>database/README.md</Path>", "<Path>deploy/**</Path>", "<Path>release/**</Path>", "<Path>scripts/release/**</Path>", "<Path>scripts/quality/docs-check.mjs</Path>", "<Path>scripts/quality/docs-check.test.mjs</Path>"]
 read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>go-admin-plus/**</Path>", "<Path>go-admin-plus-ui/**</Path>", "<Path>.github/workflows/ci.yml</Path>"]
@@ -114,4 +114,3 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - [ ] 三 profile 从空库可复现，签名/公证正确记为 not-required。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>`。
 - [ ] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。
-

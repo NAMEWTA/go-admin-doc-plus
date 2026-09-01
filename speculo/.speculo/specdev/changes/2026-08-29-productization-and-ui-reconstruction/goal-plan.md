@@ -315,11 +315,11 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | 当前 `main@d935d4f` 仍未包含 T-20 产品树；最新 candidate 包含此前治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
-| Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
-| Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 latest source `7c2e7c3`、portable candidate `1e17579`/tree `90cc12f` 已记录并通过 portable checks；probe `b3244c0` 的 DEV-20-018 attempt 2 `login-demo-workspace` 红灯保留，既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005/006/008/011/014 各 3 次 probe 均已用尽；DEV-20-007 已用 2 次且剩余 runner-only attempt 不用于产品修正；DEV-20-017 只开放 exact enabled button AXScrollToVisible + 既有 center click 与最多 3 次逐项归因 attempt；其他远程写入/部署/发布/生产迁移/清理未授权 |
+| Parent | `main@6d09aee71389014bb969eba0de1a99fce608f1b2` 已 `--ff-only` 包含 T-20 result；`4870670` 误合并及 `8e8855b` 前向撤销继续保留审计历史 |
+| Tickets | T-01~T-20 均 `done`；T-21 `in_progress` |
+| Gate | G0~G7 已通过；G8/T-21 执行中 |
+| Workspace records | T-20 source `4ddfdaa`、native 已验证 checkpoint `3ab6ee5`、result `6d09aee`/tree `f0e3e31` 已记录；probe `e83a460` / Actions `33558345476` / job `100024584867` 成功，全部历史红灯 candidate/probe 继续保留 |
+| Authorization | local source commits、candidate integration、`main` fast-forward 和 required runner 已授权；T-20 hosted probe 成功后停止使用剩余配额。T-21 本地 source/candidate 与 disposable clean-room 在既有范围内授权；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
@@ -328,10 +328,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 当前执行 active；DEV-09-001 已解除 Wave A/T-09 的执行闭环并完成本轮候选晋升：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
-- G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-014 attempt 3 再次返回 `login-demo-workspace`，且 center click command 未报错。静态产品壳证明 order 600 的 Demo 位于 576px overflow-auto sidebar 的屏外位置而 AX tree 仍可见；DEV-20-017 只在同一 exact enabled button 上先执行 AXScrollToVisible 再 center click，不改变产品、fixture、调用点或等待上限。
+- G7/T-20 已由 hosted macOS 15.7.7 arm64 probe `e83a460` / Actions `33558345476` / job `100024584867` 关闭；AX enabled，required gate 精确输出 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，完整 job 16m39s、结论 success。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 candidate `3ab6ee5`（tree `a745cc7`，source `4ddfdaa`，治理父 `b8d708d`）已实现 DEV-20-027，并通过 Vitest 256/256、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 恢复/主题标记检查、production build/逐文件 asset scan、diff-check 与 clean tree。DEV-20-026 attempt 1 probe `d24003e` / Actions `33556103488` / job `100017206579` 的 prebuild 通过，required gate 从 20:41:31Z 至 20:49:50Z 越过权限恢复、真实 Demo 回跳与 Session revoke/relogin，首红推进到 `product-create`: accessibility button unavailable，直接证明 DEV-20-026 有效。DEV-20-027 只把 runner 旧 `新增` target 对齐产品现有 exact `新增产品` 并用 self-test 锁定，不改变产品、表单或后置条件；DEV-20-026 尚余 2 次配额。G7 必须在真实 macOS execution 得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash均保留。
+T-20 native 已验证 checkpoint `3ab6ee5`（source `4ddfdaa`）通过 Vitest 256/256、Node 49/49、Desktop runner 22/22、完整 typecheck、lint、native-e2e 标记检查、production build/逐文件 asset scan 和真实 macOS required Gate。最终 result `6d09aee`（tree `f0e3e31`）相对该 checkpoint 只合入四个 Speculo 治理文件，已 `--ff-only` 晋升 main。G7 已关闭，T-21/G8 现负责三 Profile clean-room、文档/发布合同与最终全量候选；所有既有 source/candidate/probe、扫描 artifacts 与保护 stash 均保留。
 
 ### Resume Protocol
 

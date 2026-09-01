@@ -38,13 +38,11 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T01:46:30+08:00",
+  "updated_at": "2026-09-02T06:20:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
-  "blockers": [
-    "G7 remains pending. DEV-20-018 attempt 2 ran candidate 2d302d2 as Actions 33537653264 (job 99955810105, probe b3244c0), passed native prebuild, then again failed login-demo-workspace; no pass marker was produced. Fresh AX element acquisition after AXScrollToVisible did not change the route result, proving the action itself has no useful scroll postcondition in this WebKit overflow navigation. DEV-20-019 authorizes replacing that action with the target ancestor AXScrollArea's associated AXVerticalScrollBar set to AXMaxValue before the same fresh query and single center click. The final remaining ordered attempt requires a new source/candidate and portable verification."
-  ],
+  "blockers": [],
   "deviations": [
     "DEV-20-019 (scroll the exact Desktop Demo navigation container through its associated accessibility scrollbar, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-018 attempt 2 ran candidate 2d302d2 as Actions 33537653264 (job 99955810105, probe b3244c0), passed native prebuild, then again returned login-demo-workspace after the existing 30-second wait. The helper reacquired the exact enabled button after AXScrollToVisible, so stale pre-scroll geometry is excluded; two hosted attempts now prove AXScrollToVisible returns without a useful WebKit overflow-navigation postcondition. Apple Accessibility defines AXParent for hierarchy traversal, AXVerticalScrollBar as the associated vertical scrollbar convenience attribute, AXValue as the user-modifiable scroller position, and AXMaxValue as its maximum. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/accessibility.mjs and run.test.mjs so pressButtonScript removes AXScrollToVisible, walks only AXParent from the same exact enabled Demo AXButton to its enclosing AXScrollArea with a fixed bounded ancestor count, obtains that container's AXVerticalScrollBar, sets the scrollbar value exactly once to AXMaxValue, then performs the existing fresh exact-enabled-button query and uses only the refreshed element for the existing focus, 0.2-second synchronization, position/size/center, and single click. Self-tests must lock target-to-parent-to-scrollbar-max-to-refresh-to-click ordering, the fixed ancestor bound, exactly one scrollbar value mutation, one delay, and one click, and no perform action. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and use DEV-20-017's final remaining ordered attempt. No product/API/capability/migration/fixture/workflow change, arbitrary UI or coordinate output, timeout/retry/skip/allow-failure, added attempt quota, additional click/action/value mutation/delay, other sleep, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-018 (refresh the exact Desktop Demo accessibility element after scrolling, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-017 attempt 1 ran candidate 9b47a86 as Actions 33535248320 (job 99947849962, probe acd5a91), passed native prebuild, then again returned login-demo-workspace after the existing 30-second wait. AXScrollToVisible did not throw, but pressButtonScript continues to use the currentElement reference captured from entire contents before that action for focus, position, size, and center click. Because scrolling changes WebKit layout/accessibility geometry, that pre-scroll reference cannot establish that the click used refreshed on-screen geometry. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/accessibility.mjs and run.test.mjs so, immediately after the existing single AXScrollToVisible, it performs one fresh entire-contents scan for the same exact enabled AXButton and uses only that refreshed element for the existing focus, 0.2-second synchronization, position/size/center, and single click. Self-tests must lock scroll-before-refresh-before-click ordering and preserve exactly one action, one delay, and one click. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and use the next ordered attempt from DEV-20-017's two remaining attempts. No product/API/capability/migration/fixture/workflow change, arbitrary UI or coordinate output, timeout/retry/skip/allow-failure, added attempt quota, additional click/action/delay, other sleep, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
@@ -917,20 +915,20 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "1c285f8ccc241034f1b1f1e914ca0ac54bb84499",
+      "source_checkpoint": "4ddfdaa0e45078bf0b0bbf593cf1c8476a4e4731",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "64c6154b74e949e9caa9ce2b7b48e2fb1f379a18",
-        "source_sha": "1c285f8ccc241034f1b1f1e914ca0ac54bb84499",
-        "candidate_sha": "be1f74a92ffd92121e314df27a86971c38f9bee6",
-        "candidate_tree_sha": "8056abbcff1989ed3605fe28267e70ed9a319881",
+        "parent_before_sha": "a7dc9396c7b325692b48572153d4575103169e49",
+        "source_sha": "4ddfdaa0e45078bf0b0bbf593cf1c8476a4e4731",
+        "candidate_sha": "6d09aee71389014bb969eba0de1a99fce608f1b2",
+        "candidate_tree_sha": "f0e3e31f60b3b61808866ca9b4075fafeeceb62b",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
-        "result_sha": null,
+        "result_sha": "6d09aee71389014bb969eba0de1a99fce608f1b2",
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
           "status": "passed",
@@ -939,16 +937,16 @@
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "Pending after DEV-20-026 attempt 1 failure: Actions 33556103488 / job 100017206579 / probe d24003e passed prebuild and advanced through permission restore, real Demo navigation, and Session revoke/relogin before returning product-create accessibility button unavailable with no skip or marker. This proves DEV-20-026 effective. The product page exposes the exact create label New Product (新增产品), while the runner queried the stale shortened label 新增. DEV-20-027 only aligns that runner target and locks it against the product source; form, CRUD, product behavior, timeouts, and postconditions remain unchanged. Two ordered DEV-20-026 attempts remain after a recorded and verified candidate.",
+          "status": "passed",
+          "reason": "Actions 33558345476 / job 100024584867 / probe e83a460 ran the native-verified checkpoint 3ab6ee5 on macOS 15.7.7 arm64 with AX enabled. Prebuild passed; the required gate ran from 21:04:17Z through 21:14:07Z and emitted exactly DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0. The full 16m39s job concluded success after setup/recovery, restart, login, Demo navigation, theme persistence, scope and permission transitions, Session revoke/relogin, CRUD, SQLite/vault restart, and bounded window/process/Keychain/temp-root cleanup. Final result 6d09aee differs from the native-verified checkpoint only by four Speculo governance files and was fast-forwarded to main.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 7,
-        "promotion_status": "pending"
+        "attempts": 28,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-02T05:45:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-02T06:20:00+08:00"
     }
   ]
 }
