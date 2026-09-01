@@ -173,6 +173,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`；移除 `AXScrollToVisible`，从同一 exact enabled Demo AXButton 沿 `AXParent` 在固定有限层数内找到 enclosing `AXScrollArea`，取得其 `AXVerticalScrollBar` 并把 value 唯一一次设为 `AXMaxValue`；随后保留现有 fresh exact-enabled-button query，只用 refreshed element 执行既有 focus、`delay 0.2`、position/size/center 与唯一 click。self-test 锁定 target -> bounded parent -> scrollbar max -> refresh -> click 顺序、唯一 value mutation/delay/click，并拒绝任何 `perform action`。新 source/candidate portable checks 通过后，可使用 DEV-20-017 最后 1 次 ordered attempt。
 - **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure，不输出任意 UI 或坐标，不增加 attempt 配额、其他 click/action/value mutation/delay/sleep；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** source `7c2e7c3fc0dae510c4d65fdb1e30f13c5baecc94` 已实现 bounded AXScrollArea/vertical-scrollbar maximum；candidate `1e175790a7f5ea598f0adb53b454f13f9fd7cd4e`（tree `90cc12f4d42b0247baf02809af9150d5e8ebe8e0`）包含治理父 `3ca4abf` 与 source，Node 48/48、Vitest 41/41 files / 256/256 tests、lint、Speculo 0/0、diff-check 与 clean tree 已通过。最后一次 ordered hosted attempt 尚未执行。
 
 ### 未决问题
 
