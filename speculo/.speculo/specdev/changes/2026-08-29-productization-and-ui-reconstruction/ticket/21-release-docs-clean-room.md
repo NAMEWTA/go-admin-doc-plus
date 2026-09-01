@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-21
 title: 收敛文档并完成三 Profile Clean-room 候选
-status: done
+status: in_progress
 planning_depth: deep
 planning_depth_reason: 最终 Gate 跨数据库迁移、部署、Desktop、本地持久化、运维恢复和发布证据，决定 change 是否可完成
 ready: true
@@ -86,9 +86,17 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** source `b040a8d` 已形成；精确测试 `-count=20`、Files 与 outbox 相关包通过。宽泛 Windows `task test` 的非零和日期定向 `0/10` 首红均在 Evidence 保留。
 
+### 已批准执行偏差 DEV-21-006
+
+- **触发事实：** change completion audit 重新读取 Goal Plan 后确认，Overall Definition of Done 明确要求根 `task test` 在适用 checkpoint 通过，DEV-09-001 又要求早期 Windows baseline 在 G4/G5 前清零；先前 T-21 Evidence 仍记录最终 Windows 根测试非零，因此 `b1821e0` 不能作为完整完成证明。精确复验将失败收敛到 Windows POSIX mode-bit 判定、无本地 SMB share 的 UNC 驱动 fixture，以及无 symlink privilege 的负向 fixture；sidecar/host 首红均由同一 Desktop backup 私有目录判定触发。
+- **批准范围：** T-21 临时拥有 `<Path>go-admin-plus/internal/platform/desktop/backup.go</Path>`、`<Path>go-admin-plus/internal/platform/desktop/backup_test.go</Path>` 与 `<Path>go-admin-plus/internal/platform/database/sqlite_uri_test.go</Path>`。只允许让 POSIX permission-bit 私有性检查在非 Windows 生效、让 Windows symlink fixture 沿用同包既有 privilege disposition，并让 UNC URI driver probe 使用不访问实际 share 的 named-memory SQLite 模式；必须先通过四组精确复验，再通过完整根 `task test`。
+- **禁止扩大：** 不改变 Desktop backup/restore 路径、文件复制、symlink 拒绝、instance lock、sidecar/host 生命周期、SQLite URI production builder、迁移、API、timeout/retry/skip policy 或 required E2E；不清理 worktree/stash，不发布、部署或生产迁移。
+- **批准来源：** 用户“都批准”、目标所述所有相关外部条件批准，以及本轮持久目标 completion audit。
+- **执行状态：** 已授权；旧 result `b1821e0` 与非零输出保留，不再作为 change completion 证明。
+
 ### 未决问题
 
-无。
+无外部 blocker；剩余工作是 DEV-21-006 source/candidate 修正、完整根测试与最终 completion audit。
 
 ## 3. 范围边界
 
@@ -150,7 +158,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 
 ## 10. 验收标准
 
-- [x] `AC-030~039` 的最终候选和文档合同成立。
+- [ ] `AC-030~039` 的最终候选和文档合同成立。
 - [x] 三 profile 从空库可复现，签名/公证正确记为 not-required。
 - [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>`。
-- [x] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。
+- [ ] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。

@@ -2,8 +2,8 @@
   "schema_version": 6,
   "artifact": "change-status",
   "change": "2026-08-29-productization-and-ui-reconstruction",
-  "change_status": "completed",
-  "current_work": null,
+  "change_status": "active",
+  "current_work": "specdev/implement",
   "works_run": [
     "specdev/grill-with-docs",
     "specdev/spec",
@@ -39,8 +39,8 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T07:39:25+08:00",
-  "completed_at": "2026-09-02T07:34:40+08:00",
+  "updated_at": "2026-09-02T07:47:37+08:00",
+  "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [],
@@ -101,7 +101,7 @@
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-01",
       "source_checkpoint": "e80d08fc09138474979221f196561c5b246320f9",
       "integration": {
-        "status": "passed",
+        "status": "failed",
         "parent_ref": "refs/heads/main",
         "parent_before_sha": "0a9f2ccbdf1888735f8e5d40b6d3200f26464cb5",
         "source_sha": "e80d08fc09138474979221f196561c5b246320f9",
@@ -112,7 +112,7 @@
         "result_sha": "e2c8b7cb074a7b8906efc9741070265117f20d20",
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "passed",
+        "verification": "failed",
         "full_suite": {
           "required": true,
           "status": "passed",
@@ -975,8 +975,8 @@
         "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "passed",
-          "reason": "Candidate b1821e0 passed governance, architecture, compatibility, docs, Task contract, 29/29 contract lint, deterministic generate, pnpm install/typecheck/lint/test/workspace/build, targeted Go and vet, Rust 27/27 and clippy, PostgreSQL 18/18, Web 10 suites/20 profiles, sidecar build, release policy 16/16, release preflight, diff/ancestor/clean checks, and isolated standards/specification review. The broad Windows task test command remained nonzero only for recorded OS baselines and is not claimed as passed; the new Files date-dependent failure was fixed and passed 20 exact repetitions plus related packages.",
+          "status": "failed",
+          "reason": "Completion audit rejected the prior result b1821e0 because the Goal Plan requires root task test at the applicable checkpoint and requires carried Windows baselines to be cleared before G5. Exact reruns still fail desktop-sidecar parent-pipe readiness, Desktop host lifecycle, SQLite UNC driver probing, Desktop backup private-root checks, and an unprivileged symlink fixture. DEV-21-006 reopens only the exact owning test/platform files; all previously passed required PostgreSQL, Web, native, release, contract, pnpm and Rust evidence remains preserved but cannot close G8 until the corrected candidate passes the full root test entry.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
         },
         "e2e": {
@@ -989,8 +989,8 @@
         "attempts": 6,
         "promotion_status": "applied"
       },
-      "status": "integrated",
-      "updated_at": "2026-09-02T07:34:40+08:00"
+      "status": "active",
+      "updated_at": "2026-09-02T07:47:37+08:00"
     }
   ]
 }
