@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T01:41:46+08:00",
+  "updated_at": "2026-09-02T01:46:30+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -917,14 +917,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "70db7a2773e336ab23c879e8c4ebb69d6f167118",
+      "source_checkpoint": "7c2e7c3fc0dae510c4d65fdb1e30f13c5baecc94",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "b4a69f7d0c5311f102b80590a8c983a221c02036",
-        "source_sha": "70db7a2773e336ab23c879e8c4ebb69d6f167118",
-        "candidate_sha": "2d302d215e59ad3e7f64ed62716005bb30da041d",
-        "candidate_tree_sha": "5fde3a796d1dab6a94d8e6d720d176c4885b5ee9",
+        "parent_before_sha": "3ca4abf6ff57566241ebf51ba3980456d6b44b56",
+        "source_sha": "7c2e7c3fc0dae510c4d65fdb1e30f13c5baecc94",
+        "candidate_sha": "1e175790a7f5ea598f0adb53b454f13f9fd7cd4e",
+        "candidate_tree_sha": "90cc12f4d42b0247baf02809af9150d5e8ebe8e0",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -934,13 +934,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 2d302d2 contains governance parent b4a69f7 and source 70db7a2. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including scroll then one fresh exact-enabled-button query before the existing focus/delay/position/size/center/click, lint, Speculo 0/0, diff-check, and clean-tree verification. Self-tests preserve exactly one AXScrollToVisible, one 0.2-second delay, and one click while rejecting pre-scroll geometry use. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 1e17579 contains governance parent 3ca4abf and source 7c2e7c3. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including the fixed 12-level target AXParent traversal, enclosing AXScrollArea and associated AXVerticalScrollBar/AXMaxValue ordering, fresh exact-enabled-button query, and existing focus/delay/position/size/center/click, lint, Speculo 0/0, diff-check, and clean-tree verification. Self-tests preserve exactly one scrollbar value mutation, one 0.2-second delay, and one click while rejecting every perform action and pre-scroll geometry use. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-018 attempt 2 ran candidate 2d302d2 as Actions 33537653264 (job 99955810105, probe b3244c0), passed native prebuild, then returned login-demo-workspace after the required gate ran from 17:31:54Z to 17:39:53Z. Fresh target acquisition excludes stale AX geometry, but AXScrollToVisible still had no useful route postcondition; no pass marker was produced. DEV-20-019 may replace that action with one bounded target-ancestor AXScrollArea lookup and one associated AXVerticalScrollBar value assignment to AXMaxValue before the existing fresh query and single center click. The final remaining ordered attempt requires a new verified candidate, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/action/value mutation/delay, or security-boundary changes.",
+          "reason": "Pending after failure: DEV-20-019 candidate 1e17579 passed portable checks, but Actions 33539914535 / job 99963330288 / probe 2f3e87d passed prebuild and failed inside the scrollbar helper at login-navigation with no skip or marker; DEV-20-017's quota is exhausted. DEV-20-020 independently authorizes a bounded replacement: focus the visible first admin route, use exactly 11 standard Tab steps so WebKit reveals the twelfth Demo route, then fresh-query and single-click it with fixed navigation substep diagnostics. Product, manifest, visual dimensions, workflow, timeouts, retry/skip, and security boundaries remain unchanged; up to three newly attributed hosted attempts are authorized after a verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T01:41:46+08:00"
+      "updated_at": "2026-09-02T02:18:00+08:00"
     }
   ]
 }
