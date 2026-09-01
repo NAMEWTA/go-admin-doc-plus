@@ -18,11 +18,15 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	bootstraprecoverymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
 	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
+	accountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
+	reliableruntimemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations/reliable-runtime"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 const (
@@ -47,7 +51,14 @@ func TestIAMAdministrationBrowserHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	db := openAdministrationBrowserDB(t, ctx, os.Getenv(adminHarnessProfile))
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{})
+	runner, err := migrations.NewRunner(
+		sessionmigration.Provider{},
+		administrationmigration.Provider{},
+		bootstraprecoverymigration.Provider{},
+		sessionprotectionmigration.Provider{},
+		accountlifecyclemigration.Provider{},
+		reliableruntimemigration.Provider{},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,11 +78,24 @@ func TestIAMAdministrationBrowserHarnessServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	store, err := outbox.NewStore(db, administration.AccountDeletionRequestedTopicSchema())
+	if err != nil {
+		t.Fatal(err)
+	}
+	deletions, err := administration.NewDeletionService(db, store)
+	if err != nil {
+		t.Fatal(err)
+	}
 	sessionHandler, err := session.NewHTTPHandler(sessions, func(*http.Request) string { return "0123456789abcdef" })
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminHandler, err := administration.NewHTTPHandler(adminService, sessions, func(*http.Request) string { return "0123456789abcdef" })
+	adminHandler, err := administration.NewHTTPHandler(
+		adminService,
+		sessions,
+		func(*http.Request) string { return "0123456789abcdef" },
+		administration.WithHTTPDeletionService(deletions),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,6 +240,43 @@ func TestAdministrationBrowserPostgresDSNIncludesIsolatedSearchPath(t *testing.T
 	value := administrationBrowserPostgresDSN(t, "postgres://localhost/database?sslmode=disable", schema)
 	if !strings.Contains(value, "search_path="+schema) || !strings.Contains(value, "sslmode=disable") {
 		t.Fatal("browser PostgreSQL DSN lost its isolated search path")
+	}
+}
+
+func TestAdministrationBrowserDeletionFixtureContract(t *testing.T) {
+	ctx := context.Background()
+	db := openAdministrationBrowserDB(t, ctx, "sqlite")
+	runner, err := migrations.NewRunner(
+		sessionmigration.Provider{},
+		administrationmigration.Provider{},
+		bootstraprecoverymigration.Provider{},
+		sessionprotectionmigration.Provider{},
+		accountlifecyclemigration.Provider{},
+		reliableruntimemigration.Provider{},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := runner.Up(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	seedAdministrationBrowserAccounts(t, ctx, db)
+	store, err := outbox.NewStore(db, administration.AccountDeletionRequestedTopicSchema())
+	if err != nil {
+		t.Fatal(err)
+	}
+	deletions, err := administration.NewDeletionService(db, store)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := deletions.StartDeletion(ctx, adminID, administration.StartDeletion{
+		AccountID: "account-ordinary-1", Strategy: administration.DeletionStrategyPurge, PurgeConfirmed: true,
+	})
+	if err != nil {
+		t.Fatalf("browser deletion fixture: %v", err)
+	}
+	if value.Status != administration.DeletionStatusQueued {
+		t.Fatalf("browser deletion status = %q", value.Status)
 	}
 }
 

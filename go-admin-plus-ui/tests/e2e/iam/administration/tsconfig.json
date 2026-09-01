@@ -8,8 +8,10 @@
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "paths": {
+      "@go-admin-plus/app-shell/*": ["../../../../packages/app-shell/src/*"],
       "@go-admin-plus/domain-iam/administration": ["../../../../packages/domains/iam/src/administration/index.ts"],
       "@go-admin-plus/domain-iam/session": ["../../../../packages/domains/iam/src/session/index.ts"],
+      "@go-admin-plus/platform": ["../../../../packages/platform/src/index.ts"],
       "@go-admin-plus/web-domain-iam/administration": ["../../../../packages/web-domains/iam/src/administration/index.ts"],
       "@go-admin-plus/web-domain-iam/session": ["../../../../packages/web-domains/iam/src/session/index.ts"],
       "@go-admin-plus/ui": ["../../../../packages/ui/src/index.ts"],
@@ -19,5 +21,5 @@
     "target": "ES2024",
     "types": ["vite/client"]
   },
-  "include": ["./browser-driver.ts", "../../../../packages/web-domains/iam/src/administration/**/*.vue", "../../../../packages/web-domains/iam/src/session/vue.d.ts"]
+  "include": ["./browser-driver.ts", "./vue.d.ts", "../../../../packages/**/*.vue"]
 }

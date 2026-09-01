@@ -1,6 +1,8 @@
 import { createApp, h, type App, type Component } from 'vue'
+import { createProductMemoryHistory, createProductRouter } from '@go-admin-plus/app-shell/product'
 import type { AdministrationClient } from '@go-admin-plus/domain-iam/administration'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
+import type { PermissionCode } from '@go-admin-plus/platform'
 import { createAdministrationController, createWebAdministrationClient, AdministrationPage, type AdministrationController } from '@go-admin-plus/web-domain-iam/administration'
 import { createWebSessionClient } from '@go-admin-plus/web-domain-iam/session'
 import { administrationMountDiagnostic, safeBrowserDiagnostic } from './diagnostics.mjs'
@@ -50,18 +52,16 @@ const clickRowAndWait = async (key: string, action: string, selector: string) =>
   await waitUntil(() => document.querySelector(selector) !== null, `row ${action} view did not render`)
 }
 const submit = (testID: string) => element<HTMLFormElement>(`[data-testid="${testID}"]`).requestSubmit()
-const openTab = async (name: 'users' | 'roles' | 'menus') => {
-  const labels = { users: '用户管理', roles: '角色管理', menus: '菜单管理' } as const
-  const button = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find((candidate) => candidate.textContent === labels[name])
-  assert(button, `missing tab: ${name}`)
-  button.click()
+type AdministrationRouter = ReturnType<typeof createProductRouter>
+const openView = async (mounted: { router: AdministrationRouter }, name: 'users' | 'roles' | 'menus') => {
+  await mounted.router.push(`/iam/${name}`)
   await waitUntil(
-    () => button.getAttribute('aria-pressed') === 'true' && document.querySelector(`section[aria-labelledby="${name}-heading"]`) !== null,
-    `tab ${name} did not render`,
+    () => document.querySelector(`section[aria-labelledby="${name}-heading"]`) !== null,
+    `administration view ${name} did not render`,
   )
 }
 
-interface MountedAdministration { app: App; controller: AdministrationController; api: ReturnType<typeof createWebAdministrationClient>; confirmations(): number }
+interface MountedAdministration { app: App; router: AdministrationRouter; controller: AdministrationController; api: ReturnType<typeof createWebAdministrationClient>; confirmations(): number }
 type RequestPhase = 'not-started' | 'pending' | 'success' | 'error'
 interface MountPhases { manifest: RequestPhase; users: RequestPhase }
 interface ManifestProbe {
@@ -95,13 +95,33 @@ const observedClient = (client: AdministrationClient, phases: MountPhases, proje
 })
 const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdministration> => {
   document.body.innerHTML = '<div id="app"></div>'
+  const sessionState = session.state()
+  assert(sessionState.status === 'authenticated', 'administration mount requires an authenticated session')
   const api = createWebAdministrationClient(fetch, '/api')
   const phases: MountPhases = { manifest: 'not-started', users: 'not-started' }
   const projection: ManifestProbe = { permissionCount: -1, hasUsersRead: false, hasManifestRead: false, scope: 'unknown' }
   let confirmations = 0
   let pageMounted = false
   const controller = createAdministrationController(observedClient(api, phases, projection), async () => { confirmations += 1; return true })
+  const router = createProductRouter('web', {
+    loadIdentity: async () => {
+      const manifest = await api.manifest()
+      return {
+        kind: 'authenticated',
+        subjectId: sessionState.profile.id,
+        permissions: manifest.permissionCodes as ReadonlyArray<PermissionCode>,
+        dataScope: manifest.dataScope === 'all' ? 'all' : 'self',
+      }
+    },
+    loadNavigation: async () => {
+      const manifest = await api.manifest()
+      return manifest.menus.map(menu => ({ path: menu.path as `/${string}`, permission: menu.permissionCode as PermissionCode }))
+    },
+  }, { history: createProductMemoryHistory() })
   const app = createApp({ render: () => h(AdministrationPage as Component, { controller }) })
+  app.use(router)
+  await router.push('/iam/users')
+  await router.isReady()
   app.mount('#app')
   pageMounted = true
   await waitUntil(() => row(expectedUser) !== null, () => {
@@ -123,7 +143,7 @@ const mountAdministration = async (expectedUser = 'admin'): Promise<MountedAdmin
       scope: projection.scope,
     })
   })
-  return { app, controller, api, confirmations: () => confirmations }
+  return { app, router, controller, api, confirmations: () => confirmations }
 }
 
 const fillCreateUser = async (username: string, displayName: string) => {
@@ -158,7 +178,7 @@ const scenario = async () => {
   click('[data-testid="user-search-reset"]')
   await waitUntil(() => element<HTMLInputElement>('[data-testid="user-search"] input').value === '', 'search reset failed')
 
-  await openTab('roles')
+  await openView(mounted, 'roles')
   click('[data-testid="open-create-role"]')
   await waitUntil(() => document.querySelector('[data-testid="create-role"]') !== null, 'create role dialog did not render')
   await input('[data-testid="create-role"] [name="key"]', 'browser-reader')
@@ -179,7 +199,7 @@ const scenario = async () => {
   submit('edit-role')
   await waitUntil(() => row('browser-reader')?.textContent?.includes('启用') === true, 'role enable was not rendered')
 
-  await openTab('menus')
+  await openView(mounted, 'menus')
   click('[data-testid="open-create-menu"]')
   await waitUntil(() => document.querySelector('[data-testid="create-menu"]') !== null, 'create menu dialog did not render')
   await input('[data-testid="create-menu"] [name="key"]', 'browser-menu')
@@ -194,15 +214,16 @@ const scenario = async () => {
   submit('edit-menu')
   await waitUntil(() => row('browser-menu')?.textContent?.includes('Browser Menu Updated') === true, 'menu edit was not rendered')
 
-  await openTab('roles')
+  await openView(mounted, 'roles')
   await clickRowAndWait('browser-reader', 'edit', '[data-testid="assign-role-grants"]')
   await input('[data-testid="assign-role-grants"] [data-permission-code="iam.users.read"]', true)
   await input('[data-testid="assign-role-grants"] [data-permission-code="iam.manifest.read"]', true)
+  await input('[data-testid="assign-role-grants"] [data-menu-key="iam-users"]', true)
   await input('[data-testid="assign-role-grants"] [data-menu-key="browser-menu"]', true)
   submit('assign-role-grants')
   await waitUntil(() => mounted.controller.roles().find((value) => value.key === 'browser-reader')?.permissionCodes.includes('iam.manifest.read') === true, 'grants did not refresh')
 
-  await openTab('users')
+  await openView(mounted, 'users')
   await fillCreateUser('browser-user', 'Browser User')
   click('[data-testid="open-create-user"]')
   await waitUntil(() => document.querySelector('[data-testid="create-user"]') !== null, 'duplicate user dialog did not render')
@@ -236,15 +257,19 @@ const scenario = async () => {
 
   await fillCreateUser('browser-single', 'Browser Single')
   clickRow('browser-single', 'delete')
-  await waitUntil(() => row('browser-single') === null, 'single delete was not rendered')
-  await fillCreateUser('browser-batch-a', 'Browser Batch A')
-  await fillCreateUser('browser-batch-b', 'Browser Batch B')
-  await input('[aria-label="选择 browser-batch-a"]', true)
-  await input('[aria-label="选择 browser-batch-b"]', true)
-  await waitUntil(() => !element<HTMLButtonElement>('[data-testid="delete-selected-users"]').disabled, 'batch delete action did not enable')
-  click('[data-testid="delete-selected-users"]')
-  await waitUntil(() => row('browser-batch-a') === null && row('browser-batch-b') === null, 'batch delete was not rendered')
-  assert(mounted.confirmations() >= 5, 'destructive page commands bypassed confirmation')
+  await waitUntil(() => document.querySelector('[data-testid="delete-user"]') !== null, 'account deletion dialog did not render')
+  click('[data-testid="delete-user"] input[value="purge"]')
+  await waitUntil(() => document.querySelector('[data-testid="delete-user"] [name="purgeConfirmed"]') !== null, 'purge confirmation did not render')
+  await input('[data-testid="delete-user"] [name="purgeConfirmed"]', true)
+  submit('delete-user')
+  await waitUntil(
+    () => document.querySelector('.deletion-status')?.textContent?.includes('queued') === true,
+    () => `account deletion was not queued (failure=${mounted.controller.failure() ?? 'none'}, deletion=${JSON.stringify(mounted.controller.deletion())}, alert=${document.querySelector('[role="alert"]')?.textContent?.trim() ?? 'none'})`,
+  )
+  click('[data-testid="delete-user"] .management-dialog__footer button:nth-child(2)')
+  await waitUntil(() => document.querySelector('[data-testid="delete-user"]') === null, 'queued account deletion was not canceled')
+  await waitUntil(() => mounted.controller.users.snapshot().rows.find((value) => value.username === 'browser-single')?.disabled === true, 'canceled deletion did not keep the account disabled')
+  assert(mounted.confirmations() >= 4, 'destructive page commands bypassed confirmation before remount')
 
   mounted.app.unmount()
   await session.logout()
@@ -253,9 +278,11 @@ const scenario = async () => {
   mounted = await mountAdministration('browser-user')
   const manifest = await mounted.api.manifest()
   assert(manifest.menus.some((value) => value.path === '/iam/browser'), 'assigned menu not projected')
-  assert(![...document.querySelectorAll('.tabs button')].some((value) => value.textContent === '角色管理' || value.textContent === '菜单管理'), 'unauthorized administration tabs were visible')
   assert(document.querySelector('[data-testid="create-user"]') === null, 'unauthorized create action was visible')
   assert(row('browser-user')?.querySelector('[data-action]') === null, 'unauthorized row actions were visible')
+  await mounted.router.push('/iam/roles')
+  await waitUntil(() => document.querySelector('section[aria-labelledby="roles-heading"]') === null && document.body.textContent?.includes('当前账号没有可用的管理视图') === true, 'unauthorized role route rendered')
+  await openView(mounted, 'users')
   const before = await (await control('snapshot')).json() as { users: number }
   let denied = false
   try { await mounted.api.createUser({ username: 'direct-forbidden', displayName: 'Forbidden', email: 'direct-forbidden@example.test', password: 'forbidden password' }) } catch { denied = true }
@@ -267,14 +294,17 @@ const scenario = async () => {
   await session.logout()
   await session.login({ username: 'admin', password: 'administrator password' })
   mounted = await mountAdministration()
-  clickRow('browser-user', 'delete')
-  await waitUntil(() => row('browser-user') === null, 'assigned user cleanup failed')
-  await openTab('roles')
+  await clickRowAndWait('browser-user', 'edit', '[data-testid="assign-user-roles"]')
+  await input('[data-testid="assign-user-roles"] [data-role-key="browser-reader"]', false)
+  submit('assign-user-roles')
+  await waitUntil(() => mounted.controller.users.snapshot().rows.find((value) => value.username === 'browser-user')?.roleIds.length === 0, 'assigned user role cleanup failed')
+  await openView(mounted, 'roles')
   clickRow('browser-reader', 'delete')
   await waitUntil(() => row('browser-reader') === null, 'role cleanup failed')
-  await openTab('menus')
+  await openView(mounted, 'menus')
   clickRow('browser-menu', 'delete')
   await waitUntil(() => row('browser-menu') === null, 'menu cleanup failed')
+  assert(mounted.confirmations() >= 2, 'cleanup page commands bypassed confirmation')
   await control('revoke-role-read', 'POST')
   let revoked = false
   try { await mounted.api.listRoles() } catch { revoked = true }

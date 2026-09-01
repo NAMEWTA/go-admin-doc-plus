@@ -52,17 +52,20 @@ test('administration permission branches subscribe to the page revision', () => 
 
 test('browser administration interactions wait for Vue DOM updates', () => {
   const driver = readFileSync(new URL('./browser-driver.ts', import.meta.url), 'utf8')
-  const openTab = driver.match(/const openTab = async[\s\S]*?\n}\n/)?.[0] ?? ''
+  const openView = driver.match(/const openView = async[\s\S]*?\n}\n/)?.[0] ?? ''
 
-  assert.match(openTab, /aria-pressed/)
-  assert.match(openTab, /section\[aria-labelledby=/)
-  assert.doesNotMatch(driver, /(?<!await )openTab\('/)
+  assert.match(openView, /await mounted\.router\.push/)
+  assert.match(openView, /section\[aria-labelledby=/)
+  assert.doesNotMatch(driver, /(?<!await )openView\('/)
   assert.doesNotMatch(driver, /clickRow\([^\n]+, 'edit'\)/)
   assert.match(driver, /clickRow\(key, action\)\n  await waitUntil/)
   assert.doesNotMatch(driver, /nextTick/)
   assert.match(driver, /target\.dispatchEvent\([\s\S]*?\n  await Promise\.resolve\(\)/)
   assert.doesNotMatch(driver, /(?<!await )input\('/)
-  assert.match(driver, /await waitUntil\(\(\) => !element<HTMLButtonElement>\('\[data-testid="delete-selected-users"\]'\)\.disabled/)
+  assert.match(driver, /purge confirmation did not render/)
+  assert.match(driver, /account deletion was not queued/)
+  assert.match(driver, /queued account deletion was not canceled/)
+  assert.doesNotMatch(driver, /delete-selected-users/)
 })
 
 test('browser host readiness failures retain the stable profile', () => {
