@@ -130,6 +130,13 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、timeout/retry/sleep/skip/allow-failure；不输出任意 UI；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-014
+
+- **触发事实：** DEV-20-011 第三次且最后一次 attempt `33526583893`（job `99918873988`，probe `915cf58`）在真实 macOS 15.7.7 arm64 上通过 prebuild，随后在既有 90 秒普通首次设置工作区等待后返回无后缀 `first-setup-workspace`。该 candidate 只改变更晚发生的 Demo 导航 helper 与 self-test，普通首次设置提交未变且已在多个更早 attempt 中通过；现有 phase 无法区分仍在 setup、进入 recovery、落到 login、runtime unavailable/loading 或 unknown。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/run.mjs` 与 `run.test.mjs`，在普通首次设置工作区等待失败后按固定字符串枚举 setup/recovery/login/unavailable/loading/unknown，并由 self-test 锁定分类集合与调用顺序。形成新 source/candidate 后，Lead 可更新同一 workflow-only probe descendant、push 同一具名 probe branch，并最多 dispatch 3 次逐个归因的 `macos-15` attempt。
+- **禁止扩大：** 不输出任意 UI，不修改产品、API、capability、migration、fixture、workflow、90 秒上限、retry/sleep/skip/allow-failure；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。每个前一红灯必须先归因并修正，hosted failure 不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
