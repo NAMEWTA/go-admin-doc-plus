@@ -29,7 +29,7 @@ tell (first process whose unix id is ${pid})
     try
       if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(name)} and enabled of currentElement is true then
         set focused of currentElement to true
-        perform action "AXPress" of currentElement
+        key code 36
         set didPress to true
         exit repeat
       end if
