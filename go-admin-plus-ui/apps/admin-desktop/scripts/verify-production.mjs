@@ -23,6 +23,8 @@ export const desktopNativeControlMarkers = Object.freeze([
   'E2E permissions off',
   'E2E permissions on',
   'E2E revoke session',
+  'E2E reset theme',
+  'E2E theme storage cleared',
   'E2E-FOREIGN',
   'E2E-001',
   'native E2E credential identity'

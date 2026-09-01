@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { createDesktopFetch, createDesktopPlatform, createDesktopRuntime, createDesktopSessionClient, createDesktopTransport } from '@go-admin-plus/adapter-desktop'
 import { ProductWorkspace } from '@go-admin-plus/app-shell/product'
+import { ADMIN_THEME_STORAGE_KEY } from '@go-admin-plus/ui'
 
 import FirstSetupGate from '../first-setup/FirstSetupGate.vue'
 
@@ -15,6 +16,29 @@ const workspaceKey = ref(0)
 const transport = createDesktopTransport()
 let boundaryTimer: number | undefined
 let nativeConfirm: typeof window.confirm | undefined
+const nativeE2eRunStorageKey = 'go-admin-plus.native-e2e-run'
+const nativeE2eRunId = import.meta.env.VITE_GO_ADMIN_NATIVE_E2E_RUN_ID
+
+if (!nativeE2eRunId) throw new Error('native E2E run identity unavailable')
+if (window.localStorage.getItem(nativeE2eRunStorageKey) !== nativeE2eRunId) {
+  window.localStorage.clear()
+  window.localStorage.setItem(nativeE2eRunStorageKey, nativeE2eRunId)
+}
+
+const themeStorageIsSafe = () => {
+  const keys = Array.from({ length: window.localStorage.length }, (_, index) => window.localStorage.key(index))
+  if (keys.some(key => key !== ADMIN_THEME_STORAGE_KEY && key !== nativeE2eRunStorageKey)) return false
+  if (window.localStorage.getItem(nativeE2eRunStorageKey) !== nativeE2eRunId) return false
+  const storedTheme = window.localStorage.getItem(ADMIN_THEME_STORAGE_KEY)
+  if (storedTheme === null) return true
+  try {
+    const value = JSON.parse(storedTheme) as Record<string, unknown>
+    return (value.preference === 'light' || value.preference === 'dark' || value.preference === 'system') &&
+      (value.density === 'comfortable' || value.density === 'compact') && Object.keys(value).length === 2
+  } catch {
+    return false
+  }
+}
 
 const verifyNativeBoundary = async () => {
   try {
@@ -27,7 +51,7 @@ const verifyNativeBoundary = async () => {
     const trustedLocation = location.protocol === 'tauri:' || location.hostname === 'tauri.localhost'
     const failures = [
       document.cookie !== '' ? 'cookie' : '',
-      window.localStorage.length !== 0 ? 'local-storage' : '',
+      !themeStorageIsSafe() ? 'local-storage' : '',
       window.sessionStorage.length !== 0 ? 'session-storage' : '',
       databases.length !== 0 ? 'indexed-db' : '',
       cacheNames.length !== 0 ? 'cache-storage' : '',
@@ -43,6 +67,14 @@ const verifyNativeBoundary = async () => {
   } catch {
     nativeBoundary.value = ''
   }
+}
+
+const clearThemeStorage = () => {
+  window.localStorage.removeItem(ADMIN_THEME_STORAGE_KEY)
+  window.localStorage.removeItem(nativeE2eRunStorageKey)
+  nativeAuthorization.value = window.localStorage.length === 0
+    ? 'E2E theme storage cleared'
+    : 'E2E control failed: theme-storage-cleanup'
 }
 
 const nativeControl = async (action: 'scope-self' | 'scope-all' | 'permissions-off' | 'permissions-on' | 'session-revoke') => {
@@ -98,6 +130,7 @@ onUnmounted(() => {
       <button type="button" @click="nativeControl('permissions-off')">E2E permissions off</button>
       <button type="button" @click="nativeControl('permissions-on')">E2E permissions on</button>
       <button type="button" @click="nativeControl('session-revoke')">E2E revoke session</button>
+      <button type="button" @click="clearThemeStorage">E2E reset theme</button>
     </aside>
     <ProductWorkspace :key="`${setupKey}-${workspaceKey}`" host="desktop" :runtime="runtime" :platform="platform" :fetcher="fetcher" :session-client="session" />
   </FirstSetupGate>
