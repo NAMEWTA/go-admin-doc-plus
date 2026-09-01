@@ -199,6 +199,14 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** source `d2d4ed5552e244761d56c81f352729d7ed6bd7ab` 已形成；candidate `0847ff6a52762ab77dfbd9c0e2738c5e208ff143`（tree `96f8129fbd2e1d92b083eaad365cb9cf2c95f135`）包含治理父 `3056fdd33f717f7387e119f6d8d2853d16d847f6` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 48/48、Desktop runner 21/21、完整 typecheck、lint、production build/asset scan、diff-check 与 clean tree；native-e2e entry build 通过并确认测试标记存在，随后 production 重建再次通过零测试字节扫描。DEV-20-020 尚余最后 1 次 ordered attempt，native Gate 仍为 pending。
 
+### 已批准执行偏差 DEV-20-023
+
+- **触发事实：** DEV-20-020 attempt 3 使用 probe `0d30fd4`、Actions `33547554824`、job `99988721801`，在 macOS 15.7.7 arm64 与 AX enabled 环境通过 19:07:29Z~19:13:18Z prebuild，required gate 于 19:13:18Z~19:21:48Z 返回新的首个红灯 `theme-dark-toggle`: `desktop native accessibility button unavailable`。它已越过 login navigation 与 Demo page/boundary，直接证明 DEV-20-022 的固定 Demo 控件有效；DEV-20-020 的 3 次 attempt 已用尽，无 skip、无 pass marker。
+- **批准范围：** T-20 可在同一 test-only native entry 增加唯一固定可见 `E2E use dark theme` 按钮；其 handler 只可 exact 查询产品 `button[aria-label="使用深色主题"]` 并调用 DOM `click()`，缺失时写固定 `E2E control failed: theme-dark`。runner 只把 `theme-dark-toggle` 的 AX 目标改为该 test-only 按钮，随后仍必须观察产品 aria-label `当前使用深色主题`、重启持久化与最终存储清理。production byte scanner 必须拒绝新按钮/失败标记，self-test 锁定 exact selector/click、产品 handler、runner 调用与 production App 零命中。新 source/candidate 通过 portable checks 后最多 dispatch 3 次逐项归因的同一 workflow-only probe。
+- **禁止扩大：** 不直接写主题 localStorage/data-theme，不修改主题 controller、`ProductWorkspace`、router、产品视觉/交互、capability/config、workflow、timeout/retry/skip/allow-failure，不增加后端 action、公开 API、secret 或生产资产中的测试控件；不发布 artifact、deploy/migrate、重写或清理远端历史。每次首个真实红灯必须先记录与精确修正。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-023 尚余 3 次 ordered attempt。
+
 ### 未决问题
 
 无。
