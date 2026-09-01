@@ -35,8 +35,22 @@ tell (first process whose unix id is ${pid})
     end try
   end repeat
   if scrollElement is missing value then error ${quoteAppleScript(`native button unavailable: ${name}`)}
+  set scrollContainer to scrollElement
+  repeat with ancestorIndex from 1 to 12
+    try
+      if role of scrollContainer is "AXScrollArea" then exit repeat
+      set scrollContainer to value of attribute "AXParent" of scrollContainer
+    on error
+      set scrollContainer to missing value
+      exit repeat
+    end try
+  end repeat
+  if scrollContainer is missing value then error ${quoteAppleScript(`native button unavailable: ${name}`)}
   try
-    perform action "AXScrollToVisible" of scrollElement
+    if role of scrollContainer is not "AXScrollArea" then error ${quoteAppleScript(`native button unavailable: ${name}`)}
+    set verticalScrollBar to value of attribute "AXVerticalScrollBar" of scrollContainer
+    set scrollMaximum to value of attribute "AXMaxValue" of verticalScrollBar
+    set value of verticalScrollBar to scrollMaximum
   on error
     error ${quoteAppleScript(`native button unavailable: ${name}`)}
   end try
