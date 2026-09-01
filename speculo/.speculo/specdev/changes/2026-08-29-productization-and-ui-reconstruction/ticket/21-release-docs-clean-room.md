@@ -70,6 +70,14 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** 已授权，尚未形成修正 checkpoint；candidate `07a2e3b` 保留为 architecture 首红。
 
+### 已批准执行偏差 DEV-21-004
+
+- **触发事实：** 当前 T-21 integration candidate `85daa4178cbc7780c93f334667a75bc30b78c2ed` 的完整 `task generate:check` 在 29 项 Generator 契约测试中精确失败 1 项：`scripts/contracts/modules.test.mjs` 使用 POSIX 字面量 `/workspace/product`，Windows 上被实现的 `path.resolve()` 正确解析为当前盘符绝对路径，而测试的 `path.join()` 期望仍是无盘符根路径，因而产生仅测试预期的跨平台差异。
+- **批准范围：** T-21 临时拥有 `scripts/contracts/modules.test.mjs`，只允许用 `path.resolve()` 构造跨平台绝对 fixture root，并用相同 `resolve()` 语义断言 Go/TypeScript 输出；完整 29 项 Generator 契约测试与 `task generate:check` 必须重新通过。
+- **禁止扩大：** 不修改 `scripts/contracts/modules.mjs`、模块路径语法、生成输出、manifest、负向夹具、测试数量或失败语义；不新增平台分支、skip、allow-failure 或目录豁免。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成修正 checkpoint；candidate `85daa41` 及本次 `28 pass / 1 fail / 0 skip` 输出保留为 Generator 首红。
+
 ### 未决问题
 
 无。
