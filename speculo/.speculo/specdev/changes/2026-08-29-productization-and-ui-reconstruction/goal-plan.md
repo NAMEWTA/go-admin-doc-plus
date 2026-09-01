@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-16 已完成并晋升 result `6b9fe9c`：Files 区分 content/quota/capacity 并在容量保护时保留下载/删除，Generator 保留 gate-failed preview 且可返回配置，Demo 使用共享列表/表单工作台；三领域安全 trace reference 和 256 项完整 Vitest 回归均有确定性证明。T-17 已由 `codex-root` 从 `main@ace3785` 启动，按 `new-business-module` 当前完整切片与隔离门禁升级模板；canonical contracts、Demo、共享 UI 和 skill 保持只读。DEV-17-001 已按 `USER-DECISION:all-approved` 扩展且仅扩展 renderer 的跨平台标准 file URL 修复，以允许 Windows canonical 隔离生成实际执行。所有 source/candidate 与保护 stash 均保留。
+T-16 已完成并晋升 result `6b9fe9c`：Files 区分 content/quota/capacity 并在容量保护时保留下载/删除，Generator 保留 gate-failed preview 且可返回配置，Demo 使用共享列表/表单工作台；三领域安全 trace reference 和 256 项完整 Vitest 回归均有确定性证明。T-17 已由 `codex-root` 从 `main@ace3785` 启动，按 `new-business-module` 当前完整切片与隔离门禁升级模板；Demo、共享 UI 和 skill 保持只读。DEV-17-001 已按 `USER-DECISION:all-approved` 仅扩展 renderer 的跨平台标准 file URL 修复；DEV-17-002 仅扩展 contract CLI 的 Node 22 Windows `pnpm.cmd` 启动兼容与其回归测试，使 canonical 隔离生成能够实际执行且不改变合同语义。所有 source/candidate 与保护 stash 均保留。
 
 ### Resume Protocol
 
