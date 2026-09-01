@@ -38,14 +38,15 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T18:17:42+08:00",
+  "updated_at": "2026-09-01T18:28:59+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 requires a real macOS GUI session with terminal Accessibility permission, Tauri, Keychain, and native-window access. The current Windows host has no macOS VM; configured SSH profiles provide no usable noninteractive macOS session; the GitHub repository has no self-hosted runner; and GitHub-hosted macOS runners do not provide the required Accessibility authorization, so none can substitute for the required proof."
+    "G7 remains pending. Hosted macOS 15.7.7 arm64 proved Accessibility enabled, then the third DEV-20-005 attempt exposed a deterministic tauri-utils 2.9.3 generate_context type mismatch for dataStoreIdentifier before native execution. DEV-20-006 authorizes the feature-only source correction and up to three ordered follow-up hosted attempts; no native pass has been claimed."
   ],
   "deviations": [
+    "DEV-20-006 (native-e2e Tauri Context correction and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): T-20 may update only src-tauri/src/main.rs under the native-e2e feature plus tests/e2e/desktop/run.mjs and its self-test so the fixed test WebKit data-store identifier is injected as Rust [u8; 16] after generate_context instead of being passed through tauri-utils 2.9.3's incorrect Vec-generating config code. Production Context/config, Cargo dependencies and lock, capabilities, window contract, theme storage, Keychain namespace, and product behavior remain unchanged. After a new source checkpoint and canonical candidate are built, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after precise attribution and correction of the prior first honest failure. No retry/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-005 (isolated remote macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): Lead may create one workflow-only descendant of candidate 2bce131, push one named temporary probe branch, and manually dispatch at most three ordered macos-15 CI attempts that run the complete required native E2E, provided each prior first honest failure is precisely attributed and corrected. The probe may not enter source or the canonical candidate, modify product/test code, use production environments or signing/notarization secrets, publish artifacts, deploy, migrate, perform unattributed retries, rewrite/clean remote history, or convert a hosted-runner failure into G7 pass evidence.",
     "DEV-20-004 (missing real Web AC-018 theme persistence proof, approved under USER-DECISION:all-approved): T-20 may extend only tests/e2e/web-shell/browser-driver.ts to select the shared dark theme control, verify the root theme token, and verify the same preference after the existing deep-link reload in the disposable browser profile. Test backdoors, product storage APIs, browser profiles, viewports, retries/skips, and other business assertions remain unchanged.",
     "DEV-20-003 (ticket path ownership and Web Shell lazy-route observation race, approved under USER-DECISION:all-approved): T-20 may update only tests/e2e/web-shell/browser-driver.ts so the existing user-search revocation check waits for that same stable DOM seam after the /iam/users workspace route resolves. Whole-suite retry, fixed sleep, skip, allow-failure, product behavior, viewport, timeout limit, and other Web E2E scenarios remain unchanged.",
@@ -926,7 +927,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: candidate is prepared, but the required real macOS Tauri, sidecar, Keychain, native-window, setup, Session vault, SQLite restart, accessibility, and process cleanup command cannot run on this Windows host",
+          "reason": "Pending: DEV-20-005 attempts 1-3 ran on hosted macOS 15.7.7 arm64 with Accessibility enabled. Attempt 3 exposed tauri-utils 2.9.3 generate_context emitting Vec<u8> for dataStoreIdentifier where WindowConfig requires [u8; 16]. DEV-20-006 source correction and a rebuilt candidate are required before native behavior can execute.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -934,7 +935,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T18:17:42+08:00"
+      "updated_at": "2026-09-01T18:28:59+08:00"
     }
   ]
 }

@@ -251,7 +251,7 @@ Gate 的关闭依据是行为和不可变 checkpoint，不是“完成了若干 
 | Local direct-parent verification and parent update | not-authorized | 本计划不使用 current/direct-parent |
 | Local candidate integration and parent update | allowed | Lead-only；候选通过、父 HEAD 未漂移后可本地 fast-forward `main` |
 | G0 reversible dirty-state snapshot/stash | allowed | 仅四组已知产品路径；记录 hash/locator且在最终核对前不得 drop |
-| Push / PR / remote merge | not-authorized | 本地完成不继承远程写入权限 |
+| Push / PR / remote merge | exception-only | 仅 DEV-20-005/006 的同一具名 workflow-only probe branch 可 push；PR、remote merge 与其他远程写入仍未授权 |
 | Branch/worktree/stash cleanup | not-authorized | 集成成功只改变生命周期状态；清理另行授权 |
 | Local disposable migration/E2E data | allowed | 仅明确临时根/测试数据库；禁止破坏 `<Path>dev_store/**</Path>` |
 | Deploy / production migration / publish / archive | not-authorized | 每个外部或不可逆动作另行取得用户批准 |
@@ -268,7 +268,7 @@ Subagent 只返回候选事实与 source commit，不写 Evidence。Lead 核对�
 - Server 仅 SQLite/PostgreSQL，Desktop 仅 SQLite；租户、Redis、JWT、refresh token、Casbin 和默认管理员保持零保留。
 - 无固定 password SQL、未认证 Bootstrap/Recovery HTTP、argv secret、WebView secret、日志/审计 secret。
 - 后端是 capability/data scope/删除不变量事实源；前端可见性不能替代授权。
-- OpenAPI/generated 仅 T-08 写；`main.rs` 仅 T-10 写；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 test-only native App、ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer，DEV-20-003/004 仅开放 Web Shell 的 lazy-route DOM 等待和主题 reload 验证。
+- OpenAPI/generated 仅 T-08 写；`main.rs` 原则上仅 T-10 写，DEV-20-006 只向 T-20 开放 `native-e2e` feature 的 Context data-store 注入；lock/UI、App Shell、CI、Web/Desktop E2E、docs/release 各自由指定 shared owner 写；DEV-20-002 仅向 T-20 开放 test-only native App、ProductWorkspace 主题组合、App Shell manifest 与精确 lock importer，DEV-20-003/004 仅开放 Web Shell 的 lazy-route DOM 等待和主题 reload 验证。
 - Migration forward-only；PostgreSQL 生产显式 migrate，Server SQLite 自动 migrate，Desktop 备份成功后自动 migrate。
 - 不可逆 purge 只有 worker claim 前可取消；最后系统管理员不可删除；recover-admin 不创建或复活账号。
 - required Gate 不允许 skip/allow-failure/静默 retry；签名和公证只记 `not-required`。
@@ -319,7 +319,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
 | Workspace records | T-20 source `151bc21`、portable candidate `2bce131`/tree `cb3fb9d` 已记录；candidate 包含 frozen `main@d260a3d` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005 另精确授权一个 workflow-only probe branch push 与最多 3 次逐个归因的 macOS workflow dispatch；其他远程写入/部署/发布/生产迁移/清理未授权 |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005 的 3 次 probe 已用尽；DEV-20-006 精确开放 feature-only Context 修正、同一 workflow-only probe branch push 与最多 3 次新的逐个归因 macOS dispatch；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
@@ -328,7 +328,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 当前执行 active；DEV-09-001 已解除 Wave A/T-09 的执行闭环并完成本轮候选晋升：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
-- G7/T-20 最终仍需要已登录 GUI 会话、已授予终端 Accessibility、测试 Keychain 可用的真实 macOS/self-hosted runner；当前 Windows host 无 macOS VM，SSH profiles 无可用无交互 macOS 会话，GitHub 仓库无 self-hosted runner，hosted macOS 又不提供所需 AX 授权，因此当前可见通道均不能替代证明。
+- G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-005 三次 attempt 依次暴露 Go module 预热、受控诊断遮蔽与 `tauri-utils 2.9.3` `dataStoreIdentifier` codegen 类型错误；第三次尚未启动窗口，不能作为 native pass。DEV-20-006 已批准 feature-only Context 修复与最多 3 次继续探针。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
 T-20 portable candidate `2bce131` 已通过 Node 47/47、Desktop runner 20/20、Vitest 256/256、type/lint、Go、Rust 26/26/clippy、Tauri release no-bundle、production marker 与精确 configuration/remote/devtools/privilege-growth negative 验证；真实 Web Shell 在 SQLite/PostgreSQL 与 desktop/mobile 通过，并证明 dark mode 跨 deep-link reload 恢复。native runner 已覆盖 required/non-skip、arm64/x64、空库 setup、部分成功恢复、隔离 theme store、vault/SQLite restart、AX keyboard submit、960x640 native window 与 cleanup phases。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，当前 Windows host 明确 not-run，candidate 不晋升。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
