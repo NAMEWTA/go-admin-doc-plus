@@ -952,6 +952,28 @@ fn host_exit_code(runtime: i32, requested: i32) -> i32 {
     if requested == 0 { runtime } else { requested }
 }
 
+#[cfg(feature = "native-e2e")]
+const NATIVE_E2E_DATA_STORE_IDENTIFIER: [u8; 16] = [
+    103, 111, 97, 100, 109, 105, 78, 80, 172, 117, 115, 101, 50, 101, 48, 49,
+];
+
+fn desktop_context() -> tauri::Context<tauri::Wry> {
+    let context = tauri::generate_context!();
+    #[cfg(feature = "native-e2e")]
+    let mut context = context;
+    #[cfg(feature = "native-e2e")]
+    {
+        let windows = &mut context.config_mut().app.windows;
+        assert_eq!(windows.len(), 1, "native E2E requires exactly one window");
+        assert_eq!(
+            windows[0].label, "main",
+            "native E2E requires the main window"
+        );
+        windows[0].data_store_identifier = Some(NATIVE_E2E_DATA_STORE_IDENTIFIER);
+    }
+    context
+}
+
 fn main() {
     let state = Arc::new(HostState::new());
     let managed = Arc::clone(&state);
@@ -997,7 +1019,7 @@ fn main() {
             }
         });
     let app = builder
-        .build(tauri::generate_context!())
+        .build(desktop_context())
         .expect("desktop host initialization failed");
     let exit_code = app.run_return(move |_handle, event| {
         if let RunEvent::Exit = event {
@@ -1013,6 +1035,19 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "native-e2e")]
+    #[test]
+    fn native_e2e_context_uses_the_isolated_data_store() {
+        let context = desktop_context();
+        let windows = &context.config().app.windows;
+        assert_eq!(windows.len(), 1);
+        assert_eq!(windows[0].label, "main");
+        assert_eq!(
+            windows[0].data_store_identifier,
+            Some(NATIVE_E2E_DATA_STORE_IDENTIFIER)
+        );
+    }
 
     #[test]
     fn random_material_is_url_safe_and_independent() {
