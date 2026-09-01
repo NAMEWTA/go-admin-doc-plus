@@ -38,6 +38,19 @@ read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-a
 # go-admin-plus/test/settings/browser_harness_test.go only to compose the current
 # 0040 session-protection migration provider in the existing dual-dialect browser fixture.
 # Product services, migration contents, assertions, and required semantics remain unchanged.
+# Approved deviation DEV-19-006 (USER-DECISION:all-approved): T-19 may update
+# go-admin-plus/test/scheduler/browser_harness_test.go only to compose the current
+# 0040 session-protection migration provider in the existing dual-dialect browser fixture.
+# Product services, migration contents, assertions, and required semantics remain unchanged.
+# Approved deviation DEV-19-007 (USER-DECISION:all-approved): T-19 may update
+# go-admin-plus/test/demo/browser_harness_test.go only to compose the current
+# 0040 session-protection migration provider in the existing dual-dialect browser fixture.
+# Product services, migration contents, assertions, and required semantics remain unchanged.
+# Approved deviation DEV-19-008 (USER-DECISION:all-approved): T-19 may update
+# go-admin-plus/test/files/browser_harness_test.go only to compose the current
+# 0040 session-protection and 0020 Files capacity migration providers in the existing
+# dual-dialect browser fixture. Product services, migration contents, assertions, and
+# required semantics remain unchanged.
 shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>"]
 shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/**</Path> => T-19"]
 ---
