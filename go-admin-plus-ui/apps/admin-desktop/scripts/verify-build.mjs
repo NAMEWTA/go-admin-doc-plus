@@ -1,20 +1,19 @@
 #!/usr/bin/env node
 
-import { dirname, posix, resolve, win32 } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { hostTriple, outputName } from '../../../../release/shared/sidecar/build.mjs'
 import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from './verify-production.mjs'
 
 export const desktopProductionArtifactPaths = (repository, platform = process.platform, architecture = process.arch) => {
+  const root = resolve(repository)
   const triple = hostTriple(platform, architecture)
-  const targetPath = platform === 'win32' ? win32 : posix
-  const root = targetPath.resolve(repository)
-  const appRoot = targetPath.join(root, 'go-admin-plus-ui/apps/admin-desktop')
+  const appRoot = join(root, 'go-admin-plus-ui/apps/admin-desktop')
   return {
-    webview: targetPath.join(appRoot, 'dist'),
-    sidecar: targetPath.join(appRoot, 'src-tauri/binaries', outputName(triple)),
-    host: targetPath.join(appRoot, 'src-tauri/target/release', platform === 'win32' ? 'go-admin-plus-desktop.exe' : 'go-admin-plus-desktop')
+    webview: join(appRoot, 'dist'),
+    sidecar: join(appRoot, 'src-tauri/binaries', outputName(triple)),
+    host: join(appRoot, 'src-tauri/target/release', platform === 'win32' ? 'go-admin-plus-desktop.exe' : 'go-admin-plus-desktop')
   }
 }
 

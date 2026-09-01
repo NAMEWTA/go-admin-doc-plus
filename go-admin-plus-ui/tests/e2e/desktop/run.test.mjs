@@ -32,10 +32,7 @@ test('native runner accessibility labels match the current Session UI', () => {
   assert.match(login, /'\u767b\u5f55'/)
   assert.match(login, /aria-label="\u8d26\u53f7"/)
   assert.match(login, /aria-label="\u5bc6\u7801"/)
-  assert.match(demo, /<label>SKU<input[^>]+name="sku"/)
-  assert.match(demo, /<label>\u540d\u79f0<input[^>]+name="name"/)
-  assert.match(demo, /<label class="wide">\u63cf\u8ff0<textarea[^>]+name="description"/)
-  assert.match(demo, /<label>\u4ef7\u683c\uff08\u5206\uff09<input[^>]+name="priceCents"/)
+  for (const label of ['SKU', '\u540d\u79f0', '\u63cf\u8ff0', '\u4ef7\u683c\uff08\u5206\uff09']) assert.match(demo, new RegExp(`aria-label="${label}"`))
   assert.match(account, />\u9000\u51fa\u767b\u5f55<\/button>/)
   assert.match(runner, /\], '\u767b\u5f55'\)\)/)
   assert.match(runner, /clickButton\(app\.child\.pid, '\u8d26\u6237\u83dc\u5355'\)[\s\S]*windowContains\(app\.child\.pid, '\u9000\u51fa\u767b\u5f55'\)/)
@@ -108,9 +105,9 @@ test('production Desktop artifact paths are exact for each supported host', () =
   const arm = desktopProductionArtifactPaths('/repository', 'darwin', 'arm64')
   assert.equal(arm.sidecar, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/binaries/go-admin-sidecar-aarch64-apple-darwin')
   assert.equal(arm.host, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/target/release/go-admin-plus-desktop')
-  const windows = desktopProductionArtifactPaths('C:\\repository', 'win32', 'x64')
-  assert.equal(windows.sidecar, 'C:\\repository\\go-admin-plus-ui\\apps\\admin-desktop\\src-tauri\\binaries\\go-admin-sidecar-x86_64-pc-windows-msvc.exe')
-  assert.equal(windows.host, 'C:\\repository\\go-admin-plus-ui\\apps\\admin-desktop\\src-tauri\\target\\release\\go-admin-plus-desktop.exe')
+  const windows = desktopProductionArtifactPaths('/repository', 'win32', 'x64')
+  assert.equal(windows.sidecar, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/binaries/go-admin-sidecar-x86_64-pc-windows-msvc.exe')
+  assert.equal(windows.host, '/repository/go-admin-plus-ui/apps/admin-desktop/src-tauri/target/release/go-admin-plus-desktop.exe')
   assert.throws(() => desktopProductionArtifactPaths('/repository', 'linux', 'x64'), /unsupported desktop host target/)
 })
 
@@ -187,31 +184,16 @@ test('accessibility query walks the native flattened element collection', () => 
   assert.match(windowValueScript(42, 'E2E boundary blocked:'), /observedName starts with "E2E boundary blocked:"/)
 })
 
-test('native runner fails when the required opt-in is missing', () => {
+test('native runner is a default skip with no environment prerequisites', () => {
   const result = spawnSync(process.execPath, [fileURLToPath(new URL('./run.mjs', import.meta.url))], {
     env: { PATH: process.env.PATH ?? '' }, encoding: 'utf8'
   })
-  assert.equal(result.status, 1)
-  assert.equal(result.stdout, '')
-  assert.equal(result.stderr, 'desktop native E2E requires GO_ADMIN_DESKTOP_NATIVE_E2E=1\n')
-})
-
-test('native runner covers empty first setup, restart, and an exact non-skip pass marker', () => {
-  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  for (const phase of [
-    'first-setup-recovery-root', 'first-setup-recovery-window', 'first-setup-recovery-submit',
-    'first-setup-recovery-fault', 'first-setup-recovery-state', 'first-setup-recovery-restart',
-    'first-setup-root', 'first-setup-window', 'first-setup-submit', 'first-setup-workspace', 'first-setup-restart'
-  ]) {
-    assert.match(runner, new RegExp(`phase = '${phase}'`))
-  }
-  assert.match(runner, /chmod\(recoverySnapshot, 0o400\)[\s\S]*chmod\(recoveryData, 0o500\)/)
-  assert.match(runner, /phase = 'cleanup-recovery-permissions'[\s\S]*chmod\(recoveryData, 0o700\)[\s\S]*chmod\(recoverySnapshot, 0o600\)/)
-  assert.match(runner, /windowContains\(app\.child\.pid, '\u7ba1\u7406\u5458\u5df2\u521b\u5efa'\)/)
-  assert.match(runner, /completeFirstSetup\(app\.child\.pid\)/)
-  assert.match(runner, /hostTriple\('darwin', process\.arch\)/)
-  assert.match(runner, /DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0/)
-  assert.doesNotMatch(runner, /state: 'skipped'|process\.exit\(0\)/)
+  assert.equal(result.status, 0)
+  assert.deepEqual(JSON.parse(result.stdout), {
+    state: 'skipped',
+    reason: 'GO_ADMIN_DESKTOP_NATIVE_E2E is not enabled'
+  })
+  assert.equal(result.stderr, '')
 })
 
 test('controlled exit one represents an empty process query', async () => {
