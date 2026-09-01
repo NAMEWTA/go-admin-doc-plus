@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after failure: DEV-20-019 candidate 1e17579 passed all portable checks, but its final ordered hosted attempt Actions 33539914535 / job 99963330288 / probe 2f3e87d passed prebuild and then failed the required gate at login-navigation with desktop native accessibility button unavailable. The failure is inside the scrollbar helper and precedes Demo route observation; there was no skip or native pass marker. DEV-20-017's three-attempt quota is exhausted, so any further probe requires a new recorded attribution, bounded correction, and independent quota.",
+          "reason": "Pending after failure: DEV-20-019 candidate 1e17579 passed portable checks, but Actions 33539914535 / job 99963330288 / probe 2f3e87d passed prebuild and failed inside the scrollbar helper at login-navigation with no skip or marker; DEV-20-017's quota is exhausted. DEV-20-020 independently authorizes a bounded replacement: focus the visible first admin route, use exactly 11 standard Tab steps so WebKit reveals the twelfth Demo route, then fresh-query and single-click it with fixed navigation substep diagnostics. Product, manifest, visual dimensions, workflow, timeouts, retry/skip, and security boundaries remain unchanged; up to three newly attributed hosted attempts are authorized after a verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T02:05:08+08:00"
+      "updated_at": "2026-09-02T02:18:00+08:00"
     }
   ]
 }
