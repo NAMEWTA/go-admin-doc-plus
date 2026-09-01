@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { createDesktopSession } from '@go-admin-plus/adapter-desktop'
 import { computed, onMounted, ref } from 'vue'
 
 import { createFirstSetupClient, type FirstSetupInput } from './client'
@@ -6,6 +7,7 @@ import { createFirstSetupClient, type FirstSetupInput } from './client'
 type GateState = 'loading' | 'required' | 'recovery' | 'workspace' | 'unavailable'
 
 const client = createFirstSetupClient()
+const session = createDesktopSession()
 const state = ref<GateState>('loading')
 const username = ref('admin')
 const displayName = ref('系统管理员')
@@ -29,9 +31,22 @@ const load = async () => {
   }
 }
 
-const continueToLogin = () => {
+const openWorkspace = () => {
   workspaceKey.value += 1
   state.value = 'workspace'
+}
+
+const continueToLogin = async () => {
+  error.value = ''
+  submitting.value = true
+  try {
+    await session.logout()
+    openWorkspace()
+  } catch {
+    error.value = '无法进入登录，请重试'
+  } finally {
+    submitting.value = false
+  }
 }
 
 const submit = async () => {
@@ -49,7 +64,7 @@ const submit = async () => {
   submitting.value = true
   try {
     const outcome = await client.submit(input)
-    if (outcome.state === 'complete') continueToLogin()
+    if (outcome.state === 'complete') openWorkspace()
     else state.value = 'recovery'
   } catch {
     try {
@@ -119,7 +134,8 @@ onMounted(() => { void load() })
       <span class="first-setup-status" aria-hidden="true">!</span>
       <h1 id="first-setup-recovery-title">管理员已创建</h1>
       <p>首次会话未能完成，请使用刚才创建的账号登录。</p>
-      <button type="button" @click="continueToLogin">进入登录</button>
+      <p v-if="error" class="first-setup-error" role="alert">{{ error }}</p>
+      <button type="button" :disabled="submitting" @click="continueToLogin">{{ submitting ? '正在进入' : '进入登录' }}</button>
     </section>
 
     <section v-else class="first-setup-panel first-setup-recovery" aria-labelledby="first-setup-unavailable-title">
