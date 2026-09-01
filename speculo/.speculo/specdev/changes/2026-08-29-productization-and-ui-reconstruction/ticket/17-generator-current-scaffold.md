@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-17
 title: 升级 Generator 为当前全垂直脚手架
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 模板会写入双方言 schema、公共 API、后端模块、前端 workspace 和权限注册，事故半径覆盖未来所有生成模块
 ready: true
@@ -115,7 +115,7 @@ shared_path_owners: []
 
 ## 10. 验收标准
 
-- [ ] `AC-034` 隔离全栈生成成立。
-- [ ] 双 dialect、OpenAPI、Go、domain/Web Domain、permission、tests 均生成且门禁通过。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-17.md</Path>`。
-- [ ] commit、integration/result 和 E2E disposition 完整。
+- [x] `AC-034` 隔离全栈生成成立。
+- [x] 双 dialect、OpenAPI、Go、domain/Web Domain、permission、tests 均生成且门禁通过。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-17.md</Path>`。
+- [x] commit、integration/result 和 E2E disposition 完整。
