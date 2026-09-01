@@ -7,7 +7,10 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import {
   desktopNativeControlMarkers,
+  desktopProductionPermissions,
+  validateDesktopProductionConfiguration,
   verifyDesktopProductionAssets,
+  verifyDesktopProductionConfiguration,
   verifyDesktopProductionFiles
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
@@ -62,6 +65,23 @@ test('production Desktop entry contains no native E2E controls', () => {
   assert.match(runner, /verifyDesktopProductionFiles\(\[sidecarBinary, hostBinary\]\)/)
   assert.doesNotMatch(runner, /fileContains/)
   assert.match(manifest.scripts.build, /vite build[^&]+&& node scripts\/verify-production\.mjs/)
+})
+
+test('production Desktop capability configuration is exact and rejects privilege growth', async () => {
+  const appRoot = join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop')
+  const config = JSON.parse(readFileSync(join(appRoot, 'src-tauri/tauri.conf.json'), 'utf8'))
+  const capability = JSON.parse(readFileSync(join(appRoot, 'src-tauri/capabilities/main.json'), 'utf8'))
+  assert.deepEqual(capability.permissions, desktopProductionPermissions)
+  assert.doesNotThrow(() => validateDesktopProductionConfiguration(config, capability))
+  await assert.doesNotReject(verifyDesktopProductionConfiguration(appRoot))
+  assert.throws(
+    () => validateDesktopProductionConfiguration(config, { ...capability, permissions: [...capability.permissions, 'shell:allow-execute'] }),
+    /desktop production capability configuration is invalid/
+  )
+  assert.throws(
+    () => validateDesktopProductionConfiguration({ ...config, app: { ...config.app, windows: [{ ...config.app.windows[0], visible: true }] } }, capability),
+    /desktop production capability configuration is invalid/
+  )
 })
 
 test('production Desktop asset verifier rejects native E2E bytes', async t => {
