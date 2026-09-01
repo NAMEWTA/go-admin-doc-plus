@@ -78,6 +78,14 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** 已授权，尚未形成修正 checkpoint；candidate `85daa41` 及本次 `28 pass / 1 fail / 0 skip` 输出保留为 Generator 首红。
 
+### 已批准执行偏差 DEV-21-005
+
+- **触发事实：** 当前 T-21 candidate `1e1673d` 的根 `task test` 及 `-count=10` 定向复验均在 `TestAccountLifecycleOutboxProjectionFeedsOwnedInbox` 失败。测试把 event/claim 时间固定为 `2026-09-01T00:00:00Z`，但构造 Dispatcher 时未注入结算时钟，执行日 `2026-09-02` 的真实时钟使一分钟 claim 在 consumer 结算前必然过期；产品正确返回 `outbox claim is no longer owned`，测试因此成为日期相关红灯。
+- **批准范围：** T-21 临时拥有 `go-admin-plus/internal/modules/files/account_lifecycle_test.go` 中该单一测试的 Dispatcher 配置，只允许把既有固定 `now` 注入 `Now`，使 claim、consumer settle 与既有断言使用同一确定性时钟；该测试必须以 `-count=20` 通过，Files 包与相关 outbox fault tests 必须通过。
+- **禁止扩大：** 不修改 outbox/coordination 产品实现、lease duration、claim fence、migration、consumer、事件内容或其他测试；不延长租约、不读取当前日期、不增加 retry、skip 或 allow-failure。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成修正 checkpoint；`task test` 非零与定向 `0/10` 输出保留为日期首红。
+
 ### 未决问题
 
 无。
