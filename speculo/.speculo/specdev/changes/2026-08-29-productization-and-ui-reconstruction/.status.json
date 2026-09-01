@@ -38,14 +38,15 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T23:00:06+08:00",
+  "updated_at": "2026-09-01T23:27:30+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-011 attempt 1 ran candidate 0935004 as Actions 33520584846 (job 99898523529), passed native prebuild, then failed after the existing Demo page wait as login-demo-workspace. That suffix only proves the global account menu remained visible and cannot distinguish an unactivated navigation control from a Demo route whose projection stayed busy. DEV-20-012 authorizes deterministic AXPress navigation plus fixed current-route/busy classification using the two remaining DEV-20-011 attempts; no pass marker has been claimed."
+    "G7 remains pending. DEV-20-011 attempt 2 ran candidate dbeeef8 as Actions 33524019742 (job 99910130934), passed native prebuild, then again returned login-demo-workspace. The new AXARIACurrent=page postcondition remained false after 30 seconds, proving standard AXPress returned without activating the WebKit/Vue route. DEV-20-013 authorizes focus plus Enter for the same exact enabled Demo AXButton using the final remaining attempt; no pass marker has been claimed."
   ],
   "deviations": [
+    "DEV-20-013 (keyboard activation of the exact Desktop Demo navigation control, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-011 attempt 2 ran candidate dbeeef8 as Actions 33524019742 (job 99910130934, probe 1ae5049), passed native prebuild, then returned login-demo-workspace after the existing 30-second wait. DEV-20-012 checks AXARIACurrent=page before every older classifier suffix, so the repeated workspace result proves the exact AXButton's standard AXPress action returned but did not activate the WebKit/Vue route. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/accessibility.mjs and run.test.mjs so the same exact enabled AXButton is focused in the frontmost process and activated with Enter key code 36, matching the already passing native keyboard-submit mechanism. Existing current/busy classification, three call sites, names, and timeouts remain unchanged and self-tests must reject AXPress/click/delay in this helper. The final remaining DEV-20-011 ordered macos-15 attempt may be used after a new source checkpoint and canonical candidate. No product/API/capability/migration/fixture/workflow change, arbitrary UI output, timeout/retry/sleep/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, added hosted quota, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-012 (deterministic Desktop Demo navigation activation and postcondition, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-011 attempt 1 ran candidate 0935004 as Actions 33520584846 (job 99898523529, probe b714d6a), passed native prebuild, then returned login-demo-workspace after the existing 30-second Demo page wait. The workspace suffix only observes the account menu, which is global to every authenticated product route, so it does not prove that the prior accessibility click changed or failed to change routes. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/accessibility.mjs, run.mjs, and run.test.mjs so the three existing Demo navigation actions focus the exact enabled AXButton and invoke its standard AXPress action, and failure classification checks only the fixed AXARIACurrent=page and AXBusy attributes before falling back to the existing taxonomy. Self-tests must lock exact names/actions/order. The two remaining DEV-20-011 ordered macos-15 attempts may be used after a new source checkpoint and canonical candidate. No product/API/capability/migration/fixture/workflow change, arbitrary UI output, timeout/retry/sleep/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, added hosted quota, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-011 (fixed Demo page failure classification and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-008 attempt 3 ran candidate 53ffab7 as Actions 33518029405 (job 99889910987), passed previous-fixture startup, login, authenticated workspace, and window verification, then timed out at login-demo after the existing Product navigation click. The runner currently discards whether the fixed page is route-load failure, product unavailable/no-projection, forbidden, not-found, runtime unavailable, loading, login, workspace, or unknown. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/run.mjs and run.test.mjs to classify those fixed states after each of the three existing Demo page waits fails and lock the fixed taxonomy/order in self-tests. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three ordered macos-15 attempts, each only after attribution and correction of the prior first honest failure. No arbitrary UI output, product/API/capability/migration/fixture change, timeout/retry/sleep/skip/workflow change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-010 (Desktop previous-fixture bootstrap marker consistency, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-008 attempt 2 ran candidate 1efa3ad as Actions 33515309949 (job 99880740594), passed native prebuild and kept the corrected previous fixture sidecar alive, then timed out at login-window. The current fixture now applies the bootstrap-recovery migration and creates one account and role but omits iam_bootstrap_state; product desktopSetup.state deterministically rejects accounts=1/markers=0 as inconsistent. T-20 may update only go-admin-plus/test/desktop/fixture/main.go and main_test.go to insert exactly marker=1 linked to account-desktop-e2e in the same fixture transaction as the account and system-admin role and prove the marker/account/role consistency. The corrected candidate may use the one remaining DEV-20-008 hosted attempt; no extra attempt is added. No product bootstrap/setup/migration/provider/API, runner diagnostic/timeout/retry/skip, workflow, fixture credential, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
@@ -910,14 +911,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "03c6a94795caede2910596bfb562a92bc238dfeb",
+      "source_checkpoint": "672d9158d31a485dc9cd46565f87eb6419f8add3",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "d935d4ff4ebac4d187d1fc543535c53c9cc8e5b0",
-        "source_sha": "03c6a94795caede2910596bfb562a92bc238dfeb",
-        "candidate_sha": "09350043a100a7ce4797879d4ff57c71970cd5b1",
-        "candidate_tree_sha": "b4b818f4b64421bad154b51d7dc2daef521e4f2a",
+        "parent_before_sha": "e262fa9bfca21482b5a84dc300a53c3255a85fb8",
+        "source_sha": "672d9158d31a485dc9cd46565f87eb6419f8add3",
+        "candidate_sha": "dbeeef853238e789ef911df371db73c9a3c6cb44",
+        "candidate_tree_sha": "218445419c1f7bdb6674c6ce99347433ee9a017e",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -927,13 +928,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 0935004 contains governance parent d935d4f and source 03c6a94. Current candidate passed targeted fixture/product/migration Go tests, fixture go vet, Vitest 41/41 files / 256/256 tests, Node 48/48 including the fixed Demo classifier taxonomy/order, lint, and Speculo 0/0. Prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate dbeeef8 contains governance parent e262fa9 and source 672d915. Current candidate passed targeted fixture/product/migration Go tests, fixture go vet, Vitest 41/41 files / 256/256 tests, Node 48/48 including exact AXPress/current/busy taxonomy and order, lint, and Speculo 0/0. Prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-011 attempt 1 ran candidate 0935004 as Actions 33520584846 (job 99898523529), passed native prebuild, then failed as login-demo-workspace. The global account menu makes that suffix inconclusive about route activation versus a busy Demo projection. DEV-20-012 deterministic AXPress/current-route/busy correction is pending; two ordered hosted attempts remain, without timeout, retry, skip, product/API/capability/migration/fixture, workflow, or security-boundary changes.",
+          "reason": "Pending: DEV-20-011 attempt 2 ran candidate dbeeef8 as Actions 33524019742 (job 99910130934), passed native prebuild, then again returned login-demo-workspace while AXARIACurrent=page remained false. DEV-20-013 focus-plus-Enter correction is pending; one final ordered hosted attempt remains, without timeout, retry, sleep, skip, product/API/capability/migration/fixture, workflow, or security-boundary changes.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -941,7 +942,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T23:00:06+08:00"
+      "updated_at": "2026-09-01T23:27:30+08:00"
     }
   ]
 }
