@@ -90,13 +90,12 @@ const resolveToolchain = async () => {
   throw new Error('Go toolchain is unavailable')
 }
 
-export const buildEnvironment = (target, sandbox, goExecutable, moduleCache) => {
-  const targetPath = target.goos === 'windows' ? path.win32 : path.posix
+export const buildEnvironment = (target, sandbox, goExecutable, moduleCache, hostPath = path) => {
   return {
-    PATH: targetPath.dirname(goExecutable),
-    HOME: targetPath.join(sandbox, 'home'),
-    TMPDIR: targetPath.join(sandbox, 'tmp'),
-    GOCACHE: targetPath.join(sandbox, 'go-build'),
+    PATH: hostPath.dirname(goExecutable),
+    HOME: hostPath.join(sandbox, 'home'),
+    TMPDIR: hostPath.join(sandbox, 'tmp'),
+    GOCACHE: hostPath.join(sandbox, 'go-build'),
     GOMODCACHE: moduleCache,
     GOENV: 'off',
     GOFLAGS: '',
