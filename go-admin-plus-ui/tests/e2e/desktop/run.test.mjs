@@ -273,8 +273,9 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
   ]) {
     assert.match(runner, new RegExp(`phase = '${phase}'`))
   }
-  assert.match(runner, /chmod\(recoverySnapshot, 0o400\)[\s\S]*chmod\(recoveryData, 0o500\)/)
-  assert.match(runner, /phase = 'cleanup-recovery-permissions'[\s\S]*chmod\(recoveryData, 0o700\)[\s\S]*chmod\(recoverySnapshot, 0o600\)/)
+  assert.match(runner, /rename\(recoverySnapshot, recoverySnapshotBackup\)[\s\S]*recoveryFaultActive = true[\s\S]*mkdir\(recoverySnapshot, \{ mode: 0o700 \}\)/)
+  assert.match(runner, /restoreRecoverySnapshot\(\)[\s\S]*clickButton\(app\.child\.pid, '\u8fdb\u5165\u767b\u5f55'\)/)
+  assert.match(runner, /phase = 'cleanup-recovery-permissions'[\s\S]*restoreRecoverySnapshot\(\)[\s\S]*chmod\(recoverySnapshot, 0o600\)/)
   assert.match(runner, /windowContains\(app\.child\.pid, '\u7ba1\u7406\u5458\u5df2\u521b\u5efa'\)/)
   assert.match(runner, /completeFirstSetup\(app\.child\.pid\)/)
   assert.match(runner, /if \(width < 960 \|\| height < 640\)/)
