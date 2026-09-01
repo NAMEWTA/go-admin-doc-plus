@@ -7,7 +7,7 @@ import { createConnection } from 'node:net'
 import { networkInterfaces, tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
+import { clickButtonScript, fillAndSubmitScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
 import { nativeAccessibilityFailure, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
@@ -185,6 +185,13 @@ end tell`)
   return Number.parseInt(output.trim(), 10) || 0
 }
 
+const assertWindowFrame = async pid => {
+  const output = await runAppleScript(windowFrameScript(pid))
+  const [x, y, width, height] = output.trim().split(',').map(Number)
+  if (![x, y, width, height].every(Number.isFinite)) throw new Error('native window frame was invalid')
+  if (width < 960 || height < 640) throw new Error('native window was smaller than the product minimum')
+}
+
 const windowContains = async (pid, value) => {
   if (!processIsAlive(pid)) throw new Error('native host exited before UI observation')
   const output = await runAppleScript(windowContainsScript(pid, value))
@@ -273,12 +280,12 @@ const stopApp = async owner => {
   if (owner.child.exitCode === null && owner.child.signalCode === null && !result.spawnError) throw new Error('native host cleanup was not observed')
 }
 
-const login = (pid, username, password) => runAppleScript(fillAndClickScript(pid, [
+const login = (pid, username, password) => runAppleScript(fillAndSubmitScript(pid, [
   { name: '账号', value: username },
   { name: '密码', value: password }
 ], '登录'))
 
-const completeFirstSetup = pid => runAppleScript(fillAndClickScript(pid, [
+const completeFirstSetup = pid => runAppleScript(fillAndSubmitScript(pid, [
   { name: '用户名', value: 'native-admin' },
   { name: '显示名称', value: 'Native Administrator' },
   { name: '邮箱', value: 'native-admin@example.test' },
@@ -286,7 +293,7 @@ const completeFirstSetup = pid => runAppleScript(fillAndClickScript(pid, [
   { name: '确认密码', value: fixturePassword }
 ], '创建并进入工作区'))
 
-const createProduct = pid => runAppleScript(fillAndClickScript(pid, [
+const createProduct = pid => runAppleScript(fillAndSubmitScript(pid, [
   { name: 'SKU', value: 'E2E-001' },
   { name: '名称', value: 'Native product' },
   { name: '描述', role: 'AXTextArea', value: 'created through the native window' },
@@ -295,7 +302,7 @@ const createProduct = pid => runAppleScript(fillAndClickScript(pid, [
 
 const updateProduct = async pid => {
   await runAppleScript(clickButtonScript(pid, '修改'))
-  await runAppleScript(fillAndClickScript(pid, [
+  await runAppleScript(fillAndSubmitScript(pid, [
     { name: '名称', value: 'Native product updated' }
   ], '保存'))
 }
@@ -352,6 +359,8 @@ const main = async () => {
     phase = 'first-setup-recovery-window'
     app = startTracked(binary, recoveryRoot, recoveryKeyring)
     await poll('native recovery setup window', () => windowContains(app.child.pid, '创建首位管理员'), 90_000)
+    phase = 'first-setup-recovery-window-frame'
+    await assertWindowFrame(app.child.pid)
     phase = 'first-setup-recovery-fault'
     await chmod(recoverySnapshot, 0o400)
     await chmod(recoveryData, 0o500)
@@ -382,6 +391,8 @@ const main = async () => {
     phase = 'first-setup-window'
     app = startTracked(binary, setupRoot, setupKeyring)
     await poll('native first setup window', () => windowContains(app.child.pid, '创建首位管理员'), 90_000)
+    phase = 'first-setup-window-frame'
+    await assertWindowFrame(app.child.pid)
     phase = 'first-setup-submit'
     await completeFirstSetup(app.child.pid)
     phase = 'first-setup-workspace'
@@ -438,6 +449,8 @@ const main = async () => {
     await login(app.child.pid, 'admin', fixturePassword)
     phase = 'login-workspace'
     await poll('native authenticated workspace', () => windowContains(app.child.pid, '账户菜单'))
+    phase = 'login-window-frame'
+    await assertWindowFrame(app.child.pid)
     phase = 'login-navigation'
     await poll('native Demo navigation', () => windowContains(app.child.pid, '产品示例'))
     await clickButton(app.child.pid, '产品示例')
