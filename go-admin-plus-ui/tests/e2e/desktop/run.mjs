@@ -580,6 +580,10 @@ const main = async () => {
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
     phase = 'permission-enable-control'
     await clickButton(app.child.pid, 'E2E permissions on')
+    phase = 'permission-enable-boundary'
+    await pollControl(app.child.pid, 'permission capability enabled', 'E2E authorization restored')
+    phase = 'permission-navigation'
+    await openDemo(app.child.pid)
     phase = 'permission-restored'
     await poll('permission capability restored', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'session-revocation-control'

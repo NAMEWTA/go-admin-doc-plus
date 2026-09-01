@@ -116,6 +116,7 @@ const nativeControl = async (action: 'scope-self' | 'scope-all' | 'permissions-o
       if (response.status !== 403) throw new Error('native authorization remained active')
       nativeAuthorization.value = 'E2E authorization denied'
     }
+    if (action === 'permissions-on') nativeAuthorization.value = 'E2E authorization restored'
     workspaceKey.value += 1
   } catch {
     nativeAuthorization.value = `E2E control failed: ${stage}`
