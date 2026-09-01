@@ -640,7 +640,7 @@ const main = async () => {
     if (!(await windowContains(app.child.pid, '产品搜索'))) throw new Error('first native instance stopped serving after duplicate launch')
     if (await newSidecarPid(sidecarBaseline) !== firstSidecar) throw new Error('second native instance spawned another sidecar')
     phase = 'product-create'
-    await clickButton(app.child.pid, '新增')
+    await clickButton(app.child.pid, '新增产品')
     await poll('native product form', () => windowContains(app.child.pid, '新增产品'))
     await poll('native product save control', () => windowContains(app.child.pid, '保存'))
     await createProduct(app.child.pid)
