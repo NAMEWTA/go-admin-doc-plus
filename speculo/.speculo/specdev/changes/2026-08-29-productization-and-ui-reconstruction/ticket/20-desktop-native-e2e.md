@@ -137,6 +137,13 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **禁止扩大：** 不输出任意 UI，不修改产品、API、capability、migration、fixture、workflow、90 秒上限、retry/sleep/skip/allow-failure；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。每个前一红灯必须先归因并修正，hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-015
+
+- **触发事实：** DEV-20-014 attempt 1 `33528845263`（job `99926524466`，probe `20c6b63`）在真实 macOS 15.7.7 arm64 上通过 prebuild 与 ordinary first setup，证明前一无后缀红灯为非确定性结果，随后再次精确返回 `login-demo-workspace`。exact enabled Demo AXButton helper 聚焦后立即发送 Enter，而已在同一 hosted 路径通过的登录/表单 submit helper 在聚焦后固定等待 `0.2s` 再发送同一 `key code 36`。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`，在 `pressButtonScript` 设置同一 exact enabled button focused 后、`key code 36` 前插入且只插入 `delay 0.2`；self-test 必须锁定顺序并拒绝其他 delay。形成新 source/candidate 后沿用 DEV-20-014 剩余 2 次有序 hosted attempt，不新增配额。
+- **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure 或其他 sleep/delay；不输出任意 UI；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
