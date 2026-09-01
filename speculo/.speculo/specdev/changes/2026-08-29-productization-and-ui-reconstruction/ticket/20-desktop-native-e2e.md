@@ -197,7 +197,7 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准范围：** T-20 可在现有 test-only `apps/admin-desktop/src/native-e2e/App.vue` 增加唯一固定可见的 `E2E open Demo` 按钮，点击时只把 hash router 目标设为 `#/demo/products`；native runner 的三处 Demo navigation 只点击该 test-only 按钮并继续验证同一真实 route guard、lazy page、权限、CRUD、Session 与重启后置条件。`verify-production.mjs` 必须把该文本加入 production byte 拒绝清单，self-test 必须锁定 exact hash、三处调用与 production App 零命中。删除已实测无效且不再调用的 sidebar AX traversal helper 与对应断言。portable candidate 全部通过后可使用 DEV-20-020 最后 1 次 ordered attempt。
 - **禁止扩大：** 不修改 `ProductWorkspace`、manifest、router、产品路由/权限/视觉合同、Tauri capability/config、workflow、timeout/retry/skip/allow-failure，不增加后端 test action、公开 API、secret、任意脚本执行或生产资产中的测试控件；不发布 artifact、deploy/migrate、重写或清理远端历史。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
-- **执行状态：** 已授权，尚未形成 source/candidate；最后一次 hosted attempt 不得在记录与 portable checks 前 dispatch。
+- **执行状态：** source `d2d4ed5552e244761d56c81f352729d7ed6bd7ab` 已形成；candidate `0847ff6a52762ab77dfbd9c0e2738c5e208ff143`（tree `96f8129fbd2e1d92b083eaad365cb9cf2c95f135`）包含治理父 `3056fdd33f717f7387e119f6d8d2853d16d847f6` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 48/48、Desktop runner 21/21、完整 typecheck、lint、production build/asset scan、diff-check 与 clean tree；native-e2e entry build 通过并确认测试标记存在，随后 production 重建再次通过零测试字节扫描。DEV-20-020 尚余最后 1 次 ordered attempt，native Gate 仍为 pending。
 
 ### 未决问题
 

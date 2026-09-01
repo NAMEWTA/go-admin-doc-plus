@@ -917,14 +917,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "85d1f14c441771717c579b44d0b7c4adf7b52708",
+      "source_checkpoint": "d2d4ed5552e244761d56c81f352729d7ed6bd7ab",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "71fadd9b8e3f00ebfbff4dac7bffb6a235a21142",
-        "source_sha": "85d1f14c441771717c579b44d0b7c4adf7b52708",
-        "candidate_sha": "d1b0d9c92d8e658064e7bea389bfc3d1ae8c473e",
-        "candidate_tree_sha": "3d28be1020abf3892141ecb0e040eb8947e45133",
+        "parent_before_sha": "3056fdd33f717f7387e119f6d8d2853d16d847f6",
+        "source_sha": "d2d4ed5552e244761d56c81f352729d7ed6bd7ab",
+        "candidate_sha": "0847ff6a52762ab77dfbd9c0e2738c5e208ff143",
+        "candidate_tree_sha": "96f8129fbd2e1d92b083eaad365cb9cf2c95f135",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -934,7 +934,7 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate d1b0d9c contains governance parent 71fadd9 and source 85d1f14 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, lint, diff-check, and clean-tree verification. Self-tests lock manifest route indices 0 and 11, exact enabled start/target lookup, exactly 11 Option-Tab steps, fresh focused-target query, fixed navigation diagnostics, two AX scans, one 0.2-second delay, and one center click while rejecting unmodified Tab, other keys, AX scroll actions/parents/areas/scrollbar values, perform action, Enter, and extra clicks. Prior unchanged targeted Go/vet, full typecheck, Desktop production build/assets, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 0847ff6 contains governance parent 3056fdd and source d2d4ed5 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, full typecheck, lint, production build/asset scanning, diff-check, and clean-tree verification. The native-e2e entry build contains the exact E2E open Demo control; the subsequent production rebuild passed its byte scanner. Self-tests lock the exact hash target, three runner calls, production App absence, and production marker rejection. The failed unused AX traversal helper was removed; product shell/router/permissions, capabilities, workflow, timeouts, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T03:01:00+08:00"
+      "updated_at": "2026-09-02T03:10:00+08:00"
     }
   ]
 }
