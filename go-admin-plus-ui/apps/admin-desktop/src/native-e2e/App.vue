@@ -81,6 +81,15 @@ const openDemo = () => {
   window.location.hash = '#/demo/products'
 }
 
+const useDarkTheme = () => {
+  const control = document.querySelector<HTMLButtonElement>('button[aria-label="使用深色主题"]')
+  if (!control) {
+    nativeAuthorization.value = 'E2E control failed: theme-dark'
+    return
+  }
+  control.click()
+}
+
 const nativeControl = async (action: 'scope-self' | 'scope-all' | 'permissions-off' | 'permissions-on' | 'session-revoke') => {
   nativeAuthorization.value = ''
   let stage = 'control-request'
@@ -130,6 +139,7 @@ onUnmounted(() => {
       <span v-if="nativeBoundary">{{ nativeBoundary }}</span>
       <span v-if="nativeAuthorization">{{ nativeAuthorization }}</span>
       <button type="button" @click="openDemo">E2E open Demo</button>
+      <button type="button" @click="useDarkTheme">E2E use dark theme</button>
       <button type="button" @click="nativeControl('scope-self')">E2E scope self</button>
       <button type="button" @click="nativeControl('scope-all')">E2E scope all</button>
       <button type="button" @click="nativeControl('permissions-off')">E2E permissions off</button>
