@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rename, rm } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { createHash, randomBytes } from 'node:crypto'
 import { createConnection } from 'node:net'
@@ -332,6 +332,14 @@ const main = async () => {
   const recoveryRoot = join(workspace, 'recovery')
   const recoveryData = join(recoveryRoot, 'data')
   const recoverySnapshot = join(recoveryData, 'session.stronghold')
+  const recoverySnapshotBackup = join(recoveryData, 'session.stronghold.native-e2e-backup')
+  let recoveryFaultActive = false
+  const restoreRecoverySnapshot = async () => {
+    if (!recoveryFaultActive) return
+    await rm(recoverySnapshot, { recursive: true, force: true })
+    await rename(recoverySnapshotBackup, recoverySnapshot)
+    recoveryFaultActive = false
+  }
   const sidecarBaseline = await sidecarProcesses()
   const owners = new Set()
   const startTracked = (binary, isolatedRoot, keyringAccount) => {
@@ -374,14 +382,14 @@ const main = async () => {
     phase = 'first-setup-recovery-window-frame'
     await assertWindowFrame(app.child.pid)
     phase = 'first-setup-recovery-fault'
-    await chmod(recoverySnapshot, 0o400)
-    await chmod(recoveryData, 0o500)
+    await rename(recoverySnapshot, recoverySnapshotBackup)
+    recoveryFaultActive = true
+    await mkdir(recoverySnapshot, { mode: 0o700 })
     phase = 'first-setup-recovery-submit'
     await completeFirstSetup(app.child.pid)
     phase = 'first-setup-recovery-state'
     await poll('native partial setup recovery', () => windowContains(app.child.pid, '管理员已创建'), 90_000)
-    await chmod(recoveryData, 0o700)
-    await chmod(recoverySnapshot, 0o600)
+    await restoreRecoverySnapshot()
     await clickButton(app.child.pid, '进入登录')
     await poll('native recovery login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
     await stopTracked(app)
@@ -594,6 +602,7 @@ const main = async () => {
     const cleanups = [
       async () => {
         phase = 'cleanup-recovery-permissions'
+        await restoreRecoverySnapshot()
         await chmod(recoveryData, 0o700).catch(error => { if (error?.code !== 'ENOENT') throw error })
         await chmod(recoverySnapshot, 0o600).catch(error => { if (error?.code !== 'ENOENT') throw error })
       },
