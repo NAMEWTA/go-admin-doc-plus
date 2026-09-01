@@ -942,7 +942,7 @@
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 7,
+        "attempts": 6,
         "promotion_status": "pending"
       },
       "status": "active",
