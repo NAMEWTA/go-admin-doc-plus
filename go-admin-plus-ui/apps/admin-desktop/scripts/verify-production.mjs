@@ -47,18 +47,42 @@ export const desktopProductionPermissions = Object.freeze([
 ])
 
 const exactArray = (actual, expected) => Array.isArray(actual) && actual.length === expected.length && actual.every((value, index) => value === expected[index])
+const exactKeys = (actual, expected) => {
+  if (!actual || typeof actual !== 'object' || Array.isArray(actual)) return false
+  const keys = Object.keys(actual).sort()
+  return exactArray(keys, [...expected].sort())
+}
+
+const productionCsp = "default-src 'self'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'"
 
 export const validateDesktopProductionConfiguration = (config, capability) => {
   const windows = config?.app?.windows
   const mainWindow = Array.isArray(windows) && windows.length === 1 ? windows[0] : undefined
   if (
+    !exactKeys(config, ['$schema', 'app', 'build', 'bundle', 'identifier', 'productName', 'version']) ||
+    !exactKeys(config?.build, ['beforeBuildCommand', 'beforeDevCommand', 'devUrl', 'frontendDist']) ||
+    !exactKeys(config?.app, ['security', 'windows']) ||
+    !exactKeys(config?.app?.security, ['capabilities', 'csp']) ||
+    !exactKeys(mainWindow, ['height', 'label', 'minHeight', 'minWidth', 'title', 'visible', 'width']) ||
+    !exactKeys(config?.bundle, ['active', 'externalBin', 'targets']) ||
+    !exactKeys(capability, ['$schema', 'description', 'identifier', 'permissions', 'windows']) ||
+    config?.$schema !== 'https://schema.tauri.app/config/2' ||
+    config?.productName !== 'Go Admin Plus' || config?.version !== '0.1.0' ||
     config?.identifier !== 'com.goadmin.plus' ||
+    config?.build?.beforeDevCommand !== 'pnpm dev' || config?.build?.beforeBuildCommand !== 'pnpm build' ||
+    config?.build?.devUrl !== 'http://127.0.0.1:1420' ||
     config?.build?.frontendDist !== '../dist' ||
+    config?.app?.security?.csp !== productionCsp ||
     !exactArray(config?.app?.security?.capabilities, ['main-window']) ||
-    mainWindow?.label !== 'main' || mainWindow?.visible !== false ||
+    mainWindow?.label !== 'main' || mainWindow?.title !== 'Go Admin Plus' ||
+    mainWindow?.width !== 1280 || mainWindow?.height !== 800 || mainWindow?.visible !== false ||
     mainWindow?.minWidth !== 960 || mainWindow?.minHeight !== 640 ||
+    config?.bundle?.active !== true ||
     !exactArray(config?.bundle?.externalBin, ['binaries/go-admin-sidecar']) ||
+    !exactArray(config?.bundle?.targets, ['app', 'dmg', 'nsis']) ||
+    capability?.$schema !== '../gen/schemas/desktop-schema.json' ||
     capability?.identifier !== 'main-window' ||
+    capability?.description !== 'Minimal core permissions for the hidden-until-ready administration window.' ||
     !exactArray(capability?.windows, ['main']) ||
     !exactArray(capability?.permissions, desktopProductionPermissions)
   ) {

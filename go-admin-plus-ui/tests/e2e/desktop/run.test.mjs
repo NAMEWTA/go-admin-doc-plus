@@ -110,6 +110,14 @@ test('production Desktop capability configuration is exact and rejects privilege
     () => validateDesktopProductionConfiguration({ ...config, app: { ...config.app, windows: [{ ...config.app.windows[0], visible: true }] } }, capability),
     /desktop production capability configuration is invalid/
   )
+  assert.throws(
+    () => validateDesktopProductionConfiguration(config, { ...capability, remote: { urls: ['https://example.test'] } }),
+    /desktop production capability configuration is invalid/
+  )
+  assert.throws(
+    () => validateDesktopProductionConfiguration({ ...config, app: { ...config.app, windows: [{ ...config.app.windows[0], devtools: true }] } }, capability),
+    /desktop production capability configuration is invalid/
+  )
 })
 
 test('production Desktop asset verifier rejects native E2E bytes', async t => {
