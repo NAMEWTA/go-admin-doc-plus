@@ -12,11 +12,11 @@ risk: high
 blocked_by: [T-10, T-14, T-15, T-16, T-19]
 contract_ids: [AC-004, AC-005, AC-016, AC-017, AC-018, AC-031, AC-036]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/web-shell/browser-driver.ts</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/web-shell/browser-driver.ts</Path>", "<Path>scripts/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-build.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/scripts/verify-production.mjs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/App.vue</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/main.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/first-setup/**</Path>", "<Path>release/shared/sidecar/**</Path>"]
-shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
-shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-20 via DEV-20-002"]
+shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path>", "<Path>go-admin-plus-ui/tests/e2e/web-shell/browser-driver.ts</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
+shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20", "<Path>go-admin-plus-ui/tests/e2e/web-shell/browser-driver.ts</Path> => T-20 via DEV-20-003", "<Path>go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/packages/app-shell/package.json</Path> => T-20 via DEV-20-002", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path> => T-20 via DEV-20-002"]
 ---
 
 # Ticket T-20: 建立 macOS Desktop 原生端到端门禁
@@ -51,6 +51,13 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 - **触发事实：** AC-018 要求 Web/Desktop 用户切换并持久化暗色主题，但当前共享主题控制器只存在于 UI 包单元层，双宿主未实例化且工作台无主题控件；现有 T-11/T-12/T-19 Evidence 因合同映射过宽未证明该外部行为。
 - **批准范围：** T-20 临时拥有 `ProductWorkspace.vue`、App Shell package manifest、lockfile 的精确 importer 与 test-only `src/native-e2e/App.vue`；只组合既有主题控制器、Lucide 明暗切换按钮，以独立 native Tauri identifier/WebKit data store 验证重启持久化，并在结束前清除测试主题存储。
 - **禁止扩大：** 不改变主题存储格式、路由、Session、领域页面、native host、其他 lock importer 或 dependency version。
+- **批准来源：** 用户“都批准”及“相关的所需要批准的外部条件都批准”。
+
+### 已批准执行偏差 DEV-20-003
+
+- **触发事实：** T-20 theme composition candidate 的真实 Web Shell PostgreSQL/390x844 回归到达 `/iam/users` workspace 后，T-19 driver 在 lazy `RouterView` 完成前同步查询 `user-search`，首个真实红灯为 `user search was not available for revocation check`。
+- **批准范围：** T-20 临时拥有 `tests/e2e/web-shell/browser-driver.ts`，只把该同步查询改为等待同一稳定 DOM 接缝后继续原 Session revoke 断言。
+- **禁止扩大：** 不增加整 suite retry、sleep、skip 或 allow-failure，不修改产品行为、viewport、timeout 上限或其他 Web E2E 场景。
 - **批准来源：** 用户“都批准”及“相关的所需要批准的外部条件都批准”。
 
 ### 未决问题
