@@ -38,12 +38,12 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T00:30:29+08:00",
+  "updated_at": "2026-09-02T00:33:28+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-014 attempt 2 ran candidate 822936e as Actions 33530698516 (job 99932815718, probe f062e11), passed native prebuild, then again failed login-demo-workspace; the 0.2-second focus synchronization did not activate the route, no pass marker was produced, and one final ordered attempt remains. DEV-20-016 authorizes only an exact enabled Demo AXButton center-point mouse click derived from its position and size, without adding quota."
+    "G7 remains pending. DEV-20-016 source 075a043 and candidate f1e7b28/tree a375d05 derive the exact enabled Demo AXButton center from its position and size and send one System Events click. Vitest 41/41 files and 256/256 tests, Node 48/48, lint, and Speculo 0/0 pass. DEV-20-014 attempt 3 is next; one final hosted attempt remains before dispatch and no pass marker has been claimed."
   ],
   "deviations": [
     "DEV-20-016 (activate the exact Desktop Demo button by its accessibility center point, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-014 attempt 2 ran candidate 822936e as Actions 33530698516 (job 99932815718, probe f062e11), passed native prebuild, then again returned login-demo-workspace after the existing 30-second wait. Standard AXPress, element click, and focus plus Enter with the same 0.2-second synchronization as passing native form submits have now all returned without activating the WebKit/Vue route. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/accessibility.mjs and run.test.mjs so pressButtonScript continues to locate the same exact enabled AXButton, derives its center from AX position and size, and sends one System Events click at that point after the existing frontmost/focus synchronization. The self-test must require position, size, center, and single click-at ordering while rejecting AXPress, click-currentElement, and key code. The final remaining DEV-20-014 ordered macos-15 attempt may be used after a new source checkpoint and canonical candidate; no attempt quota is added. No product/API/capability/migration/fixture/workflow change, arbitrary UI or coordinate output, timeout/retry/skip/allow-failure, additional click, other sleep/delay, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
@@ -914,14 +914,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "37c68418c71be4c8f2cb7ca68ad84ca586e020bf",
+      "source_checkpoint": "075a04352c65260019efe84b1cf14f1c0375dca6",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "17d73041d3197177f2a3a4c1642e216c3ae80621",
-        "source_sha": "37c68418c71be4c8f2cb7ca68ad84ca586e020bf",
-        "candidate_sha": "822936ef670df3b564d8ed4f2fd42fda1ef124da",
-        "candidate_tree_sha": "d593fb1da58e59b674fbf9dae11c0d59728f7b73",
+        "parent_before_sha": "1192f9c8f65f84d45daf7b4b98dc4c474c9ecb8e",
+        "source_sha": "075a04352c65260019efe84b1cf14f1c0375dca6",
+        "candidate_sha": "f1e7b285fe5b7beb27ee239349df2d95005e1dd4",
+        "candidate_tree_sha": "a375d055866686f09cd5381e07f0f68f6d356864",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -931,13 +931,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 822936e contains governance parent 17d7304 and source 37c6841. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including exact single delay 0.2 focus synchronization ordering and fixed first-setup/Demo classifiers, lint, and Speculo 0/0. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the immediately preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate f1e7b28 contains governance parent 1192f9c and source 075a043. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including exact enabled button position/size/center, single click-at ordering, and fixed first-setup/Demo classifiers, lint, and Speculo 0/0. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-014 attempt 2 ran candidate 822936e as Actions 33530698516 (job 99932815718, probe f062e11), passed native prebuild, then returned login-demo-workspace despite synchronized focus plus Enter. DEV-20-016 may replace that activation with one exact enabled button center-point System Events click and use the final remaining ordered attempt, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/delay, or security-boundary changes.",
+          "reason": "Pending: DEV-20-016 candidate f1e7b28 derives the same exact enabled Demo AXButton center from its position and size and sends one System Events click after the existing frontmost/focus synchronization. DEV-20-014 attempt 3 is next and one final hosted attempt remains before dispatch, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/delay, or security-boundary changes.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -945,7 +945,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T00:30:29+08:00"
+      "updated_at": "2026-09-02T00:33:28+08:00"
     }
   ]
 }
