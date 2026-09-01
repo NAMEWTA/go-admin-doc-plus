@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | 当前 `main@558d420` 仍未包含 T-20 产品树；最新 candidate 包含此前治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
+| Parent | 当前 `main@fb82ca6` 仍未包含 T-20 产品树；最新 candidate 包含此前治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 latest source `70f2bc2`、portable candidate `d646848`/tree `5215569` 已记录；probe `60b009d` 的 DEV-20-008 attempt 1 保留为 `login-window` sidecar startup 红灯，本机已复现为 stale fixture 的 `product migration failed`；既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
+| Workspace records | T-20 latest source `cb9ccf7`、portable candidate `1efa3ad`/tree `4c64384` 已记录；DEV-20-009 current-minus-audit fixture 的 targeted Go/vet 与 portable candidate checks 通过；probe `60b009d` 的 DEV-20-008 attempt 1 红灯仍保留，既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005/006 各 3 次 probe 均已用尽；DEV-20-007 已用 2 次且剩余 runner-only attempt 不用于产品修正；DEV-20-008 已用 1 次、尚余 2 次；DEV-20-009 精确开放 current-minus-audit fixture 修正且不增加 hosted 配额；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-005/006/007 逐步定位到 recovery 按钮未清除当前进程 Session；DEV-20-008 attempt 1 `33511581184` 已越过修正后的 recovery 登录/重启和普通 setup/restart，随后 `previous` fixture 在 `login-window` sidecar startup 失败。本机同 fixture 分步复现 `product migration failed`，DEV-20-009 只修正其 current-minus-audit migration 基线，不改变产品迁移或 runner 等待。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `d646848` 已复用既有 `desktop_logout` 在 recovery-only 路径先清除 Session，普通 complete 路径仍直接进入工作区；portable suite 全通过，hosted attempt 1 进一步证明这两条 setup 路径。当前只允许 DEV-20-009 修复 `previous` fixture 漏失的 pre-audit providers并增加结构化回归测试，随后重建 candidate。此前同 lineage 的 Rust、production assets/config、Go 与真实 Web Shell 证据继续适用。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash 均保留。
+T-20 portable candidate `1efa3ad` 包含 recovery-only `desktop_logout` 修正及 DEV-20-009 fixture 基线：previous runner 与完整产品 migration 名单结构化比较且恰好只差 audit，targeted Go/vet、Vitest/Node、lint 和 Speculo 校验通过；此前同 lineage 的完整 typecheck、Desktop runner/build/assets、Rust 与真实 Web Shell 证据继续适用。已停止的 Windows 宽泛 `go test ./...` 不记为通过。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash 均保留。
 
 ### Resume Protocol
 
