@@ -318,7 +318,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Parent | `main` 已包含 T-19 result `84ac0ca12c82668f2e308b5c4b9c033e2193b9b7`；required PostgreSQL/security 与 required Web 门禁均已进入父分支 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-19 source `df8e88b`、candidate/result `84ac0ca` 已记录；T-20 从治理后 `main@22bbbe6` 冻结 source base；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
+| Workspace records | T-20 从治理后 `main@22bbbe6` 冻结 source base，source checkpoint `0600862` 已通过 18/18 runner 自测、完整 Node 45/45、Vitest 256/256、type/lint/build、Go 与 Rust 26/26/clippy 便携回归；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
