@@ -11,7 +11,7 @@ import {
   verifyDesktopProductionFiles
 } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
 import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
-import { clickButtonScript, fillAndClickScript, quoteAppleScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
+import { clickButtonScript, fillAndSubmitScript, quoteAppleScript, windowContainsScript, windowFrameScript, windowValueScript } from './accessibility.mjs'
 import { nativeAccessibilityFailure, nativeFailureDiagnostic, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, parseSidecarProcesses, reapNewSidecars, sidecarProcesses } from './processes.mjs'
 
@@ -179,12 +179,17 @@ test('accessibility query walks the native flattened element collection', () => 
   assert.match(script, /if \(name of currentElement as text\) contains expectedValue/)
   assert.doesNotMatch(script, /every UI element of entire contents/)
   assert.match(clickButtonScript(42, '保存'), /role of currentElement is "AXButton" and name of currentElement is "\u4fdd\u5b58"/)
-  const form = fillAndClickScript(42, [{ name: '名称', value: 'Native product' }], '保存')
+  const form = fillAndSubmitScript(42, [{ name: '名称', value: 'Native product' }], '保存')
   assert.match(form, /name of currentElement is "\u540d\u79f0"/)
   assert.match(form, /keystroke "Native product"/)
   assert.match(form, /name of currentElement is "\u4fdd\u5b58"/)
+  assert.match(form, /set focused of submitControl to true/)
+  assert.match(form, /key code 36/)
+  assert.doesNotMatch(form, /click submitControl/)
   assert.equal((form.match(/set elementsToScan to entire contents of window 1/g) ?? []).length, 2)
   assert.match(windowValueScript(42, 'E2E boundary blocked:'), /observedName starts with "E2E boundary blocked:"/)
+  assert.match(windowFrameScript(42), /set windowPosition to position of window 1/)
+  assert.match(windowFrameScript(42), /set windowSize to size of window 1/)
 })
 
 test('native runner fails when the required opt-in is missing', () => {
@@ -199,9 +204,10 @@ test('native runner fails when the required opt-in is missing', () => {
 test('native runner covers empty first setup, restart, and an exact non-skip pass marker', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   for (const phase of [
-    'first-setup-recovery-root', 'first-setup-recovery-window', 'first-setup-recovery-submit',
+    'first-setup-recovery-root', 'first-setup-recovery-window', 'first-setup-recovery-window-frame', 'first-setup-recovery-submit',
     'first-setup-recovery-fault', 'first-setup-recovery-state', 'first-setup-recovery-restart',
-    'first-setup-root', 'first-setup-window', 'first-setup-submit', 'first-setup-workspace', 'first-setup-restart'
+    'first-setup-root', 'first-setup-window', 'first-setup-window-frame', 'first-setup-submit', 'first-setup-workspace', 'first-setup-restart',
+    'login-window-frame'
   ]) {
     assert.match(runner, new RegExp(`phase = '${phase}'`))
   }
@@ -209,6 +215,7 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
   assert.match(runner, /phase = 'cleanup-recovery-permissions'[\s\S]*chmod\(recoveryData, 0o700\)[\s\S]*chmod\(recoverySnapshot, 0o600\)/)
   assert.match(runner, /windowContains\(app\.child\.pid, '\u7ba1\u7406\u5458\u5df2\u521b\u5efa'\)/)
   assert.match(runner, /completeFirstSetup\(app\.child\.pid\)/)
+  assert.match(runner, /if \(width < 960 \|\| height < 640\)/)
   assert.match(runner, /hostTriple\('darwin', process\.arch\)/)
   assert.match(runner, /DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0/)
   assert.doesNotMatch(runner, /state: 'skipped'|process\.exit\(0\)/)

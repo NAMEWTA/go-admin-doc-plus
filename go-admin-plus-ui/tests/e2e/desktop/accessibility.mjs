@@ -19,7 +19,7 @@ if not didClick then error ${quoteAppleScript(`native button unavailable: ${name
 return "clicked"
 end tell`
 
-export const fillAndClickScript = (pid, fields, button) => {
+export const fillAndSubmitScript = (pid, fields, button) => {
   const actions = fields.map(({ name, role = 'AXTextField', value }, index) => `  set targetField${index} to missing value
   set elementsToScan to entire contents of window 1
   repeat with currentElement in elementsToScan
@@ -56,11 +56,23 @@ ${actions}
     end try
   end repeat
   if submitControl is missing value then error ${quoteAppleScript(`native submit button unavailable: ${button}`)}
-  click submitControl
+  set focused of submitControl to true
+  delay 0.2
+  key code 36
 end tell
 return "submitted"
 end tell`
 }
+
+export const windowFrameScript = pid => `tell application "System Events"
+if not (exists (first process whose unix id is ${pid})) then error "native process unavailable"
+tell (first process whose unix id is ${pid})
+  if (count of windows) is 0 then error "native window unavailable"
+  set windowPosition to position of window 1
+  set windowSize to size of window 1
+  return ((item 1 of windowPosition) as text) & "," & ((item 2 of windowPosition) as text) & "," & ((item 1 of windowSize) as text) & "," & ((item 2 of windowSize) as text)
+end tell
+end tell`
 
 export const windowContainsScript = (pid, value) => `tell application "System Events"
 if not (exists (first process whose unix id is ${pid})) then return "false"
