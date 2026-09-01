@@ -38,12 +38,12 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T12:12:00+08:00",
+  "updated_at": "2026-09-01T16:09:02+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "Full Node shell matrices on main and current candidates are 43/44: the sole failure is the T-20-owned Windows execution of the macOS Desktop artifact-path assertion; no WSL/container runner is available.",
+    "Full Node shell matrices on the final T-19 source are 42/44: both failures are T-20-owned Desktop assertions (the stale Demo SKU accessibility label and Windows execution of the macOS artifact path); no real macOS runner is available.",
     "G7 requires a real macOS Tauri/Keychain/native-window environment; the current Windows host cannot provide or substitute that required proof."
   ],
   "deviations": [
@@ -856,38 +856,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-19",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-19",
-      "source_checkpoint": null,
+      "source_checkpoint": "df8e88b4dbd35807164d6c02dcedf7d62375da48",
       "integration": {
-        "status": "pending",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": null,
-        "source_sha": null,
-        "candidate_sha": null,
-        "candidate_tree_sha": null,
-        "candidate_branch": null,
-        "candidate_workspace_ref": null,
-        "result_sha": null,
-        "method": null,
+        "parent_before_sha": "e50295fa607d69e2a32b835c046205a32966c14c",
+        "source_sha": "df8e88b4dbd35807164d6c02dcedf7d62375da48",
+        "candidate_sha": "84ac0ca12c82668f2e308b5c4b9c033e2193b9b7",
+        "candidate_tree_sha": "c1030174f634c353aa15c51fe5f9ace9fa69a60a",
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-19",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-19",
+        "result_sha": "84ac0ca12c82668f2e308b5c4b9c033e2193b9b7",
+        "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "pending",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "pending",
-          "reason": "T-19 requires candidate regression plus real Chromium against disposable SQLite and PostgreSQL products, with non-skip scenario counts and cleanup verification",
+          "status": "passed",
+          "reason": "Final candidate passed targeted Go, task lint/typecheck, 41-file/256-test Vitest, T-19 runner tests, dual-app production builds, cleanup verification, and the required Web gate; the two remaining Node shell failures are T-20-owned Desktop assertions",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-19.md</Path>"
         },
         "e2e": {
           "required": true,
-          "status": "pending",
-          "reason": "T-19 owns the required real Web browser, dual-dialect, route, permissions, CRUD, two-tab session, and Files lifecycle evidence",
+          "status": "passed",
+          "reason": "Real Chromium executed all 10 required suites across 20 SQLite/PostgreSQL profiles with zero skips, including product routes, permissions, CRUD, two-tab Session, Files lifecycle, and generated PostgreSQL runtime",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-19.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-19.md</Path>",
-        "attempts": 0,
-        "promotion_status": "pending"
+        "attempts": 6,
+        "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-01T11:19:00+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-01T16:09:02+08:00"
     }
   ]
 }

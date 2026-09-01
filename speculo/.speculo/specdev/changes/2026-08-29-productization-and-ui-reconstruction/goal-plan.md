@@ -7,7 +7,7 @@ modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root@2026-08-29-productization-and-ui-reconstruction/epoch-1
 implementation_agent_limit: 3
-integration_attempt_limit: 4
+integration_attempt_limit: 6
 ticket_workspace_policy: required
 integration_gate: candidate-merge
 ready_for_execution: true
@@ -300,13 +300,13 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Session/授权安全回归 | GET 零写、双桶、双标签、直接 API 越权 | 撤销候选；返回 T-03/T-04/T-08 owner |
 | purge/账号删除造成不可恢复损失 | 状态机、outbox idempotency、claim 边界、disposable storage | 只在临时数据验证；失败保持 pending/failed 并前向恢复 |
 | UI 看似完成但 route/视口不可用 | component + T-19/T-20 real viewport/history | trace 定位 owning Ticket，修正后重建下游候选 |
-| candidate 冲突或父 HEAD 漂移 | `parent_before_sha`、重读 HEAD/tree | attempt 记 failed/stale；main 不动，从最新 result 重建，最多 4 次 |
+| candidate 冲突或父 HEAD 漂移 | `parent_before_sha`、重读 HEAD/tree | attempt 记 failed/stale；main 不动，从最新 result 重建，最多 6 次 |
 | required 环境缺失或 flaky | 环境探针、退出码、首次失败 artifacts | Gate blocked；修复环境/确定根因，不 skip 或静默 retry |
 | 磁盘/测试数据污染用户数据 | disposable root guard、磁盘水位、cleanup manifest | 停止测试，仅清理明确 disposable roots；不触碰 `dev_store` |
 
 ### Deviation Control
 
-遵循 `<Path>{roots.workflows}/specdev/common/rules/deviation-control.md</Path>`。路径越界、公共合同变化、迁移编号/语义冲突、安全不变量变化、required E2E 无法运行、超过 4 次候选尝试或需要新外部授权时，Lead 停止受影响 Wave，记录事实与最后可信 checkpoint，并返回 Ticket/Spec/ADR owner；不得由实现者自行扩大范围。低影响实现细节可在 Ticket 锁定边界内决定并写 Evidence。
+遵循 `<Path>{roots.workflows}/specdev/common/rules/deviation-control.md</Path>`。路径越界、公共合同变化、迁移编号/语义冲突、安全不变量变化、required E2E 无法运行、超过 6 次候选尝试或需要新外部授权时，Lead 停止受影响 Wave，记录事实与最后可信 checkpoint，并返回 Ticket/Spec/ADR owner；不得由实现者自行扩大范围。低影响实现细节可在 Ticket 锁定边界内决定并写 Evidence。T-19 前五个 candidate 各在首个真实红灯处停止；用户 `USER-DECISION:all-approved` 明确批准将 ticket-local 上限从 4 扩到 6，全部失败 checkpoint 均保留且未重标为通过。
 
 ## 6. Progress and Decisions
 
@@ -315,11 +315,11 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main` 已包含 T-18 result `3fce364f67d9a468238e710e635ff77886c3a1d0`；required PostgreSQL 与供应链门禁已进入父分支 |
-| Tickets | T-01~T-18 均 `done`；T-19 `in_progress`；T-20~T-21 `ready` |
-| Gate | G0~G5 已通过；G6/T-19 执行中；G7~G8 尚未开启 |
-| Workspace records | T-18 source `c28d447`、candidate/result `3fce364` 已记录；T-19 从 `main@399daa8` 冻结 source base；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
-| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与 DEV-09-001/DEV-10-001/DEV-12-001/DEV-13-001/DEV-14-001/DEV-15-001/DEV-16-001/DEV-18-001/DEV-18-002 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
+| Parent | `main` 已包含 T-19 result `84ac0ca12c82668f2e308b5c4b9c033e2193b9b7`；required PostgreSQL/security 与 required Web 门禁均已进入父分支 |
+| Tickets | T-01~T-19 均 `done`；T-20~T-21 `ready` |
+| Gate | G0~G6 已通过；G7~G8 尚未开启 |
+| Workspace records | T-19 source `df8e88b`、candidate/result `84ac0ca` 已记录；六个 T-19 candidate 及既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
+| Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
 
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-18 已完成并晋升 result `3fce364`：PostgreSQL 17.11 最终执行 18/18、0 skip，固定版本漏洞/依赖/secret/SBOM/generate 门禁和负向 policy 均有 candidate 实测证据；G5 已关闭。T-19 已由 `codex-root` 从治理后 `main@399daa8` 启动，负责统一真实 Chromium 生命周期，并在 parent-candidate 对 disposable SQLite/PostgreSQL 执行 route、权限、CRUD、双标签 Session 与 Files required E2E。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
+T-19 已完成并晋升 result `84ac0ca`：最终 parent-candidate 以真实 Chromium 执行 10 个 suite、20 个 SQLite/PostgreSQL profile、0 skip，覆盖产品 Shell、route/history、权限、CRUD、双标签 Session、Files 与 Generator generated PostgreSQL runtime；G6 已关闭。T-20 仍需真实 macOS Tauri/Keychain/native-window 证据。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
 
 ### Resume Protocol
 

@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-19
 title: 建立真实 Web 浏览器端到端门禁
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: required E2E 跨真实后端、双数据库、浏览器多标签、权限、路由和文件生命周期，是最终 Web 行为证据
 ready: true
@@ -154,7 +154,7 @@ Lead 在 parent-candidate/current-workspace 启动 disposable SQLite/PG 产品�
 
 ## 10. 验收标准
 
-- [ ] `AC-011、AC-013~018、AC-036、AC-038` 在真实浏览器/候选成立。
-- [ ] SQLite/PostgreSQL、双标签、路由、权限、CRUD、文件场景实际执行且无资源泄漏。
-- [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-19.md</Path>`。
-- [ ] required E2E、candidate/result、父分支包含和 Lead 双轴审查完整。
+- [x] `AC-011、AC-013~018、AC-036、AC-038` 在真实浏览器/候选成立。
+- [x] SQLite/PostgreSQL、双标签、路由、权限、CRUD、文件场景实际执行且无资源泄漏。
+- [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-19.md</Path>`。
+- [x] required E2E、candidate/result、父分支包含和 Lead 双轴审查完整。
