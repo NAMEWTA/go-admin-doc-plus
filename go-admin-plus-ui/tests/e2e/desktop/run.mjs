@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
+import { chmod, mkdir, mkdtemp, readFile, readdir, realpath, rm } from 'node:fs/promises'
 import { spawn } from 'node:child_process'
 import { createHash, randomBytes } from 'node:crypto'
 import { createConnection } from 'node:net'
@@ -10,7 +10,9 @@ import { fileURLToPath } from 'node:url'
 import { clickButtonScript, fillAndClickScript, windowContainsScript, windowValueScript } from './accessibility.mjs'
 import { nativeAccessibilityFailure, nativePhaseFailure } from './diagnostics.mjs'
 import { execute, reapNewSidecars, sidecarProcesses } from './processes.mjs'
+import { desktopProductionArtifactPaths } from '../../../apps/admin-desktop/scripts/verify-build.mjs'
 import { verifyDesktopProductionAssets, verifyDesktopProductionFiles } from '../../../apps/admin-desktop/scripts/verify-production.mjs'
+import { hostTriple } from '../../../../release/shared/sidecar/build.mjs'
 
 const enabled = 'GO_ADMIN_DESKTOP_NATIVE_E2E'
 const maxOutput = 16 * 1024
@@ -23,12 +25,14 @@ const goRoot = join(root, 'go-admin-plus')
 const uiRoot = join(root, 'go-admin-plus-ui')
 const appRoot = join(uiRoot, 'apps/admin-desktop')
 const rustRoot = join(appRoot, 'src-tauri')
-const sidecarBinary = join(rustRoot, 'binaries/go-admin-sidecar-aarch64-apple-darwin')
-const hostBinary = join(rustRoot, 'target/release/go-admin-plus-desktop')
+const nativeTarget = hostTriple('darwin', process.arch)
+const productionArtifacts = desktopProductionArtifactPaths(root, 'darwin', process.arch)
+const sidecarBinary = productionArtifacts.sidecar
+const hostBinary = productionArtifacts.host
 
 if (process.env[enabled] !== '1') {
-  process.stdout.write(`${JSON.stringify({ state: 'skipped', reason: `${enabled} is not enabled` })}\n`)
-  process.exit(0)
+  process.stderr.write(`desktop native E2E requires ${enabled}=1\n`)
+  process.exit(1)
 }
 if (process.platform !== 'darwin') {
   process.stderr.write('desktop native E2E requires the macOS native runner\n')
@@ -96,7 +100,7 @@ const restoreProductionArtifacts = async () => {
     rm(hostBinary, { force: true }),
     rm(join(appRoot, 'dist'), { recursive: true, force: true })
   ])
-  await execute(process.execPath, [join(root, 'release/shared/sidecar/build.mjs'), '--target', 'aarch64-apple-darwin'], { cwd: root })
+  await execute(process.execPath, [join(root, 'release/shared/sidecar/build.mjs'), '--target', nativeTarget], { cwd: root })
   await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts'], {
     cwd: appRoot, env: { PATH: process.env.PATH ?? '', HOME: process.env.HOME ?? '' }
   })
@@ -274,6 +278,14 @@ const login = (pid, username, password) => runAppleScript(fillAndClickScript(pid
   { name: '密码', value: password }
 ], '登录'))
 
+const completeFirstSetup = pid => runAppleScript(fillAndClickScript(pid, [
+  { name: '用户名', value: 'native-admin' },
+  { name: '显示名称', value: 'Native Administrator' },
+  { name: '邮箱', value: 'native-admin@example.test' },
+  { name: '密码', value: fixturePassword },
+  { name: '确认密码', value: fixturePassword }
+], '创建并进入工作区'))
+
 const createProduct = pid => runAppleScript(fillAndClickScript(pid, [
   { name: 'SKU', value: 'E2E-001' },
   { name: '名称', value: 'Native product' },
@@ -297,7 +309,12 @@ const clickButton = (pid, name) => runAppleScript(clickButtonScript(pid, name))
 const main = async () => {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'go-admin-desktop-native-')))
   const failedKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
+  const recoveryKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
+  const setupKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
   const liveKeyring = `go-admin-plus-native-e2e-${randomBytes(16).toString('hex')}`
+  const recoveryRoot = join(workspace, 'recovery')
+  const recoveryData = join(recoveryRoot, 'data')
+  const recoverySnapshot = join(recoveryData, 'session.stronghold')
   const sidecarBaseline = await sidecarProcesses()
   const owners = new Set()
   const startTracked = (binary, isolatedRoot, keyringAccount) => {
@@ -316,11 +333,11 @@ const main = async () => {
     if (await keyringExists(productionKeyringService, productionKeyringAccount)) {
       throw new Error('production desktop credential pre-existed; native E2E refuses to touch it')
     }
-    if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
+    if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, recoveryKeyring) || await keyringExists(testKeyringService, setupKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
       throw new Error('native test credential identity collision')
     }
     phase = 'native-sidecar-build'
-    await execute(process.execPath, [join(root, 'release/shared/sidecar/build.mjs'), '--native-e2e', '--target', 'aarch64-apple-darwin'], { cwd: root })
+    await execute(process.execPath, [join(root, 'release/shared/sidecar/build.mjs'), '--native-e2e', '--target', nativeTarget], { cwd: root })
     phase = 'native-ui-build'
     await execute(join(appRoot, 'node_modules/.bin/vite'), ['build', '--config', 'vite.config.ts', '--mode', 'native-e2e'], {
       cwd: appRoot,
@@ -329,6 +346,57 @@ const main = async () => {
     phase = 'native-host-build'
     await execute('cargo', ['build', '--locked', '--quiet', '--release', '--features', 'native-e2e'], { cwd: rustRoot, timeout: 600_000 })
     const binary = hostBinary
+
+    phase = 'first-setup-recovery-root'
+    await mkdir(recoveryRoot, { recursive: true, mode: 0o700 })
+    phase = 'first-setup-recovery-window'
+    app = startTracked(binary, recoveryRoot, recoveryKeyring)
+    await poll('native recovery setup window', () => windowContains(app.child.pid, '创建首位管理员'), 90_000)
+    phase = 'first-setup-recovery-fault'
+    await chmod(recoverySnapshot, 0o400)
+    await chmod(recoveryData, 0o500)
+    phase = 'first-setup-recovery-submit'
+    await completeFirstSetup(app.child.pid)
+    phase = 'first-setup-recovery-state'
+    await poll('native partial setup recovery', () => windowContains(app.child.pid, '管理员已创建'), 90_000)
+    await chmod(recoveryData, 0o700)
+    await chmod(recoverySnapshot, 0o600)
+    await clickButton(app.child.pid, '进入登录')
+    await poll('native recovery login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
+    await stopTracked(app)
+    assertSafeDiagnostics(app.output(), [workspace, recoveryRoot])
+    await assertNoNewSidecars(sidecarBaseline)
+    phase = 'first-setup-recovery-restart'
+    app = startTracked(binary, recoveryRoot, recoveryKeyring)
+    await poll('native recovery restart login', () => windowContains(app.child.pid, '使用管理员账号登录控制台'), 90_000)
+    await login(app.child.pid, 'native-admin', fixturePassword)
+    await poll('native recovered workspace', () => windowContains(app.child.pid, '账户菜单'))
+    await stopTracked(app)
+    assertSafeDiagnostics(app.output(), [workspace, recoveryRoot])
+    await deleteTestKeyring(recoveryKeyring)
+    await assertNoNewSidecars(sidecarBaseline)
+
+    phase = 'first-setup-root'
+    const setupRoot = join(workspace, 'setup')
+    await mkdir(setupRoot, { recursive: true, mode: 0o700 })
+    phase = 'first-setup-window'
+    app = startTracked(binary, setupRoot, setupKeyring)
+    await poll('native first setup window', () => windowContains(app.child.pid, '创建首位管理员'), 90_000)
+    phase = 'first-setup-submit'
+    await completeFirstSetup(app.child.pid)
+    phase = 'first-setup-workspace'
+    await poll('native first setup workspace', () => windowContains(app.child.pid, '账户菜单'), 90_000)
+    await pollBoundary(app.child.pid)
+    await stopTracked(app)
+    assertSafeDiagnostics(app.output(), [workspace, setupRoot])
+    await assertNoNewSidecars(sidecarBaseline)
+    phase = 'first-setup-restart'
+    app = startTracked(binary, setupRoot, setupKeyring)
+    await pollRestoredIdentity(app.child.pid)
+    await stopTracked(app)
+    assertSafeDiagnostics(app.output(), [workspace, setupRoot])
+    await deleteTestKeyring(setupKeyring)
+    await assertNoNewSidecars(sidecarBaseline)
 
     phase = 'migration-failure-fixture'
     const failedRoot = join(workspace, 'failed')
@@ -492,6 +560,11 @@ const main = async () => {
   } finally {
     const cleanups = [
       async () => {
+        phase = 'cleanup-recovery-permissions'
+        await chmod(recoveryData, 0o700).catch(error => { if (error?.code !== 'ENOENT') throw error })
+        await chmod(recoverySnapshot, 0o600).catch(error => { if (error?.code !== 'ENOENT') throw error })
+      },
+      async () => {
         phase = 'cleanup-hosts'
         let cleanupFailure
         for (const owner of owners) {
@@ -506,6 +579,14 @@ const main = async () => {
       () => {
         phase = 'cleanup-failed-credential'
         return deleteTestKeyring(failedKeyring)
+      },
+      () => {
+        phase = 'cleanup-recovery-credential'
+        return deleteTestKeyring(recoveryKeyring)
+      },
+      () => {
+        phase = 'cleanup-setup-credential'
+        return deleteTestKeyring(setupKeyring)
       },
       () => {
         phase = 'cleanup-live-credential'
@@ -523,7 +604,7 @@ const main = async () => {
       async () => {
         phase = 'cleanup-verification'
         await assertNoNewSidecars(sidecarBaseline)
-        if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
+        if (await keyringExists(testKeyringService, failedKeyring) || await keyringExists(testKeyringService, recoveryKeyring) || await keyringExists(testKeyringService, setupKeyring) || await keyringExists(testKeyringService, liveKeyring)) {
           throw new Error('native E2E left a test credential')
         }
       },
@@ -541,7 +622,7 @@ const main = async () => {
     }
   }
   if (failure) throw failure
-  process.stdout.write(`${JSON.stringify({ state: 'passed', runtime: 'tauri-native', profile: 'sqlite' })}\n`)
+  process.stdout.write('DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0\n')
 }
 
 main().catch(error => {
