@@ -4,14 +4,14 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-19
 title: 建立真实 Web 浏览器端到端门禁
-status: ready
+status: in_progress
 planning_depth: deep
 planning_depth_reason: required E2E 跨真实后端、双数据库、浏览器多标签、权限、路由和文件生命周期，是最终 Web 行为证据
 ready: true
 risk: high
 blocked_by: [T-13, T-14, T-15, T-16, T-18]
 contract_ids: [AC-011, AC-013, AC-014, AC-015, AC-016, AC-017, AC-018, AC-036, AC-038]
-owner: unassigned
+owner: codex-root
 expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>", "<Path>scripts/e2e/web/**</Path>", "<Path>go-admin-plus/test/e2e/**</Path>"]
 writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>", "<Path>scripts/e2e/web/**</Path>", "<Path>go-admin-plus/test/e2e/**</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/packages/**</Path>", "<Path>go-admin-plus/internal/**</Path>", "<Path>.github/workflows/ci.yml</Path>"]
@@ -114,4 +114,3 @@ Lead 在 parent-candidate/current-workspace 启动 disposable SQLite/PG 产品�
 - [ ] SQLite/PostgreSQL、双标签、路由、权限、CRUD、文件场景实际执行且无资源泄漏。
 - [ ] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-19.md</Path>`。
 - [ ] required E2E、candidate/result、父分支包含和 Lead 双轴审查完整。
-
