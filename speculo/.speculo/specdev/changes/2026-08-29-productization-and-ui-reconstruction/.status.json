@@ -917,14 +917,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "d2d4ed5552e244761d56c81f352729d7ed6bd7ab",
+      "source_checkpoint": "1c285f8ccc241034f1b1f1e914ca0ac54bb84499",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "3056fdd33f717f7387e119f6d8d2853d16d847f6",
-        "source_sha": "d2d4ed5552e244761d56c81f352729d7ed6bd7ab",
-        "candidate_sha": "0847ff6a52762ab77dfbd9c0e2738c5e208ff143",
-        "candidate_tree_sha": "96f8129fbd2e1d92b083eaad365cb9cf2c95f135",
+        "parent_before_sha": "64c6154b74e949e9caa9ce2b7b48e2fb1f379a18",
+        "source_sha": "1c285f8ccc241034f1b1f1e914ca0ac54bb84499",
+        "candidate_sha": "be1f74a92ffd92121e314df27a86971c38f9bee6",
+        "candidate_tree_sha": "8056abbcff1989ed3605fe28267e70ed9a319881",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -934,13 +934,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 0847ff6 contains governance parent 3056fdd and source d2d4ed5 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, full typecheck, lint, production build/asset scanning, diff-check, and clean-tree verification. The native-e2e entry build contains the exact E2E open Demo control; the subsequent production rebuild passed its byte scanner. Self-tests lock the exact hash target, three runner calls, production App absence, and production marker rejection. The failed unused AX traversal helper was removed; product shell/router/permissions, capabilities, workflow, timeouts, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate be1f74a contains governance parent 64c6154 and source 1c285f8 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, lint, production build/asset scanning, diff-check, and clean-tree verification; the source also passed full typecheck and native-e2e build with both exact theme markers present, followed by a clean production rebuild. Self-tests lock the exact real-product theme selector and DOM click, fixed failure marker, aria-label postcondition, runner target, production App absence, and marker rejection. Product shell/theme controller/router/permissions, capabilities, workflow, timeouts, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-020 attempt 3 failure: Actions 33547554824 / job 99988721801 / probe 0d30fd4 passed prebuild and advanced through login navigation, the Demo page, and authenticated boundary before returning theme-dark-toggle accessibility button unavailable with no skip or marker. This directly proves DEV-20-022 effective and exhausts its three attempts. DEV-20-023 adds one fixed visible dark-theme button only to the isolated native-e2e entry; its handler exact-selects and DOM-clicks the real product theme button, while the existing product aria-label, storage, restart persistence, and cleanup assertions remain required. Production byte rejection and self-tests must cover both new strings. Up to three ordered DEV-20-023 attempts are authorized after a recorded and verified candidate.",
+          "reason": "Pending after DEV-20-023 attempt 1 failure: Actions 33549802770 / job 99996186434 / probe a356e77 passed prebuild and returned unsuffixed first-setup-workspace with no skip or marker. The workspace poll catch always replaces failures with a fixed suffix, so this proves the workspace appeared and the first red was the following 30-second authenticated boundary poll inheriting the old phase. DEV-20-024 only assigns first-setup-boundary immediately before that existing poll and locks the order in self-tests; product behavior, timeouts, and postconditions remain unchanged. Two ordered DEV-20-023 attempts remain after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T03:30:00+08:00"
+      "updated_at": "2026-09-02T04:04:00+08:00"
     }
   ]
 }
