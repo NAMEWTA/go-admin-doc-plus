@@ -15,6 +15,8 @@ test('declares every required security and drift step without allow-failure synt
   assert.deepEqual(names, ['govulncheck', 'pnpm-production-audit', 'cargo-audit', 'cargo-deny', 'secret-scan', 'sbom', 'generate-drift'])
   assert.deepEqual(plan.find(step => step.name === 'cargo-audit').args, ['audit'])
   assert.deepEqual(plan.find(step => step.name === 'cargo-deny').args, ['deny', '--config', join('/repo', 'scripts/security/deny.toml'), 'check', 'bans', 'sources'])
+  assert.ok(plan.find(step => step.name === 'secret-scan').args.includes('--config=/repo/scripts/security/gitleaks.toml'))
+  assert.ok(!plan.find(step => step.name === 'secret-scan').args.includes('--no-git'))
   assert.doesNotMatch(JSON.stringify(plan), /\|\| true|continue-on-error/)
 })
 
