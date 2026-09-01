@@ -216,6 +216,19 @@ const poll = async (description, condition, timeout = 30_000) => {
   throw new Error(`${description} timed out`)
 }
 
+const classifyFirstSetupWorkspaceFailure = async (pid) => {
+  try {
+    if (await windowContains(pid, '创建首位管理员')) return 'first-setup-workspace-setup'
+    if (await windowContains(pid, '管理员已创建')) return 'first-setup-workspace-recovery'
+    if (await windowContains(pid, '使用管理员账号登录控制台')) return 'first-setup-workspace-login'
+    if (await windowContains(pid, '本地服务暂不可用')) return 'first-setup-workspace-unavailable'
+    if (await windowContains(pid, '正在加载')) return 'first-setup-workspace-loading'
+  } catch {
+    return 'first-setup-workspace-unknown'
+  }
+  return 'first-setup-workspace-unknown'
+}
+
 const classifyFirstSetupRecoveryFailure = async (pid) => {
   try {
     if (await windowContains(pid, '创建首位管理员')) return 'first-setup-recovery-state-setup'
@@ -476,7 +489,12 @@ const main = async () => {
     phase = 'first-setup-submit'
     await completeFirstSetup(app.child.pid)
     phase = 'first-setup-workspace'
-    await poll('native first setup workspace', () => windowContains(app.child.pid, '账户菜单'), 90_000)
+    try {
+      await poll('native first setup workspace', () => windowContains(app.child.pid, '账户菜单'), 90_000)
+    } catch (error) {
+      phase = await classifyFirstSetupWorkspaceFailure(app.child.pid)
+      throw error
+    }
     await pollBoundary(app.child.pid)
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, setupRoot])
