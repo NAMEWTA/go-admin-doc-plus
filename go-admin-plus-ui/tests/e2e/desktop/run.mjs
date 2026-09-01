@@ -216,6 +216,18 @@ const poll = async (description, condition, timeout = 30_000) => {
   throw new Error(`${description} timed out`)
 }
 
+const classifyFirstSetupRecoveryFailure = async (pid) => {
+  try {
+    if (await windowContains(pid, '创建首位管理员')) return 'first-setup-recovery-state-setup'
+    if (await windowContains(pid, '账户菜单')) return 'first-setup-recovery-state-workspace'
+    if (await windowContains(pid, '使用管理员账号登录控制台')) return 'first-setup-recovery-state-login'
+    if (await windowContains(pid, '本地服务暂不可用')) return 'first-setup-recovery-state-unavailable'
+  } catch {
+    return 'first-setup-recovery-state-unknown'
+  }
+  return 'first-setup-recovery-state-unknown'
+}
+
 const pollBoundary = async (pid, timeout = 30_000) => {
   const deadline = Date.now() + timeout
   while (Date.now() < deadline) {
@@ -388,7 +400,12 @@ const main = async () => {
     phase = 'first-setup-recovery-submit'
     await completeFirstSetup(app.child.pid)
     phase = 'first-setup-recovery-state'
-    await poll('native partial setup recovery', () => windowContains(app.child.pid, '管理员已创建'), 90_000)
+    try {
+      await poll('native partial setup recovery', () => windowContains(app.child.pid, '管理员已创建'), 90_000)
+    } catch (error) {
+      phase = await classifyFirstSetupRecoveryFailure(app.child.pid)
+      throw error
+    }
     await restoreRecoverySnapshot()
     await clickButton(app.child.pid, '进入登录')
     await poll('native recovery login window', () => windowContains(app.child.pid, '使用管理员账号登录控制台'))
