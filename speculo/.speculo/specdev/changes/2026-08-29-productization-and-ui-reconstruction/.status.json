@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-020 attempt 1 failure: Actions 33542592499 / job 99972252465 / probe c955fcb passed prebuild and then returned fixed navigation-traversal with no skip or marker. Exact start/target lookup and ordinary Tab sending did not error, but the fresh target was not focused. Apple documents that Option-Tab, rather than default Tab, highlights clickable webpage items when full keyboard navigation is not enabled. DEV-20-021 changes only the existing 11-step loop to Option-Tab and retains every other query, diagnostic, delay, click, product, workflow, timeout, and security boundary; two ordered attempts remain after a verified candidate.",
+          "reason": "Pending after DEV-20-020 attempt 2 failure: Actions 33544806661 / job 99979569584 / probe 5717707 passed prebuild and then returned fixed navigation-traversal with no skip or marker. Ordinary Tab and Option-Tab both failed to give the offscreen sidebar target fresh AX focus in the hosted Tauri WebView. DEV-20-022 adds one fixed visible Demo button only to the isolated native-e2e entry, drives the same real hash router, removes the failed unused traversal helper, and adds the new marker to production byte rejection; product shell, permissions, capabilities, workflow, timeouts, and required postconditions remain unchanged. One ordered attempt remains after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T02:38:00+08:00"
+      "updated_at": "2026-09-02T03:01:00+08:00"
     }
   ]
 }

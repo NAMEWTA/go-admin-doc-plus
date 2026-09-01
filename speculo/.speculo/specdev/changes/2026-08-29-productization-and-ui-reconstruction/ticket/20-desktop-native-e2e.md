@@ -191,6 +191,14 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** source `85d1f14c441771717c579b44d0b7c4adf7b52708` 已形成；candidate `d1b0d9c92d8e658064e7bea389bfc3d1ae8c473e`（tree `3d28be1020abf3892141ecb0e040eb8947e45133`）包含治理父 `71fadd9b8e3f00ebfbff4dac7bffb6a235a21142` 与 source，普通 merge 无冲突。Vitest 41/41 files / 256/256 tests、Node 48/48、lint、diff-check 与 clean tree 已通过；self-test 要求唯一 11 步循环使用 Option-Tab 并拒绝未修饰 Tab 或其他 key。DEV-20-020 尚余 2 次 ordered attempt，native Gate 仍为 pending。
 
+### 已批准执行偏差 DEV-20-022
+
+- **触发事实：** DEV-20-020 attempt 2 使用 probe `5717707`、Actions `33544806661`、job `99979569584`，在 macOS 15.7.7 arm64 与 AX enabled 环境通过 18:39:16Z~18:44:36Z prebuild，required gate 于 18:44:36Z~18:51:53Z 再次固定返回 `login-navigation`: `desktop native accessibility navigation-traversal unavailable`。这证明 Tauri WebView 的 AX focus traversal 不接受普通 Tab 或 Option-Tab；无 skip、无 pass marker，DEV-20-020 尚余最后 1 次 attempt。
+- **批准范围：** T-20 可在现有 test-only `apps/admin-desktop/src/native-e2e/App.vue` 增加唯一固定可见的 `E2E open Demo` 按钮，点击时只把 hash router 目标设为 `#/demo/products`；native runner 的三处 Demo navigation 只点击该 test-only 按钮并继续验证同一真实 route guard、lazy page、权限、CRUD、Session 与重启后置条件。`verify-production.mjs` 必须把该文本加入 production byte 拒绝清单，self-test 必须锁定 exact hash、三处调用与 production App 零命中。删除已实测无效且不再调用的 sidebar AX traversal helper 与对应断言。portable candidate 全部通过后可使用 DEV-20-020 最后 1 次 ordered attempt。
+- **禁止扩大：** 不修改 `ProductWorkspace`、manifest、router、产品路由/权限/视觉合同、Tauri capability/config、workflow、timeout/retry/skip/allow-failure，不增加后端 test action、公开 API、secret、任意脚本执行或生产资产中的测试控件；不发布 artifact、deploy/migrate、重写或清理远端历史。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate；最后一次 hosted attempt 不得在记录与 portable checks 前 dispatch。
+
 ### 未决问题
 
 无。
