@@ -24,22 +24,44 @@ if not (exists (first process whose unix id is ${pid})) then error "native proce
 tell (first process whose unix id is ${pid})
   set frontmost to true
   set didPress to false
+  set scrollElement to missing value
   set elementsToScan to entire contents of window 1
   repeat with currentElement in elementsToScan
     try
       if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(name)} and enabled of currentElement is true then
-        perform action "AXScrollToVisible" of currentElement
-        set focused of currentElement to true
-        delay 0.2
-        set buttonPosition to position of currentElement
-        set buttonSize to size of currentElement
-        set clickPoint to {(item 1 of buttonPosition) + ((item 1 of buttonSize) div 2), (item 2 of buttonPosition) + ((item 2 of buttonSize) div 2)}
-        click at clickPoint
-        set didPress to true
+        set scrollElement to contents of currentElement
         exit repeat
       end if
     end try
   end repeat
+  if scrollElement is missing value then error ${quoteAppleScript(`native button unavailable: ${name}`)}
+  try
+    perform action "AXScrollToVisible" of scrollElement
+  on error
+    error ${quoteAppleScript(`native button unavailable: ${name}`)}
+  end try
+  set refreshedElement to missing value
+  set refreshedElementsToScan to entire contents of window 1
+  repeat with refreshedCandidate in refreshedElementsToScan
+    try
+      if role of refreshedCandidate is "AXButton" and name of refreshedCandidate is ${quoteAppleScript(name)} and enabled of refreshedCandidate is true then
+        set refreshedElement to contents of refreshedCandidate
+        exit repeat
+      end if
+    end try
+  end repeat
+  if refreshedElement is missing value then error ${quoteAppleScript(`native button unavailable: ${name}`)}
+  try
+    set focused of refreshedElement to true
+    delay 0.2
+    set buttonPosition to position of refreshedElement
+    set buttonSize to size of refreshedElement
+    set clickPoint to {(item 1 of buttonPosition) + ((item 1 of buttonSize) div 2), (item 2 of buttonPosition) + ((item 2 of buttonSize) div 2)}
+    click at clickPoint
+    set didPress to true
+  on error
+    error ${quoteAppleScript(`native button unavailable: ${name}`)}
+  end try
 end tell
 if not didPress then error ${quoteAppleScript(`native button unavailable: ${name}`)}
 return "pressed"
