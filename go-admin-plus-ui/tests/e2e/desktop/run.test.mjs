@@ -265,6 +265,7 @@ test('native runner fails when the required opt-in is missing', () => {
 
 test('native runner covers empty first setup, restart, and an exact non-skip pass marker', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  const firstSetupGate = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/first-setup/FirstSetupGate.vue'), 'utf8')
   for (const phase of [
     'first-setup-recovery-root', 'first-setup-recovery-window', 'first-setup-recovery-window-frame', 'first-setup-recovery-submit',
     'first-setup-recovery-fault', 'first-setup-recovery-state', 'first-setup-recovery-restore',
@@ -287,6 +288,12 @@ test('native runner covers empty first setup, restart, and an exact non-skip pas
     assert.match(runner, new RegExp(`return 'first-setup-recovery-login-${phase}'`))
   }
   assert.match(runner, /await poll\('native recovery login window',[\s\S]*catch \(error\) \{[\s\S]*phase = await classifyFirstSetupRecoveryLoginFailure\(app\.child\.pid\)[\s\S]*throw error/)
+  assert.match(firstSetupGate, /import \{ createDesktopSession \} from '@go-admin-plus\/adapter-desktop'/)
+  assert.match(firstSetupGate, /const session = createDesktopSession\(\)/)
+  assert.match(firstSetupGate, /const continueToLogin = async \(\) => \{[\s\S]*await session\.logout\(\)[\s\S]*openWorkspace\(\)/)
+  assert.match(firstSetupGate, /if \(outcome\.state === 'complete'\) openWorkspace\(\)/)
+  assert.doesNotMatch(firstSetupGate, /if \(outcome\.state === 'complete'\) continueToLogin\(\)/)
+  assert.match(firstSetupGate, /v-if="error" class="first-setup-error" role="alert"[\s\S]*:disabled="submitting" @click="continueToLogin"/)
   assert.match(runner, /completeFirstSetup\(app\.child\.pid\)/)
   assert.match(runner, /if \(width < 960 \|\| height < 640\)/)
   assert.match(runner, /hostTriple\('darwin', process\.arch\)/)
