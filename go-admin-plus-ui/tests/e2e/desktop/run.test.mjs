@@ -148,6 +148,7 @@ test('production Desktop asset verifier rejects native E2E bytes', async t => {
     'E2E self scope enforced',
     'E2E all scope restored',
     'E2E authorization denied',
+    'E2E authorization restored',
     'E2E control failed: theme-dark',
     'E2E control failed:',
     'E2E open Demo',
@@ -230,9 +231,11 @@ test('native session revocation exposes bounded lifecycle phases', () => {
   }
 })
 
-test('native permission verification exposes each unchanged control boundary', () => {
+test('native permission verification handshakes before returning through the real router', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
-  assert.match(runner, /phase = 'permission-disable-control'[\s\S]*clickButton\(app\.child\.pid, 'E2E permissions off'\)[\s\S]*phase = 'permission-denied-boundary'[\s\S]*pollControl\(app\.child\.pid, 'revoked permission request denied', 'E2E authorization denied'\)[\s\S]*phase = 'permission-hidden'[\s\S]*poll\('revoked permission capability hidden',[\s\S]*phase = 'permission-enable-control'[\s\S]*clickButton\(app\.child\.pid, 'E2E permissions on'\)[\s\S]*phase = 'permission-restored'[\s\S]*poll\('permission capability restored'/)
+  const nativeApp = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue'), 'utf8')
+  assert.match(nativeApp, /if \(action === 'permissions-on'\) nativeAuthorization\.value = 'E2E authorization restored'[\s\S]*workspaceKey\.value \+= 1/)
+  assert.match(runner, /phase = 'permission-disable-control'[\s\S]*clickButton\(app\.child\.pid, 'E2E permissions off'\)[\s\S]*phase = 'permission-denied-boundary'[\s\S]*pollControl\(app\.child\.pid, 'revoked permission request denied', 'E2E authorization denied'\)[\s\S]*phase = 'permission-hidden'[\s\S]*poll\('revoked permission capability hidden',[\s\S]*phase = 'permission-enable-control'[\s\S]*clickButton\(app\.child\.pid, 'E2E permissions on'\)[\s\S]*phase = 'permission-enable-boundary'[\s\S]*pollControl\(app\.child\.pid, 'permission capability enabled', 'E2E authorization restored'\)[\s\S]*phase = 'permission-navigation'[\s\S]*openDemo\(app\.child\.pid\)[\s\S]*phase = 'permission-restored'[\s\S]*poll\('permission capability restored'/)
   assert.doesNotMatch(runner, /phase = 'permission-authorization'/)
 })
 
@@ -248,7 +251,7 @@ test('native Demo waits expose only fixed failure classifications', () => {
   assert.match(runner, /poll\('native Demo page after relogin'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'session-revocation-demo'\)/)
   assert.match(runner, /poll\('Stronghold session restart'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'stronghold-restart-demo'\)/)
   assert.match(runner, /const openDemo = pid => runAppleScript\(clickButtonScript\(pid, 'E2E open Demo'\)\)/)
-  assert.equal((runner.match(/openDemo\(app\.child\.pid\)/g) ?? []).length, 3)
+  assert.equal((runner.match(/openDemo\(app\.child\.pid\)/g) ?? []).length, 4)
   assert.doesNotMatch(runner, /clickButton\(app\.child\.pid, '产品示例'\)/)
   assert.ok(runner.indexOf("buttonCurrentScript(pid, '产品示例')") < runner.indexOf("windowContains(pid, '页面加载失败')"))
   assert.ok(runner.indexOf('windowBusyScript(pid)') < runner.indexOf("windowContains(pid, '页面加载失败')"))
