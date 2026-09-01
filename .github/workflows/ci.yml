@@ -271,6 +271,7 @@ jobs:
           set -euo pipefail
           rustup toolchain install 1.96.0 --profile minimal
           rustup default 1.96.0
+          (cd go-admin-plus && go mod download)
           pnpm --dir go-admin-plus-ui install --frozen-lockfile
       - name: Record hosted macOS UI environment
         shell: bash
