@@ -38,12 +38,12 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T20:57:03+08:00",
+  "updated_at": "2026-09-01T21:05:06+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-007 attempt 2 (Actions 33508881242, job 99859474100) passed recovery state, snapshot restore, and continue click, then classified the current page as first-setup-recovery-login-workspace. This proves the recovery button mounts an authenticated workspace without clearing the partial-success in-memory Session, contrary to AC-005 ordinary login. DEV-20-008 authorizes only the recovery-path session clear and up to three ordered hosted attempts; no pass marker has been claimed."
+    "G7 remains pending. Source 70f2bc2 and canonical candidate d646848 now reuse the existing desktop logout only on the recovery button path, keep ordinary first-setup completion direct-to-workspace, and pass portable verification. DEV-20-008 allows up to three ordered hosted macOS attempts; attempt 1 has not yet been dispatched and no pass marker has been claimed."
   ],
   "deviations": [
     "DEV-20-008 (recovery-only Session clear and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-007 attempt 2 precisely returned first-setup-recovery-login-workspace after recovery state, snapshot restore, and continue click all passed, proving FirstSetupGate mounts the authenticated workspace while the current process retains the partial-success Session. T-20 may update only apps/admin-desktop/src/first-setup/FirstSetupGate.vue and existing Desktop runner self-tests so the recovery button reuses createDesktopSession().logout(), mounts the login shell only after local/in-memory clear, remains retryable on failure, and leaves the ordinary complete path unchanged. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts. No command/capability/public API/dependency/lock/session-format/timeout/retry/skip change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed. The remaining DEV-20-007 runner-only attempt is not applicable to a product correction.",
@@ -906,14 +906,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "822c45cdedb4134a788b2d8cb803fef879c9eb59",
+      "source_checkpoint": "70f2bc20a41204e7ba249b7e2f1e372abd3180c3",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "4a1afc67a1327683a943251812eeb97565ee6894",
-        "source_sha": "822c45cdedb4134a788b2d8cb803fef879c9eb59",
-        "candidate_sha": "bf23e7b927ca5053c2838e44af2a09684d453657",
-        "candidate_tree_sha": "ee94b990b87f87ddacc882c1ce84ec0e9bda1c87",
+        "parent_before_sha": "c5ff4110d4febeac8ee3170ba58c9fd5cd73b899",
+        "source_sha": "70f2bc20a41204e7ba249b7e2f1e372abd3180c3",
+        "candidate_sha": "d646848285f3966f545dc923242d65fbeee30dbd",
+        "candidate_tree_sha": "5215569691f5c0c1935e62737b94d2d6a379b25a",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -923,21 +923,21 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate bf23e7b contains governance parent 4a1afc6 and source 822c45c. Source passed Desktop runner 20/20, Node 47/47, complete typecheck, and lint; candidate passed Vitest 256/256, Node 47/47, and Speculo validation. Hosted DEV-20-007 attempt 2 then exposed the AC-005 recovery-only Session bug. DEV-20-008 portable correction and new canonical candidate verification are pending; prior Rust 27/27/clippy, production build/marker/config, Go, and real Web Shell SQLite/PostgreSQL evidence remains applicable.",
+          "reason": "Candidate d646848 contains governance parent c5ff411 and source 70f2bc2. Source passed Desktop runner 20/20, Node 47/47, full typecheck, and lint. Candidate passed Vitest 41/41 files and 256/256 tests, Node 47/47, full typecheck, lint, Desktop production build and asset verification, and Speculo 0/0. Static contracts prove recovery awaits existing desktop logout before opening the workspace/login shell while ordinary complete opens the workspace directly. Prior Rust 27/27/clippy, Go, and real Web Shell SQLite/PostgreSQL evidence remains applicable.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-007 attempt 2 ran as Actions 33508881242 (job 99859474100) on macOS 15.7.7 arm64. The complete runner passed recovery state, snapshot restore, and continue click, then failed at first-setup-recovery-login-workspace, proving the recovery button retained the current in-memory Session. DEV-20-008 authorizes only the recovery-path clear through existing desktop_logout and up to three ordered follow-up attempts; no retry, timeout, skip, API, or security-boundary change is allowed.",
+          "reason": "Pending: source 70f2bc2 and candidate d646848 implement and verify the DEV-20-008 recovery-only clear through existing desktop_logout. Up to three ordered hosted macOS attempts are authorized; attempt 1 is next. No retry, timeout, skip, API, dependency, or security-boundary change was made.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 6,
+        "attempts": 7,
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T20:57:03+08:00"
+      "updated_at": "2026-09-01T21:05:06+08:00"
     }
   ]
 }

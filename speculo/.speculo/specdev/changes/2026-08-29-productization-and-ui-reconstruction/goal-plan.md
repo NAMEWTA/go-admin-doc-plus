@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | 当前 `main@6b00345` 仍未包含 T-20 产品树；最新 candidate 已包含此前治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
+| Parent | 当前 `main@c5ff411` 仍未包含 T-20 产品树；最新 candidate 已包含该治理父节点；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 latest source `822c45c`、portable candidate `bf23e7b`/tree `ee94b99` 已记录；probe `10ca36f` 的 DEV-20-007 attempt 2 保留为 `first-setup-recovery-login-workspace` 红灯；既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
+| Workspace records | T-20 latest source `70f2bc2`、portable candidate `d646848`/tree `5215569` 已记录并包含 `main@c5ff411`；probe `10ca36f` 的 DEV-20-007 attempt 2 保留为 `first-setup-recovery-login-workspace` 红灯；既有 source/candidate、probe、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；DEV-20-005/006 各 3 次 probe 均已用尽；DEV-20-007 已用 2 次且剩余 runner-only attempt 不用于产品修正；DEV-20-008 精确开放恢复按钮 Session 清理及最多 3 次同一 workflow-only probe branch macOS dispatch；其他远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 的 hosted macOS 15.7.7 arm64 通道已实测 `System Events` UI elements enabled=`true`。DEV-20-005 三次 attempt 依次暴露 Go module 预热、受控诊断遮蔽与 `tauri-utils 2.9.3` `dataStoreIdentifier` codegen 类型错误；DEV-20-006 三次 attempt 将红灯缩小到恢复态后的三步。DEV-20-007 attempt 1 `33506930543` 精确证明 snapshot restore 与 continue click 通过，attempt 2 `33508881242` 固定分类为 authenticated workspace，证明 recovery 按钮未清除当前进程 Session。DEV-20-008 只修正该 AC-005 产品缺口，既有等待与安全日志边界不变。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `bf23e7b` 已通过 Node 47/47、Desktop runner 20/20、Vitest 256/256、type/lint 与 Speculo validator；DEV-20-007 attempt 2 证明其真实 recovery 路径错误进入 authenticated workspace。DEV-20-008 candidate 必须复用既有 `desktop_logout` 在 recovery-only 路径先清除 Session，且重新通过 portable suite。此前同 lineage 的 Rust 27/27/clippy、短路径 Tauri release no-bundle、production marker/file、精确 configuration、Go、真实 Web Shell SQLite/PostgreSQL desktop/mobile、dark mode deep-link reload 证据继续适用。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash 均保留。
+T-20 portable candidate `d646848` 已复用既有 `desktop_logout` 在 recovery-only 路径先清除 Session，普通 complete 路径仍直接进入工作区；Desktop runner 20/20、Node 47/47、Vitest 41/41 files / 256/256 tests、完整 typecheck、lint、Desktop production build/asset verifier 与 Speculo validator 均通过。此前同 lineage 的 Rust 27/27/clippy、短路径 Tauri release no-bundle、production marker/file、精确 configuration、Go、真实 Web Shell SQLite/PostgreSQL desktop/mobile、dark mode deep-link reload 证据继续适用。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`；该 marker 出现前 candidate 不晋升。所有既有 source/candidate、probe、未跟踪扫描 artifacts 与保护 stash 均保留。
 
 ### Resume Protocol
 
