@@ -23,11 +23,11 @@ const setSearch = async (value: string) => {
   const input = element<HTMLInputElement>('[name="search"]')
   input.value = value
   input.dispatchEvent(new Event('input', { bubbles: true }))
-  element<HTMLFormElement>('.files-page__search').requestSubmit()
+  element<HTMLFormElement>('.ga-query-bar').requestSubmit()
   await Promise.resolve()
 }
 const uploadThroughPage = async (name: string, content: string) => {
-  const input = element<HTMLInputElement>('.files-page__upload [name="file"]')
+  const input = element<HTMLInputElement>('.upload-panel [name="file"]')
   const transfer = new DataTransfer()
   transfer.items.add(new File([content], name, { type: 'text/plain' }))
   input.files = transfer.files
@@ -43,6 +43,7 @@ const expectFailure = async (operation: () => Promise<unknown>, category: 'forbi
   }
   throw new Error(`expected ${category}`)
 }
+let stage = 'login'
 
 const scenario = async () => {
   const sessionFetch = createBrowserSessionFetch(fetch)
@@ -51,11 +52,13 @@ const scenario = async () => {
   assert(session.state().status === 'authenticated', 'administrator login failed')
   assert(!document.cookie.includes('__Host-go-admin-session'), 'HttpOnly cookie became script readable')
 
+  stage = 'capabilities'
   const capabilities = createCapabilityController(createWebAdministrationClient(sessionFetch, '/api'))
   await capabilities.refresh()
   assert(capabilities.can(filesPermissions.read) && capabilities.can(filesPermissions.write) && capabilities.can(filesPermissions.delete), 'files capability manifest incomplete')
   const client = createWebFilesClient(sessionFetch, '/api')
 
+  stage = 'self-scope'
   await control('scope', { scope: 'self' })
   await capabilities.refresh()
   assert(capabilities.state().manifest?.dataScope === 'self', 'self scope not projected')
@@ -64,6 +67,7 @@ const scenario = async () => {
   await control('scope', { scope: 'all' })
   await capabilities.refresh()
 
+  stage = 'mount'
   const controller = createFilesController(client, async () => true, { can: permission => capabilities.can(permission) })
   let sessionRequired = false
   const app = createApp({ render: () => h(FilesPage as Component, { controller, platform: createWebPlatform(), onSessionRequired: () => { sessionRequired = true } }) })
@@ -71,18 +75,21 @@ const scenario = async () => {
   await waitUntil(() => controller.list.snapshot().rows.some(row => row.originalName === 'foreign.txt'), 'foreign fixture did not load')
   const foreign = controller.list.snapshot().rows.find(row => row.originalName === 'foreign.txt')!
 
+  stage = 'upload'
   for (const [name, content] of [['% literal.txt', 'percent'], ['_ literal.txt', 'underscore'], ['<:@ collision.txt', 'ascii'], ['ä collision.txt', 'unicode']] as const) {
     await uploadThroughPage(name, content)
   }
+  stage = 'literal-search'
   for (const [search, expected] of [['%', '% literal.txt'], ['_', '_ literal.txt'], ['ä', 'ä collision.txt'], ['<:@', '<:@ collision.txt']] as const) {
     await setSearch(search)
     await waitUntil(() => controller.list.snapshot().rows.length === 1 && controller.list.snapshot().rows[0]?.originalName === expected, `literal search ${search} failed`)
   }
-  const reset = [...document.querySelectorAll<HTMLButtonElement>('.files-page__search button')].find(button => button.textContent === '重置')
+  const reset = [...document.querySelectorAll<HTMLButtonElement>('.ga-query-bar button')].find(button => button.textContent?.includes('重置'))
   assert(reset, 'search reset missing')
   reset.click()
   await waitUntil(() => controller.list.snapshot().total === 5, 'search reset failed')
 
+  stage = 'restart'
   const ascii = controller.list.snapshot().rows.find(row => row.originalName === '<:@ collision.txt')
   assert(ascii, 'download fixture missing')
   assert(await (await client.download(ascii.id)).text() === 'ascii', 'download bytes differ')
@@ -94,6 +101,7 @@ const scenario = async () => {
   const afterRestart = await (await control('snapshot')).json() as typeof beforeRestart
   assert(afterRestart.metadata === beforeRestart.metadata && afterRestart.ready === beforeRestart.ready, 'restart changed durable state')
 
+  stage = 'csrf'
   const csrfBody = new FormData()
   csrfBody.append('file', new Blob(['denied'], { type: 'text/plain' }), 'csrf-denied.txt')
   const csrfResponse = await fetch('/api/files/objects', { method: 'POST', body: csrfBody })
@@ -102,6 +110,7 @@ const scenario = async () => {
   const afterCSRF = await (await control('snapshot')).json() as typeof beforeRestart
   assert(afterCSRF.metadata === beforeRestart.metadata, 'CSRF rejection changed metadata')
 
+  stage = 'batch-delete'
   const owned = controller.list.snapshot().rows.filter(row => row.originalName !== 'foreign.txt')
   for (const row of owned) element<HTMLInputElement>(`tr[data-file-id="${row.id}"] input[type="checkbox"]`).click()
   await waitUntil(() => !element<HTMLButtonElement>('[data-testid="files-delete-selected"]').disabled, 'batch selection did not render')
@@ -109,6 +118,7 @@ const scenario = async () => {
   await waitUntil(() => controller.list.snapshot().total === 1, 'batch delete did not complete')
   assert(controller.list.snapshot().rows[0]?.id === foreign.id, 'batch delete removed foreign object')
 
+  stage = 'authorization'
   await control('scope', { scope: 'self' })
   await capabilities.refresh()
   await controller.list.refresh()
@@ -118,6 +128,7 @@ const scenario = async () => {
   await capabilities.refresh()
   await controller.list.refresh()
 
+  stage = 'permission-revocation'
   await control('permissions', { enabled: false })
   await capabilities.refresh()
   await setSearch('')
@@ -125,6 +136,7 @@ const scenario = async () => {
   await waitUntil(() => document.querySelector('[data-testid="files-upload"]') === null && document.querySelector('[data-testid="files-delete-selected"]') === null, 'revoked mutation UI remained')
   await expectFailure(() => client.upload({ name: 'revoked.txt', type: 'text/plain', size: 7, body: new Blob(['revoked'], { type: 'text/plain' }) }), 'forbidden')
 
+  stage = 'session-revocation'
   await control('revoke-session', {})
   await setSearch('')
   await waitUntil(() => sessionRequired && controller.failure() === 'relogin', 'revoked session did not request relogin')
@@ -134,13 +146,11 @@ const scenario = async () => {
   await control('shutdown', {})
 }
 
-await scenario().catch(async (error) => {
-  const allowed = ['administrator login failed', 'files capability manifest incomplete', 'self scope not projected', 'self scope leaked foreign metadata', 'foreign fixture did not load', 'search reset failed', 'download bytes differ', 'restart lost metadata', 'restart lost content', 'restart changed durable state', 'missing CSRF was not rejected', 'CSRF rejection changed metadata', 'batch delete did not complete', 'batch delete removed foreign object', 'self scope did not hide foreign row', 'revoked capabilities remained', 'revoked mutation UI remained', 'revoked session did not request relogin', 'revoked session retained projection']
-  const message = error instanceof Error && allowed.includes(error.message) ? error.message : 'browser assertion failed'
+await scenario().catch(async () => {
   document.body.replaceChildren()
   const result = document.createElement('pre')
   result.id = 'result'
-  result.textContent = `FILES_E2E_FAIL|ASSERTION:${message}`
+  result.textContent = `FILES_E2E_FAIL|ASSERTION:${stage}`
   document.body.append(result)
   await control('shutdown', {}).catch(() => undefined)
 })

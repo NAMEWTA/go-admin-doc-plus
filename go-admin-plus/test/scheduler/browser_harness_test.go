@@ -21,6 +21,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
 	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
@@ -74,7 +75,7 @@ func TestSchedulerBrowserHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
 	defer cancel()
 	db := openSchedulerBrowserDB(t, ctx, os.Getenv(schedulerHarnessProfile))
-	runner, err := migrations.NewRunner(reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, schedulermigration.Provider{})
+	runner, err := migrations.NewRunner(reliablemigration.Provider{}, sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, schedulermigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}

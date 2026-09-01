@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { activeChildren, assertChildHealthy, CDPClient, delay, spawnTracked, terminateChild, withTimeout } from '../iam/administration/runner-support.mjs'
+import { safeRunnerDiagnostic } from '../iam/administration/diagnostics.mjs'
 
 const required = process.env.GO_ADMIN_REQUIRE_FILES_E2E === '1'
 if (!required) { console.log('FILES_E2E_SKIP required opt-in is disabled'); process.exit(0) }
@@ -145,7 +146,7 @@ try {
   await runProfile('sqlite')
   await runProfile('postgres')
 } catch (error) {
-  failure = error instanceof Error && error.message.length <= 180 && !/[/:@]/.test(error.message) ? error.message : 'files E2E execution failed'
+  failure = safeRunnerDiagnostic(error)
 }
 for (const child of activeChildren) await terminateChild(child)
 if (activeChildren.size === 0) {

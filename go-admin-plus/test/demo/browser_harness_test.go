@@ -22,6 +22,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -69,7 +70,7 @@ func TestDemoBrowserHarnessServer(t *testing.T) {
 				t.Fatalf("demo harness PostgreSQL schema is not isolated current=%q err=%v", schema, err)
 			}
 		}
-		runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, productsmigration.Provider{})
+		runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, productsmigration.Provider{})
 		if err != nil {
 			t.Fatal(err)
 		}

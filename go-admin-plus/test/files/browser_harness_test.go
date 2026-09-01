@@ -15,10 +15,12 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
+	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -66,7 +68,7 @@ func TestFilesBrowserHarnessServer(t *testing.T) {
 		t.Fatal("files harness profile is invalid")
 	}
 	defer databaseCleanup()
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, filesmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, filesmigration.Provider{}, capacitymigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
