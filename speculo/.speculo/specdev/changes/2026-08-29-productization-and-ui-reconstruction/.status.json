@@ -38,14 +38,15 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T22:02:52+08:00",
+  "updated_at": "2026-09-01T22:29:16+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-008 attempt 2 (Actions 33515309949, job 99880740594) proved the corrected previous fixture sidecar remains running but timed out at login-window. Static state analysis is exact: the fixture now migrates iam_bootstrap_state and creates one account but omits its required marker, so Desktop rejects accounts=1/markers=0 as inconsistent. DEV-20-010 authorizes only an atomic fixture marker correction and regression test; one hosted attempt remains and no pass marker has been claimed."
+    "G7 remains pending. DEV-20-008 attempt 3 (Actions 33518029405, job 99889910987) proved the bootstrap marker correction by passing fixture startup, login, authenticated workspace, and window verification, then failed at login-demo after navigation. The current generic phase cannot distinguish a route-load, product projection/API, authorization, loading, login, or workspace state. DEV-20-011 authorizes fixed state classification only; its three-attempt ordered hosted budget is unused and no pass marker has been claimed."
   ],
   "deviations": [
+    "DEV-20-011 (fixed Demo page failure classification and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-008 attempt 3 ran candidate 53ffab7 as Actions 33518029405 (job 99889910987), passed previous-fixture startup, login, authenticated workspace, and window verification, then timed out at login-demo after the existing Product navigation click. The runner currently discards whether the fixed page is route-load failure, product unavailable/no-projection, forbidden, not-found, runtime unavailable, loading, login, workspace, or unknown. T-20 may update only go-admin-plus-ui/tests/e2e/desktop/run.mjs and run.test.mjs to classify those fixed states after each of the three existing Demo page waits fails and lock the fixed taxonomy/order in self-tests. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three ordered macos-15 attempts, each only after attribution and correction of the prior first honest failure. No arbitrary UI output, product/API/capability/migration/fixture change, timeout/retry/sleep/skip/workflow change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-010 (Desktop previous-fixture bootstrap marker consistency, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-008 attempt 2 ran candidate 1efa3ad as Actions 33515309949 (job 99880740594), passed native prebuild and kept the corrected previous fixture sidecar alive, then timed out at login-window. The current fixture now applies the bootstrap-recovery migration and creates one account and role but omits iam_bootstrap_state; product desktopSetup.state deterministically rejects accounts=1/markers=0 as inconsistent. T-20 may update only go-admin-plus/test/desktop/fixture/main.go and main_test.go to insert exactly marker=1 linked to account-desktop-e2e in the same fixture transaction as the account and system-admin role and prove the marker/account/role consistency. The corrected candidate may use the one remaining DEV-20-008 hosted attempt; no extra attempt is added. No product bootstrap/setup/migration/provider/API, runner diagnostic/timeout/retry/skip, workflow, fixture credential, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-009 (current-minus-audit Desktop fixture migration baseline, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-008 attempt 1 passed recovery login/restart and ordinary first setup/restart, then failed at login-window when the previous SQLite fixture sidecar stopped during startup. Local staged execution of the same fixture reproduced product migration failed and proved the fixture applies versions through 8000 while omitting current lower pre-audit migrations. T-20 may update only go-admin-plus/test/desktop/fixture/main.go and main_test.go to include every current provider before audit, structurally compare its composed migration names with product.NewMigrationRunner() and require the sole difference 8100000000000_audit.sql, preserve audit_facts as the migration-failure collision, and prove previous mode applies exactly that one forward migration. The corrected candidate may use the two remaining DEV-20-008 hosted attempts; no extra attempt is added. No product migration/provider/public API/database policy/diagnostic/timeout/retry/skip/workflow change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-008 (recovery-only Session clear and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-007 attempt 2 precisely returned first-setup-recovery-login-workspace after recovery state, snapshot restore, and continue click all passed, proving FirstSetupGate mounts the authenticated workspace while the current process retains the partial-success Session. T-20 may update only apps/admin-desktop/src/first-setup/FirstSetupGate.vue and existing Desktop runner self-tests so the recovery button reuses createDesktopSession().logout(), mounts the login shell only after local/in-memory clear, remains retryable on failure, and leaves the ordinary complete path unchanged. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts. No command/capability/public API/dependency/lock/session-format/timeout/retry/skip change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed. The remaining DEV-20-007 runner-only attempt is not applicable to a product correction.",
@@ -908,14 +909,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "cb9ccf7b363a22999bfb97ee6b30be5bec8e202e",
+      "source_checkpoint": "4578c432d235b9db2eb6e97f766c4ecc16a18c24",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "fb82ca6a5e20697fbb9d133389a0f2811bf43c8c",
-        "source_sha": "cb9ccf7b363a22999bfb97ee6b30be5bec8e202e",
-        "candidate_sha": "1efa3adf6676cb208fd6ee05d69c559d58bd20e6",
-        "candidate_tree_sha": "4c643841f2150e966f31b2eff6c63009fd297c12",
+        "parent_before_sha": "4f04c49d78d5e37792c0e93c21084aec81a1ebec",
+        "source_sha": "4578c432d235b9db2eb6e97f766c4ecc16a18c24",
+        "candidate_sha": "53ffab7057c5d7f488fd50b6637387945a22a075",
+        "candidate_tree_sha": "6c29bb5315e851e4097fa09f8652efa2df2a0bf7",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -925,13 +926,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate 1efa3ad contains governance parent fb82ca6 and source cb9ccf7. Current candidate passed targeted fixture/product/migration Go tests, fixture go vet, Vitest 41/41 files / 256/256 tests, Node 47/47, lint, and Speculo 0/0; its only new product delta is the DEV-20-009 Go fixture correction. Prior unchanged full typecheck, Desktop runner/build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 53ffab7 contains governance parent 4f04c49 and source 4578c43. Current candidate passed targeted fixture/product/migration Go tests, fixture go vet, Vitest 41/41 files / 256/256 tests, Node 47/47, lint, and Speculo 0/0; DEV-20-010 directly proves repeated fixture seed retains exactly one linked account/bootstrap marker/system-admin role. Prior unchanged full typecheck, Desktop runner/build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-008 attempt 2 ran as Actions 33515309949 (job 99880740594), passed prebuild and no longer stopped the previous fixture sidecar, then timed out at login-window. The fixture's deterministic accounts=1/iam_bootstrap_state markers=0 inconsistency is assigned to DEV-20-010; one ordered hosted attempt remains without retry, timeout, skip, product bootstrap/migration/API, or security-boundary changes.",
+          "reason": "Pending: DEV-20-008 attempt 3 ran as Actions 33518029405 (job 99889910987), passed fixture startup, login, authenticated workspace, and window verification, then failed at login-demo after navigation. DEV-20-008 is exhausted. DEV-20-011 fixed classifier and a new candidate are pending; its three ordered hosted attempts are unused, without retry, timeout, skip, product/API/capability/migration/fixture, or security-boundary changes.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -939,7 +940,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T22:02:52+08:00"
+      "updated_at": "2026-09-01T22:29:16+08:00"
     }
   ]
 }

@@ -220,6 +220,19 @@ test('native session revocation exposes bounded lifecycle phases', () => {
   }
 })
 
+test('native Demo waits expose only fixed failure classifications', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  for (const state of ['route-load', 'product-unavailable', 'no-projection', 'forbidden', 'not-found', 'runtime-unavailable', 'loading', 'login', 'workspace', 'unknown']) {
+    assert.match(runner, new RegExp(`\\$\\{prefix\\}-${state}`))
+  }
+  for (const phase of ['login-demo', 'session-revocation-demo', 'stronghold-restart-demo']) {
+    assert.match(runner, new RegExp(`classifyDemoPageFailure\\(app\\.child\\.pid, '${phase}'\\)`))
+  }
+  assert.match(runner, /poll\('native Demo page'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'login-demo'\)/)
+  assert.match(runner, /poll\('native Demo page after relogin'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'session-revocation-demo'\)/)
+  assert.match(runner, /poll\('Stronghold session restart'[\s\S]*classifyDemoPageFailure\(app\.child\.pid, 'stronghold-restart-demo'\)/)
+})
+
 test('native delete uses the uniquely named product action and a test-only confirmation port', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   const app = readFileSync(join(repositoryRoot, 'go-admin-plus-ui/apps/admin-desktop/src/native-e2e/App.vue'), 'utf8')
