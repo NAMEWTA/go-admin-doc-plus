@@ -280,6 +280,17 @@ jobs:
           sw_vers
           uname -m
           /usr/bin/osascript -e 'tell application "System Events" to return UI elements enabled' || true
+      - name: Prebuild native host with visible compiler diagnostics
+        shell: bash
+        env:
+          TAURI_CONFIG: >-
+            {"identifier":"com.goadmin.plus.native-e2e","app":{"windows":[{"label":"main","title":"Go Admin Plus","width":1280,"height":800,"minWidth":960,"minHeight":640,"visible":false,"dataStoreIdentifier":[103,111,97,100,109,105,78,80,172,117,115,101,50,101,48,49]}]}}
+          VITE_GO_ADMIN_NATIVE_E2E_RUN_ID: hosted-cargo-diagnostic
+        run: |
+          set -euo pipefail
+          node release/shared/sidecar/build.mjs --native-e2e --target aarch64-apple-darwin
+          pnpm --dir go-admin-plus-ui/apps/admin-desktop exec vite build --config vite.config.ts --mode native-e2e
+          cargo build --manifest-path go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.toml --locked --release --features native-e2e
       - name: Run required native gate
         shell: bash
         env:
