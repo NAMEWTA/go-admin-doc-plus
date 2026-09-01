@@ -315,10 +315,10 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@8e8855b` 文件树仍停在 T-20 实现前状态；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，未声称晋升 |
+| Parent | `main@d260a3d` 仍未包含 T-20 产品树；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，后续仅追加偏差批准与治理记录，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
-| Workspace records | T-20 source `4a34b13`、portable candidate `84a3b8e`/tree `1ec7ed2` 已记录；candidate 包含 frozen `main@a1b54c1` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
+| Workspace records | T-20 source `151bc21`、portable candidate `2bce131`/tree `cb3fb9d` 已记录；candidate 包含 frozen `main@d260a3d` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
 | Authorization | local source commits、candidate integration、`main` fast-forward、required runner 本地准备与既有 DEV、DEV-19-001~010 已授权；远程写入/部署/发布/生产迁移/清理未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | tickets validator `0 error / 0 warning`；Taskfile 的 test/typecheck/lint/build/contract/generate 入口存在 |
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 最终仍需要真实 macOS Tauri/Keychain/native-window 环境；本次批准允许在门禁到达前准备/使用该 runner，但当前 Windows host 本身不能替代证明。
 - 既有 Windows sidecar、desktop、Generator、UNC、backup、Files `% literal.txt` 与符号链接失败仍归对应 owning Ticket 修复；T-08 已收敛旧 rotate-on-read、product migration count 与 Audit adapter 红灯。
 
-T-20 portable candidate `84a3b8e` 已通过 Node 46/46、Vitest 256/256、type/lint、Go、Rust 26/26/clippy、Tauri release no-bundle、production marker 与精确 capability configuration/privilege-growth negative 验证；runner 已覆盖 required/non-skip、arm64/x64、空库 setup、部分成功恢复、vault/SQLite restart、AX keyboard submit、960x640 native window 与 cleanup phases。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，当前 Windows host 明确 not-run，candidate 不晋升。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
+T-20 portable candidate `2bce131` 已通过 Node 47/47、Desktop runner 20/20、Vitest 256/256、type/lint、Go、Rust 26/26/clippy、Tauri release no-bundle、production marker 与精确 configuration/remote/devtools/privilege-growth negative 验证；真实 Web Shell 在 SQLite/PostgreSQL 与 desktop/mobile 通过，并证明 dark mode 跨 deep-link reload 恢复。native runner 已覆盖 required/non-skip、arm64/x64、空库 setup、部分成功恢复、隔离 theme store、vault/SQLite restart、AX keyboard submit、960x640 native window 与 cleanup phases。G7 仍必须在真实 macOS parent-candidate 执行并得到 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`，当前 Windows host 明确 not-run，candidate 不晋升。所有既有 source/candidate、未跟踪扫描 artifacts 与保护 stash 均保留。
 
 ### Resume Protocol
 

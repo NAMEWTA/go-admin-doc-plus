@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T17:39:19+08:00",
+  "updated_at": "2026-09-01T17:45:34+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -49,7 +49,7 @@
     "DEV-20-004 (missing real Web AC-018 theme persistence proof, approved under USER-DECISION:all-approved): T-20 may extend only tests/e2e/web-shell/browser-driver.ts to select the shared dark theme control, verify the root theme token, and verify the same preference after the existing deep-link reload in the disposable browser profile. Test backdoors, product storage APIs, browser profiles, viewports, retries/skips, and other business assertions remain unchanged.",
     "DEV-20-003 (ticket path ownership and Web Shell lazy-route observation race, approved under USER-DECISION:all-approved): T-20 may update only tests/e2e/web-shell/browser-driver.ts so the existing user-search revocation check waits for that same stable DOM seam after the /iam/users workspace route resolves. Whole-suite retry, fixed sleep, skip, allow-failure, product behavior, viewport, timeout limit, and other Web E2E scenarios remain unchanged.",
     "DEV-20-002 (ticket path ownership and missing AC-018 behavior, approved under USER-DECISION:all-approved): T-20 may update ProductWorkspace.vue, the App Shell package manifest, only its exact pnpm-lock importer, and the test-only native-e2e App to compose the existing theme controller, expose a Lucide light/dark toggle, run with an isolated native Tauri identifier/WebKit data store, verify persistence across a native restart, and clear the test theme storage. Theme storage/API, routes, Session, domain pages, production Desktop entry/native host, other importers, and dependency versions remain unchanged.",
-    "DEV-20-001 (integration procedure, resolved under existing local-candidate authorization): the first T-20 merge command ran in the main worktree instead of the new candidate. Commit 4870670 records that merge and 8e8855b immediately forward-reverts its tree before any promotion claim; candidate lineage e6a83fc -> 2066c7d -> 84a3b8e contains the frozen parent plus explicit reapplication and the final source checkpoint. No history was rewritten, no unreviewed tree remains on main, and native E2E stays pending.",
+    "DEV-20-001 (integration procedure, resolved under existing local-candidate authorization): the first T-20 merge command ran in the main worktree instead of the new candidate. Commit 4870670 records that merge and 8e8855b immediately forward-reverts its tree before any promotion claim; candidate lineage e6a83fc -> 2066c7d -> 84a3b8e -> 2bce131 contains the frozen parent plus explicit reapplication and the final source checkpoint. No history was rewritten, no unreviewed tree remains on main, and native E2E stays pending.",
     "DEV-19-010 (ticket path ownership, approved under USER-DECISION:all-approved): T-19 may update go-admin-plus-ui/tests/shell/visual-contract.spec.ts only to replace stale paused-tab driver assertions with exact current IAM, Organization, and Scheduler product route assertions. Localized label and stale-English-label checks remain unchanged.",
     "DEV-19-009 (ticket path ownership, approved under USER-DECISION:all-approved): T-19 may update go-admin-plus/test/generator/browser_harness_test.go only to compose the current 0040 session-protection migration provider in the existing dual-dialect browser fixture. Product services, migration contents, assertions, and required semantics remain unchanged.",
     "DEV-19-008 (ticket path ownership, approved under USER-DECISION:all-approved): T-19 may update go-admin-plus/test/files/browser_harness_test.go only to compose the current 0040 session-protection and 0020 Files capacity migration providers in the existing dual-dialect browser fixture. Product services, migration contents, assertions, and required semantics remain unchanged.",
@@ -902,14 +902,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "4a34b13e3f1698fa7c03f15078d241119322933f",
+      "source_checkpoint": "151bc21c42e46201418d3e42d00b8d48bfaf4679",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "a1b54c12380cd5afbc30039b5a35151e0524fae5",
-        "source_sha": "4a34b13e3f1698fa7c03f15078d241119322933f",
-        "candidate_sha": "84a3b8e93742d5e64e141bfa0c9eaf5f8d8eb773",
-        "candidate_tree_sha": "1ec7ed2f03a2ed88d4a53f12a1c2c3cc1b8d53f3",
+        "parent_before_sha": "d260a3dd0e207655a0b664cecd7c525890975542",
+        "source_sha": "151bc21c42e46201418d3e42d00b8d48bfaf4679",
+        "candidate_sha": "2bce131fd406ccf2c431165658c81eaeec6160d4",
+        "candidate_tree_sha": "cb3fb9d21529a64268a8256af526accf83e23ede",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -919,7 +919,7 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate passed frozen install, Node 46/46, Vitest 256/256, typecheck, lint, Go product/fixture, Rust 26/26, clippy, Tauri release no-bundle with custom-protocol, Web/host/sidecar production marker verification, exact production capability configuration and privilege-growth negative checks, and changed-scope native window/keyboard assertions",
+          "reason": "Candidate passed frozen install, Node 47/47, Desktop runner 20/20, Vitest 256/256, typecheck, lint, Go product/fixture, Rust 26/26, clippy, Tauri release no-bundle with custom-protocol, real Web Shell E2E for SQLite/PostgreSQL and desktop/mobile including theme reload persistence, Web/host/sidecar marker verification, exact production configuration with remote/devtools/privilege-growth negative checks, and changed-scope native window/keyboard assertions",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
@@ -933,7 +933,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T17:39:19+08:00"
+      "updated_at": "2026-09-01T17:45:34+08:00"
     }
   ]
 }
