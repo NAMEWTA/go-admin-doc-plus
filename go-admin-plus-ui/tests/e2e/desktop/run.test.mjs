@@ -230,6 +230,12 @@ test('native session revocation exposes bounded lifecycle phases', () => {
   }
 })
 
+test('native permission verification exposes each unchanged control boundary', () => {
+  const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
+  assert.match(runner, /phase = 'permission-disable-control'[\s\S]*clickButton\(app\.child\.pid, 'E2E permissions off'\)[\s\S]*phase = 'permission-denied-boundary'[\s\S]*pollControl\(app\.child\.pid, 'revoked permission request denied', 'E2E authorization denied'\)[\s\S]*phase = 'permission-hidden'[\s\S]*poll\('revoked permission capability hidden',[\s\S]*phase = 'permission-enable-control'[\s\S]*clickButton\(app\.child\.pid, 'E2E permissions on'\)[\s\S]*phase = 'permission-restored'[\s\S]*poll\('permission capability restored'/)
+  assert.doesNotMatch(runner, /phase = 'permission-authorization'/)
+})
+
 test('native Demo waits expose only fixed failure classifications', () => {
   const runner = readFileSync(new URL('./run.mjs', import.meta.url), 'utf8')
   for (const state of ['current-busy', 'current', 'route-load', 'product-unavailable', 'no-projection', 'forbidden', 'not-found', 'runtime-unavailable', 'loading', 'login', 'workspace', 'unknown']) {

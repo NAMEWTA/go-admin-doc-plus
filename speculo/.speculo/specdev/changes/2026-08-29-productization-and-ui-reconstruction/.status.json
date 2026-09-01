@@ -934,13 +934,13 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate be1f74a contains governance parent 64c6154 and source 1c285f8 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, lint, production build/asset scanning, diff-check, and clean-tree verification; the source also passed full typecheck and native-e2e build with both exact theme markers present, followed by a clean production rebuild. Self-tests lock the exact real-product theme selector and DOM click, fixed failure marker, aria-label postcondition, runner target, production App absence, and marker rejection. Product shell/theme controller/router/permissions, capabilities, workflow, timeouts, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 7c446eb contains governance parent 5fa466a and source 6999c64 with no conflicts. It passed Vitest 41/41 files / 256/256 tests, Node 48/48, Desktop runner 21/21, full typecheck, lint, native-e2e asset marker verification, production build/asset scanning, diff-check, and clean-tree verification. Self-tests lock the workspace poll, fixed first-setup-boundary phase, unchanged pollBoundary call, and host stop order. Product code, boundary logic, timeouts, retry/skip behavior, theme, router, permissions, capabilities, workflow, and postconditions are unchanged. Prior targeted Go/vet, Rust 27/27/clippy, and real Web Shell evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-023 attempt 1 failure: Actions 33549802770 / job 99996186434 / probe a356e77 passed prebuild and returned unsuffixed first-setup-workspace with no skip or marker. The workspace poll catch always replaces failures with a fixed suffix, so this proves the workspace appeared and the first red was the following 30-second authenticated boundary poll inheriting the old phase. DEV-20-024 only assigns first-setup-boundary immediately before that existing poll and locks the order in self-tests; product behavior, timeouts, and postconditions remain unchanged. Two ordered DEV-20-023 attempts remain after a recorded and verified candidate.",
+          "reason": "Pending after DEV-20-023 attempt 2 failure: Actions 33551508113 / job 100001827771 / probe 7435ec4 passed prebuild and advanced through first-setup boundary, login navigation, Demo, theme, and scope self/all before returning permission-authorization with no skip or marker. That phase folds five permission substeps and cannot identify the first red precisely. DEV-20-025 only assigns fixed phases to the unchanged disable click, denied control postcondition, hidden page, enable click, and restored page calls, with self-tests locking their order. One ordered DEV-20-023 attempt remains after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T04:04:00+08:00"
+      "updated_at": "2026-09-02T04:34:00+08:00"
     }
   ]
 }
