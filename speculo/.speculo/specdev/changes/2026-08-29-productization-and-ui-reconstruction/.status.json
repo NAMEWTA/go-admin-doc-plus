@@ -38,12 +38,12 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T18:28:59+08:00",
+  "updated_at": "2026-09-01T18:58:31+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. Hosted macOS 15.7.7 arm64 proved Accessibility enabled, then the third DEV-20-005 attempt exposed a deterministic tauri-utils 2.9.3 generate_context type mismatch for dataStoreIdentifier before native execution. DEV-20-006 authorizes the feature-only source correction and up to three ordered follow-up hosted attempts; no native pass has been claimed."
+    "G7 remains pending. Hosted macOS 15.7.7 arm64 proved Accessibility enabled, then the third DEV-20-005 attempt exposed a deterministic tauri-utils 2.9.3 generate_context type mismatch for dataStoreIdentifier before native execution. DEV-20-006 corrected source 53663e6 and candidate 24bf45f pass portable verification; up to three ordered follow-up hosted attempts remain authorized, and no native pass has been claimed."
   ],
   "deviations": [
     "DEV-20-006 (native-e2e Tauri Context correction and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): T-20 may update only src-tauri/src/main.rs under the native-e2e feature plus tests/e2e/desktop/run.mjs and its self-test so the fixed test WebKit data-store identifier is injected as Rust [u8; 16] after generate_context instead of being passed through tauri-utils 2.9.3's incorrect Vec-generating config code. Production Context/config, Cargo dependencies and lock, capabilities, window contract, theme storage, Keychain namespace, and product behavior remain unchanged. After a new source checkpoint and canonical candidate are built, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after precise attribution and correction of the prior first honest failure. No retry/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
@@ -904,14 +904,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "151bc21c42e46201418d3e42d00b8d48bfaf4679",
+      "source_checkpoint": "53663e6b65c7445026017e2c6058d43e792179de",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
         "parent_before_sha": "d260a3dd0e207655a0b664cecd7c525890975542",
-        "source_sha": "151bc21c42e46201418d3e42d00b8d48bfaf4679",
-        "candidate_sha": "2bce131fd406ccf2c431165658c81eaeec6160d4",
-        "candidate_tree_sha": "cb3fb9d21529a64268a8256af526accf83e23ede",
+        "source_sha": "53663e6b65c7445026017e2c6058d43e792179de",
+        "candidate_sha": "24bf45ff0aff943c2f7cfd2848a85059fe32df46",
+        "candidate_tree_sha": "e8d0b76e7aa055ff38639273286a3c9383639ab2",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -921,21 +921,21 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate passed frozen install, Node 47/47, Desktop runner 20/20, Vitest 256/256, typecheck, lint, Go product/fixture, Rust 26/26, clippy, Tauri release no-bundle with custom-protocol, real Web Shell E2E for SQLite/PostgreSQL and desktop/mobile including theme reload persistence, Web/host/sidecar marker verification, exact production configuration with remote/devtools/privilege-growth negative checks, and changed-scope native window/keyboard assertions",
+          "reason": "Corrected candidate 24bf45f passed Node 47/47, Desktop runner 20/20, Vitest 256/256, typecheck, lint, Rust 27/27 including exact native-e2e Context data-store behavior, clippy warnings-denied, short-target Tauri release build with custom-protocol, production UI/host/sidecar marker and file verification, and exact production configuration checks. Prior unchanged Go and real Web Shell SQLite/PostgreSQL desktop/mobile evidence remains applicable.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-005 attempts 1-3 ran on hosted macOS 15.7.7 arm64 with Accessibility enabled. Attempt 3 exposed tauri-utils 2.9.3 generate_context emitting Vec<u8> for dataStoreIdentifier where WindowConfig requires [u8; 16]. DEV-20-006 source correction and a rebuilt candidate are required before native behavior can execute.",
+          "reason": "Pending: DEV-20-005 attempts 1-3 ran on hosted macOS 15.7.7 arm64 with Accessibility enabled. Corrected source 53663e6 and candidate 24bf45f now inject the isolated data-store identifier as Rust [u8; 16] after generate_context and pass portable compilation/tests; the first DEV-20-006 hosted native execution has not yet run.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 1,
+        "attempts": 2,
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T18:28:59+08:00"
+      "updated_at": "2026-09-01T18:58:31+08:00"
     }
   ]
 }
