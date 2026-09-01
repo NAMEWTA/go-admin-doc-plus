@@ -572,11 +572,15 @@ const main = async () => {
     await clickButton(app.child.pid, 'E2E scope all')
     await pollControl(app.child.pid, 'all scope visibility restored', 'E2E all scope restored')
     await poll('all scope capability restored', () => windowContains(app.child.pid, '产品搜索'))
-    phase = 'permission-authorization'
+    phase = 'permission-disable-control'
     await clickButton(app.child.pid, 'E2E permissions off')
+    phase = 'permission-denied-boundary'
     await pollControl(app.child.pid, 'revoked permission request denied', 'E2E authorization denied')
+    phase = 'permission-hidden'
     await poll('revoked permission capability hidden', () => windowContains(app.child.pid, '无权访问'))
+    phase = 'permission-enable-control'
     await clickButton(app.child.pid, 'E2E permissions on')
+    phase = 'permission-restored'
     await poll('permission capability restored', () => windowContains(app.child.pid, '产品搜索'))
     phase = 'session-revocation-control'
     await clickButton(app.child.pid, 'E2E revoke session')
