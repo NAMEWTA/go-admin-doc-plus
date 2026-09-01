@@ -17,7 +17,7 @@ export const securityPlan = root => {
     { name: 'pnpm-production-audit', command: process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', args: ['audit', '--prod', '--audit-level', 'high'], cwd: join(root, 'go-admin-plus-ui') },
     { name: 'cargo-audit', command: 'cargo', args: ['audit'], cwd: rustRoot },
     { name: 'cargo-deny', command: 'cargo', args: ['deny', '--config', join(root, 'scripts/security/deny.toml'), 'check', 'bans', 'sources'], cwd: rustRoot },
-    { name: 'secret-scan', command: 'docker', args: ['run', '--rm', '-v', `${root}:/repo`, images.gitleaks, 'detect', '--source=/repo', '--no-git', '--no-banner', '--redact', '--report-format=json', '--report-path=/repo/artifacts/security/gitleaks.json'], cwd: root },
+    { name: 'secret-scan', command: 'docker', args: ['run', '--rm', '-v', `${root}:/repo`, images.gitleaks, 'detect', '--source=/repo', '--config=/repo/scripts/security/gitleaks.toml', '--no-banner', '--redact', '--report-format=json', '--report-path=/repo/artifacts/security/gitleaks.json'], cwd: root },
     { name: 'sbom', command: 'docker', args: ['run', '--rm', '-v', `${root}:/repo`, images.syft, 'dir:/repo', '-o', 'cyclonedx-json=/repo/artifacts/security/repository.cdx.json'], cwd: root },
     { name: 'generate-drift', command: 'node', args: ['scripts/contracts/cli.mjs', 'generate', '--check'], cwd: root }
   ]

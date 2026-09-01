@@ -253,6 +253,12 @@ export const checkArchitecture = root => {
     for (const contract of ['wildcards = "deny"', 'unknown-registry = "deny"', 'unknown-git = "deny"']) {
       if (!denyPolicy.includes(contract)) failures.push(`cargo-deny policy is missing required contract: ${contract}`)
     }
+    const gitleaksPolicyPath = join(root, 'scripts/security/gitleaks.toml')
+    const gitleaksPolicy = existsSync(gitleaksPolicyPath) ? readFileSync(gitleaksPolicyPath, 'utf8') : ''
+    for (const contract of ['useDefault = true', '0391c8816cb97e8c68e61ec7ef56715046f8115f', 'condition = "AND"', 'regexTarget = "line"']) {
+      if (!gitleaksPolicy.includes(contract)) failures.push(`gitleaks policy is missing required narrow allowlist contract: ${contract}`)
+    }
+    if (/\.\*test\\\.go|go-admin-plus\/internal\/.*\*\*/.test(gitleaksPolicy)) failures.push('gitleaks policy must not allowlist broad test or source paths')
   }
 
   const pnpmResolverPath = join(root, 'scripts/go-admin-plus/pnpm.sh')

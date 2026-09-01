@@ -1,0 +1,23 @@
+title = "Go Admin Plus required secret scan"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Deterministic desktop startup token used only by tests"
+stopWords = ["0123456789abcdef0123456789abcdef"]
+
+[[allowlists]]
+description = "Removed legacy upstream import retained in immutable Git history"
+commits = ["0391c8816cb97e8c68e61ec7ef56715046f8115f"]
+
+[[allowlists]]
+description = "Removed legacy demo map key retained in immutable Git history"
+stopWords = ["de7a062c984bf828d5d1b3a631a517e4"]
+
+[[allowlists]]
+description = "Pinned runtime archive lookup variable names are not credentials"
+condition = "AND"
+regexTarget = "line"
+paths = ['''(^|/)scripts/release/macos/prepare-generator-runtime\.sh$''']
+regexes = ['''go_key=goDarwinAmd64; node_key=nodeDarwinX64; node_arch=x64; else go_key=goDarwinArm64; node_key=nodeDarwinArm64; node_arch=arm64''']
