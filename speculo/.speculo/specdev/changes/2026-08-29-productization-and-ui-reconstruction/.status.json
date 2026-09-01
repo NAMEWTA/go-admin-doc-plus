@@ -940,7 +940,7 @@
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending after DEV-20-020 attempt 3 failure: Actions 33547554824 / job 99988721801 / probe 0d30fd4 passed prebuild and advanced through login navigation, the Demo page, and authenticated boundary before returning theme-dark-toggle accessibility button unavailable with no skip or marker. This directly proves DEV-20-022 effective and exhausts its three attempts. DEV-20-023 adds one fixed visible dark-theme button only to the isolated native-e2e entry; its handler exact-selects and DOM-clicks the real product theme button, while the existing product aria-label, storage, restart persistence, and cleanup assertions remain required. Production byte rejection and self-tests must cover both new strings. Up to three ordered DEV-20-023 attempts are authorized after a recorded and verified candidate.",
+          "reason": "Pending after DEV-20-023 attempt 1 failure: Actions 33549802770 / job 99996186434 / probe a356e77 passed prebuild and returned unsuffixed first-setup-workspace with no skip or marker. The workspace poll catch always replaces failures with a fixed suffix, so this proves the workspace appeared and the first red was the following 30-second authenticated boundary poll inheriting the old phase. DEV-20-024 only assigns first-setup-boundary immediately before that existing poll and locks the order in self-tests; product behavior, timeouts, and postconditions remain unchanged. Two ordered DEV-20-023 attempts remain after a recorded and verified candidate.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
@@ -948,7 +948,7 @@
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T03:43:00+08:00"
+      "updated_at": "2026-09-02T04:04:00+08:00"
     }
   ]
 }

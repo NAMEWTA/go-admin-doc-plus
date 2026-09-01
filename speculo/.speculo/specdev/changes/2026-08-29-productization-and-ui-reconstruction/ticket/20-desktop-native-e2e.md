@@ -207,6 +207,14 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 - **执行状态：** source `1c285f8ccc241034f1b1f1e914ca0ac54bb84499` 已形成；candidate `be1f74a92ffd92121e314df27a86971c38f9bee6`（tree `8056abbcff1989ed3605fe28267e70ed9a319881`）包含治理父 `64c6154b74e949e9caa9ce2b7b48e2fb1f379a18` 与 source，普通 merge 无冲突。candidate 已通过 Vitest 41/41 files / 256/256 tests、Node 48/48、Desktop runner 21/21、lint、production build/asset scan、diff-check 与 clean tree；source 完整 typecheck 与 native-e2e build 通过，两项新标记存在，production 重建再次通过零测试字节扫描。DEV-20-023 尚余 3 次 ordered attempt，native Gate 仍为 pending。
 
+### 已批准执行偏差 DEV-20-024
+
+- **触发事实：** DEV-20-023 attempt 1 使用 probe `a356e77f9a810794806a8a208302c35fd7a4a1eb`、Actions `33549802770`、job `99996186434`，在 macOS 15.7.7 arm64 与 AX enabled 环境通过 19:30:16Z~19:34:19Z prebuild，required gate 于 19:34:19Z~19:38:48Z 返回 `first-setup-workspace`，无 skip、无 pass marker。runner 只会在 90 秒 workspace poll 失败时把该 phase 改为固定后缀；无后缀结果因此证明 `账户菜单` 已出现，首红实际来自紧随其后的 30 秒 authenticated boundary poll 沿用了旧 phase。它也证明 DEV-20-023 已越过先前的 theme target，但本轮在更早的已知非确定性 first-setup 路径退出。
+- **批准范围：** T-20 只可在普通 first-setup workspace poll 成功后、现有 `pollBoundary` 调用前设置固定 `first-setup-boundary` phase，并在既有 Desktop runner self-test 中锁定 `workspace poll -> boundary phase -> pollBoundary -> stop` 的顺序。形成并验证新 source/candidate 后，继续使用 DEV-20-023 剩余 2 次 ordered attempt。
+- **禁止扩大：** 不修改 `pollBoundary`、30/90 秒 timeout、retry/skip/allow-failure、产品 boundary 逻辑、first setup、Session、主题、router、capability/config 或 workflow；不输出任意 DOM、secret、路径或凭据，不发布 artifact、deploy/migrate、重写或清理远端历史。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成 source/candidate；DEV-20-023 尚余 2 次 ordered attempt。
+
 ### 未决问题
 
 无。
