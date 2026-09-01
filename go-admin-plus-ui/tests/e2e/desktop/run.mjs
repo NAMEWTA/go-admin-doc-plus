@@ -495,6 +495,7 @@ const main = async () => {
       phase = await classifyFirstSetupWorkspaceFailure(app.child.pid)
       throw error
     }
+    phase = 'first-setup-boundary'
     await pollBoundary(app.child.pid)
     await stopTracked(app)
     assertSafeDiagnostics(app.output(), [workspace, setupRoot])
