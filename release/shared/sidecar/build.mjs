@@ -91,11 +91,12 @@ const resolveToolchain = async () => {
 }
 
 export const buildEnvironment = (target, sandbox, goExecutable, moduleCache) => {
+  const targetPath = target.goos === 'windows' ? path.win32 : path.posix
   return {
-    PATH: path.dirname(goExecutable),
-    HOME: path.join(sandbox, 'home'),
-    TMPDIR: path.join(sandbox, 'tmp'),
-    GOCACHE: path.join(sandbox, 'go-build'),
+    PATH: targetPath.dirname(goExecutable),
+    HOME: targetPath.join(sandbox, 'home'),
+    TMPDIR: targetPath.join(sandbox, 'tmp'),
+    GOCACHE: targetPath.join(sandbox, 'go-build'),
     GOMODCACHE: moduleCache,
     GOENV: 'off',
     GOFLAGS: '',

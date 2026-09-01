@@ -29,6 +29,12 @@ test('uses a deterministic secret-free Go build environment', () => {
   assert.equal(Object.hasOwn(environment, 'SSH_AUTH_SOCK'), false)
   assert.equal(Object.hasOwn(environment, 'GOPRIVATE'), false)
   assert.equal(Object.hasOwn(environment, 'GOAUTH'), false)
+
+  const windows = buildEnvironment(
+    targets['x86_64-pc-windows-msvc'], 'C:\\build', 'C:\\Go\\bin\\go.exe', 'C:\\go-mod'
+  )
+  assert.equal(windows.HOME, 'C:\\build\\home')
+  assert.equal(windows.PATH, 'C:\\Go\\bin')
 })
 
 test('rejects arbitrary targets and extra arguments', () => {

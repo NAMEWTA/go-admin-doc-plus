@@ -7,9 +7,11 @@ The Linux release contains two OCI images built from one source commit:
 
 Compose exposes only the Web listener and offers two explicit profiles. Use
 `postgres` for a PostgreSQL deployment and `sqlite` for a single-instance SQLite
-deployment. Both profiles run the same product binary, apply forward-only
-migrations before readiness, keep application files on named volumes, and run
-with a read-only root filesystem and dropped capabilities.
+deployment. The PostgreSQL profile runs the one-shot `migrate-postgres` service
+before API and worker readiness; neither runtime role owns migration. The SQLite
+host migrates while holding its single-instance file lock. Both profiles keep
+application files on named volumes and run with a read-only root filesystem and
+dropped capabilities.
 
 ```sh
 cp deploy/compose/.env.example deploy/compose/.env
