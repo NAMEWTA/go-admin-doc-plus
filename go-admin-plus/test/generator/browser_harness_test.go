@@ -26,6 +26,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -61,7 +62,7 @@ func TestGeneratorBrowserHarnessServer(t *testing.T) {
 	db, cleanup, currentSchema := openHarnessDatabase(t, ctx, profile)
 	defer cleanup()
 	defer db.Close()
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, productsmigration.Provider{}, generatormigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, productsmigration.Provider{}, generatormigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
