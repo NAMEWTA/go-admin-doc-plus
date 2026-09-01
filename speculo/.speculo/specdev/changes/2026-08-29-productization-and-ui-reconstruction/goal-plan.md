@@ -315,7 +315,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | 项目 | 当前事实 |
 |---|---|
 | Plan | `ready`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@d260a3d` 仍未包含 T-20 产品树；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，后续仅追加偏差批准与治理记录，未声称晋升 |
+| Parent | 当前 `main` 仍未包含 T-20 产品树；candidate frozen parent 为 `d260a3d`；`4870670` 误合并由 `8e8855b` 前向撤销并保留审计历史，后续仅追加偏差批准与治理记录，未声称晋升 |
 | Tickets | T-01~T-19 均 `done`；T-20 `in_progress`；T-21 `ready` |
 | Gate | G0~G6 已通过；G7/T-20 执行中；G8 尚未开启 |
 | Workspace records | T-20 source `151bc21`、portable candidate `2bce131`/tree `cb3fb9d` 已记录；candidate 包含 frozen `main@d260a3d` 与 source，真实 macOS E2E 仍 pending；既有 source/candidate、扫描 artifacts 与旧失败候选继续保留 |
