@@ -96,7 +96,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 
 ### 未决问题
 
-无外部 blocker；剩余工作是 DEV-21-006 source/candidate 修正、完整根测试与最终 completion audit。
+无。
 
 ## 3. 范围边界
 

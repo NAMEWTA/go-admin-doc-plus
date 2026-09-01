@@ -101,7 +101,7 @@
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-01",
       "source_checkpoint": "e80d08fc09138474979221f196561c5b246320f9",
       "integration": {
-        "status": "failed",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
         "parent_before_sha": "0a9f2ccbdf1888735f8e5d40b6d3200f26464cb5",
         "source_sha": "e80d08fc09138474979221f196561c5b246320f9",
@@ -112,7 +112,7 @@
         "result_sha": "e2c8b7cb074a7b8906efc9741070265117f20d20",
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "failed",
+        "verification": "passed",
         "full_suite": {
           "required": true,
           "status": "passed",
@@ -961,7 +961,7 @@
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-21",
       "source_checkpoint": "c888fffec8ee2c2c5f21b7588128a7b3f9faa66c",
       "integration": {
-        "status": "passed",
+        "status": "failed",
         "parent_ref": "refs/heads/main",
         "parent_before_sha": "082c496775f5deb18531620f78bd1f11babeb748",
         "source_sha": "c888fffec8ee2c2c5f21b7588128a7b3f9faa66c",
@@ -972,7 +972,7 @@
         "result_sha": "b1821e0fe8a0f7fba1333113b951ee10e0011bff",
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "passed",
+        "verification": "failed",
         "full_suite": {
           "required": true,
           "status": "failed",
