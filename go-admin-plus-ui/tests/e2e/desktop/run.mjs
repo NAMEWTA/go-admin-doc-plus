@@ -33,8 +33,7 @@ const nativeE2eTauriConfig = JSON.stringify({
   identifier: 'com.goadmin.plus.native-e2e',
   app: {
     windows: [{
-      label: 'main', title: 'Go Admin Plus', width: 1280, height: 800, minWidth: 960, minHeight: 640, visible: false,
-      dataStoreIdentifier: [103, 111, 97, 100, 109, 105, 78, 80, 172, 117, 115, 101, 50, 101, 48, 49]
+      label: 'main', title: 'Go Admin Plus', width: 1280, height: 800, minWidth: 960, minHeight: 640, visible: false
     }]
   }
 })
