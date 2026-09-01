@@ -151,6 +151,13 @@ shared_path_owners: ["<Path>go-admin-plus/test/desktop/fixture/main.go</Path> =>
 - **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure，不输出任意 UI 或坐标，不增加其他 click/sleep/delay；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
 - **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-017
+
+- **触发事实：** DEV-20-014 第三次且最后一次 attempt `33532649355`（job `99939316440`，probe `84e97c9`）在真实 macOS 15.7.7 arm64 上通过 prebuild，随后仍精确返回 `login-demo-workspace`。`ProductWorkspace` 只有一份导航 DOM，但 sidebar navigation 为 `height: calc(100vh - 64px); overflow: auto`；native window 为 `960x640`，每个 route/group 至少 50px，order 600 的 Demo 位于多个早期模块之后。AX tree 因而能找到 exact enabled 的屏外 Demo button，但 AX/keyboard/mouse 都无法激活其裁剪外位置。
+- **批准范围：** T-20 只可修改 `tests/e2e/desktop/accessibility.mjs` 与 `run.test.mjs`；`pressButtonScript` 在同一 exact enabled AXButton 上先且只执行一次 `AXScrollToVisible`，用既有 `delay 0.2` 同步后再执行既有单次 center-point click。self-test 必须锁定 action/order、唯一 delay 与唯一 click。形成新 source/candidate 后，Lead 可更新同一 workflow-only probe descendant、push 同一具名 probe branch，并最多 dispatch 3 次逐个归因的 `macos-15` attempt。
+- **禁止扩大：** 不修改产品、API、capability、migration、fixture、workflow、调用点、30/90 秒上限、retry/skip/allow-failure，不输出任意 UI 或坐标，不增加其他 click/action/sleep/delay；不发布 artifact、deploy/migrate、使用 production secrets、重写或清理远端历史。hosted failure 不得重标为 G7 通过。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
