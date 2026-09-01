@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T00:52:34+08:00",
+  "updated_at": "2026-09-02T00:57:59+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -915,14 +915,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "075a04352c65260019efe84b1cf14f1c0375dca6",
+      "source_checkpoint": "4f840d347c6b3210ef39370d5f59234421daf797",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "1192f9c8f65f84d45daf7b4b98dc4c474c9ecb8e",
-        "source_sha": "075a04352c65260019efe84b1cf14f1c0375dca6",
-        "candidate_sha": "f1e7b285fe5b7beb27ee239349df2d95005e1dd4",
-        "candidate_tree_sha": "a375d055866686f09cd5381e07f0f68f6d356864",
+        "parent_before_sha": "ffd15bd0a53e3a485a03c1b748c0208ca5cce154",
+        "source_sha": "4f840d347c6b3210ef39370d5f59234421daf797",
+        "candidate_sha": "9b47a86ee8008e170f0446bc0c94eba0de78370f",
+        "candidate_tree_sha": "f98ff829785d3eee292e993f912cb90f2907d30f",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -932,21 +932,21 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate f1e7b28 contains governance parent 1192f9c and source 075a043. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including exact enabled button position/size/center, single click-at ordering, and fixed first-setup/Demo classifiers, lint, and Speculo 0/0. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
+          "reason": "Candidate 9b47a86 contains governance parent ffd15bd and source 4f840d3. Current candidate passed Vitest 41/41 files / 256/256 tests, Node 48/48 including the exact single AXScrollToVisible before focus/delay/position/size/center/click, lint, Speculo 0/0, diff-check, and clean-tree verification. The unchanged targeted fixture/product/migration Go tests and fixture vet passed on the preceding candidate; prior unchanged full typecheck, Desktop build/asset verification, Rust 27/27/clippy, and real Web Shell SQLite/PostgreSQL evidence remains applicable. The stopped broad Windows go test ./... run is not claimed as passed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-014 attempt 3 ran candidate f1e7b28 as Actions 33532649355 (job 99939316440, probe 84e97c9), passed native prebuild, then returned login-demo-workspace. No pass marker was produced and that budget is exhausted. DEV-20-017 may perform exactly AXScrollToVisible on the same offscreen exact enabled Demo AXButton before its existing center-point click and use at most three newly ordered attempts after attribution/correction, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/action/delay, or security-boundary changes.",
+          "reason": "Pending: DEV-20-017 candidate 9b47a86 performs exactly one AXScrollToVisible on the same offscreen exact enabled Demo AXButton before its existing center-point click and passed all portable checks. The same workflow-only probe must now run ordered hosted attempt 1; G7 remains pending until the exact non-skip native pass marker is produced. At most three DEV-20-017 attempts are authorized after attribution/correction, without product/API/capability/migration/fixture/workflow, coordinate output, timeout, retry, skip, additional click/action/delay, or security-boundary changes.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 6,
+        "attempts": 7,
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-02T00:52:34+08:00"
+      "updated_at": "2026-09-02T00:57:59+08:00"
     }
   ]
 }
