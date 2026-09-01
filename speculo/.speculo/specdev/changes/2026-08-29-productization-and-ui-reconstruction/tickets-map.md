@@ -107,7 +107,7 @@ T-17 + T-18 + T-19 + T-20 ─────────────────→
 | AC-015 | T-12, T-14, T-15, T-16, T-19 | history/navigation | covered | 页内切换同步 history |
 | AC-016 | T-12, T-14, T-15, T-16, T-19, T-20 | Web/Desktop shell | covered | 双宿主行为一致 |
 | AC-017 | T-11, T-12, T-14, T-15, T-16, T-19, T-20 | visual/UI contract | covered | Element Plus 管理体验 |
-| AC-018 | T-11, T-12, T-14, T-15, T-16, T-19, T-20 | responsive/accessibility | covered | 无溢出遮挡且可操作 |
+| AC-018 | T-11, T-12, T-14, T-15, T-16, T-19, T-20 | light/dark theme persistence | covered | Web/Desktop 切换并在 reload/restart 后恢复 |
 | AC-019 | T-04, T-08, T-14, T-18 | five data scopes | covered | 五种范围全链路 |
 | AC-020 | T-04, T-08, T-14 | organization membership | covered | 归属实时生效 |
 | AC-021 | T-04, T-08, T-14 | scoped query enforcement | covered | 查询不可绕过范围 |

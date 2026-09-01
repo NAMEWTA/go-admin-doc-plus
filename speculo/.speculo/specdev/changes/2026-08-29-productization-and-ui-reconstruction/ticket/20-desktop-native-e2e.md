@@ -60,6 +60,13 @@ shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/desktop/**</Path> => T-20
 - **禁止扩大：** 不增加整 suite retry、sleep、skip 或 allow-failure，不修改产品行为、viewport、timeout 上限或其他 Web E2E 场景。
 - **批准来源：** 用户“都批准”及“相关的所需要批准的外部条件都批准”。
 
+### 已批准执行偏差 DEV-20-004
+
+- **触发事实：** AC-018 明确要求 Web/Desktop 用户切换并在重启后恢复暗色主题；DEV-20-002 已补产品组合和 native restart 场景，但 T-19 Web Evidence 只执行 viewport/reduced-motion，未在真实浏览器切换或 reload 主题。
+- **批准范围：** T-20 在同一 `tests/e2e/web-shell/browser-driver.ts` 中点击共享“使用深色主题”控件，验证根 theme token，并在既有 deep-link reload 后再次验证暗色偏好与选中控件。
+- **禁止扩大：** 不修改测试后门、产品存储 API、浏览器 profile、viewport、retry/skip 或其他业务断言；浏览器 user-data 仍使用 runner 的 disposable root 并清理。
+- **批准来源：** 用户“都批准”及“相关的所需要批准的外部条件都批准”。
+
 ### 未决问题
 
 无。
