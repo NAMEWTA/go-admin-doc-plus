@@ -30,7 +30,10 @@ tell (first process whose unix id is ${pid})
       if role of currentElement is "AXButton" and name of currentElement is ${quoteAppleScript(name)} and enabled of currentElement is true then
         set focused of currentElement to true
         delay 0.2
-        key code 36
+        set buttonPosition to position of currentElement
+        set buttonSize to size of currentElement
+        set clickPoint to {(item 1 of buttonPosition) + ((item 1 of buttonSize) div 2), (item 2 of buttonPosition) + ((item 2 of buttonSize) div 2)}
+        click at clickPoint
         set didPress to true
         exit repeat
       end if
