@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
-import { join } from 'node:path'
+import { resolve } from 'node:path'
 import test from 'node:test'
 import { isManagedGeneratedOutput, parseManagedModuleOutput, resolveModuleMetadata } from './modules.mjs'
 
-const repositoryRoot = '/workspace/product'
+const repositoryRoot = resolve('/workspace/product')
 
 test('resolves module transport outputs inside owner roots', () => {
   const metadata = resolveModuleMetadata(repositoryRoot, {
@@ -18,9 +18,9 @@ test('resolves module transport outputs inside owner roots', () => {
 
   assert.equal(metadata.id, 'demo')
   assert.equal(metadata.goPackage, 'demotransport')
-  assert.equal(metadata.goOutput, join(repositoryRoot, 'go-admin-plus/internal/modules/demo/transport/openapi.gen.go'))
+  assert.equal(metadata.goOutput, resolve(repositoryRoot, 'go-admin-plus/internal/modules/demo/transport/openapi.gen.go'))
   assert.equal(metadata.owner, 'demo')
-  assert.equal(metadata.typescriptOutput, join(repositoryRoot, 'go-admin-plus-ui/packages/domains/demo/src/generated'))
+  assert.equal(metadata.typescriptOutput, resolve(repositoryRoot, 'go-admin-plus-ui/packages/domains/demo/src/generated'))
 })
 
 for (const [name, document] of [
