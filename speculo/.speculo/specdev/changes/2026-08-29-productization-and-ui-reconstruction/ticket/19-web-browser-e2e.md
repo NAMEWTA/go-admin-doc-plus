@@ -12,9 +12,14 @@ risk: high
 blocked_by: [T-13, T-14, T-15, T-16, T-18]
 contract_ids: [AC-011, AC-013, AC-014, AC-015, AC-016, AC-017, AC-018, AC-036, AC-038]
 owner: codex-root
-expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>", "<Path>scripts/e2e/web/**</Path>", "<Path>go-admin-plus/test/e2e/**</Path>"]
-writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>", "<Path>scripts/e2e/web/**</Path>", "<Path>go-admin-plus/test/e2e/**</Path>"]
+expected_changes: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>", "<Path>scripts/e2e/web/**</Path>", "<Path>go-admin-plus/test/e2e/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>"]
+writable_paths: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>", "<Path>scripts/e2e/web/**</Path>", "<Path>go-admin-plus/test/e2e/**</Path>", "<Path>go-admin-plus-ui/packages/app-shell/src/product/ProductWorkspace.vue</Path>"]
 read_only_paths: ["<Path>go-admin-plus-ui/apps/admin-web/**</Path>", "<Path>go-admin-plus-ui/packages/**</Path>", "<Path>go-admin-plus/internal/**</Path>", "<Path>.github/workflows/ci.yml</Path>"]
+# Approved deviation DEV-19-001 (USER-DECISION:all-approved): T-19 may update
+# ProductWorkspace.vue only so loadRuntime resolves the current route from the
+# same freshly returned identity/navigation authorization snapshot, preventing
+# a transient false 403 before Vue computed state catches up. Router guards,
+# capability intersection, product pages, APIs, and visibility rules remain unchanged.
 shared_paths: ["<Path>go-admin-plus-ui/tests/e2e/**</Path>"]
 shared_path_owners: ["<Path>go-admin-plus-ui/tests/e2e/**</Path> => T-19"]
 ---
