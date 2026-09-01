@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@go-admin-plus/adapter-browser": ["../../../packages/adapters/browser/src/index.ts"],
+      "@go-admin-plus/app-shell/*": ["../../../packages/app-shell/src/*"],
+      "@go-admin-plus/platform": ["../../../packages/platform/src/index.ts"],
+      "@go-admin-plus/ui": ["../../../packages/ui/src/index.ts"],
+      "vue": ["../../../packages/app-shell/node_modules/vue"]
+    },
+    "strict": true,
+    "target": "ES2024",
+    "types": ["vite/client"]
+  },
+  "include": [
+    "./browser-driver.ts",
+    "../../../apps/admin-web/src/**/*.vue",
+    "../../../packages/**/*.vue",
+    "../../../packages/**/vue.d.ts"
+  ]
+}

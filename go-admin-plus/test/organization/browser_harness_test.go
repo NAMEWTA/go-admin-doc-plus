@@ -22,6 +22,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
 	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
@@ -54,7 +55,7 @@ func TestOrganizationBrowserHarnessServer(t *testing.T) {
 			t.Fatalf("organization PostgreSQL schema mismatch current=%q err=%v", currentSchema, err)
 		}
 	}
-	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, organizationmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, administrationmigration.Provider{}, sessionprotectionmigration.Provider{}, organizationmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,10 +12,15 @@ const login = await fetch('/api/iam/session/login', {
   body: JSON.stringify({ username: 'admin', password: 'correct horse battery' }),
 })
 assert(login.ok, 'real IAM login failed')
+const loginCSRF = login.headers.get('X-CSRF-Token') ?? ''
+assert(/^[A-Za-z0-9_-]{43}$/.test(loginCSRF), 'IAM login CSRF contract failed')
 const loginBody = await login.text()
 assert(!/(password|sessionToken)/i.test(loginBody), 'IAM login response exposed credential material')
 const advance = await fetch('/__test/advance-session', { method: 'POST' })
 assert(advance.ok, 'Audit browser Session clock advance failed')
+const renew = await fetch('/api/iam/session/renew', { method: 'POST', headers: { 'X-CSRF-Token': loginCSRF } })
+assert(renew.ok && renew.headers.get('X-CSRF-Token') === loginCSRF, 'explicit IAM Session renewal failed')
+assert(!/(password|sessionToken)/i.test(await renew.text()), 'IAM renewal response exposed credential material')
 const controller = createAuditController(createWebAuditClient(fetch, '/api'), async () => confirmCleanup)
 mountAuditPage('#app', controller)
 
@@ -56,7 +61,7 @@ const driver = {
   async run() {
 		await waitFor(() => document.querySelectorAll('[data-testid="audit-row"]').length === auditFixture.initialFactCount, 'initial Audit page load failed')
 		const rotatedState = await sessionState()
-		assert(rotatedState.active === 1 && rotatedState.rotated === 1 && rotatedState.replacementCookie && rotatedState.csrf, 'Audit page did not rotate and propagate the real IAM Session credentials')
+		assert(rotatedState.active === 1 && rotatedState.rotated === 0 && !rotatedState.replacementCookie && rotatedState.csrf, 'stable Session renewal was not propagated to the Audit page')
 		const factsResponse = await fetch('/api/audit/records?page=1&pageSize=20')
 		assert(factsResponse.ok, 'Audit fact verification request failed')
 		const rawFacts = await factsResponse.text()

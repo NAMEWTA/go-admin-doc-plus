@@ -16,6 +16,7 @@ export default defineConfig({
     '@go-admin-plus/domain-iam/session': resolve(workspaceRoot, 'packages/domains/iam/src/session/index.ts'),
     '@go-admin-plus/web-domain-iam/administration': resolve(workspaceRoot, 'packages/web-domains/iam/src/administration/index.ts'),
     '@go-admin-plus/web-domain-iam/session': resolve(workspaceRoot, 'packages/web-domains/iam/src/session/index.ts'),
+    '@go-admin-plus/ui/components': resolve(workspaceRoot, 'packages/ui/src/components/runtime.mts'),
     '@go-admin-plus/ui': resolve(workspaceRoot, 'packages/ui/src/index.ts'),
     vue: resolve(workspaceRoot, 'packages/web-domains/demo/node_modules/vue'),
   } },

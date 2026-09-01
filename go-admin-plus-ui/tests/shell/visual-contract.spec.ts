@@ -250,7 +250,7 @@ describe('admin visual contract', () => {
     expect(scheduler).toContain('formatDate(item.scheduledFor)')
   })
 
-  it('keeps paused browser and desktop drivers synchronized with localized UI labels', async () => {
+  it('keeps routed browser and desktop drivers synchronized with localized UI labels', async () => {
     const [iam, organization, scheduler, audit, desktop] = await Promise.all([
       source('tests/e2e/iam/administration/browser-driver.ts'),
       source('tests/e2e/organization/browser-driver.ts'),
@@ -259,9 +259,9 @@ describe('admin visual contract', () => {
       source('tests/e2e/desktop/run.mjs')
     ])
 
-    expect(iam).toContain("users: '用户管理'")
-    expect(organization).toContain("openTab('部门管理'")
-    expect(scheduler).toContain("button.textContent === '执行记录'")
+    expect(iam).toContain("await router.push('/iam/users')")
+    expect(organization).toContain("path: '/organization/departments'")
+    expect(scheduler).toContain("path: '/scheduler/executions'")
     expect(audit).toContain("includes('会话已失效，请重新登录')")
     for (const label of ['账号', '密码', '登录', '产品示例', '退出登录']) expect(desktop).toContain(`'${label}'`)
 

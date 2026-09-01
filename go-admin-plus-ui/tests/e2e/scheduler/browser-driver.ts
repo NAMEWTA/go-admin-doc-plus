@@ -1,4 +1,5 @@
 import { createApp, h, type Component } from 'vue'
+import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { createCapabilityController } from '@go-admin-plus/domain-iam/administration'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import { SchedulerRequestError, type DefinitionInput } from '@go-admin-plus/domain-scheduler'
@@ -15,6 +16,23 @@ const control = async (path: string, method: 'GET' | 'POST' = 'GET', body?: unkn
 const definitionRow = (name: string) => [...document.querySelectorAll<HTMLTableRowElement>('[data-row-key]')].find(row => row.cells[0]?.textContent === name)
 const action = (name: string, actionName: string) => { const button = definitionRow(name)?.querySelector<HTMLButtonElement>(`[data-action="${actionName}"]`); assert(button, `missing ${actionName} for ${name}`); button.click() }
 const expectFailure = async (operation: () => Promise<unknown>, category: string) => { try { await operation() } catch (error) { assert(error instanceof SchedulerRequestError && error.category === category, `expected ${category}`); return }; throw new Error(`expected ${category}`) }
+const mountRouter = async (app: ReturnType<typeof createApp>, path: '/scheduler/definitions' | '/scheduler/executions') => {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/scheduler/definitions', component: SchedulerPage as Component },
+      { path: '/scheduler/executions', component: SchedulerPage as Component },
+    ],
+  })
+  app.use(router)
+  await router.push(path)
+  await router.isReady()
+  return router
+}
+const openView = async (router: Router, path: '/scheduler/definitions' | '/scheduler/executions', selector: string) => {
+  await router.push(path)
+  await waitUntil(() => document.querySelector(selector) !== null, `${path} did not render`)
+}
 let stage = 'login'
 
 const scenario = async () => {
@@ -32,13 +50,13 @@ const scenario = async () => {
   await expectFailure(() => api.taskTypes(), 'forbidden')
   const selfController = createSchedulerController(api, { can: permission => capability.can(permission), scope: schedulerScope }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
-  const selfApp = createApp({ render: () => h(SchedulerPage as Component, { controller: selfController }) }); selfApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
-  assert(document.querySelector('.tabs button') === null && document.querySelector('[data-testid="open-scheduler-definition-form"]') === null, 'self scope exposed scheduler controls')
+  const selfApp = createApp({ render: () => h(SchedulerPage as Component, { controller: selfController }) }); await mountRouter(selfApp, '/scheduler/definitions'); selfApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
+  assert(document.querySelector('[data-testid="open-scheduler-definition-form"]') === null, 'self scope exposed scheduler controls')
   selfApp.unmount(); await control('scope', 'POST', { scope: 'all' }); await capability.refresh()
 
   const controller = createSchedulerController(api, { can: permission => capability.can(permission), scope: schedulerScope }, async () => true)
   document.body.innerHTML = '<div id="app"></div>'
-  const app = createApp({ render: () => h(SchedulerPage as Component, { controller }) }); app.mount('#app')
+  const app = createApp({ render: () => h(SchedulerPage as Component, { controller }) }); const router = await mountRouter(app, '/scheduler/definitions'); app.mount('#app')
   await waitUntil(() => document.querySelector('[data-testid="open-scheduler-definition-form"]') !== null && controller.taskTypes().length === 1, 'scheduler management view did not load')
   const create = async (name: string, key: string, fail: boolean) => {
     stage = `create-${key}`
@@ -61,10 +79,9 @@ const scenario = async () => {
   assert(run.triggered === 2 && run.succeeded === 1 && run.failed === 1 && run.delivered === 1, 'scheduler/outbox shared lease execution mismatch')
   const snapshot = await (await control('snapshot')).json() as Record<string, number>
   assert(snapshot.definitions === 2 && snapshot.executions === 2 && snapshot.effects === 1 && snapshot.events === 1 && snapshot.outbox === 1, 'scheduler transaction/savepoint snapshot mismatch')
-  await controller.executions.refresh()
-  const executionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === '执行记录'); assert(executionsTab, 'execution tab missing'); executionsTab.click()
-  await waitUntil(() => document.body.textContent?.includes('browser_expected_failure') === true, 'failed execution history missing')
-  const definitionsTab = [...document.querySelectorAll<HTMLButtonElement>('.tabs button')].find(button => button.textContent === '任务管理'); assert(definitionsTab, 'definitions tab missing'); definitionsTab.click(); await Promise.resolve()
+  await openView(router, '/scheduler/executions', '[data-testid="scheduler-executions-pagination"]')
+  await waitUntil(() => controller.executions.snapshot().total === 2 && document.body.textContent?.includes('browser_expected_failure') === true, 'failed execution history missing')
+  await openView(router, '/scheduler/definitions', '[data-testid="open-scheduler-definition-form"]')
   stage = 'stop'
   for (const name of ['Browser success', 'Browser failure']) { action(name, 'toggle'); await waitUntil(() => definitionRow(name)?.textContent?.includes('已停止') === true, `${name} stop did not linearize`) }
   const second = await (await control('run', 'POST')).json() as Record<string, number>
@@ -79,8 +96,8 @@ const scenario = async () => {
   assert(controller.definitions.snapshot().rows.length === 0, 'revoked capability retained definition projection')
   app.unmount(); document.body.innerHTML = '<div id="app"></div>'
   const revoked = createSchedulerController(api, { can: permission => capability.can(permission), scope: schedulerScope }, async () => true)
-  const revokedApp = createApp({ render: () => h(SchedulerPage as Component, { controller: revoked }) }); revokedApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
-  assert(![...document.querySelectorAll('.tabs button')].some(button => button.textContent === '任务管理'), 'revoked scheduler navigation remained visible')
+  const revokedApp = createApp({ render: () => h(SchedulerPage as Component, { controller: revoked }) }); await mountRouter(revokedApp, '/scheduler/definitions'); revokedApp.mount('#app'); await Promise.resolve(); await Promise.resolve()
+  assert(document.querySelector('[data-testid="open-scheduler-definition-form"]') === null, 'revoked scheduler navigation remained visible')
   revokedApp.unmount(); await control('revoke-session', 'POST'); await expectFailure(() => api.taskTypes(), 'relogin')
   document.body.innerHTML = '<pre id="result">SCHEDULER_E2E_PASS</pre>'; await control('shutdown', 'POST')
 }

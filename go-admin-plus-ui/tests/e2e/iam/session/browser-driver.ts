@@ -30,10 +30,10 @@ const control = async (path: string) => {
   assert(response.ok, 'test control request failed')
 }
 
-const snapshot = async (): Promise<{ displayName: string; activeSessions: number }> => {
+const snapshot = async (): Promise<{ displayName: string; activeSessions: number; replacementPasswordActive: boolean }> => {
   const response = await fetch('/__test/snapshot')
   assert(response.ok, 'test snapshot request failed')
-  return response.json() as Promise<{ displayName: string; activeSessions: number }>
+  return response.json() as Promise<{ displayName: string; activeSessions: number; replacementPasswordActive: boolean }>
 }
 
 const credentialMutatingFetch = (mode: 'missing' | 'tampered'): typeof fetch => async (input, init) => {
@@ -73,17 +73,28 @@ const driver = {
     return true
   },
 
-  async rotate() {
+  async renew() {
     await control('advance?seconds=61')
-    await controller.restore()
+    await controller.renew()
     authenticated()
     return true
   },
 
-  async recoverReplacementCookie() {
+  async restoreSharedSession() {
     reset()
     await controller.restore()
-    authenticated()
+    return controller.state().status
+  },
+
+  async updateFromSecondTab() {
+    await controller.updateProfile({ displayName: 'Cross Tab Renewal', email: 'cross-tab@example.test' })
+    assert(authenticated().displayName === 'Cross Tab Renewal', 'second tab could not use the renewed session')
+    return true
+  },
+
+  async logoutSharedSession() {
+    await controller.logout()
+    assert(controller.state().status === 'unauthenticated', 'shared logout retained identity')
     return true
   },
 
@@ -117,7 +128,7 @@ const driver = {
     assert(await login() === 'authenticated', 'absolute fixture login failed')
     for (let index = 0; index < 4; index += 1) {
       await control('advance?seconds=60')
-      await controller.restore()
+      await controller.heartbeat()
       authenticated()
     }
     await control('advance?seconds=61')
@@ -130,10 +141,13 @@ const driver = {
     assert(await login() === 'authenticated', 'password fixture login failed')
     await controller.changePassword(originalPassword, replacementPassword)
     assert(controller.state().status === 'unauthenticated', 'password change did not revoke identity')
-    assert(await login(originalPassword) === 'unauthenticated', 'old password remained valid')
+    assert((await snapshot()).replacementPasswordActive, 'password change did not persist')
+    await control('advance?seconds=600')
+    await control('advance?seconds=600')
     assert(await login(replacementPassword) === 'authenticated', 'replacement password was rejected')
     await controller.logout()
-    assert(controller.state().status === 'unauthenticated', 'final logout failed')
+    assert(controller.state().status === 'unauthenticated', 'replacement login logout failed')
+    assert(await login(originalPassword) === 'unauthenticated', 'old password remained valid')
     return true
   },
 

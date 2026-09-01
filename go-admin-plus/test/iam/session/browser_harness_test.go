@@ -18,6 +18,7 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
+	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
@@ -84,7 +85,7 @@ func TestIAMBrowserHarnessServer(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	db := openBrowserHarnessDatabase(t, ctx, profile)
-	runner, err := migrations.NewRunner(sessionmigration.Provider{})
+	runner, err := migrations.NewRunner(sessionmigration.Provider{}, sessionprotectionmigration.Provider{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,8 +157,9 @@ func TestIAMBrowserHarnessServer(t *testing.T) {
 			return
 		}
 		var displayName string
+		var passwordHash string
 		var activeSessions int
-		if err := db.Bun().QueryRowContext(request.Context(), `SELECT display_name FROM iam_accounts WHERE id = ?`, "account-00000001").Scan(&displayName); err != nil {
+		if err := db.Bun().QueryRowContext(request.Context(), `SELECT display_name, password_hash FROM iam_accounts WHERE id = ?`, "account-00000001").Scan(&displayName, &passwordHash); err != nil {
 			response.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -166,7 +168,10 @@ func TestIAMBrowserHarnessServer(t *testing.T) {
 			return
 		}
 		response.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(response).Encode(map[string]any{"displayName": displayName, "activeSessions": activeSessions})
+		_ = json.NewEncoder(response).Encode(map[string]any{
+			"displayName": displayName, "activeSessions": activeSessions,
+			"replacementPasswordActive": account.VerifyPassword(passwordHash, "replacement password value"),
+		})
 	})
 	mux.HandleFunc("/__test/shutdown", func(response http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodPost {

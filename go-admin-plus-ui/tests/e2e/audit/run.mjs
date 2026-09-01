@@ -18,7 +18,7 @@ const backendRoot = resolve(uiRoot, '../go-admin-plus')
 const postgresKey = 'GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN'
 const postgresDSN = process.env[postgresKey]
 const chromium = process.env.GO_ADMIN_TEST_CHROMIUM_EXECUTABLE
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+const pnpm = 'pnpm'
 const temporaryRoot = mkdtempSync(join(tmpdir(), 'go-admin-audit-e2e-'))
 const staticRoot = join(temporaryRoot, 'static')
 const deadline = Date.now() + 5 * 60_000

@@ -51,11 +51,11 @@ const input = (name: string, value: string) => {
 }
 const create = async (sku: string, name: string) => {
   element<HTMLButtonElement>('[data-testid="open-product-form"]').click()
-  await waitUntil(() => document.querySelector('.demo-products__form') !== null, 'product create form did not open')
+  await waitUntil(() => document.querySelector('.ga-form-dialog') !== null, 'product create form did not open')
   input('sku', sku); input('name', name); input('description', 'Browser tracer'); input('priceCents', '1250'); input('status', 'active')
-  element<HTMLButtonElement>('.demo-products__form button[type="submit"]').click()
+  element<HTMLButtonElement>('.ga-form-dialog__footer button:last-child').click()
   await waitUntil(() => controller.list.snapshot().rows.some(row => row.sku === sku) && productRow(sku) !== undefined, 'created product did not appear')
-  await waitUntil(() => document.querySelector('.demo-products__form') === null, 'product create form did not close')
+  await waitUntil(() => document.querySelector('.ga-form-dialog') === null, 'product create form did not close')
 }
 
 try {
@@ -67,7 +67,7 @@ try {
   if (capabilities.state().manifest?.menus.some(menu => menu.path === '/demo/products' && menu.permissionCode === 'demo.products.read') !== true) throw new Error('demo navigation capability missing')
   stage = 'mount'
   mount()
-  await waitUntil(() => document.querySelector('#demo-products-title') !== null && listSettled >= 1 && !controller.list.snapshot().loading, 'product page did not load')
+  await waitUntil(() => document.querySelector('[data-testid="open-product-form"]') !== null && listSettled >= 1 && !controller.list.snapshot().loading, 'product page did not load')
   stage = 'self-scope'
   await postControl('/__test/scope', { scope: 'self' })
   await controller.list.refresh()
@@ -81,16 +81,16 @@ try {
   stage = 'restart'
   await postControl('/__test/restart')
   const listBeforeRestart = listSettled
-  element<HTMLButtonElement>('.demo-products__search button[type="submit"]').click()
+  element<HTMLFormElement>('.ga-query-bar').requestSubmit()
   await waitUntil(() => listSettled > listBeforeRestart && controller.list.snapshot().rows.some(row => row.sku === 'TRACE-01'), 'product did not survive database restart')
   stage = 'edit'
   const edit = productRow('TRACE-01')?.querySelector<HTMLButtonElement>('[data-action="edit"]')
   if (!edit) throw new Error('product edit action is missing')
   edit.click()
   await waitUntil(() => document.querySelector<HTMLInputElement>('[name="name"]')?.value === 'Tracer product one', 'edit form did not open')
-  input('name', 'Tracer product updated'); element<HTMLButtonElement>('.demo-products__form button[type="submit"]').click()
+  input('name', 'Tracer product updated'); element<HTMLButtonElement>('.ga-form-dialog__footer button:last-child').click()
   await waitUntil(() => controller.list.snapshot().rows.some(row => row.name === 'Tracer product updated') && productRow('TRACE-01')?.textContent?.includes('Tracer product updated') === true, 'updated product did not appear')
-  await waitUntil(() => document.querySelector('.demo-products__form') === null, 'product edit form did not close')
+  await waitUntil(() => document.querySelector('.ga-form-dialog') === null, 'product edit form did not close')
   stage = 'create-second'
   await create('TRACE-02', 'Tracer product two')
   stage = 'batch-delete'
@@ -109,7 +109,7 @@ try {
   await postControl('/__test/permissions', { enabled: false })
   await capabilities.refresh()
   mount()
-  await waitUntil(() => document.querySelector('.demo-products__form') === null && document.querySelector('.demo-products__actions') === null, 'revoked controls remained visible')
+  await waitUntil(() => document.querySelector('.ga-form-dialog') === null && document.querySelector('[data-testid="open-product-form"]') === null && document.querySelector('[data-testid="delete-selected-products"]') === null, 'revoked controls remained visible')
   stage = 'direct-denial'
   const beforeDenied = controller.list.snapshot().total
   try { await rawClient.create({ sku: 'DENIED-01', name: 'Denied product', description: '', priceCents: 1, status: 'active' }); throw new Error('revoked direct write succeeded') } catch (error) {
