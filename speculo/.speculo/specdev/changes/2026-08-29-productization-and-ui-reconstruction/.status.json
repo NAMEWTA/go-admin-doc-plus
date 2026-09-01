@@ -38,7 +38,7 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T06:20:00+08:00",
+  "updated_at": "2026-09-02T06:40:00+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
@@ -947,6 +947,49 @@
       },
       "status": "integrated",
       "updated_at": "2026-09-02T06:20:00+08:00"
+    },
+    {
+      "ticket_id": "T-21",
+      "owner": "codex-root",
+      "implementation_owner": "codex-root",
+      "integration_owner": "codex-root",
+      "provider": "git",
+      "base_sha": "67c09ac3daf58d6830da8fe72bd3672bc57b7040",
+      "parent_branch": "main",
+      "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-21",
+      "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-21",
+      "source_checkpoint": "1b5b7c14504c86cacd7a36decfee1fccd73812b9",
+      "integration": {
+        "status": "pending",
+        "parent_ref": "refs/heads/main",
+        "parent_before_sha": "67c09ac3daf58d6830da8fe72bd3672bc57b7040",
+        "source_sha": null,
+        "candidate_sha": null,
+        "candidate_tree_sha": null,
+        "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-21",
+        "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-21",
+        "result_sha": null,
+        "method": "merge-commit",
+        "conflict_paths": [],
+        "verification": "pending",
+        "full_suite": {
+          "required": true,
+          "status": "pending",
+          "reason": "Pending T-21 docs/release implementation, parent-candidate full regression, and three-profile clean-room rehearsal.",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
+        },
+        "e2e": {
+          "required": true,
+          "status": "pending",
+          "reason": "Server SQLite, Server PostgreSQL, and Desktop SQLite must each run from disposable empty state through setup/login/core/restart with zero skipped required gates.",
+          "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
+        },
+        "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>",
+        "attempts": 0,
+        "promotion_status": "pending"
+      },
+      "status": "active",
+      "updated_at": "2026-09-02T06:40:00+08:00"
     }
   ]
 }

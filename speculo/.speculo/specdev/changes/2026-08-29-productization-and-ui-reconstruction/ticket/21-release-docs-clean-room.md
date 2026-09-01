@@ -46,6 +46,22 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 
 - clean-room 使用临时/明确 disposable roots；命令由 Taskfile/产品 CLI 直接提供，不建立文档专用脚本分叉。
 
+### 已批准执行偏差 DEV-21-001
+
+- **触发事实：** T-21 source 上 `task release:verify` 的首个诚实红灯来自 `scripts/quality/compatibility-zero.mjs`：Windows `path.relative()` 返回反斜杠路径，而 `ownFiles` 与 `allowedMatches` 使用仓库规范 `/`，导致扫描器自身、反向测试夹具和已审核窄 allowlist 被错误报告为禁用体系残留。同一内容在 POSIX runner 可通过，红灯不代表产品重新引入旧体系。
+- **批准范围：** T-21 临时拥有 `scripts/quality/compatibility-zero.mjs` 与 `compatibility-zero.test.mjs`，只把扫描所得相对路径归一化为 `/` 后再执行既有 own-file/allowlist 比较和诊断；测试必须在当前 Windows host 锁定 forward-slash 结果。
+- **禁止扩大：** 不修改 removed paths、forbidden regex、allowed match 项、扫描根/扩展名、失败语义或任何产品/CI/release 行为；不新增 skip、平台豁免或宽泛目录排除。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** T-21 source `1b5b7c14504c86cacd7a36decfee1fccd73812b9` 已形成并通过 docs/policy 定向验证；兼容扫描修正尚未形成 checkpoint。
+
+### 已批准执行偏差 DEV-21-002
+
+- **触发事实：** DEV-21-001 路径归一化后，Windows 扫描从大量路径误报收敛到两个真实未登记负例：`go-admin-plus/internal/modules/files/migrations/0020-capacity/provider_test.go` 以 forbidden 列表断言 migration 不含 `tenant`，`go-admin-plus/internal/platform/logging/redaction.go` 以 `mysql://` 标记保证旧 DSN 即使进入日志也被脱敏。两者都是防止旧体系回归的保护代码，不是活动产品能力。
+- **批准范围：** 只向既有精确 `allowedMatches` 增加上述路径各自的单一现有名称：Files 测试允许 `tenant feature`，日志 redaction 允许 `MySQL`；现有单测继续要求活动模块中的同名引用失败，并锁定诊断使用 `/`。
+- **禁止扩大：** 不允许其他路径、名称、目录或 regex 豁免，不改变被扫描源码、forbidden/removed 集合、扫描根、失败语义或发布行为。
+- **批准来源：** 用户“都批准”及当前目标“相关的所需要批准的外部条件都批准”。
+- **执行状态：** 已授权，尚未形成修正 checkpoint；`task compatibility:zero` 与 `task release:verify` 保持红灯。
+
 ### 未决问题
 
 无。
