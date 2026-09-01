@@ -38,14 +38,15 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-01T20:32:27+08:00",
+  "updated_at": "2026-09-01T20:57:03+08:00",
   "completed_at": null,
   "archived": false,
   "archive_path": null,
   "blockers": [
-    "G7 remains pending. DEV-20-007 attempt 1 (Actions 33506930543, job 99853090316) passed the macOS arm64 release prebuild, recovery-state wait, snapshot restore, and continue click, then failed at first-setup-recovery-login because the login page was not observed within the unchanged 30-second wait. The current page remains unattributed. Two ordered hosted attempts remain after fixed-enum recovery/workspace/setup/unavailable/loading/unknown attribution is added and portably verified; no pass marker has been claimed."
+    "G7 remains pending. DEV-20-007 attempt 2 (Actions 33508881242, job 99859474100) passed recovery state, snapshot restore, and continue click, then classified the current page as first-setup-recovery-login-workspace. This proves the recovery button mounts an authenticated workspace without clearing the partial-success in-memory Session, contrary to AC-005 ordinary login. DEV-20-008 authorizes only the recovery-path session clear and up to three ordered hosted attempts; no pass marker has been claimed."
   ],
   "deviations": [
+    "DEV-20-008 (recovery-only Session clear and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-007 attempt 2 precisely returned first-setup-recovery-login-workspace after recovery state, snapshot restore, and continue click all passed, proving FirstSetupGate mounts the authenticated workspace while the current process retains the partial-success Session. T-20 may update only apps/admin-desktop/src/first-setup/FirstSetupGate.vue and existing Desktop runner self-tests so the recovery button reuses createDesktopSession().logout(), mounts the login shell only after local/in-memory clear, remains retryable on failure, and leaves the ordinary complete path unchanged. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts. No command/capability/public API/dependency/lock/session-format/timeout/retry/skip change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed. The remaining DEV-20-007 runner-only attempt is not applicable to a product correction.",
     "DEV-20-007 (recovery-to-login fixed phase attribution and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): DEV-20-006 attempt 3 returned unsuffixed first-setup-recovery-state even though its new classifier would suffix every recovery-state timeout, proving the recovery UI was observed and narrowing the red to the following existing snapshot restore, continue click, or login-page wait. T-20 may update only tests/e2e/desktop/run.mjs and run.test.mjs to assign fixed phases immediately before those three steps and verify their order. After a new source checkpoint and canonical candidate, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after attribution and correction of the prior first honest failure. No product change, arbitrary UI diagnostics, timeout/retry/skip change, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-006 (native-e2e Tauri Context correction and continued isolated macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): T-20 may update only src-tauri/src/main.rs under the native-e2e feature plus tests/e2e/desktop/run.mjs and its self-test so the fixed test WebKit data-store identifier is injected as Rust [u8; 16] after generate_context instead of being passed through tauri-utils 2.9.3's incorrect Vec-generating config code. Production Context/config, Cargo dependencies and lock, capabilities, window contract, theme storage, Keychain namespace, and product behavior remain unchanged. After a new source checkpoint and canonical candidate are built, Lead may update and push the same workflow-only probe branch and dispatch at most three additional ordered macos-15 attempts, each only after precise attribution and correction of the prior first honest failure. No retry/skip/allow-failure, artifact publication, deploy/migrate, production secrets, remote rewrite/cleanup, or conversion of a hosted failure into G7 pass is allowed.",
     "DEV-20-005 (isolated remote macOS execution probe, approved by USER-DECISION:all-approved and the active goal's external-condition approval): Lead may create one workflow-only descendant of candidate 2bce131, push one named temporary probe branch, and manually dispatch at most three ordered macos-15 CI attempts that run the complete required native E2E, provided each prior first honest failure is precisely attributed and corrected. The probe may not enter source or the canonical candidate, modify product/test code, use production environments or signing/notarization secrets, publish artifacts, deploy, migrate, perform unattributed retries, rewrite/clean remote history, or convert a hosted-runner failure into G7 pass evidence.",
@@ -905,14 +906,14 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-20",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-20",
-      "source_checkpoint": "841573cfeab758c80efc079fe594550e8a49ad92",
+      "source_checkpoint": "822c45cdedb4134a788b2d8cb803fef879c9eb59",
       "integration": {
         "status": "pending",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "48f744d8aaf734b7a6cc28c7e79895d55ea31d3b",
-        "source_sha": "841573cfeab758c80efc079fe594550e8a49ad92",
-        "candidate_sha": "ed58fc7184e5542a834af75d9a560c02bcff62b7",
-        "candidate_tree_sha": "0a47b32c65612a18b718cac67936dedb447381d9",
+        "parent_before_sha": "4a1afc67a1327683a943251812eeb97565ee6894",
+        "source_sha": "822c45cdedb4134a788b2d8cb803fef879c9eb59",
+        "candidate_sha": "bf23e7b927ca5053c2838e44af2a09684d453657",
+        "candidate_tree_sha": "ee94b990b87f87ddacc882c1ce84ec0e9bda1c87",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-20",
         "result_sha": null,
@@ -922,21 +923,21 @@
         "full_suite": {
           "required": true,
           "status": "passed",
-          "reason": "Candidate ed58fc7 contains latest main 48f744d and source 841573c. Source passed Desktop runner 20/20, Node 47/47, complete typecheck, and lint; candidate passed Vitest 256/256, Node 47/47, and Speculo validation. Only fixed phases were inserted before the unchanged restore, continue click, and login wait. Prior unchanged Rust 27/27/clippy, production build/marker/config, Go, and real Web Shell SQLite/PostgreSQL evidence remains applicable.",
+          "reason": "Candidate bf23e7b contains governance parent 4a1afc6 and source 822c45c. Source passed Desktop runner 20/20, Node 47/47, complete typecheck, and lint; candidate passed Vitest 256/256, Node 47/47, and Speculo validation. Hosted DEV-20-007 attempt 2 then exposed the AC-005 recovery-only Session bug. DEV-20-008 portable correction and new canonical candidate verification are pending; prior Rust 27/27/clippy, production build/marker/config, Go, and real Web Shell SQLite/PostgreSQL evidence remains applicable.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "pending",
-          "reason": "Pending: DEV-20-007 attempt 1 ran as Actions 33506930543 (job 99853090316) on macOS 15.7.7 arm64. The complete runner passed recovery state, snapshot restore, and the continue click, then failed at first-setup-recovery-login after the unchanged 30-second wait. The next source will only classify the fixed current page after that failure. Two ordered follow-up attempts remain without product, retry, timeout, or security-boundary changes.",
+          "reason": "Pending: DEV-20-007 attempt 2 ran as Actions 33508881242 (job 99859474100) on macOS 15.7.7 arm64. The complete runner passed recovery state, snapshot restore, and continue click, then failed at first-setup-recovery-login-workspace, proving the recovery button retained the current in-memory Session. DEV-20-008 authorizes only the recovery-path clear through existing desktop_logout and up to three ordered follow-up attempts; no retry, timeout, skip, API, or security-boundary change is allowed.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-20.md</Path>",
-        "attempts": 5,
+        "attempts": 6,
         "promotion_status": "pending"
       },
       "status": "active",
-      "updated_at": "2026-09-01T20:32:27+08:00"
+      "updated_at": "2026-09-01T20:57:03+08:00"
     }
   ]
 }
