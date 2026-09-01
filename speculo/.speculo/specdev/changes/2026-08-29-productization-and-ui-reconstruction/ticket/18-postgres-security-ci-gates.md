@@ -12,14 +12,18 @@ risk: high
 blocked_by: [T-01, T-09, T-17]
 contract_ids: [AC-002, AC-006, AC-008, AC-019, AC-023, AC-027, AC-030, AC-035, AC-037]
 owner: codex-root
-expected_changes: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>", "<Path>go-admin-plus/test/postgres/**</Path>", "<Path>go-admin-plus/test/files/dialect_contract_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
-writable_paths: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>", "<Path>go-admin-plus/test/postgres/**</Path>", "<Path>go-admin-plus/test/files/dialect_contract_test.go</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
-read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.lock</Path>"]
+expected_changes: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>", "<Path>go-admin-plus/test/postgres/**</Path>", "<Path>go-admin-plus/test/files/dialect_contract_test.go</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.lock</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
+writable_paths: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>", "<Path>go-admin-plus/test/postgres/**</Path>", "<Path>go-admin-plus/test/files/dialect_contract_test.go</Path>", "<Path>go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.lock</Path>", "<Path>scripts/quality/architecture-check.mjs</Path>", "<Path>scripts/quality/architecture-check.test.mjs</Path>"]
+read_only_paths: ["<Path>Taskfile.yml</Path>", "<Path>scripts/go-admin-plus/**</Path>", "<Path>go-admin-plus/go.mod</Path>", "<Path>go-admin-plus-ui/pnpm-lock.yaml</Path>"]
 # Approved deviation DEV-18-001 (USER-DECISION:all-approved): T-18 may update
 # go-admin-plus/test/files/dialect_contract_test.go only to compose the current
 # 0020-capacity migration provider in the existing dual-dialect Files contract
 # fixture. Product service code, migration contents, assertions, fixtures, and
 # required/non-skip semantics remain unchanged.
+# Approved deviation DEV-18-002 (USER-DECISION:all-approved): T-18 may update
+# go-admin-plus-ui/apps/admin-desktop/src-tauri/Cargo.lock only to resolve plist
+# from 1.8.0 to 1.10.0 and remove vulnerable quick-xml 0.38.4. Cargo.toml,
+# direct dependency pins, and unrelated lockfile resolutions remain unchanged.
 shared_paths: ["<Path>.github/workflows/ci.yml</Path>", "<Path>scripts/ci/**</Path>", "<Path>scripts/security/**</Path>"]
 shared_path_owners: ["<Path>.github/workflows/ci.yml</Path> => T-18", "<Path>scripts/ci/**</Path> => T-18", "<Path>scripts/security/**</Path> => T-18"]
 ---
