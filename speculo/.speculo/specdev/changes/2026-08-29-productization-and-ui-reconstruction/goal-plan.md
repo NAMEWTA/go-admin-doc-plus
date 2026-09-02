@@ -2,15 +2,15 @@
 schema_version: 6
 artifact: goal-plan
 change: 2026-08-29-productization-and-ui-reconstruction
-status: in_progress
+status: completed
 modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root@2026-08-29-productization-and-ui-reconstruction/epoch-1
 implementation_agent_limit: 3
-integration_attempt_limit: 6
+integration_attempt_limit: 7
 ticket_workspace_policy: required
 integration_gate: candidate-merge
-ready_for_execution: true
+ready_for_execution: false
 ---
 
 # Goal Plan: Go Admin Plus 产品化与 UI 重构
@@ -314,24 +314,24 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 
 | 项目 | 当前事实 |
 |---|---|
-| Plan | `in_progress`；required worktree + candidate-merge；Lead epoch 1 |
-| Parent | `main@8f9c9bf921a9c6d2aef8ce7c2dca6f85029d1747` 包含旧 T-21 result 与误关闭记录；历史保持不重写 |
-| Tickets | T-01~T-20 均 `done`；T-21 因 completion audit `in_progress` |
-| Gate | G0~G7 已通过；G8 重新打开，等待根 `task test` 清零和新 candidate |
-| Workspace records | T-21 source `c888fff` 与旧 result `b1821e0` 保留；required PostgreSQL、Web、native 与三 profile clean-room 仍成功，但旧 full-suite 记录改为 failed |
-| Authorization | DEV-21-006 精确开放三个 Windows owning-module 文件；DEV-21-007 精确开放 generator timeout 与契约测试；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
+| Plan | `completed`；required worktree + candidate-merge；Lead epoch 1 |
+| Parent | `main@b012f2d6c643a10cc2a62879903884388267030f` 包含最终 T-21 result；旧 result、误关闭与重开历史保持不重写 |
+| Tickets | T-01~T-21 均 `done` |
+| Gate | G0~G8 全部通过；change completion gate 关闭 |
+| Workspace records | T-21 source `9411041`、result `b012f2d`/tree `6890b54` 已记录；required PostgreSQL、Web、native 与三 profile clean-room 均成功，历史红灯继续保留 |
+| Authorization | DEV-21-006/007 与第 7 次本地 candidate 已执行完毕；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
-| Validation baseline | structure validator 需保持 `0 error / 0 warning`；完成前根 `task test` 必须在最终 candidate 通过 |
+| Validation baseline | 最终 candidate 根 `task test`、`task lint`、all-target build 与全部适用 G8 门通过；complete validator/self-check 保持 `0 error / 0 warning` |
 
 ### Pending Decisions and Blockers
 
-无外部 blocker。完成审计发现旧 T-21/G8 结论不满足根测试完成门；DEV-21-006 已清除精确 Windows baseline，DEV-21-007 正在修正完整 suite 暴露的 generator 内部预算：
+无未决决定或 blocker。完成审计暴露的 Windows baseline 与 generator 内部预算均已修正，新 T-21/G8 candidate 已通过完整根门禁：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
 - G7/T-20 由 hosted macOS 15.7.7 arm64 probe `e83a460` / Actions `33558345476` / job `100024584867` 关闭；required gate 精确输出 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`。
 - G8/T-21 在 disposable SQLite/PostgreSQL root 与数据库完成 migrate/bootstrap/Doctor/login/core/restart；required PostgreSQL 精确输出 `REQUIRED_POSTGRES_PASS executed=18 skipped=0`，required Web 精确输出 `REQUIRED_WEB_E2E_PASS suites=10 profiles=20 skipped=0`。
 
-旧 T-21 result `b1821e0`（tree `e4548ef`，source `c888fff`）已晋升但不再作为 completion 证明：Windows 根 `task test` 的明确非零与 Goal Plan DoD 冲突。新修正必须在 source worktree 形成非空 checkpoint、在包含最新 main 的 candidate 通过精确回归和完整根测试后才可重新晋升。签名/公证仍为 `not-required`；publish、deploy、production migration、archive、cleanup 均未执行。
+T-21 result `b012f2d`（tree `6890b54`，source `9411041`）包含最新治理父分支并通过根 `task test`：默认/SQLite-tag generator 分别为 572.056s/574.656s，Vitest 256/256、Node 49/49 且 0 skip；`task lint`、all-target server-sqlite build、governance/architecture/compatibility/docs/task/generate/release 门均通过。第 7 次 candidate 由 DEV-21-006/007 与用户“都批准”授权。签名/公证仍为 `not-required`；publish、deploy、production migration、archive、cleanup 均未执行。
 
 ### Resume Protocol
 

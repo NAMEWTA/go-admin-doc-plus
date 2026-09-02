@@ -2,8 +2,8 @@
   "schema_version": 6,
   "artifact": "change-status",
   "change": "2026-08-29-productization-and-ui-reconstruction",
-  "change_status": "active",
-  "current_work": "specdev/implement",
+  "change_status": "completed",
+  "current_work": null,
   "works_run": [
     "specdev/grill-with-docs",
     "specdev/spec",
@@ -39,8 +39,8 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T08:15:27+08:00",
-  "completed_at": null,
+  "updated_at": "2026-09-02T09:38:00+08:00",
+  "completed_at": "2026-09-02T09:38:00+08:00",
   "archived": false,
   "archive_path": null,
   "blockers": [],
@@ -960,38 +960,38 @@
       "parent_branch": "main",
       "branch": "speculo/2026-08-29-productization-and-ui-reconstruction/T-21",
       "workspace_ref": "specdev-worktree/2026-08-29-productization-and-ui-reconstruction/T-21",
-      "source_checkpoint": "c888fffec8ee2c2c5f21b7588128a7b3f9faa66c",
+      "source_checkpoint": "941104108705a27746d499a38396b3d23282eec2",
       "integration": {
-        "status": "failed",
+        "status": "passed",
         "parent_ref": "refs/heads/main",
-        "parent_before_sha": "082c496775f5deb18531620f78bd1f11babeb748",
-        "source_sha": "c888fffec8ee2c2c5f21b7588128a7b3f9faa66c",
-        "candidate_sha": "b1821e0fe8a0f7fba1333113b951ee10e0011bff",
-        "candidate_tree_sha": "e4548effed47fdb75e94d9c34e0e2ef9ff3fd366",
+        "parent_before_sha": "9d30fe81b1cc46b790750976db357ef4a19e1dcd",
+        "source_sha": "941104108705a27746d499a38396b3d23282eec2",
+        "candidate_sha": "b012f2d6c643a10cc2a62879903884388267030f",
+        "candidate_tree_sha": "6890b5489d34762aad4c9a61b3b4eb4e7b7fb46f",
         "candidate_branch": "speculo/integration/2026-08-29-productization-and-ui-reconstruction/T-21",
         "candidate_workspace_ref": "specdev-worktree/.integration/2026-08-29-productization-and-ui-reconstruction/T-21",
-        "result_sha": "b1821e0fe8a0f7fba1333113b951ee10e0011bff",
+        "result_sha": "b012f2d6c643a10cc2a62879903884388267030f",
         "method": "merge-commit",
         "conflict_paths": [],
-        "verification": "failed",
+        "verification": "passed",
         "full_suite": {
           "required": true,
-          "status": "failed",
-          "reason": "Completion audit rejected prior result b1821e0 because the Goal Plan requires root task test at the applicable checkpoint and carried Windows baselines must clear before G5. DEV-21-006 now clears the exact desktop-sidecar, Desktop host, SQLite UNC, private-root, and symlink failures. The first full default Go rerun then exposed only the canonical generator's two-minute transport deadline under Windows package load; DEV-21-007 aligns that budget with the existing ten-minute compile gate. Previously passed PostgreSQL, Web, native, release, contract, pnpm and Rust evidence remains preserved but cannot close G8 until the corrected candidate passes the full root test entry.",
+          "status": "passed",
+          "reason": "Candidate b012f2d contains latest governance parent 9d30fe8 and source 9411041 without conflicts. The source passed exact Windows regressions, canonical renderer in 562.20s, full default Go in 570.829s and full sqlite-tag Go in 570.132s with -count=1. The candidate passed root task test: default generator 572.056s, sqlite generator 574.656s, Vitest 41/41 files and 256/256 tests, Node 49/49 with zero skips. It also passed task lint, pnpm typecheck, all-target server-sqlite build with DESKTOP_PRODUCTION_BUILD_PASS, governance, architecture, compatibility, docs, Task contract, CONTRACT_GENERATE_CHECK_PASS, and release policy 16/16. Two honest Windows build reds were path-environment failures: long target LNK1104, then short detached CARGO_TARGET_DIR post-check ENOENT; a short junction to the contract target preserved the required physical output and the unchanged task build exited zero. Prior required PostgreSQL, Web, native, clean-room, security, release, and Rust evidence remains applicable as documented.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
         },
         "e2e": {
           "required": true,
           "status": "passed",
-          "reason": "Server SQLite and PostgreSQL disposable empty states completed migrate=17/version=8100000000000, bootstrap, healthy Doctor, API/worker readiness, login/core management and same-root restart with runtime_stopped and zero residual listeners/processes. Required PostgreSQL emitted REQUIRED_POSTGRES_PASS executed=18 skipped=0 and real Chrome emitted REQUIRED_WEB_E2E_PASS suites=10 profiles=20 skipped=0. Desktop/native product paths are unchanged from T-20 checkpoint 3ab6ee5, whose macOS 15.7.7 arm64 run emitted DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0 after empty setup, recovery, core flows, restart and cleanup.",
+          "reason": "Server SQLite and PostgreSQL disposable empty states completed migrate=17/version=8100000000000, bootstrap, healthy Doctor, API/worker readiness, login/core management and same-root restart with runtime_stopped and zero residual listeners/processes. Required PostgreSQL emitted REQUIRED_POSTGRES_PASS executed=18 skipped=0 and real Chrome emitted REQUIRED_WEB_E2E_PASS suites=10 profiles=20 skipped=0. T-21 changes no Desktop UI, Rust host, native runner, API, migration, or macOS branch: the backup production changes are Windows-only guards while the macOS permission and fsync paths remain byte-for-byte behavior-equivalent. T-20 macOS 15.7.7 arm64 therefore remains the required native proof and emitted DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0 after empty setup, recovery, core flows, restart and cleanup.",
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>",
-        "attempts": 6,
+        "attempts": 7,
         "promotion_status": "applied"
       },
-      "status": "active",
-      "updated_at": "2026-09-02T08:15:27+08:00"
+      "status": "integrated",
+      "updated_at": "2026-09-02T09:38:00+08:00"
     }
   ]
 }

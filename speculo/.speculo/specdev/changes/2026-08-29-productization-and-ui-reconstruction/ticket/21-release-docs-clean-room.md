@@ -4,7 +4,7 @@ artifact: ticket
 change: 2026-08-29-productization-and-ui-reconstruction
 id: T-21
 title: 收敛文档并完成三 Profile Clean-room 候选
-status: in_progress
+status: done
 planning_depth: deep
 planning_depth_reason: 最终 Gate 跨数据库迁移、部署、Desktop、本地持久化、运维恢复和发布证据，决定 change 是否可完成
 ready: true
@@ -166,7 +166,7 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 
 ## 10. 验收标准
 
-- [ ] `AC-030~039` 的最终候选和文档合同成立。
+- [x] `AC-030~039` 的最终候选和文档合同成立。
 - [x] 三 profile 从空库可复现，签名/公证正确记为 not-required。
 - [x] Evidence 写入 `<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>`。
-- [ ] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。
+- [x] required clean-room、commit、candidate/result、父分支包含和 Lead 审查完整。
