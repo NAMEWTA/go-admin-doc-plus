@@ -62,7 +62,10 @@ func TestSQLiteUNCURIHasDriverAcceptedEmptyAuthority(t *testing.T) {
 	if parsed.Host != "" || !strings.HasPrefix(parsed.Path, "//") {
 		t.Fatalf("UNC URI = %q, want empty authority and double-slash path", dsn)
 	}
-	db, err := sql.Open("sqlite", dsn)
+	query := parsed.Query()
+	query.Set("mode", "memory")
+	parsed.RawQuery = query.Encode()
+	db, err := sql.Open("sqlite", parsed.String())
 	if err != nil {
 		t.Fatalf("sql.Open() error = %v", err)
 	}
