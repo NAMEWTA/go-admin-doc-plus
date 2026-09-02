@@ -7,7 +7,7 @@ modes: [migration, high-assurance, reference-conformance, release-coordination]
 orchestration: lead-directed
 lead: codex-root@2026-08-29-productization-and-ui-reconstruction/epoch-1
 implementation_agent_limit: 3
-integration_attempt_limit: 7
+integration_attempt_limit: 6
 ticket_workspace_policy: required
 integration_gate: candidate-merge
 ready_for_execution: false
@@ -319,7 +319,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Tickets | T-01~T-21 均 `done` |
 | Gate | G0~G8 全部通过；change completion gate 关闭 |
 | Workspace records | T-21 source `9411041`、result `b012f2d`/tree `6890b54` 已记录；required PostgreSQL、Web、native 与三 profile clean-room 均成功，历史红灯继续保留 |
-| Authorization | DEV-21-006/007 与第 7 次本地 candidate 已执行完毕；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
+| Authorization | DEV-21-006/007 的 completion-audit 前向修正已执行完毕；成功的第 6 次 integration 记录保持，审计修正不重标为失败重试；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | 最终 candidate 根 `task test`、`task lint`、all-target build 与全部适用 G8 门通过；complete validator/self-check 保持 `0 error / 0 warning` |
 
@@ -331,7 +331,7 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 - G7/T-20 由 hosted macOS 15.7.7 arm64 probe `e83a460` / Actions `33558345476` / job `100024584867` 关闭；required gate 精确输出 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`。
 - G8/T-21 在 disposable SQLite/PostgreSQL root 与数据库完成 migrate/bootstrap/Doctor/login/core/restart；required PostgreSQL 精确输出 `REQUIRED_POSTGRES_PASS executed=18 skipped=0`，required Web 精确输出 `REQUIRED_WEB_E2E_PASS suites=10 profiles=20 skipped=0`。
 
-T-21 result `b012f2d`（tree `6890b54`，source `9411041`）包含最新治理父分支并通过根 `task test`：默认/SQLite-tag generator 分别为 572.056s/574.656s，Vitest 256/256、Node 49/49 且 0 skip；`task lint`、all-target server-sqlite build、governance/architecture/compatibility/docs/task/generate/release 门均通过。第 7 次 candidate 由 DEV-21-006/007 与用户“都批准”授权。签名/公证仍为 `not-required`；publish、deploy、production migration、archive、cleanup 均未执行。
+T-21 result `b012f2d`（tree `6890b54`，source `9411041`）包含最新治理父分支并通过根 `task test`：默认/SQLite-tag generator 分别为 572.056s/574.656s，Vitest 256/256、Node 49/49 且 0 skip；`task lint`、all-target server-sqlite build、governance/architecture/compatibility/docs/task/generate/release 门均通过。DEV-21-006/007 是对已成功第 6 次 integration 的 completion-audit 前向修正，由用户“都批准”授权，不改写为额外失败重试。签名/公证仍为 `not-required`；publish、deploy、production migration、archive、cleanup 均未执行。
 
 ### Resume Protocol
 

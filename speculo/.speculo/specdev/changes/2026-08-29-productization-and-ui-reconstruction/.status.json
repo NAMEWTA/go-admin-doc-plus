@@ -39,8 +39,8 @@
     "history": []
   },
   "created_at": "2026-08-29T13:14:24+08:00",
-  "updated_at": "2026-09-02T09:38:00+08:00",
-  "completed_at": "2026-09-02T09:38:00+08:00",
+  "updated_at": "2026-09-02T09:41:00+08:00",
+  "completed_at": "2026-09-02T09:41:00+08:00",
   "archived": false,
   "archive_path": null,
   "blockers": [],
@@ -987,11 +987,11 @@
           "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>"
         },
         "evidence": "<Path>{roots.state}/specdev/changes/2026-08-29-productization-and-ui-reconstruction/evidence/T-21.md</Path>",
-        "attempts": 7,
+        "attempts": 6,
         "promotion_status": "applied"
       },
       "status": "integrated",
-      "updated_at": "2026-09-02T09:38:00+08:00"
+      "updated_at": "2026-09-02T09:41:00+08:00"
     }
   ]
 }
