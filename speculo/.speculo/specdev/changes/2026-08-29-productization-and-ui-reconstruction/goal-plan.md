@@ -319,13 +319,13 @@ G0 先对以下用户既有变更记录 path、mode、byte hash 与可恢复 loc
 | Tickets | T-01~T-20 均 `done`；T-21 因 completion audit `in_progress` |
 | Gate | G0~G7 已通过；G8 重新打开，等待根 `task test` 清零和新 candidate |
 | Workspace records | T-21 source `c888fff` 与旧 result `b1821e0` 保留；required PostgreSQL、Web、native 与三 profile clean-room 仍成功，但旧 full-suite 记录改为 failed |
-| Authorization | DEV-21-006 精确开放三个 owning-module 文件与本地 candidate 修正；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
+| Authorization | DEV-21-006 精确开放三个 Windows owning-module 文件；DEV-21-007 精确开放 generator timeout 与契约测试；远程写入/部署/发布/生产迁移/归档/清理仍未授权 |
 | Known dirty state | G0 已将 database 初始化输入固定到 `ee1d7f7`，Desktop 输入固定到 stash object `39480546c2a2e2ff386a176f4278c6183a0e868c`，continuation 输入固定到 stash object `f593f53b2850063f415c9cd521ab6aaa8a99c510`；均未清理 |
 | Validation baseline | structure validator 需保持 `0 error / 0 warning`；完成前根 `task test` 必须在最终 candidate 通过 |
 
 ### Pending Decisions and Blockers
 
-无外部 blocker。完成审计发现旧 T-21/G8 结论不满足根测试完成门，DEV-21-006 正在修正：
+无外部 blocker。完成审计发现旧 T-21/G8 结论不满足根测试完成门；DEV-21-006 已清除精确 Windows baseline，DEV-21-007 正在修正完整 suite 暴露的 generator 内部预算：
 
 - WinLibs GCC 16.1 与独立 PostgreSQL 17.11 disposable cluster 已建立，required race 和逐 Ticket PostgreSQL 检查均有通过证据；该 cluster 仅使用显式隔离数据库，未触碰用户数据库或 `dev_store`。
 - G7/T-20 由 hosted macOS 15.7.7 arm64 probe `e83a460` / Actions `33558345476` / job `100024584867` 关闭；required gate 精确输出 `DESKTOP_NATIVE_E2E_PASS runtime=tauri-native profile=sqlite skipped=0`。

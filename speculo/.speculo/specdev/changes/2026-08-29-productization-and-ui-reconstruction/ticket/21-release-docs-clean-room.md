@@ -94,6 +94,14 @@ shared_path_owners: ["<Path>README.md</Path> => T-21", "<Path>docs/**</Path> => 
 - **批准来源：** 用户“都批准”、目标所述所有相关外部条件批准，以及本轮持久目标 completion audit。
 - **执行状态：** 已授权；旧 result `b1821e0` 与非零输出保留，不再作为 change completion 证明。
 
+### Approved execution deviation DEV-21-007
+
+- **Trigger:** After DEV-21-006 cleared all four exact Windows failure groups, `go test ./... -count=1` failed only `TestCanonicalRendererInvokesLintAndGeneration` with `context deadline exceeded` after 227.77 seconds. The same exact test passed in isolation in 564.29 seconds. Its transport phase has a hard-coded two-minute timeout while the existing production compile gate allows ten minutes and the test outer context allows twenty minutes. The output is correct, but the internal budget does not cover Windows cold-start and concurrent package load.
+- **Authorized scope:** T-21 temporarily owns `<Path>go-admin-plus/internal/modules/generator/renderer.go</Path>` and `<Path>go-admin-plus/internal/modules/generator/generator_test.go</Path>`. It may only align canonical transport generation with the existing `compileGateTimeout` and add a contract assertion that locks the equal, bounded relationship. Exact, full default, SQLite-tag, and root `task test` gates must rerun.
+- **Forbidden expansion:** No generation command/output, semaphore, cancellation propagation, API, retry, skip, allow-failure, compile-gate implementation, or test-count change. Cached results cannot replace `-count=1` verification. No worktree/stash cleanup, publish, deploy, or production migration.
+- **Approval source:** User approval of all conditions and the active persistent-goal completion audit.
+- **Execution state:** Authorized. The 227.77-second full-suite red and 564.29-second isolated pass remain diagnostic evidence.
+
 ### 未决问题
 
 无。
