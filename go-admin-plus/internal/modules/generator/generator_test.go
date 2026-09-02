@@ -476,6 +476,12 @@ func TestCanonicalRendererInvokesLintAndGeneration(t *testing.T) {
 	}
 }
 
+func TestTransportGenerationTimeoutMatchesCompileGate(t *testing.T) {
+	if transportGenerationTimeout != compileGateTimeout {
+		t.Fatalf("transport generation timeout = %s, want compile gate timeout %s", transportGenerationTimeout, compileGateTimeout)
+	}
+}
+
 func TestResolveVoltaNodeExecutable(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Volta uses a different shim layout on Windows")

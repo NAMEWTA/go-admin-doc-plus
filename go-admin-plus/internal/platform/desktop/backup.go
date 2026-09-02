@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -214,13 +215,17 @@ func canonicalPrivateDirectory(directory string) (string, error) {
 	if err != nil || filepath.Clean(real) != filepath.Clean(directory) {
 		return "", errors.New("directory is not canonical")
 	}
-	if info.Mode().Perm()&0o077 != 0 {
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0 {
 		return "", errors.New("directory is not private")
 	}
 	return filepath.Clean(real), nil
 }
 
 func syncDirectory(directory string) error {
+	if runtime.GOOS == "windows" {
+		// Windows does not expose a portable directory fsync through os.File.
+		return nil
+	}
 	owner, err := os.Open(directory)
 	if err != nil {
 		return err

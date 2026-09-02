@@ -7,10 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
-const transportGenerationTimeout = 2 * time.Minute
+const transportGenerationTimeout = compileGateTimeout
 
 var transportGenerationSemaphore = make(chan struct{}, 1)
 

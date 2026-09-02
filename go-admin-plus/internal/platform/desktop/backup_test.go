@@ -3,6 +3,7 @@ package desktop
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -68,6 +69,9 @@ func TestDatabaseBackupRemovesFailedFirstDatabaseAndCompanions(t *testing.T) {
 }
 
 func TestDatabaseBackupRejectsSymlinkDatabaseWithoutReadingTarget(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows symlink creation needs elevated privileges")
+	}
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
