@@ -184,17 +184,8 @@ export const checkArchitecture = root => {
       failures.push(`quality CI must install Go Task ${canonicalTaskVersion}`)
     }
     const backendJob = workflowJob(ciWorkflow, 'backend')
-    if (!backendJob.includes('pnpm/action-setup') || !/version: 11\.1\.3/.test(backendJob)) {
-      failures.push('backend CI must install pnpm 11.1.3 for generator tests')
-    }
-    if (!/node-version: 22\.22\.3/.test(backendJob)) {
-      failures.push('backend CI must set up Node.js 22.22.3 for generator tests')
-    }
-    if (!/pnpm --dir go-admin-plus-ui install --frozen-lockfile/.test(backendJob)) {
-      failures.push('backend CI must install the frozen frontend workspace for generator tests')
-    }
     if (!/timeout-minutes: 60/.test(backendJob)) {
-      failures.push('backend CI must reserve 60 minutes for the three generator test matrices')
+      failures.push('backend CI must reserve 60 minutes for the Go test matrix')
     }
     const postgresJob = workflowJob(ciWorkflow, 'postgres-required')
     const postgresContracts = [
@@ -277,7 +268,7 @@ export const checkArchitecture = root => {
   for (const relativePath of ['scripts/go-admin-plus/dev.sh', 'scripts/go-admin-plus/test.sh']) {
     const path = join(root, relativePath)
     if (existsSync(path) && !readFileSync(path, 'utf8').includes('require_pnpm')) {
-      failures.push(`${relativePath} must prepare pnpm for the backend generator`)
+      failures.push(`${relativePath} must prepare the managed pnpm toolchain`)
     }
   }
 
@@ -362,30 +353,6 @@ export const checkArchitecture = root => {
     for (const project of testProjects) {
       const projectPath = relative(frontendRoot, project).replaceAll('\\', '/')
       if (!typecheck.includes(projectPath)) failures.push(`frontend root typecheck omits test project ${projectPath}`)
-    }
-  }
-  const generatorTemplatePath = join(root, 'go-admin-plus/internal/modules/generator/templates.go')
-  if (existsSync(generatorTemplatePath)) {
-    const templates = readFileSync(generatorTemplatePath, 'utf8')
-    const currentListContracts = ['AppPage', 'EmptyState', 'FormDialog', 'FormGrid', 'Pagination', 'QueryBar', 'StatusTag', 'TableToolbar']
-    if (currentListContracts.some(contract => !templates.includes(contract))) {
-      failures.push('generator list page must compose the current shared UI components')
-    }
-    if (templates.includes('class="generated-records"') || templates.includes('class="editor"')) {
-      failures.push('generator list page must not emit the legacy inline workspace/editor layout')
-    }
-    if (!templates.includes('const tracePattern = /^[A-Za-z0-9_-]{8,128}$/') || !templates.includes('readonly traceId?: string')) {
-      failures.push('generator failure contract must retain only a validated trace reference')
-    }
-  }
-  const generatorGatePath = join(root, 'go-admin-plus/internal/modules/generator/compile_gate.go')
-  if (existsSync(generatorGatePath)) {
-    const gate = readFileSync(generatorGatePath, 'utf8')
-    if (!gate.includes('scripts/quality/architecture-check.mjs')) {
-      failures.push('generator compile gate must run the repository architecture check')
-    }
-    if (!gate.includes('[]string{"build"}')) {
-      failures.push('generator compile gate must build the frontend applications')
     }
   }
   return failures

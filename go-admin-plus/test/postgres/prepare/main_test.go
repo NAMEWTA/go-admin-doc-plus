@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestRequiredSchemaNameContract(t *testing.T) {
-	for _, value := range []string{"ci_01_migrations", "ci_18_generator_scaffold"} {
+	for _, value := range []string{"ci_01_migrations", "ci_18_demo_crud"} {
 		if !schemaPattern.MatchString(value) {
 			t.Fatalf("rejected required schema %q", value)
 		}

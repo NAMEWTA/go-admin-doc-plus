@@ -54,7 +54,7 @@ func TestTopicSchemaRejectsUnknownSensitiveAndUnstructuredPayloads(t *testing.T)
 		}
 	}
 	stringEvent := outbox.Event{
-		ID: "event-schema-sensitive-string", Topic: "settings.changed", BusinessKey: "settings:site-name:1",
+		ID: "event-schema-sensitive-string", Topic: "configuration.changed", BusinessKey: "configuration:site-name:1",
 		Payload: []byte(`{"value":"raw-session-secret"}`), OccurredAt: now,
 	}
 	if err := enqueueError(db, store, stringEvent); !errors.Is(err, outbox.ErrInvalidEvent) {

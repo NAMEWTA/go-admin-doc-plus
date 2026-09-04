@@ -10,13 +10,11 @@ repository=$(cd -- "$script_dir/../../.." && pwd -P)
 entitlements="$repository/release/macos/entitlements.plist"
 plutil -lint "$entitlements" >/dev/null
 
-chmod -R u+w "$app/Contents/Resources/generator"
 while IFS= read -r -d '' file_path; do
   if file -b "$file_path" | grep -q 'Mach-O'; then
     codesign --force --options runtime --timestamp --sign "$APPLE_SIGNING_IDENTITY" "$file_path"
   fi
 done < <(find "$app/Contents" -type f -print0)
-chmod -R a-w "$app/Contents/Resources/generator"
 codesign --force --options runtime --timestamp --entitlements "$entitlements" \
   --sign "$APPLE_SIGNING_IDENTITY" "$app"
 codesign --verify --deep --strict --verbose=2 "$app"

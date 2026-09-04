@@ -11,18 +11,15 @@ export const requiredPostgresSuites = Object.freeze([
   ['capability-registry', './internal/modules/iam/authorization', 'TestCapabilityRegistryPostgresContract'],
   ['bootstrap-recovery', './internal/modules/iam/bootstrap', 'TestPostgresConcurrentBootstrapAndRecoveryFence'],
   ['session-fencing', './internal/modules/iam/session', 'TestPostgresGenerationFencesConcurrentRenewalAndRevoke'],
-  ['settings', './internal/modules/settings', 'TestSettingsPostgresDialectContract'],
   ['migration-convergence', './internal/platform/migrations', 'TestPostgresConcurrentProvidersConverge'],
   ['audit', './test/audit', 'TestAuditPostgresMigrationProjectionQueryAndCleanup'],
   ['demo-crud', './test/demo', 'TestPostgresCRUDContract'],
   ['files-contract', './test/files', 'TestFilesPostgresContract'],
   ['files-capacity', './test/files', 'TestFilesCapacityPostgresDialectContract'],
   ['authorization-fence', './test/iam/authorization', 'TestPostgresRevocationWaitsForFinalAuthorizationFence'],
-  ['organization-scope', './test/organization', 'TestOrganizationPostgresDialectContract'],
   ['runtime-takeover', './test/reliable-runtime', 'TestPostgresExecutorExclusionAndTakeover'],
   ['runtime-fault', './test/reliable-runtime', 'TestPostgresDispatcherRecoversAcrossBackendTerminationAndProcesses'],
   ['scheduler', './test/scheduler', 'TestSchedulerPostgresRuntime'],
-  ['generator-scaffold', './internal/modules/generator', 'TestCanonicalRendererInvokesLintAndGeneration']
 ].map(([name, packagePath, test, isolation = 'schema']) => Object.freeze({ name, packagePath, test, isolation })))
 
 export const parseGoTestEvents = (source, target) => {
@@ -49,14 +46,12 @@ export const validateRequiredEnvironment = environment => {
   return dsn
 }
 
-const requiredEnvironment = (environment, dsn, marker) => ({
+const requiredEnvironment = (environment, dsn) => ({
   ...environment,
   GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN: dsn,
   GO_ADMIN_TEST_POSTGRES_FILES_LIFECYCLE_DSN: dsn,
   GO_ADMIN_TEST_POSTGRES_IAM_DELETION_DSN: dsn,
-  GO_ADMIN_SCHEDULER_POSTGRES_DSN: dsn,
-  GO_ADMIN_GENERATOR_POSTGRES_DSN: dsn,
-  GO_ADMIN_GENERATOR_POSTGRES_MARKER: marker
+  GO_ADMIN_SCHEDULER_POSTGRES_DSN: dsn
 })
 
 const suiteDSN = (dsn, schema) => {
@@ -74,13 +69,12 @@ export const runRequiredPostgres = ({ root, environment = process.env, spawn = s
   const dsn = validateRequiredEnvironment(environment)
   if (suites.length === 0) throw new Error('required PostgreSQL suite contains zero targets')
   const goRoot = join(root, 'go-admin-plus')
-  const marker = join(environment.RUNNER_TEMP ?? environment.TEMP ?? environment.TMP ?? root, 'go-admin-generator-postgres.pass')
   const runToken = `${environment.GITHUB_RUN_ID ?? process.pid}_${environment.GITHUB_RUN_ATTEMPT ?? '0'}`.replaceAll(/[^a-zA-Z0-9_]/g, '_').toLowerCase()
   const report = []
   for (const [index, suite] of suites.entries()) {
     const schema = `ci_${String(index + 1).padStart(2, '0')}_${suite.name.replaceAll('-', '_')}_${runToken}`
     if (suite.isolation !== 'self') prepare({ spawn, goRoot, environment, schema })
-    const childEnvironment = requiredEnvironment(environment, suite.isolation === 'self' ? dsn : suiteDSN(dsn, schema), marker)
+    const childEnvironment = requiredEnvironment(environment, suite.isolation === 'self' ? dsn : suiteDSN(dsn, schema))
     const result = spawn('go', ['test', '-json', '-count=1', '-timeout=20m', '-run', `^${suite.test}$`, suite.packagePath], {
       cwd: goRoot,
       env: childEnvironment,

@@ -16,7 +16,6 @@ import (
 	filesaccountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/account_lifecycle_migration"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
 	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
-	configmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator/migrations/0010-config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
@@ -25,9 +24,7 @@ import (
 	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	datascopemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0050-data-scope"
 	accountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle"
-	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
 	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
-	settingsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/migrations/0010-settings"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
@@ -132,10 +129,7 @@ func previousMigrationRunner() (*migrations.Runner, error) {
 		sessionprotectionmigration.Provider{},
 		datascopemigration.Provider{},
 		accountlifecyclemigration.Provider{},
-		organizationmigration.Provider{},
 		productsmigration.Provider{},
-		configmigration.Provider{},
-		settingsmigration.Provider{},
 		schedulermigration.Provider{},
 		filesmigration.Provider{},
 		capacitymigration.Provider{},

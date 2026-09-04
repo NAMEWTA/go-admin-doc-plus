@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UploadIcon, FileIcon, XIcon } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { filesPermissions, type FileMetadata, type FileQuery, type UploadCandidate } from '@go-admin-plus/domain-files'
 import type { PlatformPort } from '@go-admin-plus/platform'
@@ -7,7 +8,7 @@ import type { FilesController } from './files-controller'
 
 const props = defineProps<{ controller: FilesController; platform: PlatformPort }>()
 const emit = defineEmits<{ sessionRequired: [] }>()
-const revision = ref(0), search = ref(''), selectedUpload = ref<UploadCandidate | null>(null), fileInput = ref<HTMLInputElement | null>(null), localError = ref<string | null>(null)
+const revision = ref(0), search = ref(''), selectedUpload = ref<UploadCandidate | null>(null), fileInput = ref<HTMLInputElement | null>(null), localError = ref<string | null>(null), dragActive = ref(false)
 const snapshot = computed(() => { void revision.value; return props.controller.list.snapshot() })
 const failure = computed(() => { void revision.value; return props.controller.failure() })
 const failureReference = computed(() => { void revision.value; return props.controller.failureTraceId() })
@@ -33,14 +34,17 @@ const refresh = () => settle(() => props.controller.pendingRepair ? props.contro
 const searchFiles = () => settle(() => props.controller.list.search({ search: search.value }))
 const resetSearch = () => { search.value = ''; void settle(() => props.controller.list.reset()) }
 const sortBy = (key: FileSortKey) => settle(() => props.controller.list.setSort({ key, direction: currentSort.value.key === key && currentSort.value.direction === 'ascending' ? 'descending' : 'ascending' }))
-const chooseFile = (event: Event) => { const file = (event.target as HTMLInputElement).files?.[0]; selectedUpload.value = file ? { name: file.name, type: file.type, size: file.size, body: file } : null; localError.value = null }
+const selectFile = (file: File | undefined) => { selectedUpload.value = file ? { name: file.name, type: file.type, size: file.size, body: file } : null; localError.value = null }
+const chooseFile = (event: Event) => selectFile((event.target as HTMLInputElement).files?.[0])
+const openFilePicker = () => { if (!uploadBlocked.value) fileInput.value?.click() }
+const handleDrop = (event: DragEvent) => { event.preventDefault(); dragActive.value = false; if (!uploadBlocked.value) selectFile(event.dataTransfer?.files?.[0]) }
 const chooseHostFile = async () => {
   localError.value = null
   if (!props.platform.listCapabilities().has('file-open')) { localError.value = '当前运行环境不支持选择文件'; return }
   try { const file = await props.platform.pickFile(); selectedUpload.value = file ? { name: file.name, type: file.mediaType, size: file.bytes.length, body: new Blob([file.bytes.slice().buffer], { type: file.mediaType }) } : null }
   catch { selectedUpload.value = null; localError.value = '选择文件失败' }
 }
-const clearUpload = () => { selectedUpload.value = null; localError.value = null; if (fileInput.value) fileInput.value.value = '' }
+const clearUpload = () => { selectedUpload.value = null; localError.value = null; dragActive.value = false; if (fileInput.value) fileInput.value.value = '' }
 const upload = async () => {
   if (!selectedUpload.value) { localError.value = '请选择文件'; return }
   const result = await props.controller.upload(selectedUpload.value)
@@ -72,10 +76,10 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
     <template v-if="projectionVisible && canRead">
       <QueryBar :busy="blocked" :reset-disabled="!search" @search="searchFiles" @reset="resetSearch"><label>文件名称<input v-model="search" name="search" maxlength="100" placeholder="请输入文件名称"></label></QueryBar>
       <section v-if="canWrite" class="upload-panel" data-testid="files-upload" :aria-disabled="uploadBlocked">
-        <div><strong>上传文件</strong><p>支持 PDF、JPG、PNG、TXT，单个文件不超过 10 MB</p></div>
-        <label v-if="platform.runtime === 'web'">选择文件<input ref="fileInput" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.txt,application/pdf,image/jpeg,image/png,text/plain" :disabled="uploadBlocked" @change="chooseFile"></label>
-        <div v-else class="host-picker"><button type="button" :disabled="uploadBlocked" @click="chooseHostFile">选择文件</button><span>{{ selectedUpload?.name ?? '未选择文件' }}</span></div>
-        <button type="button" :disabled="uploadBlocked || !selectedUpload" @click="upload">上传</button><p v-if="localError" role="alert">{{ localError }}</p>
+        <div class="upload-heading"><div class="upload-icon"><UploadIcon :size="20" /></div><div><strong>上传文件</strong><p>支持 PDF、JPG、PNG、TXT，单个文件不超过 10 MB</p></div></div>
+        <div v-if="platform.runtime === 'web'" class="upload-dropzone" :class="{ 'is-dragging': dragActive, 'has-file': selectedUpload }" role="button" tabindex="0" :aria-disabled="uploadBlocked" @click="openFilePicker" @keydown.enter.prevent="openFilePicker" @keydown.space.prevent="openFilePicker" @dragover.prevent="dragActive = true" @dragleave.prevent="dragActive = false" @drop="handleDrop"><input ref="fileInput" name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.txt,application/pdf,image/jpeg,image/png,text/plain" :disabled="uploadBlocked" @change="chooseFile"><template v-if="selectedUpload"><FileIcon :size="18" /><span class="selected-file">{{ selectedUpload.name }}</span><button type="button" class="clear-file" aria-label="移除已选文件" title="移除已选文件" @click.stop="clearUpload"><XIcon :size="15" /></button></template><template v-else><UploadIcon :size="22" /><span>拖拽文件到这里，或 <b>选择文件</b></span></template></div>
+        <div v-else class="upload-dropzone host-dropzone" :class="{ 'has-file': selectedUpload }" role="button" tabindex="0" :aria-disabled="uploadBlocked" @click="chooseHostFile" @keydown.enter.prevent="chooseHostFile"><template v-if="selectedUpload"><FileIcon :size="18" /><span class="selected-file">{{ selectedUpload.name }}</span><button type="button" class="clear-file" aria-label="移除已选文件" title="移除已选文件" @click.stop="clearUpload"><XIcon :size="15" /></button></template><template v-else><UploadIcon :size="22" /><span>选择本地文件</span></template></div>
+        <div class="upload-actions"><button type="button" class="upload-submit" :disabled="uploadBlocked || !selectedUpload" @click="upload"><UploadIcon :size="16" />开始上传</button><p v-if="localError" role="alert">{{ localError }}</p></div>
       </section>
       <TableToolbar :selected-count="selectedRows.length" :busy="blocked" @refresh="refresh"><button v-if="canDelete" type="button" data-testid="files-delete-selected" :disabled="blocked || selectedRows.length === 0" @click="remove(selectedRows)">批量删除</button></TableToolbar>
       <div class="table-scroll" role="region" aria-label="文件列表">
@@ -89,5 +93,5 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
 </template>
 
 <style scoped>
-.page-alert{margin:0;padding:10px 12px;border-left:3px solid var(--ga-danger);background:var(--ga-danger-soft)}.upload-panel{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,1fr) auto;align-items:end;gap:12px;padding:14px;border:1px solid var(--ga-border-light);background:var(--ga-bg-subtle)}.upload-panel p{margin:4px 0 0;color:var(--ga-text-2)}label{display:grid;gap:4px}.host-picker{display:flex;align-items:center;gap:8px;min-width:0}.host-picker span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.table-scroll{min-width:0;overflow:auto}.row-actions{display:flex;gap:8px;white-space:nowrap}@media(max-width:760px){.upload-panel{grid-template-columns:1fr;align-items:stretch}}
+.page-alert{margin:0}.upload-panel{display:grid;gap:12px;padding:16px;background:var(--ga-bg-container);border:1px solid var(--ga-border-light);border-radius:var(--ga-radius-lg);box-shadow:var(--ga-shadow-sm)}.upload-heading{display:flex;align-items:center;gap:10px}.upload-heading strong{font-size:14px}.upload-heading p{margin:3px 0 0;color:var(--ga-text-3);font-size:12px}.upload-icon{display:grid;width:36px;height:36px;place-items:center;color:var(--ga-brand);background:var(--ga-brand-soft);border-radius:10px}.upload-dropzone{position:relative;display:flex;min-height:76px;align-items:center;justify-content:center;gap:8px;padding:12px;color:var(--ga-text-3);background:var(--ga-bg-subtle);border:1px dashed var(--ga-border);border-radius:var(--ga-radius);cursor:pointer;transition:border-color .15s,background .15s}.upload-dropzone:hover,.upload-dropzone.is-dragging{color:var(--ga-brand);background:var(--ga-brand-soft);border-color:var(--ga-brand)}.upload-dropzone.has-file{justify-content:flex-start;color:var(--ga-text-1);border-style:solid}.upload-dropzone input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}.upload-dropzone b{color:var(--ga-brand);font-weight:600}.selected-file{max-width:calc(100% - 48px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ga-text-1);font-size:13px}.clear-file{display:grid;width:26px;height:26px;margin-left:auto;place-items:center;color:var(--ga-text-3);background:transparent;border:0;border-radius:var(--ga-radius);cursor:pointer}.clear-file:hover{color:var(--ga-danger);background:var(--ga-danger-soft)}.upload-actions{display:flex;align-items:center;gap:10px}.upload-actions p{margin:0;color:var(--ga-danger);font-size:12px}.upload-submit{display:inline-flex;min-height:34px;align-items:center;gap:7px;padding:0 14px;color:#fff;background:var(--ga-brand);border:1px solid var(--ga-brand);border-radius:var(--ga-radius);cursor:pointer}.upload-submit:disabled{cursor:not-allowed;opacity:.5}.table-scroll{min-width:0;overflow:auto}.row-actions{display:flex;gap:8px;white-space:nowrap}@media(max-width:760px){.upload-actions{align-items:stretch;flex-direction:column}.upload-submit{justify-content:center}}
 </style>

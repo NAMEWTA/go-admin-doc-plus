@@ -25,7 +25,7 @@ func TestServerRuntimeProfileMapsOnlyServerDatabaseModes(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.address != "127.0.0.1:8080" || profile.database.Profile != config.ProfileServerSQLite ||
-		profile.database.SQLitePath != sqlitePath || profile.generatorSchema != "main" || profile.databaseCapability != "sqlite" {
+		profile.database.SQLitePath != sqlitePath || profile.databaseCapability != "sqlite" {
 		t.Fatalf("SQLite runtime = %#v", profile)
 	}
 
@@ -54,14 +54,14 @@ func TestServerRuntimeProfileMapsPostgresWithoutSQLiteState(t *testing.T) {
 		t.Fatal(err)
 	}
 	if profile.database.Profile != config.ProfileServerPostgres || profile.database.PostgresDSN == "" ||
-		profile.database.SQLitePath != "" || profile.generatorSchema != "public" || profile.databaseCapability != "postgres" {
+		profile.database.SQLitePath != "" || profile.databaseCapability != "postgres" {
 		t.Fatalf("PostgreSQL runtime = %#v", profile)
 	}
 	if dialect, err := database.DialectForProfile(profile.database.Profile); err != nil || dialect != database.DialectPostgres {
 		t.Fatalf("PostgreSQL dialect = %q, %v", dialect, err)
 	}
 	if _, err := NewServerHost(ServerLaunch{
-		Snapshot: snapshot, DataRoot: t.TempDir(), RepositoryRoot: t.TempDir(), Version: "test", WithWorker: true,
+		Snapshot: snapshot, DataRoot: t.TempDir(), Version: "test", WithWorker: true,
 	}); err == nil {
 		t.Fatal("PostgreSQL API accepted in-process workers")
 	}
@@ -77,23 +77,19 @@ func TestNewServerHostOwnsRuntimePathResolution(t *testing.T) {
 	}
 	dataRoot := filepath.Join(t.TempDir(), "runtime")
 	if _, err := NewServerHost(ServerLaunch{
-		Snapshot: snapshot, DataRoot: dataRoot, RepositoryRoot: t.TempDir(), Version: "test",
+		Snapshot: snapshot, DataRoot: dataRoot, Version: "test",
 	}); err != nil {
 		t.Fatalf("NewServerHost: %v", err)
 	}
 	if resolved, err := canonicalServerDataRoot(dataRoot); err != nil || resolved == "" {
 		t.Fatalf("canonical data root = %q, %v", resolved, err)
 	}
-	if _, err := NewServerHost(ServerLaunch{Snapshot: snapshot, DataRoot: dataRoot, RepositoryRoot: t.TempDir()}); err == nil {
+	if _, err := NewServerHost(ServerLaunch{Snapshot: snapshot, DataRoot: dataRoot}); err == nil {
 		t.Fatal("NewServerHost accepted an empty version")
 	}
 }
 
 func TestNewServerHostBuildsSQLiteProductAndStopsCleanly(t *testing.T) {
-	repositoryRoot, err := filepath.Abs("../../../..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	databasePath := filepath.Join(t.TempDir(), "server.sqlite3")
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -115,7 +111,7 @@ func TestNewServerHostBuildsSQLiteProductAndStopsCleanly(t *testing.T) {
 	}
 	dataRoot := filepath.Join(t.TempDir(), "runtime")
 	host, err := NewServerHost(ServerLaunch{
-		Snapshot: snapshot, DataRoot: dataRoot, RepositoryRoot: repositoryRoot, Version: "test",
+		Snapshot: snapshot, DataRoot: dataRoot, Version: "test",
 	})
 	if err != nil {
 		t.Fatalf("NewServerHost: %v", err)
@@ -153,7 +149,7 @@ func TestNewServerHostBuildsSQLiteProductAndStopsCleanly(t *testing.T) {
 	if err := lock.Close(); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{databasePath, filepath.Join(dataRoot, "files"), filepath.Join(dataRoot, "generated")} {
+	for _, path := range []string{databasePath, filepath.Join(dataRoot, "files")} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("runtime path %s: %v", path, err)
 		}

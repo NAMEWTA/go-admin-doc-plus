@@ -38,7 +38,7 @@ for (const [name, document] of [
   }],
   ['cross-module output', {
     'x-go-admin-module': 'demo',
-    'x-go-admin-codegen': { owner: 'demo', goPackage: 'demo', goOutput: 'go-admin-plus/internal/modules/settings/transport/openapi.gen.go', typescriptOutput: 'go-admin-plus-ui/packages/domains/demo/src/generated' }
+    'x-go-admin-codegen': { owner: 'demo', goPackage: 'demo', goOutput: 'go-admin-plus/internal/modules/audit/transport/openapi.gen.go', typescriptOutput: 'go-admin-plus-ui/packages/domains/demo/src/generated' }
   }],
   ['Go output missing the owner transport directory', {
     'x-go-admin-module': 'transport-fragment',

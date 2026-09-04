@@ -4,10 +4,10 @@ import { createAdministrationController, createUserAndClearPassword, resetPasswo
 
 const client = (): AdministrationClient => ({
   manifest: vi.fn(async (): ReturnType<AdministrationClient['manifest']> => ({ dataScope: 'all', permissionCodes: ['iam.users.read', 'iam.users.write', 'iam.users.delete', 'iam.users.reset-password', 'iam.roles.read', 'iam.roles.write', 'iam.roles.delete', 'iam.roles.assign', 'iam.menus.read', 'iam.menus.write', 'iam.menus.delete', 'iam.permissions.read', 'iam.manifest.read'], menus: [] })), listUsers: vi.fn(async (search, page, pageSize) => ({ rows: [{ id: 'account-00000001', username: search || 'admin', displayName: 'Admin', email: 'admin@example.test', disabled: false, roleIds: [] }], total: page * pageSize })),
-  createUser: vi.fn(async (value) => ({ id: 'account-00000002', disabled: false, roleIds: [], ...value })), updateUser: vi.fn(), setUserOrganization: vi.fn(),
+  createUser: vi.fn(async (value) => ({ id: 'account-00000002', disabled: false, roleIds: [], ...value })), updateUser: vi.fn(),
   startUserDeletion: vi.fn(async (id, value) => ({ id: '11111111-1111-1111-1111-111111111111', accountId: id, strategy: value.strategy, status: 'queued' as const, auditReference: 'audit-reference', createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z' })),
   getUserDeletion: vi.fn(), cancelUserDeletion: vi.fn(), setUserRoles: vi.fn(), resetPassword: vi.fn(),
-  listRoles: vi.fn(async () => []), createRole: vi.fn(async (value) => ({ id: 'role-000000000001', enabled: true, protected: false, permissionCodes: [], menuIds: [], ...value })), updateRole: vi.fn(), deleteRole: vi.fn(), setRoleGrants: vi.fn(), setRoleDataScope: vi.fn(),
+  listRoles: vi.fn(async () => []), createRole: vi.fn(async (value) => ({ id: 'role-000000000001', enabled: true, protected: false, permissionCodes: [], menuIds: [], ...value })), updateRole: vi.fn(), deleteRole: vi.fn(), setRoleGrants: vi.fn(),
   listMenus: vi.fn(async () => []), createMenu: vi.fn(async (value) => ({ id: 'menu-000000000001', protected: false, ...value })), updateMenu: vi.fn(), deleteMenu: vi.fn(), listPermissions: vi.fn(async () => []),
 })
 
@@ -70,29 +70,6 @@ describe('administration controller', () => {
     expect(confirm).toHaveBeenCalledTimes(2)
   })
 
-  it('keeps extended role scope on its dedicated endpoint during metadata updates', async () => {
-    const api = client(); const controller = createAdministrationController(api, async () => true)
-    const role = { id: 'role-000000000001', key: 'reader', name: 'Reader', dataScope: 'custom' as const, enabled: true, protected: false, permissionCodes: [], menuIds: [] }
-    expect(await controller.updateRole(role)).toBe('completed')
-    expect(api.updateRole).toHaveBeenCalledWith(role.id, { key: role.key, name: role.name, dataScope: 'self', enabled: true })
-    expect(api.setRoleDataScope).not.toHaveBeenCalled()
-  })
-
-  it('validates organization and five-scope mutations at the controller boundary', async () => {
-    const api = client(); const controller = createAdministrationController(api, async () => true)
-    expect(await controller.setUserOrganization('account-00000001', { positionIds: [] })).toBe('failed')
-    expect(controller.failure()).toBe('forbidden')
-    expect(api.setUserOrganization).not.toHaveBeenCalled()
-
-    await controller.refreshAuthorizationData()
-    expect(await controller.setUserOrganization('account-00000001', { primaryDepartmentId: '', positionIds: [] })).toBe('invalid')
-    expect(await controller.setUserOrganization('account-00000001', { primaryDepartmentId: 'department-1', positionIds: ['position-1'] })).toBe('completed')
-    expect(api.setUserOrganization).toHaveBeenCalledWith('account-00000001', { primaryDepartmentId: 'department-1', positionIds: ['position-1'] })
-    expect(await controller.setRoleDataScope('role-000000000001', { scope: 'custom', departmentIds: [] })).toBe('invalid')
-    expect(await controller.setRoleDataScope('role-000000000001', { scope: 'organization-tree', departmentIds: [] })).toBe('completed')
-    expect(api.setRoleDataScope).toHaveBeenCalledWith('role-000000000001', { scope: 'organization-tree', departmentIds: [] })
-  })
-
   it('tracks deletion refreshes and refuses cancellation after a worker claim', async () => {
     const api = client(); const confirm = vi.fn(async () => true); const controller = createAdministrationController(api, confirm)
     await controller.refreshAuthorizationData()
@@ -135,8 +112,6 @@ describe('administration controller', () => {
     }))
     const refreshing = controller.refreshUserDeletion('account-00000001')
     expect(controller.busy).toBe(true)
-    expect(await controller.setUserOrganization('account-00000001', { positionIds: [] })).toBe('busy')
-    expect(api.setUserOrganization).not.toHaveBeenCalled()
     release()
     expect(await refreshing).toBe('completed')
   })

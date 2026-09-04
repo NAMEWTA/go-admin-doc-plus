@@ -7,7 +7,11 @@ import { fileURLToPath } from 'node:url'
 const removedPaths = [
   'go-admin-ui-plus', 'go-admin-plus/app', 'go-admin-plus/common', 'go-admin-plus/api',
   'go-admin-plus/internal/tenant', 'go-admin-plus/internal/profile', 'go-admin-plus/cmd/go-admin-desktop',
-  'go-admin-plus-ui/apps/admin-desktop/src-tauri/src/demo_contract.rs'
+  'go-admin-plus-ui/apps/admin-desktop/src-tauri/src/demo_contract.rs',
+  'contracts/openapi/modules/generator.yaml', 'contracts/openapi/modules/organization.yaml',
+  'go-admin-plus/internal/modules/generator', 'go-admin-plus/internal/modules/organization',
+  'go-admin-plus-ui/packages/domains/generator', 'go-admin-plus-ui/packages/domains/organization',
+  'go-admin-plus-ui/packages/web-domains/generator', 'go-admin-plus-ui/packages/web-domains/organization'
 ]
 const forbidden = [
   ['old frontend name', /go-admin-ui-plus/], ['Wails runtime', /\bwails(?:app)?\b/i],
@@ -27,7 +31,8 @@ const textExtensions = new Set([
   '.xml', '.yaml', '.yml'
 ])
 const ignoredDirectories = new Set([
-  '.artifacts', '.data', '.git', '.playwright', 'coverage', 'dist', 'node_modules', 'speculo', 'target', 'vendor'
+  '.artifacts', '.data', '.git', '.playwright', 'coverage', 'dist', 'node_modules', 'specdev-candidate',
+  'specdev-worktree', 'speculo', 'target', 'vendor'
 ])
 const allowedMatches = new Map(Object.entries({
   'NOTICE.md': ['old upstream core'],
@@ -35,12 +40,7 @@ const allowedMatches = new Map(Object.entries({
   'go-admin-plus/internal/application/architecture_test.go': ['Wails runtime'],
   'go-admin-plus/internal/modules/files/migrations/0010-files/provider_test.go': ['tenant feature'],
   'go-admin-plus/internal/modules/files/migrations/0020-capacity/provider_test.go': ['tenant feature'],
-  'go-admin-plus/internal/modules/generator/generator_test.go': ['Casbin', 'Redis', 'tenant feature', 'GORM'],
-  'go-admin-plus/internal/modules/generator/writer.go': ['Casbin', 'Redis', 'tenant feature', 'GORM'],
   'go-admin-plus/internal/modules/iam/authorization/capability_registry_test.go': ['MySQL'],
-  'go-admin-plus/internal/modules/organization/migrations/provider_test.go': ['Casbin', 'tenant feature', 'JWT'],
-  'go-admin-plus/internal/modules/settings/security.go': ['MySQL', 'refresh token'],
-  'go-admin-plus/internal/modules/settings/service_test.go': ['JWT'],
   'go-admin-plus/internal/platform/logging/redaction.go': ['MySQL'],
   'go-admin-plus/test/demo/products_sqlite_test.go': ['tenant feature'],
   'go-admin-plus/test/iam/authorization/administration_test.go': ['Casbin', 'tenant feature', 'JWT'],

@@ -24,13 +24,8 @@ func TestBuildDesktopExposesFirstSetupAfterMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	repositoryRoot, err := filepath.Abs("../../../../")
-	if err != nil {
-		t.Fatal(err)
-	}
 	built, err := BuildDesktop(ctx, db, desktophost.ProductOptions{
-		FilesRoot: filepath.Join(t.TempDir(), "files"), RepositoryRoot: repositoryRoot,
-		GeneratorOutputRoot: filepath.Join(t.TempDir(), "generated"), WorkerOwner: "desktop-setup-route-test",
+		FilesRoot: filepath.Join(t.TempDir(), "files"), WorkerOwner: "desktop-setup-route-test",
 	})
 	if err != nil {
 		t.Fatal(err)

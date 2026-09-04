@@ -1,7 +1,15 @@
 <script setup lang="ts">
+import {
+  EyeIcon,
+  EyeOffIcon,
+  LoaderCircleIcon,
+  LockKeyholeIcon,
+  LogInIcon,
+  ShieldCheckIcon,
+  UserRoundIcon
+} from '@lucide/vue'
 import { nextTick, reactive, ref } from 'vue'
 import type { SessionController } from '@go-admin-plus/domain-iam/session'
-import GopherMark from './GopherMark.vue'
 
 const props = defineProps<{ controller: SessionController }>()
 const emit = defineEmits<{ authenticated: [] }>()
@@ -33,32 +41,53 @@ const submit = async () => {
 
 <template>
   <main class="login-page">
-    <section class="login-page__stage" aria-label="Go Admin Plus development runtime">
-      <header class="login-page__stage-header"><span>go<span>-</span>admin-plus</span><small>developer edition</small></header>
-      <div class="login-page__scene">
-        <div class="login-page__terminal" role="img" aria-label="Go Admin Plus 启动过程示意">
-          <div class="login-page__terminal-bar"><i /><i /><i /><span>~/go-admin-plus</span></div>
-          <pre><code><span class="login-page__line login-page__line--1"><b>$</b> task dev <em>TARGET=server PROFILE=server-sqlite</em></span>
-<span class="login-page__line login-page__line--2 success">✓ server ready on http://localhost:8000</span>
-<span class="login-page__line login-page__line--3"><b>$</b> task dev <em>TARGET=web</em></span>
-<span class="login-page__line login-page__line--4 success">✓ web ready on http://localhost:5173</span>
-<span class="login-page__line login-page__line--5"><b>$</b> task dev <em>TARGET=desktop</em></span>
-<span class="login-page__line login-page__line--6 success">✓ Tauri 2 desktop host ready</span>
-<span class="login-page__line login-page__line--7"><b>$</b> <i class="login-page__caret" /></span></code></pre>
+    <section class="login-page__visual" aria-label="Go Admin Plus">
+      <header class="login-page__brand">
+        <span><ShieldCheckIcon :size="22" aria-hidden="true" /></span>
+        <strong>Go Admin Plus</strong>
+      </header>
+
+      <div class="login-page__preview" aria-hidden="true">
+        <aside class="login-page__preview-nav">
+          <span class="login-page__preview-logo" />
+          <span v-for="index in 7" :key="index" :class="{ active: index === 2 }" />
+        </aside>
+        <div class="login-page__preview-main">
+          <div class="login-page__preview-top"><i /><i /><i /></div>
+          <div class="login-page__preview-heading"><strong /><span /></div>
+          <div class="login-page__preview-filter"><span /><span /><i /></div>
+          <div class="login-page__preview-table">
+            <div class="login-page__preview-row login-page__preview-row--head"><span /><span /><span /><span /></div>
+            <div v-for="index in 5" :key="index" class="login-page__preview-row"><span /><span /><span /><i /></div>
+          </div>
         </div>
-        <GopherMark class="login-page__mascot" />
       </div>
-      <footer><span>Go</span><span>Vue 3</span><span>TypeScript</span><span>Tauri 2</span><span>SQLite / PostgreSQL</span></footer>
+      <p class="login-page__visual-title">管理控制台</p>
     </section>
 
     <section class="login-page__panel">
-      <form aria-label="登录" @submit.prevent="submit">
-        <h1>Go Admin Plus</h1>
-        <p class="login-page__subtitle">使用管理员账号登录控制台</p>
-        <label>账号<input v-model.trim="credentials.username" aria-label="账号" autocomplete="username" placeholder="请输入账号" autofocus required minlength="3" maxlength="64"></label>
-        <label>密码
-          <span class="login-page__password-field">
-            <input ref="passwordInput" v-model="credentials.password" aria-label="密码" autocomplete="current-password" :type="passwordVisible ? 'text' : 'password'" placeholder="请输入密码" required minlength="12" maxlength="128">
+      <form class="login-page__form" aria-label="登录" @submit.prevent="submit">
+        <div class="login-page__form-brand">
+          <span><ShieldCheckIcon :size="20" aria-hidden="true" /></span>
+          <strong>Go Admin Plus</strong>
+        </div>
+        <div class="login-page__heading">
+          <h1>欢迎回来</h1>
+          <p>登录管理控制台</p>
+        </div>
+
+        <label>
+          <span>账号</span>
+          <span class="login-page__field">
+            <UserRoundIcon :size="17" aria-hidden="true" />
+            <input v-model.trim="credentials.username" aria-label="账号" autocomplete="username" placeholder="请输入账号" autofocus required minlength="3" maxlength="64">
+          </span>
+        </label>
+        <label>
+          <span>密码</span>
+          <span class="login-page__field">
+            <LockKeyholeIcon :size="17" aria-hidden="true" />
+            <input ref="passwordInput" v-model="credentials.password" aria-label="密码" autocomplete="current-password" :type="passwordVisible ? 'text' : 'password'" placeholder="请输入密码" required minlength="10" maxlength="128">
             <button
               class="login-page__password-toggle"
               type="button"
@@ -66,11 +95,16 @@ const submit = async () => {
               :aria-pressed="passwordVisible"
               :title="passwordVisible ? '隐藏密码' : '显示密码'"
               @click="togglePassword"
-            >{{ passwordVisible ? '隐藏' : '显示' }}</button>
+            ><EyeOffIcon v-if="passwordVisible" :size="17" aria-hidden="true" /><EyeIcon v-else :size="17" aria-hidden="true" /></button>
           </span>
         </label>
-        <p v-if="failed" role="alert">账号或密码无法验证，请重试。</p>
-        <button type="submit" :disabled="submitting">{{ submitting ? '登录中' : '登录' }}</button>
+
+        <p v-if="failed" class="login-page__error" role="alert">账号或密码无法验证，请重试。</p>
+        <button class="login-page__submit" type="submit" :disabled="submitting">
+          <LoaderCircleIcon v-if="submitting" class="login-page__loading" :size="17" aria-hidden="true" />
+          <LogInIcon v-else :size="17" aria-hidden="true" />
+          {{ submitting ? '登录中' : '登录' }}
+        </button>
         <p class="login-page__tip">忘记密码请联系系统管理员重置</p>
       </form>
     </section>
@@ -78,64 +112,67 @@ const submit = async () => {
 </template>
 
 <style scoped>
-.login-page { display: flex; width: 100vw; min-height: 100vh; overflow: hidden; background: var(--ga-bg-body); }
-.login-page__stage { position: relative; display: flex; width: 72%; min-height: 100vh; flex-direction: column; padding: 44px 56px 40px; overflow: hidden; color: #c9d1d9; background: linear-gradient(160deg, #0f1f3a 0%, #16305a 55%, #112544 100%); }
-.login-page__stage::before { position: absolute; inset: 0; background: radial-gradient(50% 46% at 84% 62%, rgb(0 200 255 / 24%) 0%, transparent 70%), radial-gradient(48% 44% at 16% 24%, rgb(124 92 255 / 14%) 0%, transparent 68%); content: ''; pointer-events: none; }
-.login-page__stage-header, .login-page__scene, .login-page__stage footer { position: relative; }
-.login-page__stage-header { display: flex; align-items: baseline; gap: 12px; font: 600 17px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #fff; }
-.login-page__stage-header > span > span { color: #00c8ff; }
-.login-page__stage-header small { color: #8ba0bd; font-size: 11px; font-weight: 400; }
-.login-page__scene { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; margin: auto 0; }
-.login-page__terminal { flex: 0 1 620px; min-width: 0; overflow: hidden; background: rgb(8 20 40 / 62%); border: 1px solid #2a4574; border-radius: 10px; box-shadow: 0 24px 60px rgb(0 0 0 / 45%); }
-.login-page__terminal-bar { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: rgb(255 255 255 / 2%); border-bottom: 1px solid #2a4574; }
-.login-page__terminal-bar i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; }
-.login-page__terminal-bar i:nth-child(2) { background: #febc2e; }
-.login-page__terminal-bar i:nth-child(3) { background: #28c840; }
-.login-page__terminal-bar span { margin-left: 8px; color: #8ba0bd; font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-.login-page__terminal pre { margin: 0; padding: 20px 22px 24px; overflow: hidden; color: #c9d1d9; font: 12.5px/1.85 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
-.login-page__line { display: block; opacity: 0; animation: line-in .32s ease forwards; }
-.login-page__line--1 { animation-delay: .15s; }
-.login-page__line--2 { animation-delay: .5s; }
-.login-page__line--3 { animation-delay: .8s; }
-.login-page__line--4 { animation-delay: 1.1s; }
-.login-page__line--5 { animation-delay: 1.28s; }
-.login-page__line--6 { animation-delay: 1.46s; }
-.login-page__line--7 { animation-delay: 1.64s; }
-.login-page__terminal b { margin-right: 6px; color: #00c8ff; }
-.login-page__terminal em { color: #8ba0bd; font-style: normal; }
-.login-page__terminal .success { color: #5ce68b; }
-.login-page__caret { display: inline-block; width: 8px; height: 15px; vertical-align: -2px; background: #00c8ff; animation: caret-blink 1.1s step-end infinite; }
-.login-page__mascot { flex: 0 0 clamp(130px, 14vw, 194px); margin-bottom: -6px; filter: drop-shadow(0 16px 24px rgb(0 0 0 / 32%)); }
-.login-page__stage footer { display: flex; flex-wrap: wrap; gap: 18px; color: #8ba0bd; font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-.login-page__panel { display: flex; flex: 1; align-items: center; justify-content: center; padding: 40px; background: var(--ga-bg-body); }
-form { display: block; width: min(100%, 300px); }
-h1 { margin: 0 0 6px; color: var(--ga-text-1); font-size: 22px; font-weight: 650; letter-spacing: 0; }
-.login-page__subtitle { margin: 0 0 30px; color: var(--ga-text-2); font-size: 13px; }
-.login-page__tip { margin: 22px 0 0; color: var(--ga-text-3); font-size: 12px; }
-label { display: grid; gap: 7px; margin-bottom: 18px; color: var(--ga-text-2); font-size: 13px; font-weight: 500; }
-.login-page__password-field { position: relative; display: block; }
-input { width: 100%; min-height: 42px; padding: 0 12px; color: var(--ga-text-1); background: var(--ga-bg-container); border: 1px solid var(--ga-border-light); border-radius: 8px; outline: none; transition: border-color .16s, box-shadow .16s; }
-.login-page__password-field input { padding-right: 54px; }
-input:hover { border-color: var(--ga-border); }
-input:focus { border-color: #00add8; box-shadow: 0 0 0 3px rgb(0 173 216 / 16%); }
-.login-page__password-toggle { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 50px; padding: 0; color: var(--ga-text-3); background: transparent; border: 0; border-radius: 0 8px 8px 0; cursor: pointer; font-size: 12px; }
-.login-page__password-toggle:hover, .login-page__password-toggle:focus-visible { color: #00add8; background: var(--ga-bg-hover); }
-.login-page__password-toggle:focus-visible { outline: 2px solid #00add8; outline-offset: -3px; }
-form > button { width: 100%; min-height: 42px; margin-top: 4px; color: #04121f; background: linear-gradient(135deg, #00c8ff, #00add8); border: 0; border-radius: 8px; box-shadow: 0 4px 14px rgb(0 173 216 / 28%); cursor: pointer; font-weight: 600; letter-spacing: 3px; }
-form > button:disabled { cursor: not-allowed; opacity: .6; }
-[role="alert"] { margin: 0 0 18px; padding: 9px 10px; color: #b42318; background: #fff1f0; border-left: 3px solid #b42318; font-size: 12px; }
-@keyframes line-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-@keyframes caret-blink { 50% { opacity: 0; } }
-@media (max-width: 1120px) { .login-page__mascot { display: none; } .login-page__terminal { flex: 1 1 auto; } }
-@media (max-width: 1100px) { .login-page__stage { width: 60%; padding: 32px 36px; } }
-@media (max-width: 860px) {
-  .login-page { flex-direction: column; overflow: auto; }
-  .login-page__stage { width: 100%; min-height: auto; padding: 24px; }
-  .login-page__scene { margin: 20px 0; }
-  .login-page__stage footer { display: none; }
-  .login-page__panel { min-height: 390px; padding: 32px 24px; }
-  form { width: min(100%, 340px); }
+.login-page { display: grid; width: 100vw; min-height: 100vh; grid-template-columns: minmax(0, 1.25fr) minmax(420px, .75fr); overflow: hidden; background: var(--ga-bg-body); }
+.login-page__visual { position: relative; display: grid; min-width: 0; align-content: space-between; padding: 38px clamp(36px, 6vw, 88px) 42px; overflow: hidden; color: #fff; background: #171c25; }
+.login-page__visual::before, .login-page__visual::after { position: absolute; content: ''; pointer-events: none; }
+.login-page__visual::before { inset: 80px 8% 110px; border: 1px solid rgb(255 255 255 / 4%); border-radius: var(--ga-radius-lg); transform: rotate(-4deg); }
+.login-page__visual::after { right: 7%; bottom: 12%; width: 120px; height: 120px; border-right: 1px solid rgb(107 156 255 / 22%); border-bottom: 1px solid rgb(107 156 255 / 22%); }
+.login-page__brand, .login-page__form-brand { display: flex; position: relative; z-index: 1; align-items: center; gap: 10px; }
+.login-page__brand > span, .login-page__form-brand > span { display: grid; width: 36px; height: 36px; place-items: center; color: #fff; background: #2563eb; border-radius: var(--ga-radius); }
+.login-page__brand strong, .login-page__form-brand strong { font-size: 15px; font-weight: 700; }
+.login-page__preview { position: relative; z-index: 1; display: grid; width: min(100%, 720px); aspect-ratio: 16 / 9; grid-template-columns: 104px minmax(0, 1fr); justify-self: center; overflow: hidden; background: #f7f9fc; border: 1px solid rgb(255 255 255 / 16%); border-radius: var(--ga-radius-lg); box-shadow: 0 30px 70px rgb(0 0 0 / 34%); transform: perspective(1200px) rotateY(-3deg) rotateX(1deg); }
+.login-page__preview-nav { display: grid; grid-auto-rows: 28px; align-content: start; gap: 6px; padding: 15px 10px; background: #111720; }
+.login-page__preview-nav > span:not(.login-page__preview-logo) { width: 100%; border-radius: 4px; background: #222b38; }
+.login-page__preview-nav > span.active { background: #2563eb; }
+.login-page__preview-logo { width: 28px; height: 28px; margin: 0 0 12px 5px; background: #fff; border-radius: 5px; }
+.login-page__preview-main { display: grid; min-width: 0; grid-template-rows: 42px 50px 54px minmax(0, 1fr); padding: 0 14px 14px; color: #1f2937; }
+.login-page__preview-top { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin: 0 -14px; padding: 0 14px; background: #fff; border-bottom: 1px solid #e7ebf0; }
+.login-page__preview-top i { width: 18px; height: 18px; border-radius: 50%; background: #e8edf5; }
+.login-page__preview-heading { display: grid; align-content: center; gap: 6px; }
+.login-page__preview-heading strong { width: 105px; height: 9px; background: #303947; border-radius: 3px; }
+.login-page__preview-heading span { width: 175px; height: 6px; background: #c9d0da; border-radius: 3px; }
+.login-page__preview-filter { display: flex; align-items: center; gap: 8px; padding: 9px; background: #fff; border: 1px solid #e7ebf0; border-radius: 6px; }
+.login-page__preview-filter span { width: 120px; height: 24px; border: 1px solid #d7dde6; border-radius: 4px; }
+.login-page__preview-filter i { width: 54px; height: 24px; margin-left: auto; background: #2563eb; border-radius: 4px; }
+.login-page__preview-table { align-self: stretch; margin-top: 10px; overflow: hidden; background: #fff; border: 1px solid #e7ebf0; border-radius: 6px; }
+.login-page__preview-row { display: grid; height: 16.666%; min-height: 22px; grid-template-columns: 1.2fr 1fr 1fr 52px; align-items: center; gap: 14px; padding: 0 11px; border-bottom: 1px solid #eef1f5; }
+.login-page__preview-row:last-child { border-bottom: 0; }
+.login-page__preview-row span { height: 5px; background: #d5dbe4; border-radius: 2px; }
+.login-page__preview-row i { width: 32px; height: 12px; justify-self: end; background: #e8f0ff; border-radius: 4px; }
+.login-page__preview-row--head { background: #f8fafc; }
+.login-page__preview-row--head span { background: #aeb8c5; }
+.login-page__visual-title { position: relative; z-index: 1; margin: 0; color: #8f9aaa; font-size: 12px; font-weight: 600; }
+.login-page__panel { display: grid; place-items: center; padding: 36px; background: var(--ga-bg-container); }
+.login-page__form { display: grid; width: min(100%, 360px); gap: 18px; }
+.login-page__form-brand { display: none; color: var(--ga-text-1); }
+.login-page__heading { margin-bottom: 8px; }
+.login-page__heading h1 { margin: 0; color: var(--ga-text-1); font-size: 28px; font-weight: 700; line-height: 1.3; letter-spacing: 0; }
+.login-page__heading p { margin: 7px 0 0; color: var(--ga-text-3); font-size: 13px; }
+.login-page__form label { display: grid; gap: 8px; color: var(--ga-text-2); font-size: 13px; font-weight: 600; }
+.login-page__field { position: relative; display: block; color: var(--ga-text-3); }
+.login-page__field > svg { position: absolute; top: 50%; left: 13px; z-index: 1; transform: translateY(-50%); pointer-events: none; }
+.login-page__field input { width: 100%; min-height: 44px; padding: 0 42px; color: var(--ga-text-1); background: var(--ga-bg-container); border: 1px solid var(--ga-border); border-radius: var(--ga-radius-lg); outline: none; transition: border-color .16s ease, box-shadow .16s ease; }
+.login-page__field input:hover { border-color: color-mix(in srgb, var(--ga-brand), var(--ga-border) 58%); }
+.login-page__field input:focus { border-color: var(--ga-brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ga-brand), transparent 84%); }
+.login-page__password-toggle { position: absolute; top: 6px; right: 6px; display: grid; width: 32px; height: 32px; place-items: center; padding: 0; color: var(--ga-text-3); background: transparent; border: 0; border-radius: var(--ga-radius); cursor: pointer; }
+.login-page__password-toggle:hover { color: var(--ga-brand); background: var(--ga-brand-soft); }
+.login-page__error { margin: -4px 0 0; padding: 10px 12px; color: var(--ga-danger); background: var(--ga-danger-soft); border: 1px solid color-mix(in srgb, var(--ga-danger), transparent 72%); border-radius: var(--ga-radius); font-size: 12px; }
+.login-page__submit { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; margin-top: 2px; color: #fff; background: var(--ga-brand); border: 1px solid var(--ga-brand); border-radius: var(--ga-radius-lg); box-shadow: 0 8px 18px color-mix(in srgb, var(--ga-brand), transparent 74%); cursor: pointer; font-weight: 650; }
+.login-page__submit:hover:not(:disabled) { background: var(--ga-brand-strong); border-color: var(--ga-brand-strong); }
+.login-page__submit:disabled { cursor: not-allowed; opacity: .62; }
+.login-page__loading { animation: spin .8s linear infinite; }
+.login-page__tip { margin: -4px 0 0; color: var(--ga-text-3); font-size: 12px; text-align: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 980px) {
+  .login-page { grid-template-columns: minmax(0, .9fr) minmax(400px, 1.1fr); }
+  .login-page__visual { padding-inline: 30px; }
+  .login-page__preview { grid-template-columns: 78px minmax(0, 1fr); }
 }
-@media (max-width: 520px) { .login-page__terminal pre { font-size: 10.5px; } }
-@media (prefers-reduced-motion: reduce) { .login-page__line { opacity: 1; animation: none; } .login-page__caret { animation: none; } }
+@media (max-width: 760px) {
+  .login-page { display: grid; grid-template-columns: 1fr; overflow: auto; }
+  .login-page__visual { display: none; }
+  .login-page__panel { min-height: 100vh; padding: 28px 22px; }
+  .login-page__form-brand { display: flex; margin-bottom: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .login-page__loading { animation: none; } }
 </style>

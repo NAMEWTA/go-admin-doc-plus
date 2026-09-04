@@ -83,8 +83,8 @@ describe('browser session fetch', () => {
     const shared = createBrowserSessionFetch(fetcher, origin, { storage: null, channel: null })
 
     await shared(`${origin}/api/iam/session/login`, { method: 'POST' })
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
 
     expect(requests[0]?.headers.has('X-CSRF-Token')).toBe(false)
     expect(requests[1]?.headers.get('X-CSRF-Token')).toBe(csrf('a'))
@@ -106,7 +106,7 @@ describe('browser session fetch', () => {
     const shared = createBrowserSessionFetch(fetcher, origin, { storage: null, channel: null })
     await shared(`${origin}/api/iam/session/current`)
 
-    const first = shared(`${origin}/api/settings/values`, { method: 'POST' })
+    const first = shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
     const second = shared(`${origin}/api/files`, { method: 'POST' })
     await Promise.resolve()
     expect(fetcher).toHaveBeenCalledTimes(3)
@@ -126,7 +126,7 @@ describe('browser session fetch', () => {
     })
     const shared = createBrowserSessionFetch(fetcher, origin, { storage: null, channel: null })
     await shared(`${origin}/api/iam/session/current`)
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
     expect(requests[1]?.headers.has('X-CSRF-Token')).toBe(false)
     shared.close()
   })
@@ -143,7 +143,7 @@ describe('browser session fetch', () => {
     const shared = createBrowserSessionFetch(fetcher, origin, { storage: null, channel: bus.port() })
     await shared(`${origin}/api/iam/session/current`)
     await shared(`${origin}/api/iam/session/logout`, { method: 'POST' })
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
     expect(requests[1]?.headers.get('X-CSRF-Token')).toBe(csrf('a'))
     expect(requests[2]?.headers.has('X-CSRF-Token')).toBe(false)
     expect(bus.messages.at(-1)).toMatchObject({ type: 'session-invalidated' })
@@ -164,8 +164,8 @@ describe('browser session fetch', () => {
 
     await shared(`${origin}/api/iam/session/current`)
     await shared('https://outside.example/api/probe', { method: 'POST' })
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
 
     expect(requests[1]?.headers.has('X-CSRF-Token')).toBe(false)
     expect(requests[2]?.headers.get('X-CSRF-Token')).toBe(csrf('a'))
@@ -266,7 +266,7 @@ describe('browser session fetch', () => {
     })
     await shared(`${origin}/api/iam/session/current`)
     await clock.advance(100)
-    await shared(`${origin}/api/settings/values`, { method: 'POST' })
+    await shared(`${origin}/api/scheduler/definitions`, { method: 'POST' })
     expect(requests[2]?.headers.has('X-CSRF-Token')).toBe(false)
     shared.close()
   })

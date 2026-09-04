@@ -24,9 +24,9 @@ type commonOptions struct {
 
 type runtimeOptions struct {
 	commonOptions
-	listen, dataRoot, repositoryRoot string
-	withWorker                       bool
-	development                      bool
+	listen, dataRoot string
+	withWorker       bool
+	development      bool
 }
 
 func main() {
@@ -54,7 +54,7 @@ func run(ctx context.Context, arguments []string, environmentValues map[string]s
 			return errors.New("serve configuration failed")
 		}
 		host, err := product.NewServerHost(product.ServerLaunch{
-			Snapshot: snapshot, DataRoot: options.dataRoot, RepositoryRoot: options.repositoryRoot,
+			Snapshot: snapshot, DataRoot: options.dataRoot,
 			Version: version, WithWorker: options.withWorker, Development: options.development,
 		})
 		if err != nil {
@@ -71,7 +71,7 @@ func run(ctx context.Context, arguments []string, environmentValues map[string]s
 			return errors.New("worker configuration failed")
 		}
 		return product.RunServerWorker(ctx, product.ServerLaunch{
-			Snapshot: snapshot, DataRoot: options.dataRoot, RepositoryRoot: options.repositoryRoot, Version: version, Development: options.development,
+			Snapshot: snapshot, DataRoot: options.dataRoot, Version: version, Development: options.development,
 		})
 	case "migrate":
 		options, err := parseRuntimeOptions(command, arguments, false)
@@ -186,10 +186,9 @@ func runRecovery(ctx context.Context, arguments []string, environmentValues map[
 
 func parseRuntimeOptions(command string, arguments []string, serve bool) (runtimeOptions, error) {
 	set := newFlagSet(command)
-	options := runtimeOptions{dataRoot: ".go-admin-plus", repositoryRoot: "."}
+	options := runtimeOptions{dataRoot: ".go-admin-plus"}
 	bindCommon(set, &options.commonOptions)
 	set.StringVar(&options.dataRoot, "data-root", options.dataRoot, "runtime data root")
-	set.StringVar(&options.repositoryRoot, "repository-root", options.repositoryRoot, "generator repository root")
 	set.BoolVar(&options.development, "development", false, "use development console logging")
 	if serve {
 		set.StringVar(&options.listen, "listen", "", "HTTP listen override")

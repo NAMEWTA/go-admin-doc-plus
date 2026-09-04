@@ -30,21 +30,6 @@ test('rejects the historical frontend workspace scope', () => {
   ))
 })
 
-test('rejects legacy generator pages and incomplete failure or compile contracts', () => {
-  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
-  const generatorRoot = join(root, 'go-admin-plus/internal/modules/generator')
-  mkdirSync(generatorRoot, { recursive: true })
-  writeFileSync(join(generatorRoot, 'templates.go'), 'class="generated-records" class="editor"\n')
-  writeFileSync(join(generatorRoot, 'compile_gate.go'), 'package generator\n')
-
-  const failures = checkArchitecture(root)
-  assert.ok(failures.includes('generator list page must compose the current shared UI components'))
-  assert.ok(failures.includes('generator list page must not emit the legacy inline workspace/editor layout'))
-  assert.ok(failures.includes('generator failure contract must retain only a validated trace reference'))
-  assert.ok(failures.includes('generator compile gate must run the repository architecture check'))
-  assert.ok(failures.includes('generator compile gate must build the frontend applications'))
-})
-
 test('rejects stale SpecDev verification commands', () => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
   const configRoot = join(root, 'speculo/.speculo/specdev')
@@ -232,23 +217,6 @@ test('rejects Desktop CI that checks Rust without linking the native host', () =
   assert.ok(failures.includes('Desktop CI must stage the host Go sidecar'))
   assert.ok(failures.includes('Desktop CI must link the Tauri host without bundling'))
   assert.ok(failures.includes('Desktop CI must verify production WebView, sidecar, and host artifacts'))
-})
-
-test('rejects backend CI that omits the generator Node and pnpm toolchain', () => {
-  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
-  const workflowRoot = join(root, '.github/workflows')
-  mkdirSync(workflowRoot, { recursive: true })
-  writeFileSync(join(workflowRoot, 'ci.yml'), `jobs:
-  backend:
-    steps:
-      - run: go test ./...
-`)
-
-  const failures = checkArchitecture(root)
-  assert.ok(failures.includes('backend CI must install pnpm 11.1.3 for generator tests'))
-  assert.ok(failures.includes('backend CI must set up Node.js 22.22.3 for generator tests'))
-  assert.ok(failures.includes('backend CI must install the frozen frontend workspace for generator tests'))
-  assert.ok(failures.includes('backend CI must reserve 60 minutes for the three generator test matrices'))
 })
 
 test('rejects optional or incomplete PostgreSQL and supply-chain CI jobs', () => {

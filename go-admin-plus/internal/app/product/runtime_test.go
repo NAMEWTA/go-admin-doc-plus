@@ -28,24 +28,16 @@ func TestBuildAssemblesEveryHTTPModuleAndWorkerLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	repositoryRoot, err := filepath.Abs("../../../..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	dataRoot, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	runtime, err := product.Build(ctx, db, product.Options{
-		SessionPolicy:       config.DefaultSessionPolicy(),
-		FilesRoot:           filepath.Join(dataRoot, "files"),
-		RepositoryRoot:      repositoryRoot,
-		GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
-		GeneratorSchema:     "main",
-		GeneratorTables:     []string{"demo_products"},
-		WorkerOwner:         "product-test-worker",
-		WorkerInterval:      time.Hour,
-		AuditRetentionAge:   30 * 24 * time.Hour,
+		SessionPolicy:     config.DefaultSessionPolicy(),
+		FilesRoot:         filepath.Join(dataRoot, "files"),
+		WorkerOwner:       "product-test-worker",
+		WorkerInterval:    time.Hour,
+		AuditRetentionAge: 30 * 24 * time.Hour,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -60,9 +52,6 @@ func TestBuildAssemblesEveryHTTPModuleAndWorkerLifecycle(t *testing.T) {
 		"/api/iam/session/current",
 		"/api/iam/administration/manifest",
 		"/api/audit/records?page=1&pageSize=20",
-		"/api/organization/departments",
-		"/api/settings/values?category=business&page=1&pageSize=20",
-		"/api/generator/tables",
 		"/api/scheduler/task-types",
 		"/api/demo/products?page=1&pageSize=20",
 		"/api/files/objects?page=1&pageSize=20",
@@ -160,15 +149,9 @@ func TestBuildPreparedAPIRoleDoesNotOwnWorkerLease(t *testing.T) {
 	if err := product.PrepareRuntimeSchema(ctx, db, true); err != nil {
 		t.Fatal(err)
 	}
-	repositoryRoot, err := filepath.Abs("../../../..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	dataRoot := t.TempDir()
 	built, err := product.BuildPrepared(ctx, db, product.Options{
 		SessionPolicy: config.DefaultSessionPolicy(), FilesRoot: filepath.Join(dataRoot, "files"),
-		RepositoryRoot: repositoryRoot, GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
-		GeneratorSchema: "main", GeneratorTables: []string{"demo_products"},
 		WorkerOwner: "api-without-workers", WorkerInterval: time.Hour, AuditRetentionAge: 30 * 24 * time.Hour,
 	}, false)
 	if err != nil {

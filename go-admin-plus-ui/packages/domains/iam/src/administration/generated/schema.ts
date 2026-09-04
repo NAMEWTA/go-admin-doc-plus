@@ -114,23 +114,6 @@ export interface paths {
         patch: operations["updateIamRole"];
         trace?: never;
     };
-    "/iam/administration/roles/{roleId}/data-scope": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Replace a role's five-mode data scope */
-        put: operations["setIamRoleDataScope"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/iam/administration/roles/{roleId}/grants": {
         parameters: {
             query?: never;
@@ -223,23 +206,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/iam/administration/users/{userId}/organization": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Replace a user's primary department and positions */
-        put: operations["setIamUserOrganization"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/iam/administration/users/{userId}/password": {
         parameters: {
             query?: never;
@@ -293,15 +259,6 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        AccountOrganizationRequest: {
-            positionIds: components["schemas"]["Identifier"][];
-            primaryDepartmentId?: components["schemas"]["Identifier"];
-        };
-        /**
-         * @description Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
-         * @enum {string}
-         */
-        BaseDataScope: "all" | "self";
         CapabilityManifest: {
             dataScope: components["schemas"]["DataScope"];
             menus: components["schemas"]["CapabilityMenu"][];
@@ -315,7 +272,7 @@ export interface components {
             sortOrder: number;
         };
         CreateRoleRequest: {
-            dataScope: components["schemas"]["BaseDataScope"];
+            dataScope: components["schemas"]["DataScope"];
             key: string;
             name: string;
         };
@@ -327,7 +284,7 @@ export interface components {
             username: string;
         };
         /** @enum {string} */
-        DataScope: "all" | "self" | "organization" | "organization-tree" | "custom";
+        DataScope: "all" | "self";
         Identifier: string;
         Menu: {
             id: components["schemas"]["Identifier"];
@@ -380,10 +337,6 @@ export interface components {
             permissionCodes: string[];
             protected: boolean;
         };
-        RoleDataScopeRequest: {
-            departmentIds: components["schemas"]["Identifier"][];
-            scope: components["schemas"]["DataScope"];
-        };
         SetRoleGrantsRequest: {
             menuIds: components["schemas"]["Identifier"][];
             permissionCodes: string[];
@@ -399,7 +352,7 @@ export interface components {
             transferTargetId?: components["schemas"]["Identifier"];
         };
         UpdateRoleRequest: {
-            dataScope: components["schemas"]["BaseDataScope"];
+            dataScope: components["schemas"]["DataScope"];
             enabled: boolean;
             key: string;
             name: string;
@@ -791,38 +744,6 @@ export interface operations {
             500: components["responses"]["InternalProblem"];
         };
     };
-    setIamRoleDataScope: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                roleId: components["parameters"]["RoleId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RoleDataScopeRequest"];
-            };
-        };
-        responses: {
-            /** @description Role data scope replaced. */
-            204: {
-                headers: {
-                    "Set-Cookie": components["headers"]["SetCookie"];
-                    "X-CSRF-Token": components["headers"]["CsrfToken"];
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["ValidationProblem"];
-            401: components["responses"]["AuthenticationProblem"];
-            403: components["responses"]["AuthorizationProblem"];
-            404: components["responses"]["NotFoundProblem"];
-            409: components["responses"]["ConflictProblem"];
-            500: components["responses"]["InternalProblem"];
-        };
-    };
     setIamRoleGrants: {
         parameters: {
             query?: never;
@@ -1052,38 +973,6 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Queued account deletion canceled. */
-            204: {
-                headers: {
-                    "Set-Cookie": components["headers"]["SetCookie"];
-                    "X-CSRF-Token": components["headers"]["CsrfToken"];
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            400: components["responses"]["ValidationProblem"];
-            401: components["responses"]["AuthenticationProblem"];
-            403: components["responses"]["AuthorizationProblem"];
-            404: components["responses"]["NotFoundProblem"];
-            409: components["responses"]["ConflictProblem"];
-            500: components["responses"]["InternalProblem"];
-        };
-    };
-    setIamUserOrganization: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: components["parameters"]["UserId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AccountOrganizationRequest"];
-            };
-        };
-        responses: {
-            /** @description Account organization assignments replaced. */
             204: {
                 headers: {
                     "Set-Cookie": components["headers"]["SetCookie"];

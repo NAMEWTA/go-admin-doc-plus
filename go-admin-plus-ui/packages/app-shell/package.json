@@ -18,11 +18,8 @@
     "@go-admin-plus/web-domain-audit": "workspace:*",
     "@go-admin-plus/web-domain-demo": "workspace:*",
     "@go-admin-plus/web-domain-files": "workspace:*",
-    "@go-admin-plus/web-domain-generator": "workspace:*",
     "@go-admin-plus/web-domain-iam": "workspace:*",
-    "@go-admin-plus/web-domain-organization": "workspace:*",
     "@go-admin-plus/web-domain-scheduler": "workspace:*",
-    "@go-admin-plus/web-domain-settings": "workspace:*",
     "@lucide/vue": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"

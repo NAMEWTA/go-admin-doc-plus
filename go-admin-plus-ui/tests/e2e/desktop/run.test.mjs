@@ -56,7 +56,10 @@ test('shared workspace composes a persistent theme toggle and native restart ver
   const manifest = JSON.parse(readFileSync(join(repositoryRoot, 'go-admin-plus-ui/packages/app-shell/package.json'), 'utf8'))
   assert.equal(manifest.dependencies['@go-admin-plus/ui'], 'workspace:*')
   assert.equal(manifest.dependencies['@lucide/vue'], 'catalog:')
-  assert.match(shell, /import \{ MonitorIcon, MoonIcon, SunIcon \} from '@lucide\/vue'/)
+  const lucideImports = shell.match(/import \{([\s\S]*?)\} from '@lucide\/vue'/)?.[1] ?? ''
+  assert.match(lucideImports, /\bMonitorIcon\b/)
+  assert.match(lucideImports, /\bMoonIcon\b/)
+  assert.match(lucideImports, /\bSunIcon\b/)
   assert.match(shell, /import \{ createThemeController \} from '@go-admin-plus\/ui'/)
   assert.match(shell, /const theme = createThemeController\(\)/)
   assert.match(shell, /const setThemePreference = \(preference: ThemePreference\) => \{[\s\S]*theme\.setPreference\(preference\)/)

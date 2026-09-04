@@ -4,10 +4,7 @@ export type ProductHost = 'web' | 'desktop'
 
 export type ProductModuleId =
   | 'iam'
-  | 'organization'
   | 'audit'
-  | 'settings'
-  | 'generator'
   | 'scheduler'
   | 'demo'
   | 'files'
@@ -16,12 +13,7 @@ export type ProductIcon =
   | 'users'
   | 'shield'
   | 'menu'
-  | 'building'
-  | 'briefcase'
   | 'file-clock'
-  | 'settings'
-  | 'book-open'
-  | 'wand'
   | 'calendar-clock'
   | 'history'
   | 'package'
@@ -64,32 +56,6 @@ export const productModules = [
     hosts: bothHosts,
     routes: [
       { name: 'audit-records', module: 'audit', title: '审计日志', path: '/audit/records', permission: 'audit.records.read', icon: 'file-clock', order: 100, component: async () => (await import('@go-admin-plus/web-domain-audit')).AuditPage }
-    ]
-  },
-  {
-    id: 'organization',
-    title: '组织管理',
-    hosts: bothHosts,
-    routes: [
-      { name: 'organization-departments', module: 'organization', title: '部门管理', path: '/organization/departments', permission: 'organization.departments.read', icon: 'building', order: 200, component: async () => (await import('@go-admin-plus/web-domain-organization')).OrganizationPage },
-      { name: 'organization-positions', module: 'organization', title: '岗位管理', path: '/organization/positions', permission: 'organization.positions.read', icon: 'briefcase', order: 210, component: async () => (await import('@go-admin-plus/web-domain-organization')).OrganizationPage }
-    ]
-  },
-  {
-    id: 'settings',
-    title: '系统设置',
-    hosts: bothHosts,
-    routes: [
-      { name: 'settings-values', module: 'settings', title: '参数设置', path: '/settings/values', permission: 'settings.values.read', icon: 'settings', order: 300, component: async () => (await import('@go-admin-plus/web-domain-settings')).SettingsPage },
-      { name: 'settings-dictionaries', module: 'settings', title: '字典管理', path: '/settings/dictionaries', permission: 'settings.dictionaries.read', icon: 'book-open', order: 310, component: async () => (await import('@go-admin-plus/web-domain-settings')).SettingsPage }
-    ]
-  },
-  {
-    id: 'generator',
-    title: '开发工具',
-    hosts: bothHosts,
-    routes: [
-      { name: 'code-generator', module: 'generator', title: '代码生成', path: '/generator', permission: 'generator.metadata.read', icon: 'wand', order: 400, component: async () => (await import('@go-admin-plus/web-domain-generator')).GeneratorWizardPage }
     ]
   },
   {

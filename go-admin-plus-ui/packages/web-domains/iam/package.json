@@ -11,6 +11,7 @@
   "dependencies": {
     "@go-admin-plus/domain-iam": "workspace:*",
     "@go-admin-plus/ui": "workspace:*",
+    "@lucide/vue": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },

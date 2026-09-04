@@ -9,13 +9,10 @@ export const suites = Object.freeze([
   { name: 'product-shell', path: 'go-admin-plus-ui/tests/e2e/web-shell/run.mjs', require: 'GO_ADMIN_REQUIRE_WEB_SHELL_E2E', marker: 'WEB_SHELL_E2E_PASS profiles=sqlite,postgres' },
   { name: 'iam-session', path: 'go-admin-plus-ui/tests/e2e/iam/session/run.mjs', require: 'GO_ADMIN_REQUIRE_IAM_E2E', marker: 'IAM_SESSION_E2E_PASS profiles=sqlite,postgres' },
   { name: 'iam-administration', path: 'go-admin-plus-ui/tests/e2e/iam/administration/run.mjs', require: 'GO_ADMIN_REQUIRE_IAM_ADMIN_E2E', marker: 'IAM_ADMIN_E2E_PASS profiles=sqlite,postgres' },
-  { name: 'organization', path: 'go-admin-plus-ui/tests/e2e/organization/run.mjs', require: 'GO_ADMIN_REQUIRE_ORGANIZATION_E2E', marker: 'ORGANIZATION_E2E_PASS profiles=sqlite,postgres' },
   { name: 'audit', path: 'go-admin-plus-ui/tests/e2e/audit/run.mjs', require: 'GO_ADMIN_REQUIRE_AUDIT_E2E', marker: 'AUDIT_E2E_PASS' },
-  { name: 'settings', path: 'go-admin-plus-ui/tests/e2e/settings/run.mjs', require: 'GO_ADMIN_REQUIRE_SETTINGS_E2E', marker: 'SETTINGS_E2E_PASS profiles=sqlite,postgres' },
   { name: 'scheduler', path: 'go-admin-plus-ui/tests/e2e/scheduler/run.mjs', require: 'GO_ADMIN_REQUIRE_SCHEDULER_E2E', marker: 'SCHEDULER_E2E_PASS profiles=sqlite,postgres' },
   { name: 'demo', path: 'go-admin-plus-ui/tests/e2e/demo/run.mjs', require: 'GO_ADMIN_REQUIRE_DEMO_E2E', marker: 'DEMO_E2E_PASS profiles=sqlite,postgres' },
   { name: 'files', path: 'go-admin-plus-ui/tests/e2e/files/run.mjs', require: 'GO_ADMIN_REQUIRE_FILES_E2E', marker: 'FILES_E2E_PASS profiles=sqlite,postgres' },
-  { name: 'generator', path: 'go-admin-plus-ui/tests/e2e/generator/run.mjs', require: 'GO_ADMIN_REQUIRE_GENERATOR_E2E', marker: 'GENERATOR_E2E_PASS profiles=sqlite,postgres generated_postgres_runtime=pass' },
 ])
 
 const fail = message => {
@@ -39,7 +36,6 @@ export const validateEnvironment = environment => {
   if (environment.GO_ADMIN_REQUIRE_WEB_E2E !== '1') return 'GO_ADMIN_REQUIRE_WEB_E2E=1 is required'
   if (!environment.GO_ADMIN_TEST_CHROMIUM_EXECUTABLE || !regularFile(environment.GO_ADMIN_TEST_CHROMIUM_EXECUTABLE)) return 'a regular Chromium executable is required'
   if (!environment.GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN || !/^postgres(?:ql)?:\/\//.test(environment.GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN)) return 'a disposable PostgreSQL URL is required'
-  if (!environment.GO_ADMIN_GENERATOR_POSTGRES_BIN || !existsSync(environment.GO_ADMIN_GENERATOR_POSTGRES_BIN)) return 'GO_ADMIN_GENERATOR_POSTGRES_BIN is required'
   return null
 }
 

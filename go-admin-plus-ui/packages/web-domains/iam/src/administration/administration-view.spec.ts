@@ -19,16 +19,11 @@ describe('administrationViewForPath', () => {
     expect(pageSource).not.toContain('class="tabs"')
   })
 
-  it('renders organization, five-scope, and asynchronous deletion controls', () => {
-    for (const scope of ['all', 'self', 'organization', 'organization-tree', 'custom']) {
+  it('renders classic scope and asynchronous deletion controls', () => {
+    for (const scope of ['all', 'self']) {
       expect(pageSource).toContain(`value="${scope}"`)
     }
     for (const contract of [
-      'setUserOrganization',
-      'primaryDepartmentId',
-      'positionIds',
-      'setRoleDataScope',
-      'departmentIds',
       'startUserDeletion',
       'purgeConfirmed',
       'refreshUserDeletion',

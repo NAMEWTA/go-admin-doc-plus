@@ -30,6 +30,7 @@ trap 'rm -f "$actual"' EXIT HUP INT TERM
 find "$repo_root" \
   \( -path "$repo_root/.git" -o -path "$repo_root/.github" -o -path "$repo_root/.husky" -o \
     -path "$repo_root/.artifacts" -o -path "$repo_root/.data" -o \
+    -path "$repo_root/specdev-worktree" -o -path "$repo_root/specdev-candidate" -o \
     -path "$repo_root/speculo" -o -name node_modules -o -name dist -o -name target -o -name coverage \) -prune -o \
   -type f \( -path '*/.github/*' -o -path '*/.husky/*' -o \
     -name .gitignore -o -name .gitattributes -o -name .editorconfig -o \

@@ -45,7 +45,7 @@ Assert-Signed $application
 Assert-X64Pe $application
 $listing = (& 7z.exe l $installer.FullName 2>&1) -join "`n"
 if ($LASTEXITCODE -ne 0 -or $listing -notmatch 'go-admin-plus-desktop\.exe' -or
-    $listing -notmatch 'go-admin-sidecar\.exe' -or $listing -notmatch 'generator') {
-    throw 'NSIS installer does not contain the signed app, sidecar, and Generator resources.'
+    $listing -notmatch 'go-admin-sidecar\.exe') {
+    throw 'NSIS installer does not contain the signed app and sidecar.'
 }
 Write-Host 'GO_ADMIN_WINDOWS_ARTIFACT_VERIFY_PASS'

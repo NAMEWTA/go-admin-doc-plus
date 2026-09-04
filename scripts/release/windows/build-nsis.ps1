@@ -18,26 +18,17 @@ $identity = Get-Content -LiteralPath (Join-Path $repository 'release/windows/ide
 if ($identity.releaseClass -ne 'signed-production' -or -not $identity.signingRequired -or $identity.targetTriple -ne 'x86_64-pc-windows-msvc') {
     throw 'Windows release identity is not production-ready.'
 }
-$work = Join-Path $env:RUNNER_TEMP "go-admin-windows-release-$([guid]::NewGuid().ToString('N'))"
-$runtime = Join-Path $work 'generator'
-New-Item -ItemType Directory -Path $work | Out-Null
-try {
-    & (Join-Path $PSScriptRoot 'prepare-generator-runtime.ps1') -OutputDirectory $runtime
-    if ($LASTEXITCODE -ne 0) { throw 'Generator runtime preparation failed.' }
     node (Join-Path $repository 'release/shared/sidecar/build.mjs') --target $identity.targetTriple
     if ($LASTEXITCODE -ne 0) { throw 'Windows sidecar build failed.' }
     pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin-plus/admin-desktop' build
     if ($LASTEXITCODE -ne 0) { throw 'Desktop frontend build failed.' }
 
     $signCommand = (Resolve-Path (Join-Path $PSScriptRoot 'sign.cmd')).Path
-    $resourceMap = [ordered]@{}
-    $resourceMap[$runtime] = 'generator'
     $config = [ordered]@{
         version = $Version
         bundle = [ordered]@{
             publisher = $identity.publisher
             targets = @('nsis')
-            resources = $resourceMap
             windows = [ordered]@{
                 signCommand = "`"$signCommand`" %1"
                 digestAlgorithm = 'sha256'
@@ -63,6 +54,3 @@ try {
     Copy-Item -LiteralPath $installer[0].FullName -Destination $canonicalInstaller
     & (Join-Path $PSScriptRoot 'verify-artifacts.ps1') -Version $Version -InstallerFile $canonicalInstaller -ApplicationFile (Join-Path $OutputDirectory 'go-admin-plus-desktop.exe')
     Write-Host 'GO_ADMIN_WINDOWS_NSIS_BUILD_PASS'
-} finally {
-    Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
-}

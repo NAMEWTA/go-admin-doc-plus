@@ -54,7 +54,7 @@ type TLSConfig struct {
 	KeyFile         string
 }
 
-// Config describes only process-host concerns. Database and module settings
+// Config describes only process-host concerns. Database and module wiring
 // belong to Builder.
 type Config struct {
 	Address         string

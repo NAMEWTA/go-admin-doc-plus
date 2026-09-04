@@ -26,7 +26,7 @@ func Read(reader io.Reader) (Value, error) {
 		return Value{}, ErrInvalid
 	}
 	payload = []byte(strings.TrimSuffix(strings.TrimSuffix(string(payload), "\n"), "\r"))
-	if len(payload) < 12 || len(payload) > 128 || strings.IndexByte(string(payload), 0) >= 0 {
+	if len(payload) < account.MinimumPasswordLength || len(payload) > 128 || strings.IndexByte(string(payload), 0) >= 0 {
 		return Value{}, ErrInvalid
 	}
 	return Value{value: append([]byte(nil), payload...)}, nil
@@ -38,7 +38,9 @@ func (Value) MarshalJSON() ([]byte, error) {
 	return json.Marshal("[redacted]")
 }
 
-func (value Value) Valid() bool { return len(value.value) >= 12 && len(value.value) <= 128 }
+func (value Value) Valid() bool {
+	return len(value.value) >= account.MinimumPasswordLength && len(value.value) <= 128
+}
 
 // PasswordHash performs the only permitted conversion of secret bytes into persistent material.
 func (value Value) PasswordHash() (string, error) {

@@ -12,8 +12,8 @@ const state = ref<GateState>('loading')
 const username = ref('admin')
 const displayName = ref('系统管理员')
 const email = ref('')
-const password = ref('')
-const confirmation = ref('')
+const password = ref('1234567890')
+const confirmation = ref('1234567890')
 const error = ref('')
 const submitting = ref(false)
 const workspaceKey = ref(0)
@@ -117,11 +117,11 @@ onMounted(() => { void load() })
         </label>
         <label>
           <span>密码</span>
-          <input v-model="password" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required :disabled="submitting">
+          <input v-model="password" name="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required :disabled="submitting">
         </label>
         <label>
           <span>确认密码</span>
-          <input v-model="confirmation" name="confirmation" type="password" autocomplete="new-password" minlength="12" maxlength="128" required :disabled="submitting">
+          <input v-model="confirmation" name="confirmation" type="password" autocomplete="new-password" minlength="10" maxlength="128" required :disabled="submitting">
         </label>
         <p v-if="error" class="first-setup-error first-setup-wide" role="alert">{{ error }}</p>
         <div class="first-setup-actions first-setup-wide">

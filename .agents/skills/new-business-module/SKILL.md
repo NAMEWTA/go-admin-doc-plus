@@ -5,15 +5,16 @@ description: Scaffold a current Go Admin Plus single-table CRUD vertical module 
 
 # 新增业务模块
 
-为当前 Greenfield 架构新增一个单表 CRUD 垂直切片。先读根 `AGENTS.md`、当前 Speculo change 状态和以下权威实现：
+为当前 Greenfield 架构新增一个单表 CRUD 垂直切片。先读根 `AGENTS.md`、当前 Speculo 状态、
+[`backend-development`](../backend-development/SKILL.md) 和以下权威实现：
 
-- 生成器：`go-admin-plus/internal/modules/generator/`
 - 完整参考切片：`go-admin-plus/internal/modules/demo/`
 - 前端参考：`go-admin-plus-ui/packages/domains/demo/` 与 `packages/web-domains/demo/`
 - 产品组合：`go-admin-plus/internal/app/product/registry.go`、`runtime.go`
 - 双 App 组合：`go-admin-plus-ui/packages/app-shell/src/product/`
 
-生成器输出是经过合同和编译门禁的脚手架，不会自动完成产品组合。不要把生成目录直接当作已接入功能。
+模块文件需要在受控路径中手工创建并逐项接入产品组合，不会自动完成产品注册。当前正式模块为
+`iam`、`audit`、`scheduler`、`files`、`demo`；不要恢复已经从产品组合中移除的旧业务体系。
 
 ## 适用边界
 
@@ -31,14 +32,9 @@ description: Scaffold a current Go Admin Plus single-table CRUD vertical module 
 
 在 `go-admin-plus/internal/modules/<module>/migrations/` 创建模块 Provider，并为 PostgreSQL、SQLite 分别提供同版本向前 Migration。使用当前 migration runner，不在服务启动或 repository 中创建/修改表。
 
-需要从真实表元数据生成脚手架时：
+实现模块前先在隔离的本地 profile 执行 Migration，并从受控路径审查新增文件；拒绝覆盖其他模块或共享文件。
 
-1. 在隔离的本地 profile 执行 Migration。
-2. 只把该表加入 Server/Desktop 的 Generator metadata allowlist。
-3. 从“代码生成”页面完成表选择、字段配置、预览和确认写入。
-4. 从受控生成目录审查并应用文件；拒绝覆盖其他模块或共享文件。
-
-### 3. 审查生成的后端切片
+### 3. 审查后端切片
 
 模块至少应拥有 model/mapping、repository、service、IAM adapters、HTTP handler/operations、permissions、Migration 和测试。
 
@@ -57,7 +53,6 @@ description: Scaffold a current Go Admin Plus single-table CRUD vertical module 
 - 运行根 `task generate`，提交规范生成物并保证 `task generate:check` 无漂移。
 - 在 `internal/app/product/registry.go` 注册 Module ID、Migration Provider 和 capabilities。
 - 在 `internal/app/product/runtime.go` 构造 service、request adapter、HTTP handler 和 route module。
-- 若该表应继续对 Generator 可见，同步 Server 与 Desktop 的精确 metadata allowlist。
 - 为 runtime/registry 增加缺失依赖、失败启动和模块清单回归测试。
 
 ### 5. 接入 pnpm workspace

@@ -3,8 +3,6 @@ import {
   AdministrationRequestError,
   canCancelAccountDeletion,
   createCapabilityController,
-  validAccountOrganizationRequest,
-  validRoleDataScopeRequest,
   validStartAccountDeletionRequest,
   type Manifest,
 } from './administration-controller'
@@ -33,15 +31,6 @@ describe('capability controller', () => {
 })
 
 describe('administration mutation contracts', () => {
-  it('validates organization and five-scope inputs without transport guesses', () => {
-    expect(validAccountOrganizationRequest({ primaryDepartmentId: 'department-1', positionIds: ['position-1'] })).toBe(true)
-    expect(validAccountOrganizationRequest({ positionIds: ['position-1', 'position-1'] })).toBe(false)
-    expect(validAccountOrganizationRequest({ primaryDepartmentId: '', positionIds: [] })).toBe(false)
-    expect(validRoleDataScopeRequest({ scope: 'custom', departmentIds: ['department-1'] })).toBe(true)
-    expect(validRoleDataScopeRequest({ scope: 'custom', departmentIds: [] })).toBe(false)
-    expect(validRoleDataScopeRequest({ scope: 'organization-tree', departmentIds: [] })).toBe(true)
-    expect(validRoleDataScopeRequest({ scope: 'all', departmentIds: ['department-1'] })).toBe(false)
-  })
 
   it('enforces transfer, purge confirmation, and the claim cancellation boundary', () => {
     expect(validStartAccountDeletionRequest('account-1', { strategy: 'transfer', transferTargetId: 'account-2', purgeConfirmed: false })).toBe(true)

@@ -53,10 +53,8 @@ type Product struct {
 // ProductOptions contains paths and worker identity chosen by the Desktop
 // host. Business composition remains the Builder's responsibility.
 type ProductOptions struct {
-	FilesRoot           string
-	RepositoryRoot      string
-	GeneratorOutputRoot string
-	WorkerOwner         string
+	FilesRoot   string
+	WorkerOwner string
 }
 
 // Builder composes the product after the Desktop database is available.
@@ -208,15 +206,9 @@ func (host *Host) startHTTP(ctx context.Context) error {
 }
 
 func (host *Host) buildHandler(ctx context.Context) (http.Handler, error) {
-	repositoryRoot, err := discoverRepositoryRoot()
-	if err != nil {
-		return nil, host.recoverDatabase()
-	}
 	built, err := host.config.Build(ctx, host.database, ProductOptions{
-		FilesRoot:           filepath.Join(host.config.Launch.DataDirectory, "files"),
-		RepositoryRoot:      repositoryRoot,
-		GeneratorOutputRoot: filepath.Join(host.config.Launch.DataDirectory, "generated"),
-		WorkerOwner:         fmt.Sprintf("desktop-%d", os.Getpid()),
+		FilesRoot:   filepath.Join(host.config.Launch.DataDirectory, "files"),
+		WorkerOwner: fmt.Sprintf("desktop-%d", os.Getpid()),
 	})
 	if err != nil || built.Application == nil {
 		return nil, host.recoverDatabase()
@@ -355,36 +347,4 @@ func secureDirectories(dataDirectory, logDirectory string) error {
 		return errors.New("desktop runtime directories conflict")
 	}
 	return nil
-}
-
-func discoverRepositoryRoot() (string, error) {
-	candidates := make([]string, 0, 2)
-	if working, err := os.Getwd(); err == nil {
-		candidates = append(candidates, working)
-	}
-	if executable, err := os.Executable(); err == nil {
-		candidates = append(candidates, filepath.Dir(executable))
-	}
-	for _, candidate := range candidates {
-		for current := filepath.Clean(candidate); ; current = filepath.Dir(current) {
-			if regularFile(filepath.Join(current, "scripts", "contracts", "cli.mjs")) &&
-				regularFile(filepath.Join(current, "go-admin-plus", "go.mod")) &&
-				regularFile(filepath.Join(current, "go-admin-plus-ui", "pnpm-workspace.yaml")) {
-				canonical, err := filepath.EvalSymlinks(current)
-				if err == nil {
-					return canonical, nil
-				}
-			}
-			parent := filepath.Dir(current)
-			if parent == current {
-				break
-			}
-		}
-	}
-	return "", errors.New("desktop generator repository root unavailable")
-}
-
-func regularFile(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && info.Mode().IsRegular()
 }

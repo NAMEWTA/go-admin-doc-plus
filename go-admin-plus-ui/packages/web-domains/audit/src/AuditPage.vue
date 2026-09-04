@@ -83,7 +83,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
 </script>
 
 <template>
-  <main class="audit-page">
+  <main class="audit-page ga-work-page">
     <header><h1>审计日志</h1></header>
     <form class="filters" aria-label="审计筛选" @submit.prevent="search">
       <label>日志类型<select v-model="filters.kind"><option value="">全部</option><option value="login">登录日志</option><option value="operation">操作日志</option></select></label>
@@ -128,7 +128,7 @@ onMounted(() => { void run(() => props.controller.list.refresh()) })
 </template>
 
 <style scoped>
-.audit-page { display: grid; gap: 20px; }
+.audit-page { display: grid; gap: 14px; }
 h1, h2 { margin: 0; letter-spacing: 0; }
 .filters { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; align-items: end; }
 label { display: grid; gap: 6px; }
@@ -136,7 +136,9 @@ label { display: grid; gap: 6px; }
 .table-wrap { overflow-x: auto; }
 .table-wrap :is(th, td) { white-space: nowrap; }
 .long-text { max-width: 360px; overflow-wrap: anywhere; white-space: normal; }
-.cleanup { border-top: 1px solid var(--ga-border-light); padding-top: 20px; }
+.cleanup { padding: 14px; background: var(--ga-bg-container); border: 1px solid var(--ga-border-light); border-radius: var(--ga-radius-lg); box-shadow: var(--ga-shadow-sm); }
+.cleanup h2 { margin-right: auto; font-size: 15px; }
 dl { display: grid; width: 100%; grid-template-columns: 100px 1fr; gap: 10px; margin: 0; }
 @media (max-width: 760px) { .filters { grid-template-columns: 1fr 1fr; } .commands { grid-column: 1 / -1; } .cleanup { align-items: stretch; flex-direction: column; } }
+@media (max-width: 520px) { .filters { grid-template-columns: 1fr; } .commands { grid-column: auto; } }
 </style>

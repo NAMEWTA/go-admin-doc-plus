@@ -22,8 +22,7 @@ test('identity rejects a single-architecture or unsigned release', () => {
     notarizationRequired: false,
     hardenedRuntimeRequired: false,
     remotePublish: false,
-    evidence: [],
-    generatorRuntime: { archives: {} }
+    evidence: []
   }))
 })
 

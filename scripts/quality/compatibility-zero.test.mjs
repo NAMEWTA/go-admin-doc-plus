@@ -53,3 +53,14 @@ test('rejects the retired uncompiled Desktop Demo contract', () => {
 
   assert.deepEqual(checkCompatibility(root), [`removed path still exists: ${retired}`])
 })
+
+test('ignores local SpecDev worktree and candidate roots', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-compatibility-'))
+  for (const directory of ['specdev-worktree', 'specdev-candidate']) {
+    const nested = join(root, directory, 'local-checkout')
+    mkdirSync(nested, { recursive: true })
+    writeFileSync(join(nested, 'README.md'), 'Legacy Redis compatibility fixture.\n')
+  }
+
+  assert.deepEqual(checkCompatibility(root), [])
+})

@@ -1,4 +1,4 @@
-# Go 后端
+# Go 后端 0.0.1
 
 本模块提供四个正式命令：
 
@@ -18,4 +18,6 @@ task test
 task lint
 ```
 
-业务模块位于 `internal/modules/`，产品唯一组合根位于 `internal/app/product/`。配置格式见 [配置说明](config/README.md)，数据库策略见 [数据库文档](../database/README.md)。
+业务模块位于 `internal/modules/`，当前正式模块为 IAM、Audit、Scheduler、Files、Demo；产品唯一组合根位于
+`internal/app/product/`。后端实施规范见 [backend-development skill](../.agents/skills/backend-development/SKILL.md)。
+配置格式见 [配置说明](config/README.md)，数据库策略见 [数据库文档](../database/README.md)。

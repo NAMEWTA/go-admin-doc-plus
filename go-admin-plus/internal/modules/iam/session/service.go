@@ -214,7 +214,7 @@ func (s *Service) LoginFrom(ctx context.Context, command LoginCommand) (Issued, 
 		}
 		return Issued{}, rateLimitError{retryAfter: decision.RetryAfter}
 	}
-	if len(strings.TrimSpace(username)) < 3 || len(username) > 64 || len(password) < 12 || len(password) > 128 {
+	if len(strings.TrimSpace(username)) < 3 || len(username) > 64 || len(password) < account.MinimumPasswordLength || len(password) > 128 {
 		_ = account.VerifyPassword(dummyPasswordHash, password)
 		return Issued{}, s.failedLogin(ctx, attemptID, now)
 	}
@@ -408,7 +408,7 @@ func (s *Service) renew(ctx context.Context, token, csrf string) (Issued, error)
 }
 
 func (s *Service) ChangePassword(ctx context.Context, token, csrf, current, replacement string) error {
-	if len(current) < 12 || len(current) > 128 || len(replacement) < 12 || len(replacement) > 128 {
+	if len(current) < account.MinimumPasswordLength || len(current) > 128 || len(replacement) < account.MinimumPasswordLength || len(replacement) > 128 {
 		return ErrValidation
 	}
 	var accountID, observedHash string

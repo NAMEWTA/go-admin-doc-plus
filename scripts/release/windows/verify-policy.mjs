@@ -5,8 +5,6 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const sha256 = /^[0-9a-f]{64}$/
-
 export function verifyIdentity(identity) {
   assert.equal(identity.schemaVersion, 1)
   assert.equal(identity.identityStatus, 'approved')
@@ -27,10 +25,6 @@ export function verifyIdentity(identity) {
   })
   assert.equal(identity.remotePublish, false)
   assert.deepEqual(identity.evidence, ['SHA256SUMS', 'SPDX JSON', 'provenance.json', 'install-evidence.json'])
-  assert.deepEqual(Object.keys(identity.generatorRuntime.archives).sort(), [
-    'gitWindowsX64', 'goWindowsAmd64', 'nodeWindowsX64', 'pnpm'
-  ])
-  for (const archive of Object.values(identity.generatorRuntime.archives)) assert.match(archive.sha256, sha256)
 }
 
 export function verifyWorkflow(workflow) {
@@ -50,11 +44,10 @@ export function verifyWorkflow(workflow) {
 
 export async function verifyRepository(repository) {
   const read = relative => readFile(path.join(repository, relative), 'utf8')
-  const [identityText, tauriText, runtime, preparer, builder, signer, verifier, installer, tracer, artifacts, workflow] = await Promise.all([
+  const [identityText, tauriText, runtime, builder, signer, verifier, installer, tracer, artifacts, workflow] = await Promise.all([
     read('release/windows/identity.json'),
     read('go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json'),
     read('go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs'),
-    read('scripts/release/windows/prepare-generator-runtime.ps1'),
     read('scripts/release/windows/build-nsis.ps1'),
     read('scripts/release/windows/sign.cmd'),
     read('scripts/release/windows/verify-artifacts.ps1'),
@@ -67,18 +60,8 @@ export async function verifyRepository(repository) {
   const tauri = JSON.parse(tauriText)
   verifyIdentity(identity)
   assert.equal(tauri.identifier, identity.bundleIdentifier)
-  assert.match(runtime, /\("windows", "x86_64"\).*windows-amd64/)
-  assert.match(runtime, /git\.exe/)
-  assert.match(runtime, /SYSTEMROOT.*WINDIR.*COMSPEC.*TEMP.*TMP/)
-  assert.match(preparer, /gitWindowsX64/)
-  assert.match(preparer, /--frozen-lockfile/)
-  assert.match(preparer, /--offline/)
-  assert.match(preparer, /supportedArchitectures/)
-  assert.match(preparer, /"win32"/)
-  assert.match(preparer, /Get-FileHash/)
-  assert.match(preparer, /GOPROXY = 'https:\/\/proxy\.golang\.org'/)
-  assert.match(preparer, /GOSUMDB = 'sum\.golang\.org'/)
-  assert.ok(preparer.indexOf("GOPROXY = 'https://proxy.golang.org'") < preparer.indexOf('mod download'))
+  assert.match(runtime, /\.env_clear\(\)/)
+  assert.doesNotMatch(runtime, /resource_dir/i)
   assert.match(builder, /x86_64-pc-windows-msvc|targetTriple/)
   assert.match(builder, /webviewInstallMode/)
   assert.match(builder, /offlineInstaller/)

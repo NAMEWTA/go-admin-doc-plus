@@ -95,7 +95,7 @@ jobs:
           node scripts/release/macos/verify-policy.mjs
           bash -n scripts/release/macos/*.sh
           plutil -lint release/macos/entitlements.plist
-          (cd go-admin-plus && go test ./internal/modules/generator ./cmd/desktop-sidecar -count=1)
+          (cd go-admin-plus && go test ./cmd/desktop-sidecar -count=1)
           pnpm --dir go-admin-plus-ui --filter @go-admin-plus/admin-desktop typecheck
           node release/shared/sidecar/build.mjs --target aarch64-apple-darwin
           pnpm --dir go-admin-plus-ui --filter @go-admin-plus/admin-desktop exec cargo test --manifest-path src-tauri/Cargo.toml --locked
@@ -131,7 +131,7 @@ jobs:
           install -m 0755 syft "$RUNNER_TEMP/syft"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
-      - name: Build Universal Tauri app and self-contained Generator runtime
+      - name: Build Universal Tauri app
         shell: bash
         run: |
           set -euo pipefail

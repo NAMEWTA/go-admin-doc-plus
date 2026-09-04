@@ -1,6 +1,25 @@
 <script setup lang="ts">
-import { MonitorIcon, MoonIcon, SunIcon } from '@lucide/vue'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  CalendarClockIcon,
+  ChevronDownIcon,
+  FileStackIcon,
+  FolderOpenIcon,
+  HomeIcon,
+  LayoutDashboardIcon,
+  LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  PackageIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
+  RefreshCwIcon,
+  ScrollTextIcon,
+  ShieldCheckIcon,
+  SunIcon,
+  UserRoundIcon,
+  XIcon
+} from '@lucide/vue'
+import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import type { AccountProfile, SessionClient, SessionState } from '@go-admin-plus/domain-iam/session'
@@ -11,12 +30,9 @@ import type { ThemePreference } from '@go-admin-plus/ui'
 import { createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
 import { createDemoController, createWebDemoClient } from '@go-admin-plus/web-domain-demo'
 import { createFilesController, createWebFilesClient } from '@go-admin-plus/web-domain-files'
-import { createGeneratorController, createWebGeneratorClient } from '@go-admin-plus/web-domain-generator'
 import { AccountPage, createWebSessionClient, LoginPage } from '@go-admin-plus/web-domain-iam/session'
 import { createAdministrationController, createWebAdministrationClient } from '@go-admin-plus/web-domain-iam/administration'
-import { createOrganizationController, createWebOrganizationClient } from '@go-admin-plus/web-domain-organization'
 import { createSchedulerController, createWebSchedulerClient } from '@go-admin-plus/web-domain-scheduler'
-import { createSettingsController, createWebSettingsClient, type SettingsRemovalKind } from '@go-admin-plus/web-domain-settings'
 
 import { productModuleFor, productRoutesFor, type ProductHost, type ProductRoute } from './manifest'
 import { productBreadcrumbs, resolveAuthorizedProductRoutes } from './router'
@@ -54,16 +70,9 @@ const capability = {
 }
 const confirmRemoval = async (count: number) => window.confirm(count === 1 ? '确定删除该记录吗？' : `确定删除所选的 ${count} 条记录吗？`)
 const confirmAuditCleanup = async () => window.confirm('确定清理所选日期之前且符合保留策略的审计日志吗？')
-const confirmSetting = async (kind: SettingsRemovalKind) => {
-  const labels: Record<SettingsRemovalKind, string> = { setting: '参数', dictionary: '字典', 'dictionary-item': '字典项' }
-  return window.confirm(`确定删除该${labels[kind]}吗？`)
-}
 
 const administration = createAdministrationController(createWebAdministrationClient(fetcher), confirmRemoval)
 const audit = createAuditController(createWebAuditClient(fetcher), confirmAuditCleanup)
-const organization = createOrganizationController(createWebOrganizationClient(fetcher), capability, confirmRemoval)
-const settings = createSettingsController(createWebSettingsClient(fetcher), confirmSetting, capability)
-const generator = createGeneratorController(createWebGeneratorClient(fetcher), capability)
 const scheduler = createSchedulerController(createWebSchedulerClient(fetcher), capability, confirmRemoval)
 const demo = createDemoController(createWebDemoClient(fetcher), confirmRemoval, capability)
 const files = createFilesController(createWebFilesClient(fetcher), confirmRemoval, capability)
@@ -75,13 +84,21 @@ const profile = computed<AccountProfile | null>(() => sessionState.value.profile
 const routePath = computed(() => currentRoute.path)
 const productRoute = computed(() => productRoutesFor(props.host).find(candidate => candidate.name === currentRoute.name))
 const breadcrumbs = computed(() => productBreadcrumbs(props.host, currentRoute))
+const moduleIcons: Readonly<Record<string, Component>> = {
+  iam: ShieldCheckIcon,
+  audit: ScrollTextIcon,
+  scheduler: CalendarClockIcon,
+  demo: PackageIcon,
+  files: FolderOpenIcon
+}
+const navigationIcon = (route: ProductRoute) => moduleIcons[route.module] ?? LayoutDashboardIcon
 const routeGroups = computed(() => {
-  const groups = new Map<string, { key: string; label: string; mark: string; routes: typeof routes.value }>()
+  const groups = new Map<string, { key: string; label: string; icon: Component; routes: typeof routes.value }>()
   for (const item of routes.value) {
     const key = item.module
     const existing = groups.get(key)
     if (existing) existing.routes = [...existing.routes, item]
-    else groups.set(key, { key, label: productModuleFor(item.module).title, mark: key.slice(0, 2).toUpperCase(), routes: [item] })
+    else groups.set(key, { key, label: productModuleFor(item.module).title, icon: navigationIcon(item), routes: [item] })
   }
   return [...groups.values()]
 })
@@ -94,9 +111,6 @@ const routeComponentProps = computed(() => {
   switch (module.value) {
     case 'iam': return { controller: administration }
     case 'audit': return { controller: audit }
-    case 'organization': return { controller: organization }
-    case 'settings': return { controller: settings }
-    case 'generator': return { controller: generator }
     case 'scheduler': return { controller: scheduler }
     case 'demo': return { controller: demo }
     case 'files': return { controller: files, platform }
@@ -227,14 +241,14 @@ watch(() => currentRoute.fullPath, () => {
       <button v-if="mobileNavigationOpen" class="product-shell__drawer-backdrop" type="button" aria-label="关闭导航" @click="mobileNavigationOpen = false" />
       <aside class="product-shell__sidebar" :class="{ 'is-mobile-open': mobileNavigationOpen }">
         <button class="product-shell__brand" type="button" title="Go Admin Plus" @click="navigate('/')">
-          <span class="product-shell__brand-mark">G</span>
-          <span class="product-shell__brand-name">Go Admin Plus</span>
+          <span class="product-shell__brand-mark"><ShieldCheckIcon :size="20" aria-hidden="true" /></span>
+          <span class="product-shell__brand-copy"><strong class="product-shell__brand-name">Go Admin Plus</strong><small>管理控制台</small></span>
         </button>
         <nav class="product-shell__navigation" aria-label="主导航">
           <section v-for="group in routeGroups" :key="group.key" class="product-shell__nav-group">
-            <p class="product-shell__nav-heading"><span class="product-shell__nav-mark">{{ group.mark }}</span><span>{{ group.label }}</span></p>
+            <p class="product-shell__nav-heading"><span>{{ group.label }}</span></p>
             <button v-for="item in group.routes" :key="item.name" type="button" :title="item.title" :aria-current="routePath === item.path ? 'page' : undefined" @click="navigate(item.path)">
-              <span class="product-shell__nav-dot" aria-hidden="true" />
+              <component :is="navigationIcon(item)" class="product-shell__nav-icon" :size="17" aria-hidden="true" />
               <span class="product-shell__nav-label">{{ item.title }}</span>
             </button>
           </section>
@@ -244,13 +258,15 @@ watch(() => currentRoute.fullPath, () => {
       <div class="product-shell__main">
         <header class="product-shell__header">
           <button class="product-shell__hamburger" type="button" aria-label="切换导航" @click="mobileNavigationOpen = !mobileNavigationOpen; sidebarCollapsed = !sidebarCollapsed">
-            <span /><span /><span />
+            <PanelLeftOpenIcon v-if="sidebarCollapsed" :size="19" aria-hidden="true" />
+            <PanelLeftCloseIcon v-else :size="19" aria-hidden="true" />
           </button>
           <nav class="product-shell__breadcrumb" aria-label="面包屑">
+            <HomeIcon :size="15" aria-hidden="true" />
             <template v-for="(crumb, index) in breadcrumbs" :key="`${crumb.title}-${index}`">
               <button v-if="crumb.path" type="button" @click="navigate(crumb.path)">{{ crumb.title }}</button>
               <strong v-else>{{ crumb.title }}</strong>
-              <span v-if="index < breadcrumbs.length - 1">/</span>
+              <span v-if="index < breadcrumbs.length - 1" aria-hidden="true">/</span>
             </template>
           </nav>
           <div class="product-shell__identity">
@@ -279,11 +295,11 @@ watch(() => currentRoute.fullPath, () => {
             </div>
             <span class="product-shell__host">{{ host === 'desktop' ? 'Desktop' : 'Web' }}</span>
             <button v-if="profile" class="product-shell__profile" type="button" aria-label="账户菜单" :aria-expanded="accountMenuOpen" @click="accountMenuOpen = !accountMenuOpen">
-              <span class="product-shell__avatar">{{ profileMark }}</span><span>{{ profile.displayName }}</span><span aria-hidden="true">⌄</span>
+              <span class="product-shell__avatar">{{ profileMark }}</span><span>{{ profile.displayName }}</span><ChevronDownIcon :size="14" aria-hidden="true" />
             </button>
             <div v-if="accountMenuOpen" class="product-shell__account-menu">
-              <button type="button" @click="navigate('/account')">个人中心</button>
-              <button type="button" @click="signOut">退出登录</button>
+              <button type="button" @click="navigate('/account')"><UserRoundIcon :size="15" aria-hidden="true" />个人中心</button>
+              <button type="button" @click="signOut"><LogOutIcon :size="15" aria-hidden="true" />退出登录</button>
             </div>
           </div>
         </header>
@@ -291,7 +307,7 @@ watch(() => currentRoute.fullPath, () => {
         <div class="product-shell__tags" aria-label="已访问页面">
           <div v-for="item in visitedRoutes" :key="item.path" class="product-shell__tag" :class="{ 'is-active': routePath === item.path }">
             <button type="button" :aria-current="routePath === item.path ? 'page' : undefined" @click="navigate(item.path)">{{ item.title }}</button>
-            <button v-if="visitedRoutes.length > 1" class="product-shell__tag-close" type="button" :aria-label="`关闭 ${item.title}`" @click="closeTag(item.path)">×</button>
+            <button v-if="visitedRoutes.length > 1" class="product-shell__tag-close" type="button" :aria-label="`关闭 ${item.title}`" @click="closeTag(item.path)"><XIcon :size="12" aria-hidden="true" /></button>
           </div>
         </div>
 
@@ -314,85 +330,12 @@ watch(() => currentRoute.fullPath, () => {
     </section>
 
     <section v-else class="product-shell__state">
+      <FileStackIcon class="product-shell__state-icon" :size="34" aria-hidden="true" />
       <p class="product-shell__code">{{ view === 'forbidden' ? '403' : view === 'not-found' ? '404' : 'RUNTIME' }}</p>
       <h1>{{ view === 'forbidden' ? '无权访问' : view === 'not-found' ? '页面不存在' : '服务暂不可用' }}</h1>
-      <button type="button" @click="view === 'unavailable' ? restore() : navigate('/')">{{ view === 'unavailable' ? '重试' : '返回工作台' }}</button>
+      <button type="button" @click="view === 'unavailable' ? restore() : navigate('/')"><RefreshCwIcon v-if="view === 'unavailable'" :size="16" aria-hidden="true" />{{ view === 'unavailable' ? '重试' : '返回工作台' }}</button>
     </section>
   </main>
 </template>
 
-<style scoped>
-.product-shell { min-height: 100vh; color: var(--ga-text-1); background: var(--ga-bg-body); }
-.product-shell__workspace { display: grid; min-height: 100vh; grid-template-columns: 210px minmax(0, 1fr); transition: grid-template-columns .28s; }
-.product-shell__sidebar { position: fixed; inset: 0 auto 0 0; z-index: 20; width: 210px; overflow: hidden; color: var(--ga-sidebar-text); background: var(--ga-sidebar-bg); transition: width .28s, transform .28s; }
-.product-shell__brand { display: flex; width: 100%; height: 64px; align-items: center; justify-content: center; gap: 10px; padding: 0 12px; color: #fff; background: linear-gradient(135deg, color-mix(in srgb, var(--ga-brand), #000 45%), var(--ga-brand)); border: 0; cursor: pointer; }
-.product-shell__brand-mark { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 1px solid rgb(255 255 255 / 35%); border-radius: 6px; font-size: 17px; font-weight: 700; }
-.product-shell__brand-name { overflow: hidden; font-size: 15px; font-weight: 700; white-space: nowrap; }
-.product-shell__navigation { height: calc(100vh - 64px); padding: 8px 0 24px; overflow: auto; }
-.product-shell__nav-group { margin: 0; padding: 0; }
-.product-shell__nav-heading { display: flex; min-height: 50px; align-items: center; gap: 12px; margin: 0; padding: 0 20px; color: rgb(255 255 255 / 88%); font-size: 13px; font-weight: 600; }
-.product-shell__nav-mark { display: grid; width: 22px; height: 22px; flex: 0 0 22px; place-items: center; color: rgb(255 255 255 / 72%); border: 1px solid rgb(255 255 255 / 20%); border-radius: 4px; font-size: 9px; }
-.product-shell__navigation button { display: flex; width: 100%; min-height: 50px; align-items: center; gap: 12px; padding: 0 20px 0 33px; overflow: hidden; color: var(--ga-sidebar-text); background: var(--ga-sidebar-bg-sub); border: 0; cursor: pointer; text-align: left; }
-.product-shell__navigation button:hover { color: #fff; background: var(--ga-sidebar-hover); }
-.product-shell__navigation button[aria-current='page'] { color: #fff; background: var(--ga-sidebar-hover); box-shadow: inset 3px 0 var(--ga-brand); }
-.product-shell__nav-dot { width: 6px; height: 6px; flex: 0 0 6px; border: 1px solid currentColor; border-radius: 50%; }
-.product-shell__nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.product-shell__main { min-width: 0; grid-column: 2; }
-.product-shell__header { position: relative; z-index: 10; display: flex; height: 50px; align-items: center; padding: 0 20px 0 0; background: var(--ga-bg-container); border-bottom: 1px solid var(--ga-border-light); box-shadow: var(--ga-shadow-sm); }
-.product-shell__header::after { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: linear-gradient(90deg, var(--ga-brand), color-mix(in srgb, var(--ga-brand), white 30%)); content: ''; opacity: .7; }
-.product-shell__hamburger { display: grid; width: 50px; height: 100%; place-content: center; gap: 4px; padding: 0; background: transparent; border: 0; cursor: pointer; }
-.product-shell__hamburger:hover { background: var(--ga-bg-hover); }
-.product-shell__hamburger span { display: block; width: 18px; height: 2px; background: var(--ga-brand); }
-.product-shell__breadcrumb { display: flex; min-width: 0; align-items: center; gap: 10px; font-size: 13px; }
-.product-shell__breadcrumb button { padding: 0; color: var(--ga-text-2); background: transparent; border: 0; cursor: pointer; }
-.product-shell__breadcrumb span { color: var(--ga-text-3); }
-.product-shell__breadcrumb strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.product-shell__identity { position: relative; display: flex; align-items: center; gap: 12px; margin-left: auto; }
-.product-shell__theme { display: grid; height: 34px; flex: 0 0 90px; grid-template-columns: repeat(3, 30px); overflow: hidden; background: var(--ga-bg-subtle); border: 1px solid var(--ga-border-light); border-radius: 4px; }
-.product-shell__theme button { display: grid; width: 30px; height: 32px; place-items: center; padding: 0; color: var(--ga-text-2); background: transparent; border: 0; border-right: 1px solid var(--ga-border-light); cursor: pointer; }
-.product-shell__theme button:last-child { border-right: 0; }
-.product-shell__theme button:hover { color: var(--ga-brand); background: var(--ga-bg-hover); }
-.product-shell__theme button[aria-pressed='true'] { color: #fff; background: var(--ga-brand); }
-.product-shell__host { padding: 3px 8px; color: var(--ga-text-3); background: var(--ga-bg-subtle); border: 1px solid var(--ga-border-light); border-radius: 4px; font-size: 11px; font-weight: 600; }
-.product-shell__profile { display: flex; height: 42px; align-items: center; gap: 7px; padding: 0 4px; color: var(--ga-text-2); background: transparent; border: 0; cursor: pointer; }
-.product-shell__profile:hover { color: var(--ga-brand); background: var(--ga-bg-hover); }
-.product-shell__avatar { display: grid; width: 32px; height: 32px; place-items: center; color: #fff; background: var(--ga-brand); border: 2px solid color-mix(in srgb, var(--ga-brand), white 70%); border-radius: 50%; font-size: 12px; font-weight: 700; }
-.product-shell__account-menu { position: absolute; top: 45px; right: 0; z-index: 30; display: grid; width: 128px; padding: 4px 0; background: var(--ga-bg-container); border: 1px solid var(--ga-border); border-radius: 4px; box-shadow: var(--ga-shadow-lg); }
-.product-shell__account-menu button { min-height: 34px; padding: 0 14px; color: var(--ga-text-2); background: transparent; border: 0; cursor: pointer; text-align: left; }
-.product-shell__account-menu button:hover { color: var(--ga-brand); background: var(--ga-bg-hover); }
-.product-shell__tags { display: flex; height: 34px; align-items: end; gap: 4px; padding: 0 4px; overflow-x: auto; background: var(--ga-bg-container); border-bottom: 1px solid var(--ga-border-light); box-shadow: var(--ga-shadow-sm); }
-.product-shell__tag { display: flex; height: 32px; flex: 0 0 auto; align-items: center; padding: 0 5px 0 10px; color: var(--ga-text-2); background: var(--ga-bg-subtle); border: 1px solid var(--ga-border); border-bottom: 0; border-radius: 3px 3px 0 0; font-size: 12px; }
-.product-shell__tag.is-active { color: var(--ga-brand); background: var(--ga-bg-container); border-color: color-mix(in srgb, var(--ga-brand), white 50%); font-weight: 500; }
-.product-shell__tag > button { height: 100%; padding: 0; color: inherit; background: transparent; border: 0; cursor: pointer; }
-.product-shell__tag-close { display: grid; width: 18px; height: 18px !important; margin-left: 4px; place-items: center; border-radius: 50% !important; line-height: 1; }
-.product-shell__tag-close:hover { color: #fff; background: var(--ga-text-3); }
-.product-shell__content { min-width: 0; height: calc(100vh - 84px); padding: 12px; overflow: auto; }
-.product-shell__state { display: grid; min-height: 100vh; place-content: center; justify-items: center; gap: 12px; padding: 24px; text-align: center; }
-.product-shell__spinner { width: 28px; height: 28px; border: 3px solid var(--ga-border); border-top-color: var(--ga-brand); border-radius: 50%; animation: spin .8s linear infinite; }
-.product-shell__code { font-weight: 700; color: var(--ga-text-3); }
-.product-shell__state button { min-height: 36px; padding: 0 14px; color: #fff; background: var(--ga-brand); border: 1px solid var(--ga-brand); border-radius: var(--ga-radius); cursor: pointer; }
-.product-shell__workspace.is-collapsed { grid-template-columns: 54px minmax(0, 1fr); }
-.is-collapsed .product-shell__sidebar { width: 54px; }
-.is-collapsed .product-shell__brand { padding: 0; }
-.is-collapsed :is(.product-shell__brand-name, .product-shell__nav-heading > span:last-child, .product-shell__nav-label) { display: none; }
-.is-collapsed .product-shell__nav-heading { justify-content: center; padding: 0; }
-.is-collapsed .product-shell__navigation button { justify-content: center; padding: 0; }
-.product-shell__drawer-backdrop { display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 760px) {
-  .product-shell__workspace, .product-shell__workspace.is-collapsed { grid-template-columns: 1fr; }
-  .product-shell__sidebar, .is-collapsed .product-shell__sidebar { width: 210px; transform: translateX(-100%); }
-  .product-shell__sidebar.is-mobile-open { transform: translateX(0); }
-  .product-shell__main { grid-column: 1; }
-  .product-shell__drawer-backdrop { position: fixed; inset: 0; z-index: 15; display: block; padding: 0; background: rgb(0 0 0 / 30%); border: 0; }
-  .product-shell__header { padding-right: 10px; }
-  .product-shell__breadcrumb strong { max-width: 110px; }
-  .product-shell__host, .product-shell__profile > span:nth-child(2) { display: none; }
-  .product-shell__content { height: calc(100vh - 84px); padding: 0; }
-  .is-collapsed :is(.product-shell__brand-name, .product-shell__nav-heading > span:last-child, .product-shell__nav-label) { display: initial; }
-  .is-collapsed .product-shell__brand { padding: 0 12px; }
-  .is-collapsed .product-shell__nav-heading { justify-content: flex-start; padding: 0 20px; }
-  .is-collapsed .product-shell__navigation button { justify-content: flex-start; padding: 0 20px 0 33px; }
-}
-@media (prefers-reduced-motion: reduce) { .product-shell__workspace, .product-shell__sidebar { transition: none; } }
-</style>
+<style scoped src="./ProductWorkspace.scss"></style>

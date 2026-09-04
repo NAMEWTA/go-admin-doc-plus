@@ -5,8 +5,6 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const sha256 = /^[0-9a-f]{64}$/
-
 export function verifyIdentity(identity) {
   assert.equal(identity.schemaVersion, 1)
   assert.equal(identity.identityStatus, 'approved')
@@ -18,16 +16,6 @@ export function verifyIdentity(identity) {
   assert.equal(identity.hardenedRuntimeRequired, true)
   assert.equal(identity.remotePublish, false)
   assert.deepEqual(identity.evidence, ['SHA256SUMS', 'SPDX JSON', 'provenance.json', 'notary.json'])
-  assert.match(identity.generatorRuntime.goVersion, /^\d+\.\d+\.\d+$/)
-  assert.match(identity.generatorRuntime.nodeVersion, /^\d+\.\d+\.\d+$/)
-  assert.match(identity.generatorRuntime.pnpmVersion, /^\d+\.\d+\.\d+$/)
-  assert.deepEqual(Object.keys(identity.generatorRuntime.archives).sort(), [
-    'goDarwinAmd64', 'goDarwinArm64', 'nodeDarwinArm64', 'nodeDarwinX64', 'pnpm'
-  ])
-  for (const archive of Object.values(identity.generatorRuntime.archives)) {
-    assert.match(archive.name, /\.(?:tar\.gz|tgz)$/)
-    assert.match(archive.sha256, sha256)
-  }
 }
 
 export function verifyWorkflow(workflow) {
@@ -50,13 +38,12 @@ export function verifyWorkflow(workflow) {
 
 export async function verifyRepository(repository) {
   const read = relative => readFile(path.join(repository, relative), 'utf8')
-  const [identityText, tauriConfigText, entitlements, runtime, builder, preparer, signer, verifier, installer, artifacts, workflow] = await Promise.all([
+  const [identityText, tauriConfigText, entitlements, runtime, builder, signer, verifier, installer, artifacts, workflow] = await Promise.all([
     read('release/macos/identity.json'),
     read('go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json'),
     read('release/macos/entitlements.plist'),
     read('go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs'),
     read('scripts/release/macos/build-universal.sh'),
-    read('scripts/release/macos/prepare-generator-runtime.sh'),
     read('scripts/release/macos/sign-app.sh'),
     read('scripts/release/macos/verify-app.sh'),
     read('scripts/release/macos/verify-install.sh'),
@@ -69,28 +56,15 @@ export async function verifyRepository(repository) {
   assert.equal(tauri.identifier, identity.bundleIdentifier)
   assert.deepEqual(entitlements.match(/<key>/g) ?? [], [])
   assert.match(runtime, /\.env_clear\(\)/)
-  assert.match(runtime, /DEVELOPMENT_ENVIRONMENT_ALLOWLIST/)
-  assert.match(runtime, /Contents|resource_dir/)
-  assert.match(runtime, /darwin-arm64/)
-  assert.match(runtime, /darwin-amd64/)
+  assert.doesNotMatch(runtime, /resource_dir|DEVELOPMENT_ENVIRONMENT_ALLOWLIST/i)
   assert.match(builder, /aarch64-apple-darwin x86_64-apple-darwin|aarch64-apple-darwin/)
   assert.match(builder, /universal-apple-darwin/)
   assert.match(builder, /--features custom-protocol/)
   assert.match(builder, /--no-sign/)
   assert.match(builder, /lipo -create/)
-  assert.match(preparer, /git -C "\$generator\/repository" archive|git -C "\$repository" archive/)
-  assert.match(preparer, /--frozen-lockfile/)
-  assert.match(preparer, /--offline/)
-  assert.match(preparer, /supportedArchitectures/)
-  assert.match(preparer, /"darwin"/)
-  assert.match(preparer, /"x64","arm64"/)
-  assert.doesNotMatch(preparer, /fetch --frozen-lockfile --force/)
-  assert.match(preparer, /shasum -a 256 -c/)
   assert.match(signer, /--options runtime/)
   assert.doesNotMatch(signer, /--deep --sign/)
   assert.match(verifier, /lipo -archs/)
-  assert.match(verifier, /binding-darwin-arm64/)
-  assert.match(verifier, /binding-darwin-x64/)
   assert.match(verifier, /verify-production\.mjs/)
   assert.match(verifier, /--files "\$host" "\$sidecar"/)
   assert.match(verifier, /codesign --verify --deep --strict/)

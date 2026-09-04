@@ -5,15 +5,17 @@ description: Scaffold or extend a current Go Admin Plus Vue 3 CRUD list page acr
 
 # 新增列表页
 
-为当前 Web 与 Desktop 共用的前端产品实现标准 CRUD 页面。先读根 `AGENTS.md`、当前 Speculo change 状态和以下权威实现：
+为当前 Web 与 Desktop 共用的前端产品实现标准 CRUD 页面。先读根 `AGENTS.md`、当前 Speculo 状态、
+[`frontend-development`](../frontend-development/SKILL.md) 和以下权威实现：
 
 - Headless Domain：`go-admin-plus-ui/packages/domains/demo/`
 - Web Domain：`go-admin-plus-ui/packages/web-domains/demo/`
 - 共享列表状态机：`go-admin-plus-ui/packages/ui/src/list.ts`
-- 页面视觉合同：`go-admin-plus-ui/packages/ui/src/admin-theme.css`
+- 页面视觉合同：`go-admin-plus-ui/packages/ui/src/theme.scss` 与 `packages/ui/src/components/`
 - 产品组合：`go-admin-plus-ui/packages/app-shell/src/product/`
 
-使用真实实现作为细节权威。保持现有管理页面的 UI/CSS、中文文案、搜索区、工具栏、表格和管理弹窗结构；只按业务需要增减字段与操作。
+使用真实实现作为细节权威。当前产品页面属于 IAM、Audit、Scheduler、Files、Demo；保持现有管理页面
+的 UI/CSS、中文文案、搜索区、工具栏、表格和管理弹窗结构，只按业务需要增减字段与操作。
 
 ## 1. 确认合同与权限
 

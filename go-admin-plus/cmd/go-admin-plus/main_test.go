@@ -14,7 +14,7 @@ import (
 
 func TestRuntimeOptionsKeepRolesAndProfilesExplicit(t *testing.T) {
 	options, err := parseRuntimeOptions("serve", []string{
-		"--profile", "server-postgres", "--listen", "127.0.0.1:9090", "--repository-root", ".", "--with-worker",
+		"--profile", "server-postgres", "--listen", "127.0.0.1:9090", "--with-worker",
 	}, true)
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +85,6 @@ func TestUnifiedCLICompletesOfflineSQLiteOperations(t *testing.T) {
 	}
 	output.Reset()
 	doctorArgs := append([]string{"doctor"}, common...)
-	doctorArgs = append(doctorArgs, "--repository-root", ".")
 	if err := run(context.Background(), doctorArgs, nil, &output); err != nil {
 		t.Fatalf("doctor: %v; output=%s", err, output.String())
 	}

@@ -589,7 +589,7 @@
           },
           "password": {
             "type": "string",
-            "minLength": 12,
+            "minLength": 10,
             "maxLength": 128
           }
         }
@@ -682,12 +682,12 @@
         "properties": {
           "currentPassword": {
             "type": "string",
-            "minLength": 12,
+            "minLength": 10,
             "maxLength": 128
           },
           "newPassword": {
             "type": "string",
-            "minLength": 12,
+            "minLength": 10,
             "maxLength": 128
           }
         }

@@ -1,17 +1,13 @@
 import {
   AdministrationRequestError,
   canCancelAccountDeletion,
-  validAccountOrganizationRequest,
-  validRoleDataScopeRequest,
   validStartAccountDeletionRequest,
   type AccountDeletion,
-  type AccountOrganizationRequest,
   type AdministrationClient,
   type Menu,
   type MenuInput,
   type Permission,
   type Role,
-  type RoleDataScopeRequest,
   type StartAccountDeletionRequest,
   type User,
 } from '@go-admin-plus/domain-iam/administration'
@@ -44,8 +40,6 @@ export interface AdministrationController {
   setUserRoles(id: string, roleIds: ReadonlyArray<string>): Promise<CommandResult>
   setRoleGrants(id: string, permissionCodes: ReadonlyArray<string>, menuIds: ReadonlyArray<string>): Promise<CommandResult>
   resetPassword(id: string, password: string): Promise<CommandResult>
-  setUserOrganization(id: string, input: AccountOrganizationRequest): Promise<CommandResult>
-  setRoleDataScope(id: string, input: RoleDataScopeRequest): Promise<CommandResult>
   deletion(): AccountDeletion | null
   deletionLoading(): boolean
   clearDeletion(): void
@@ -173,7 +167,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     }
   }
   const createUser = form<CreateUserModel>('create-user', {
-    validate: async (model) => validName(model.username, 64) && validName(model.displayName, 80) && model.email.includes('@') && model.password.length >= 12,
+    validate: async (model) => validName(model.username, 64) && validName(model.displayName, 80) && model.email.includes('@') && model.password.length >= 10,
     submit: async (model) => { await client.createUser(model) },
     refresh: refreshUsersProjection,
   })
@@ -226,17 +220,7 @@ export const createAdministrationController = (client: AdministrationClient, con
     updateMenu(menu) { if (!validStableKey(menu.key)) return Promise.resolve('invalid'); return command(`update-menu:${menu.id}`, () => client.updateMenu(menu.id, { key: menu.key, label: menu.label, path: menu.path, permissionCode: menu.permissionCode, sortOrder: menu.sortOrder }), refreshAuthorizationData) },
     setUserRoles(id, roleIds) { return command(`set-user-roles:${id}`, () => client.setUserRoles(id, roleIds), refreshUsersProjection) },
     setRoleGrants(id, permissionCodes, menuIds) { return command(`set-role-grants:${id}`, () => client.setRoleGrants(id, permissionCodes, menuIds), refreshAuthorizationData) },
-    resetPassword(id, password) { if (password.length < 12) return Promise.resolve('invalid'); return command(`reset-password:${id}`, () => client.resetPassword(id, password), refreshUsersProjection, true) },
-    setUserOrganization(id, input) {
-      if (!validAccountOrganizationRequest(input)) return Promise.resolve('invalid')
-      if (!requireAccess('iam.users.write')) return Promise.resolve('failed')
-      return command(`set-user-organization:${id}`, () => client.setUserOrganization(id, input), refreshUsersProjection)
-    },
-    setRoleDataScope(id, input) {
-      if (!validRoleDataScopeRequest(input)) return Promise.resolve('invalid')
-      if (!requireAccess('iam.roles.write')) return Promise.resolve('failed')
-      return command(`set-role-data-scope:${id}`, () => client.setRoleDataScope(id, input), refreshAuthorizationData)
-    },
+    resetPassword(id, password) { if (password.length < 10) return Promise.resolve('invalid'); return command(`reset-password:${id}`, () => client.resetPassword(id, password), refreshUsersProjection, true) },
     deletion: () => deletion,
     deletionLoading: () => deletionLoading,
     clearDeletion() { deletion = null },

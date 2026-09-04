@@ -279,7 +279,7 @@ components:
           maxLength: 64
         password:
           type: string
-          minLength: 12
+          minLength: 10
           maxLength: 128
     SessionResponse:
       type: object
@@ -339,9 +339,9 @@ components:
       properties:
         currentPassword:
           type: string
-          minLength: 12
+          minLength: 10
           maxLength: 128
         newPassword:
           type: string
-          minLength: 12
+          minLength: 10
           maxLength: 128

@@ -12,18 +12,20 @@ import (
 )
 
 const (
-	argonMemory  = 64 * 1024
-	argonTime    = 3
-	argonThreads = 4
-	argonSaltLen = 16
-	argonKeyLen  = 32
+	// MinimumPasswordLength is the shared lower bound for all IAM passwords.
+	MinimumPasswordLength = 10
+	argonMemory           = 64 * 1024
+	argonTime             = 3
+	argonThreads          = 4
+	argonSaltLen          = 16
+	argonKeyLen           = 32
 )
 
 var ErrInvalidPassword = errors.New("password does not satisfy policy")
 
 // HashPassword applies the single accepted greenfield password format.
 func HashPassword(password string) (string, error) {
-	if len(password) < 12 || len(password) > 128 {
+	if len(password) < MinimumPasswordLength || len(password) > 128 {
 		return "", ErrInvalidPassword
 	}
 	salt := make([]byte, argonSaltLen)
@@ -37,7 +39,7 @@ func HashPassword(password string) (string, error) {
 
 // VerifyPassword rejects every legacy or parameter-substituted encoding.
 func VerifyPassword(encoded, password string) bool {
-	if len(password) < 12 || len(password) > 128 {
+	if len(password) < MinimumPasswordLength || len(password) > 128 {
 		return false
 	}
 	parts := strings.Split(encoded, "$")

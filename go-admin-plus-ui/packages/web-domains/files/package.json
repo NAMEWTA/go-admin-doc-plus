@@ -10,6 +10,7 @@
     "@go-admin-plus/domain-files": "workspace:*",
     "@go-admin-plus/platform": "workspace:*",
     "@go-admin-plus/ui": "workspace:*",
+    "@lucide/vue": "catalog:",
     "vue": "catalog:"
   },
   "scripts": {

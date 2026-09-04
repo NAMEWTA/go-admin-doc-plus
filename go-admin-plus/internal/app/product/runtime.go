@@ -13,32 +13,24 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/app/adapters"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/health"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/contracts"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/outbox"
 )
 
 type Options struct {
-	SessionPolicy       config.SessionPolicy
-	FilesRoot           string
-	RepositoryRoot      string
-	GeneratorOutputRoot string
-	GeneratorSchema     string
-	GeneratorTables     []string
-	WorkerOwner         string
-	WorkerInterval      time.Duration
-	AuditRetentionAge   time.Duration
+	SessionPolicy     config.SessionPolicy
+	FilesRoot         string
+	WorkerOwner       string
+	WorkerInterval    time.Duration
+	AuditRetentionAge time.Duration
 }
 
 type Runtime struct {
@@ -63,18 +55,13 @@ func BuildPrepared(ctx context.Context, db *database.Database, options Options, 
 
 func buildRuntime(ctx context.Context, db *database.Database, options Options, migrate, workersEnabled bool) (Runtime, error) {
 	if ctx == nil || db == nil || options.SessionPolicy == (config.SessionPolicy{}) ||
-		options.FilesRoot == "" || options.RepositoryRoot == "" || options.GeneratorOutputRoot == "" ||
-		options.GeneratorSchema == "" || len(options.GeneratorTables) == 0 || options.WorkerOwner == "" ||
+		options.FilesRoot == "" || options.WorkerOwner == "" ||
 		options.WorkerInterval <= 0 || options.AuditRetentionAge <= 0 {
 		return Runtime{}, errors.New("product runtime options are invalid")
 	}
 	if err := os.MkdirAll(options.FilesRoot, 0o700); err != nil {
 		return Runtime{}, errors.New("product files root is unavailable")
 	}
-	if err := os.MkdirAll(options.GeneratorOutputRoot, 0o700); err != nil {
-		return Runtime{}, errors.New("product generator output root is unavailable")
-	}
-
 	if migrate {
 		if err := PrepareRuntimeSchema(ctx, db, true); err != nil {
 			return Runtime{}, errors.New("product migration failed")
@@ -109,11 +96,7 @@ func buildRuntime(ctx context.Context, db *database.Database, options Options, m
 	if err != nil {
 		return Runtime{}, errors.New("product session transport failed")
 	}
-	organizationProjection, err := organization.NewProjectionAdapter(db)
-	if err != nil {
-		return Runtime{}, errors.New("product organization projection failed")
-	}
-	adminService, err := administration.NewService(db, administration.WithOrganizationProjection(adapters.NewOrganizationProjection(organizationProjection)))
+	adminService, err := administration.NewService(db)
 	if err != nil {
 		return Runtime{}, errors.New("product administration service failed")
 	}
@@ -138,29 +121,6 @@ func buildRuntime(ctx context.Context, db *database.Database, options Options, m
 	auditHandler, err := audit.NewHTTPHandler(auditService, sessionAdapters.Audit(), trace)
 	if err != nil {
 		return Runtime{}, errors.New("product audit transport failed")
-	}
-
-	organizationService, err := organization.NewService(db, authorizationAdapters.Organization())
-	if err != nil {
-		return Runtime{}, errors.New("product organization service failed")
-	}
-	organizationHandler, err := organization.NewHTTPHandler(organizationService, sessionAdapters.Organization(), trace)
-	if err != nil {
-		return Runtime{}, errors.New("product organization transport failed")
-	}
-
-	settingsService, err := settings.NewService(db, authorizationAdapters.Settings())
-	if err != nil {
-		return Runtime{}, errors.New("product settings service failed")
-	}
-	settingsHandler, err := settings.NewHTTPHandler(settingsService, sessionAdapters.Settings(), trace)
-	if err != nil {
-		return Runtime{}, errors.New("product settings transport failed")
-	}
-
-	generatorHandler, err := buildGenerator(ctx, db, authorizationAdapters, sessionAdapters, trace, options)
-	if err != nil {
-		return Runtime{}, err
 	}
 
 	registration, err := scheduler.NewTaskRegistration(
@@ -254,9 +214,6 @@ func buildRuntime(ctx context.Context, db *database.Database, options Options, m
 	modules := []application.Module{
 		newRouteModule(ModuleIAM, nil, route{"/api/iam/session/", sessionHandler}, route{"/api/iam/administration/", adminHandler}, route{"/api/runtime/", shellHandler}),
 		newRouteModule(ModuleAudit, nil, route{"/api/audit/", auditHandler}),
-		newRouteModule(ModuleOrganization, nil, route{"/api/organization/", organizationHandler}),
-		newRouteModule(ModuleSettings, nil, route{"/api/settings/", settingsHandler}),
-		newRouteModule(ModuleGenerator, nil, route{"/api/generator/", generatorHandler}),
 		newRouteModule(ModuleScheduler, schedulerWorkers, route{"/api/scheduler/", schedulerHandler}),
 		newRouteModule(ModuleDemo, nil, route{"/api/demo/", demoHandler}),
 		newRouteModule(ModuleFiles, nil, route{"/api/files/", filesHandler}),
@@ -276,42 +233,6 @@ func buildRuntime(ctx context.Context, db *database.Database, options Options, m
 		Sessions:    sessions,
 		Readiness:   readiness,
 	}, nil
-}
-
-func buildGenerator(ctx context.Context, db *database.Database, authorizationAdapters *adapters.Authorization, sessionAdapters *adapters.Session, trace contracts.TraceIDProvider, options Options) (http.Handler, error) {
-	metadata, err := generator.NewSQLMetadataSource(ctx, db, generator.MetadataAllowlist{CurrentSchema: options.GeneratorSchema, Tables: append([]string(nil), options.GeneratorTables...)})
-	if err != nil {
-		return nil, errors.New("product generator metadata failed")
-	}
-	gate, err := generator.NewWorkspaceCompileGate(options.RepositoryRoot)
-	if err != nil {
-		return nil, errors.New("product generator compile gate failed")
-	}
-	writer, err := generator.NewAtomicWriter(options.GeneratorOutputRoot, gate)
-	if err != nil {
-		return nil, errors.New("product generator writer failed")
-	}
-	transportGenerator, err := generator.NewCanonicalTransportGenerator(options.RepositoryRoot)
-	if err != nil {
-		return nil, errors.New("product generator transport failed")
-	}
-	renderer, err := generator.NewCanonicalRenderer(transportGenerator)
-	if err != nil {
-		return nil, errors.New("product generator renderer failed")
-	}
-	store, err := generator.NewSQLConfigStore(db)
-	if err != nil {
-		return nil, errors.New("product generator config store failed")
-	}
-	service, err := generator.New(metadata, writer, authorizationAdapters.Generator(), store, renderer, 10*time.Minute)
-	if err != nil {
-		return nil, errors.New("product generator service failed")
-	}
-	handler, err := generator.NewHTTPHandler(service, sessionAdapters.Generator(), trace)
-	if err != nil {
-		return nil, errors.New("product generator HTTP transport failed")
-	}
-	return handler, nil
 }
 
 func secureTraceID(*http.Request) string {

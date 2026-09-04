@@ -75,21 +75,6 @@ paths:
         '404': {$ref: '#/components/responses/NotFoundProblem'}
         '409': {$ref: '#/components/responses/ConflictProblem'}
         '500': {$ref: '#/components/responses/InternalProblem'}
-  /iam/administration/users/{userId}/organization:
-    put:
-      operationId: setIamUserOrganization
-      summary: Replace a user's primary department and positions
-      parameters: [{$ref: '#/components/parameters/UserId'}]
-      security: [{SessionCookie: [], CsrfToken: []}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AccountOrganizationRequest'}}}}
-      responses:
-        '204': {description: Account organization assignments replaced., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
-        '400': {$ref: '#/components/responses/ValidationProblem'}
-        '401': {$ref: '#/components/responses/AuthenticationProblem'}
-        '403': {$ref: '#/components/responses/AuthorizationProblem'}
-        '404': {$ref: '#/components/responses/NotFoundProblem'}
-        '409': {$ref: '#/components/responses/ConflictProblem'}
-        '500': {$ref: '#/components/responses/InternalProblem'}
   /iam/administration/users/{userId}/deletion:
     parameters: [{$ref: '#/components/parameters/UserId'}]
     post:
@@ -220,21 +205,6 @@ paths:
         '404': {$ref: '#/components/responses/NotFoundProblem'}
         '409': {$ref: '#/components/responses/ConflictProblem'}
         '500': {$ref: '#/components/responses/InternalProblem'}
-  /iam/administration/roles/{roleId}/data-scope:
-    put:
-      operationId: setIamRoleDataScope
-      summary: Replace a role's five-mode data scope
-      parameters: [{$ref: '#/components/parameters/RoleId'}]
-      security: [{SessionCookie: [], CsrfToken: []}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/RoleDataScopeRequest'}}}}
-      responses:
-        '204': {description: Role data scope replaced., headers: {X-CSRF-Token: {$ref: '#/components/headers/CsrfToken'}, Set-Cookie: {$ref: '#/components/headers/SetCookie'}}}
-        '400': {$ref: '#/components/responses/ValidationProblem'}
-        '401': {$ref: '#/components/responses/AuthenticationProblem'}
-        '403': {$ref: '#/components/responses/AuthorizationProblem'}
-        '404': {$ref: '#/components/responses/NotFoundProblem'}
-        '409': {$ref: '#/components/responses/ConflictProblem'}
-        '500': {$ref: '#/components/responses/InternalProblem'}
   /iam/administration/menus:
     get:
       operationId: listIamMenus
@@ -312,8 +282,7 @@ components:
   schemas:
     Problem: {$ref: ../components/schemas.yaml#/Problem}
     Identifier: {type: string, minLength: 16, maxLength: 64}
-    BaseDataScope: {type: string, enum: [all, self], description: Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.}
-    DataScope: {type: string, enum: [all, self, organization, organization-tree, custom]}
+    DataScope: {type: string, enum: [all, self]}
     User:
       type: object
       additionalProperties: false
@@ -340,7 +309,7 @@ components:
         username: {type: string, minLength: 3, maxLength: 64}
         displayName: {type: string, minLength: 1, maxLength: 80}
         email: {type: string, format: email, maxLength: 254}
-        password: {type: string, minLength: 12, maxLength: 128}
+        password: {type: string, minLength: 10, maxLength: 128}
     UpdateUserRequest:
       type: object
       additionalProperties: false
@@ -354,20 +323,6 @@ components:
       additionalProperties: false
       required: [roleIds]
       properties: {roleIds: {type: array, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}}
-    AccountOrganizationRequest:
-      type: object
-      additionalProperties: false
-      required: [positionIds]
-      properties:
-        primaryDepartmentId: {$ref: '#/components/schemas/Identifier'}
-        positionIds: {type: array, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}
-    RoleDataScopeRequest:
-      type: object
-      additionalProperties: false
-      required: [scope, departmentIds]
-      properties:
-        scope: {$ref: '#/components/schemas/DataScope'}
-        departmentIds: {type: array, maxItems: 100, uniqueItems: true, items: {$ref: '#/components/schemas/Identifier'}}
     StartAccountDeletionRequest:
       type: object
       additionalProperties: false
@@ -393,7 +348,7 @@ components:
       type: object
       additionalProperties: false
       required: [password]
-      properties: {password: {type: string, minLength: 12, maxLength: 128}}
+      properties: {password: {type: string, minLength: 10, maxLength: 128}}
     Role:
       type: object
       additionalProperties: false
@@ -414,7 +369,7 @@ components:
       properties:
         key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
-        dataScope: {$ref: '#/components/schemas/BaseDataScope'}
+        dataScope: {$ref: '#/components/schemas/DataScope'}
     UpdateRoleRequest:
       type: object
       additionalProperties: false
@@ -422,7 +377,7 @@ components:
       properties:
         key: {type: string, minLength: 3, maxLength: 64, pattern: '^[a-z0-9][a-z0-9_-]*$'}
         name: {type: string, minLength: 1, maxLength: 100}
-        dataScope: {$ref: '#/components/schemas/BaseDataScope'}
+        dataScope: {$ref: '#/components/schemas/DataScope'}
         enabled: {type: boolean}
     SetRoleGrantsRequest:
       type: object

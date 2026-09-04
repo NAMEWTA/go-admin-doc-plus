@@ -13,15 +13,11 @@ import (
 // application-facing Builder contract.
 func BuildDesktop(ctx context.Context, db *database.Database, options desktophost.ProductOptions) (desktophost.Product, error) {
 	built, err := Build(ctx, db, Options{
-		SessionPolicy:       config.DefaultSessionPolicy(),
-		FilesRoot:           options.FilesRoot,
-		RepositoryRoot:      options.RepositoryRoot,
-		GeneratorOutputRoot: options.GeneratorOutputRoot,
-		GeneratorSchema:     "main",
-		GeneratorTables:     []string{"demo_products"},
-		WorkerOwner:         options.WorkerOwner,
-		WorkerInterval:      time.Second,
-		AuditRetentionAge:   30 * 24 * time.Hour,
+		SessionPolicy:     config.DefaultSessionPolicy(),
+		FilesRoot:         options.FilesRoot,
+		WorkerOwner:       options.WorkerOwner,
+		WorkerInterval:    time.Second,
+		AuditRetentionAge: 30 * 24 * time.Hour,
 	})
 	if err != nil {
 		return desktophost.Product{}, err

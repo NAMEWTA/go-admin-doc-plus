@@ -9,6 +9,7 @@
   "dependencies": {
     "@go-admin-plus/domain-scheduler": "workspace:*",
     "@go-admin-plus/ui": "workspace:*",
+    "@lucide/vue": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },

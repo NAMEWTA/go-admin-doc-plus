@@ -19,10 +19,8 @@ func TestProductContractPublishesCurrentIdentityAndCapacitySurface(t *testing.T)
 	for _, path := range []string{
 		"/iam/session/heartbeat",
 		"/iam/session/renew",
-		"/iam/administration/users/{userId}/organization",
 		"/iam/administration/users/{userId}/deletion",
 		"/iam/administration/users/{userId}/deletion/cancel",
-		"/iam/administration/roles/{roleId}/data-scope",
 	} {
 		if product.Paths.Find(path) == nil {
 			t.Errorf("product contract does not publish %s", path)
@@ -31,6 +29,17 @@ func TestProductContractPublishesCurrentIdentityAndCapacitySurface(t *testing.T)
 
 	if product.Paths.Find("/iam/administration/users/batch-delete") != nil {
 		t.Fatal("removed user batch-delete path remains public")
+	}
+	for _, path := range []string{
+		"/iam/administration/users/{userId}/organization",
+		"/iam/administration/roles/{roleId}/data-scope",
+		"/organization/departments",
+		"/organization/positions",
+		"/generator/tables",
+	} {
+		if product.Paths.Find(path) != nil {
+			t.Fatalf("removed product path remains public: %s", path)
+		}
 	}
 	userPath := administration.Paths.Find("/iam/administration/users/{userId}")
 	if userPath == nil || userPath.Delete != nil {
@@ -64,8 +73,8 @@ func TestProductContractPublishesCurrentIdentityAndCapacitySurface(t *testing.T)
 	}
 
 	scope := administration.Components.Schemas["DataScope"]
-	if scope == nil || scope.Value == nil || !reflect.DeepEqual(scope.Value.Enum, []any{"all", "self", "organization", "organization-tree", "custom"}) {
-		t.Fatalf("data scope enum = %#v, want all five scopes", scope)
+	if scope == nil || scope.Value == nil || !reflect.DeepEqual(scope.Value.Enum, []any{"all", "self"}) {
+		t.Fatalf("data scope enum = %#v, want all/self scopes", scope)
 	}
 	deletion := administration.Paths.Find("/iam/administration/users/{userId}/deletion")
 	if deletion == nil || deletion.Post == nil || deletion.Get == nil {

@@ -162,27 +162,6 @@ fn allowed(path: &str, method: &str) -> bool {
         ["audit", "records"] => method == "GET",
         ["audit", "records", "cleanup"] => method == "POST",
         ["audit", "records", id] if valid_id(id) => method == "GET",
-        ["organization", "departments" | "positions"] => matches!(method, "GET" | "POST"),
-        ["organization", "departments" | "positions", id] if valid_id(id) => {
-            matches!(method, "PATCH" | "DELETE")
-        }
-        ["settings", "values" | "dictionaries"] => matches!(method, "GET" | "POST"),
-        ["settings", "values" | "dictionaries", id] if valid_id(id) => {
-            matches!(method, "PATCH" | "DELETE")
-        }
-        ["settings", "dictionaries", id, "items"] if valid_id(id) => {
-            matches!(method, "GET" | "POST")
-        }
-        ["settings", "dictionary-items", id] if valid_id(id) => {
-            matches!(method, "PATCH" | "DELETE")
-        }
-        ["settings", "options", key] if valid_setting_key(key) => method == "GET",
-        ["generator", "configs", module] if valid_key(module) => method == "GET",
-        ["generator", "tables"] => method == "GET",
-        ["generator", "tables", schema, table] if valid_key(schema) && valid_key(table) => {
-            method == "GET"
-        }
-        ["generator", "previews" | "writes"] => method == "POST",
         ["scheduler", "task-types" | "executions"] => method == "GET",
         ["scheduler", "definitions"] => matches!(method, "GET" | "POST"),
         ["scheduler", "definitions", id] if valid_id(id) => matches!(method, "PATCH" | "DELETE"),
@@ -206,30 +185,12 @@ fn valid_id(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
 }
 
-fn valid_key(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
-}
-
-fn valid_setting_key(value: &str) -> bool {
-    value.len() >= 3
-        && value.len() <= 80
-        && value.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_' | b'.')
-        })
-}
-
 #[cfg(test)]
 mod tests {
     use super::{allowed, sensitive_input_path};
 
     #[test]
     fn product_allowlist_is_exact() {
-        assert!(allowed("/settings/values", "GET"));
-        assert!(allowed("/settings/options/ui.locale.default", "GET"));
         assert!(allowed(
             "/iam/administration/roles/role-system-admin",
             "PATCH"
@@ -243,13 +204,11 @@ mod tests {
             "GET"
         ));
         assert!(!allowed("/iam/session/current", "GET"));
-        assert!(!allowed("/settings/values/../../secrets", "GET"));
         assert!(!allowed("/demo/products", "DELETE"));
         assert!(sensitive_input_path("/iam/account/password", "PUT"));
         assert!(sensitive_input_path(
             "/iam/administration/users/account-system-admin/password",
             "PUT"
         ));
-        assert!(!sensitive_input_path("/settings/values", "POST"));
     }
 }

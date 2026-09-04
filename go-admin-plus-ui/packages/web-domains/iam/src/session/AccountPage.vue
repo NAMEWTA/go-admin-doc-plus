@@ -133,9 +133,9 @@ const logout = async () => {
           aria-labelledby="account-password-tab"
           @submit.prevent="changePassword"
         >
-          <label>当前密码<input v-model="password.currentPassword" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label>
-          <label>新密码<input v-model="password.newPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128" @input="passwordMismatch = false"></label>
-          <label>确认密码<input v-model="password.confirmPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128" @input="passwordMismatch = false"></label>
+          <label>当前密码<input v-model="password.currentPassword" type="password" autocomplete="current-password" required minlength="10" maxlength="128"></label>
+          <label>新密码<input v-model="password.newPassword" type="password" autocomplete="new-password" required minlength="10" maxlength="128" @input="passwordMismatch = false"></label>
+          <label>确认密码<input v-model="password.confirmPassword" type="password" autocomplete="new-password" required minlength="10" maxlength="128" @input="passwordMismatch = false"></label>
           <p v-if="passwordMismatch" role="alert">两次输入的密码不一致。</p>
           <div class="account-page__actions"><button type="submit" :disabled="busy">修改密码</button></div>
         </form>
@@ -145,27 +145,31 @@ const logout = async () => {
 </template>
 
 <style scoped>
-.account-page { display: grid; align-content: start; gap: 16px; }
-.account-page h1, .account-page h2 { margin: 0; }
-.account-page__workspace { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 12px; }
-.account-page__summary, .account-page__detail { min-width: 0; background: var(--ga-bg-container); border: 1px solid var(--ga-border-light); border-radius: var(--ga-radius); }
-.account-page__summary > h2, .account-page__detail > h2 { min-height: 48px; padding: 15px 18px; border-bottom: 1px solid var(--ga-border-light); font-size: 15px; }
-.account-page__identity { display: grid; justify-items: center; gap: 6px; padding: 22px 18px 16px; text-align: center; }
+.account-page { display: grid; min-width: 0; align-content: start; gap: 14px; }
+.account-page > header { min-height: 46px; padding: 2px 2px 8px; }
+.account-page h1, .account-page h2 { margin: 0; letter-spacing: 0; }
+.account-page h1 { font-size: 21px; font-weight: 650; }
+.account-page__workspace { display: grid; grid-template-columns: minmax(260px, 300px) minmax(0, 1fr); gap: 14px; }
+.account-page__summary, .account-page__detail { min-width: 0; overflow: hidden; background: var(--ga-bg-container); border: 1px solid var(--ga-border-light); border-radius: var(--ga-radius-lg); box-shadow: var(--ga-shadow-sm); }
+.account-page__summary > h2, .account-page__detail > h2 { min-height: 52px; padding: 16px 18px; border-bottom: 1px solid var(--ga-border-light); font-size: 15px; font-weight: 650; }
+.account-page__identity { display: grid; justify-items: center; gap: 6px; padding: 24px 18px 18px; text-align: center; }
+.account-page__identity strong { margin-top: 4px; font-size: 15px; }
 .account-page__identity > span:last-child { color: var(--ga-text-3); font-size: 12px; }
-.account-page__avatar { display: grid; width: 88px; height: 88px; place-items: center; color: var(--ga-text-inverse); background: var(--ga-brand); border: 4px solid color-mix(in srgb, var(--ga-brand), white 76%); border-radius: 50%; font-size: 30px; font-weight: 700; }
+.account-page__avatar { display: grid; width: 76px; height: 76px; place-items: center; color: #fff; background: var(--ga-brand); border: 5px solid var(--ga-brand-soft); border-radius: 50%; box-shadow: 0 6px 16px color-mix(in srgb, var(--ga-brand), transparent 76%); font-size: 26px; font-weight: 700; }
 .account-page dl { margin: 0; padding: 0 18px; }
-.account-page dl > div { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--ga-border-light); font-size: 13px; }
-.account-page dt { color: var(--ga-text-2); }
-.account-page dd { margin: 0; overflow-wrap: anywhere; color: var(--ga-text-1); text-align: right; }
-.account-page__logout { width: calc(100% - 36px); margin: 16px 18px 18px; color: var(--ga-danger) !important; }
-.account-page__detail > .tabs { display: flex; gap: 4px; margin: 0 18px; }
-.account-page__detail > .tabs button { min-height: 42px; padding: 8px 14px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.account-page dl > div { display: flex; min-height: 46px; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--ga-border-light); font-size: 13px; }
+.account-page dt { color: var(--ga-text-3); }
+.account-page dd { margin: 0; overflow-wrap: anywhere; color: var(--ga-text-1); font-weight: 550; text-align: right; }
+.account-page__logout { width: calc(100% - 36px); margin: 16px 18px 18px; color: var(--ga-danger) !important; background: var(--ga-danger-soft) !important; border-color: color-mix(in srgb, var(--ga-danger), transparent 68%) !important; }
+.account-page__detail > .tabs { display: flex; gap: 16px; margin: 0 18px; border-bottom: 1px solid var(--ga-border-light); }
+.account-page__detail > .tabs button { min-height: 44px; padding: 8px 2px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; box-shadow: none; }
+.account-page__detail > .tabs button:hover { background: transparent; }
 .account-page__detail > .tabs button[aria-selected="true"] { color: var(--ga-brand); border-bottom-color: var(--ga-brand); }
-.account-page form { display: grid; width: min(100%, 600px); gap: 18px; padding: 22px 18px; }
+.account-page form { display: grid; width: min(100%, 620px); gap: 17px; padding: 22px 18px; }
 .account-page label { display: grid; gap: 7px; }
 .account-page label input { width: 100%; }
-.account-page__actions { display: flex; padding-top: 4px; }
-.account-page__actions button { min-width: 96px; }
+.account-page__actions { display: flex; justify-content: flex-end; padding-top: 4px; }
+.account-page__actions button { min-width: 100px; color: #fff !important; background: var(--ga-brand) !important; border-color: var(--ga-brand) !important; }
 .account-page form [role="alert"] { margin: 0; }
 @media (max-width: 760px) {
   .account-page__workspace { grid-template-columns: 1fr; }

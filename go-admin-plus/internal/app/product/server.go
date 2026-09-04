@@ -22,19 +22,17 @@ import (
 // ServerLaunch contains the typed launch material needed by the Server
 // composition root. Process argument and environment parsing remain in cmd.
 type ServerLaunch struct {
-	Snapshot       config.Snapshot
-	DataRoot       string
-	RepositoryRoot string
-	Version        string
-	WithWorker     bool
-	Development    bool
+	Snapshot    config.Snapshot
+	DataRoot    string
+	Version     string
+	WithWorker  bool
+	Development bool
 }
 
 type serverProfile struct {
 	address            string
 	database           database.Config
 	sessionPolicy      config.SessionPolicy
-	generatorSchema    string
 	databaseCapability string
 	logLevel           string
 }
@@ -43,7 +41,7 @@ type serverProfile struct {
 // host without exposing concrete runtime dependencies to the command entry.
 func NewServerHost(launch ServerLaunch) (*serverhost.Host, error) {
 	launch.Version = strings.TrimSpace(launch.Version)
-	if launch.Version == "" || strings.TrimSpace(launch.DataRoot) == "" || strings.TrimSpace(launch.RepositoryRoot) == "" {
+	if launch.Version == "" || strings.TrimSpace(launch.DataRoot) == "" {
 		return nil, errors.New("server launch material is invalid")
 	}
 	profile, err := serverRuntimeProfile(launch.Snapshot)
@@ -57,11 +55,6 @@ func NewServerHost(launch ServerLaunch) (*serverhost.Host, error) {
 	if err != nil {
 		return nil, errors.New("server data root failed")
 	}
-	repositoryRoot, err := canonicalServerRepositoryRoot(launch.RepositoryRoot)
-	if err != nil {
-		return nil, errors.New("server repository root failed")
-	}
-
 	return serverhost.New(serverhost.Config{
 		Address:         profile.address,
 		ReadTimeout:     15 * time.Second,
@@ -107,7 +100,7 @@ func NewServerHost(launch ServerLaunch) (*serverhost.Host, error) {
 			_ = instanceLock.Close()
 			return serverhost.Runtime{}, errors.New("server logging startup failed")
 		}
-		built, err := BuildPrepared(ctx, db, serverOptions(profile, dataRoot, repositoryRoot), launch.WithWorker)
+		built, err := BuildPrepared(ctx, db, serverOptions(profile, dataRoot), launch.WithWorker)
 		if err != nil {
 			_ = logCloser.Close()
 			_ = releasePresence()
@@ -134,7 +127,7 @@ func RunServerWorker(ctx context.Context, launch ServerLaunch) (resultErr error)
 		return errors.New("worker context is required")
 	}
 	launch.Version = strings.TrimSpace(launch.Version)
-	if launch.Version == "" || strings.TrimSpace(launch.DataRoot) == "" || strings.TrimSpace(launch.RepositoryRoot) == "" {
+	if launch.Version == "" || strings.TrimSpace(launch.DataRoot) == "" {
 		return errors.New("worker launch material is invalid")
 	}
 	profile, err := serverRuntimeProfile(launch.Snapshot)
@@ -144,10 +137,6 @@ func RunServerWorker(ctx context.Context, launch ServerLaunch) (resultErr error)
 	dataRoot, err := canonicalServerDataRoot(launch.DataRoot)
 	if err != nil {
 		return errors.New("worker data root failed")
-	}
-	repositoryRoot, err := canonicalServerRepositoryRoot(launch.RepositoryRoot)
-	if err != nil {
-		return errors.New("worker repository root failed")
 	}
 	var instanceLock *platformdesktop.InstanceLock
 	if launch.Snapshot.Profile() == config.ProfileServerSQLite {
@@ -178,7 +167,7 @@ func RunServerWorker(ctx context.Context, launch ServerLaunch) (resultErr error)
 		return errors.New("worker logging startup failed")
 	}
 	defer func() { resultErr = errors.Join(resultErr, closer.Close()) }()
-	built, err := BuildPrepared(ctx, db, serverOptions(profile, dataRoot, repositoryRoot), true)
+	built, err := BuildPrepared(ctx, db, serverOptions(profile, dataRoot), true)
 	if err != nil {
 		return err
 	}
@@ -218,11 +207,9 @@ func serverLogMode(development bool) logging.Mode {
 	return logging.ModeJSON
 }
 
-func serverOptions(profile serverProfile, dataRoot, repositoryRoot string) Options {
+func serverOptions(profile serverProfile, dataRoot string) Options {
 	return Options{
 		SessionPolicy: profile.sessionPolicy, FilesRoot: filepath.Join(dataRoot, "files"),
-		RepositoryRoot: repositoryRoot, GeneratorOutputRoot: filepath.Join(dataRoot, "generated"),
-		GeneratorSchema: profile.generatorSchema, GeneratorTables: []string{"demo_products"},
 		WorkerOwner: fmt.Sprintf("server-%d", os.Getpid()), WorkerInterval: time.Second,
 		AuditRetentionAge: 30 * 24 * time.Hour,
 	}
@@ -234,7 +221,6 @@ func serverRuntimeProfile(snapshot config.Snapshot) (serverProfile, error) {
 			address:            profile.HTTPListen(),
 			database:           database.Config{Profile: config.ProfileServerSQLite, SQLitePath: profile.DatabasePath()},
 			sessionPolicy:      profile.SessionPolicy(),
-			generatorSchema:    "main",
 			databaseCapability: "sqlite",
 			logLevel:           profile.LogLevel(),
 		}, nil
@@ -244,7 +230,6 @@ func serverRuntimeProfile(snapshot config.Snapshot) (serverProfile, error) {
 			address:            profile.HTTPListen(),
 			database:           database.Config{Profile: config.ProfileServerPostgres, PostgresDSN: profile.DatabaseDSN()},
 			sessionPolicy:      profile.SessionPolicy(),
-			generatorSchema:    "public",
 			databaseCapability: "postgres",
 			logLevel:           profile.LogLevel(),
 		}, nil
@@ -258,14 +243,6 @@ func canonicalServerDataRoot(root string) (string, error) {
 		return "", err
 	}
 	if err := os.MkdirAll(absolute, 0o700); err != nil {
-		return "", err
-	}
-	return filepath.EvalSymlinks(absolute)
-}
-
-func canonicalServerRepositoryRoot(root string) (string, error) {
-	absolute, err := filepath.Abs(root)
-	if err != nil {
 		return "", err
 	}
 	return filepath.EvalSymlinks(absolute)

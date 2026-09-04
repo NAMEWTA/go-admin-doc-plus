@@ -70,7 +70,6 @@ type Service struct {
 	db                 Database
 	authorizer         *authorization.Service
 	accounts           *account.Repository
-	organization       OrganizationProjectionPort
 	passwordWork       *account.PasswordWorkBudget
 	now                func() time.Time
 	authorizationProbe func(string)
@@ -85,10 +84,6 @@ func WithPasswordWorkBudget(value *account.PasswordWorkBudget) Option {
 func WithAuthorizationProbe(probe func(string)) Option {
 	return func(s *Service) { s.authorizationProbe = probe }
 }
-func WithOrganizationProjection(projection OrganizationProjectionPort) Option {
-	return func(s *Service) { s.organization = projection }
-}
-
 func NewService(db Database, options ...Option) (*Service, error) {
 	if db == nil {
 		return nil, errors.New("iam administration database is required")
@@ -183,7 +178,7 @@ func (s *Service) CreateUser(ctx context.Context, actorID string, input CreateUs
 	input.Username = strings.ToLower(strings.TrimSpace(input.Username))
 	input.DisplayName = strings.TrimSpace(input.DisplayName)
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
-	if !validUser(input.Username, input.DisplayName, input.Email) || len(input.Password) < 12 || len(input.Password) > 128 {
+	if !validUser(input.Username, input.DisplayName, input.Email) || len(input.Password) < account.MinimumPasswordLength || len(input.Password) > 128 {
 		return User{}, ErrValidation
 	}
 	if _, err := s.authorizer.Require(ctx, actorID, authorization.PermissionUsersWrite); err != nil {
@@ -387,7 +382,7 @@ func (s *Service) DeleteUsers(ctx context.Context, actorID string, userIDs []str
 }
 
 func (s *Service) ResetPassword(ctx context.Context, actorID, userID, replacement string) error {
-	if len(replacement) < 12 || len(replacement) > 128 {
+	if len(replacement) < account.MinimumPasswordLength || len(replacement) > 128 {
 		return ErrValidation
 	}
 	if _, err := s.authorizer.Require(ctx, actorID, authorization.PermissionUsersResetPassword); err != nil {

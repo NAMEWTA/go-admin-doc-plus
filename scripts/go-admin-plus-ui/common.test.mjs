@@ -81,7 +81,7 @@ test('fails deterministically when neither pnpm nor Corepack is installed', { sk
   assert.match(result.stderr, /required tool is not installed: pnpm or Corepack/)
 })
 
-test('exports the pinned Corepack shim to backend generator tests', { skip: process.platform === 'win32' }, () => {
+test('exports the pinned Corepack shim to nested package scripts', { skip: process.platform === 'win32' }, () => {
   const { result, output } = probe({ commonPath: backendCommon })
   assert.equal(result.status, 0, result.stderr)
   assert.equal(output, 'corepack-shim:verify')

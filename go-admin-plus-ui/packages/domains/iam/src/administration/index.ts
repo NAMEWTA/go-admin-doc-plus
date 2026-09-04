@@ -4,8 +4,6 @@ export {
   AdministrationRequestError,
   canCancelAccountDeletion,
   createCapabilityController,
-  validAccountOrganizationRequest,
-  validRoleDataScopeRequest,
   validStartAccountDeletionRequest,
 } from './administration-controller'
-export type { AccountDeletion, AccountOrganizationRequest, AdministrationClient, CapabilityController, CapabilityState, Manifest, Menu, MenuInput, Permission, Role, RoleDataScopeRequest, StartAccountDeletionRequest, User, UserPage } from './administration-controller'
+export type { AccountDeletion, AdministrationClient, CapabilityController, CapabilityState, Manifest, Menu, MenuInput, Permission, Role, StartAccountDeletionRequest, User, UserPage } from './administration-controller'

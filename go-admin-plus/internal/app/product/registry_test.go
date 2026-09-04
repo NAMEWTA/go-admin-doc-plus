@@ -31,9 +31,6 @@ func TestProductModulesAreCompleteAndOwned(t *testing.T) {
 	want := []product.ModuleID{
 		product.ModuleIAM,
 		product.ModuleAudit,
-		product.ModuleOrganization,
-		product.ModuleSettings,
-		product.ModuleGenerator,
 		product.ModuleScheduler,
 		product.ModuleDemo,
 		product.ModuleFiles,
@@ -84,8 +81,8 @@ func TestProductMigrationMatrixComposesBothDialects(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(entries) != 17 {
-				t.Fatalf("composed migration files = %d, want 17", len(entries))
+			if len(entries) != 14 {
+				t.Fatalf("composed migration files = %d, want 14", len(entries))
 			}
 		})
 	}
@@ -97,10 +94,10 @@ func TestProductCapabilityRegistrationIsOrderedAndFailFast(t *testing.T) {
 	if !errors.Is(err, product.ErrCapabilityRegistration) {
 		t.Fatalf("RegisterCapabilities() error = %v", err)
 	}
-	if got := err.Error(); got != "product capability registration failed: generator" {
+	if got := err.Error(); got != "product capability registration failed: files" {
 		t.Fatalf("RegisterCapabilities() exposed unstable detail: %q", got)
 	}
-	want := []string{"audit", "organization", "settings", "generator"}
+	want := []string{"audit", "scheduler", "demo", "files"}
 	if !reflect.DeepEqual(registrar.modules, want) {
 		t.Fatalf("registered modules = %v, want %v", registrar.modules, want)
 	}
@@ -128,8 +125,8 @@ func TestProductSQLiteAppliesMigrationsAndCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Applied != 17 {
-		t.Fatalf("applied migrations = %d, want 17", result.Applied)
+	if result.Applied != 14 {
+		t.Fatalf("applied migrations = %d, want 14", result.Applied)
 	}
 
 	capabilities, err := authorization.NewCapabilityRegistry(db)
@@ -143,8 +140,8 @@ func TestProductSQLiteAppliesMigrationsAndCapabilities(t *testing.T) {
 	if err := db.SQL().QueryRowContext(ctx, `SELECT COUNT(*) FROM iam_menus`).Scan(&menus); err != nil {
 		t.Fatal(err)
 	}
-	if menus != 13 {
-		t.Fatalf("product menus = %d, want 13", menus)
+	if menus != 8 {
+		t.Fatalf("product menus = %d, want 8", menus)
 	}
 }
 

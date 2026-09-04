@@ -59,45 +59,18 @@ func (e AccountDeletionStrategy) Valid() bool {
 	}
 }
 
-// Defines values for BaseDataScope.
-const (
-	BaseDataScopeAll  BaseDataScope = "all"
-	BaseDataScopeSelf BaseDataScope = "self"
-)
-
-// Valid indicates whether the value is a known member of the BaseDataScope enum.
-func (e BaseDataScope) Valid() bool {
-	switch e {
-	case BaseDataScopeAll:
-		return true
-	case BaseDataScopeSelf:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for DataScope.
 const (
-	DataScopeAll              DataScope = "all"
-	DataScopeCustom           DataScope = "custom"
-	DataScopeOrganization     DataScope = "organization"
-	DataScopeOrganizationTree DataScope = "organization-tree"
-	DataScopeSelf             DataScope = "self"
+	All  DataScope = "all"
+	Self DataScope = "self"
 )
 
 // Valid indicates whether the value is a known member of the DataScope enum.
 func (e DataScope) Valid() bool {
 	switch e {
-	case DataScopeAll:
+	case All:
 		return true
-	case DataScopeCustom:
-		return true
-	case DataScopeOrganization:
-		return true
-	case DataScopeOrganizationTree:
-		return true
-	case DataScopeSelf:
+	case Self:
 		return true
 	default:
 		return false
@@ -170,15 +143,6 @@ type AccountDeletionStatus string
 // AccountDeletionStrategy defines model for AccountDeletion.Strategy.
 type AccountDeletionStrategy string
 
-// AccountOrganizationRequest defines model for AccountOrganizationRequest.
-type AccountOrganizationRequest struct {
-	PositionIds         []Identifier `json:"positionIds"`
-	PrimaryDepartmentId *Identifier  `json:"primaryDepartmentId,omitempty"`
-}
-
-// BaseDataScope Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
-type BaseDataScope string
-
 // CapabilityManifest defines model for CapabilityManifest.
 type CapabilityManifest struct {
 	DataScope       DataScope        `json:"dataScope"`
@@ -197,10 +161,9 @@ type CapabilityMenu struct {
 
 // CreateRoleRequest defines model for CreateRoleRequest.
 type CreateRoleRequest struct {
-	// DataScope Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
-	DataScope BaseDataScope `json:"dataScope"`
-	Key       string        `json:"key"`
-	Name      string        `json:"name"`
+	DataScope DataScope `json:"dataScope"`
+	Key       string    `json:"key"`
+	Name      string    `json:"name"`
 }
 
 // CreateUserRequest defines model for CreateUserRequest.
@@ -280,12 +243,6 @@ type Role struct {
 	Protected       bool         `json:"protected"`
 }
 
-// RoleDataScopeRequest defines model for RoleDataScopeRequest.
-type RoleDataScopeRequest struct {
-	DepartmentIds []Identifier `json:"departmentIds"`
-	Scope         DataScope    `json:"scope"`
-}
-
 // SetRoleGrantsRequest defines model for SetRoleGrantsRequest.
 type SetRoleGrantsRequest struct {
 	MenuIds         []Identifier `json:"menuIds"`
@@ -309,11 +266,10 @@ type StartAccountDeletionRequestStrategy string
 
 // UpdateRoleRequest defines model for UpdateRoleRequest.
 type UpdateRoleRequest struct {
-	// DataScope Initial scope and compatibility input for role metadata writes. Extended effective scopes are preserved and replaced through the dedicated role data-scope operation.
-	DataScope BaseDataScope `json:"dataScope"`
-	Enabled   bool          `json:"enabled"`
-	Key       string        `json:"key"`
-	Name      string        `json:"name"`
+	DataScope DataScope `json:"dataScope"`
+	Enabled   bool      `json:"enabled"`
+	Key       string    `json:"key"`
+	Name      string    `json:"name"`
 }
 
 // UpdateUserRequest defines model for UpdateUserRequest.
@@ -392,9 +348,6 @@ type CreateIamRoleJSONRequestBody = CreateRoleRequest
 // UpdateIamRoleJSONRequestBody defines body for UpdateIamRole for application/json ContentType.
 type UpdateIamRoleJSONRequestBody = UpdateRoleRequest
 
-// SetIamRoleDataScopeJSONRequestBody defines body for SetIamRoleDataScope for application/json ContentType.
-type SetIamRoleDataScopeJSONRequestBody = RoleDataScopeRequest
-
 // SetIamRoleGrantsJSONRequestBody defines body for SetIamRoleGrants for application/json ContentType.
 type SetIamRoleGrantsJSONRequestBody = SetRoleGrantsRequest
 
@@ -406,9 +359,6 @@ type UpdateIamUserJSONRequestBody = UpdateUserRequest
 
 // StartIamUserDeletionJSONRequestBody defines body for StartIamUserDeletion for application/json ContentType.
 type StartIamUserDeletionJSONRequestBody = StartAccountDeletionRequest
-
-// SetIamUserOrganizationJSONRequestBody defines body for SetIamUserOrganization for application/json ContentType.
-type SetIamUserOrganizationJSONRequestBody = AccountOrganizationRequest
 
 // ResetIamUserPasswordJSONRequestBody defines body for ResetIamUserPassword for application/json ContentType.
 type ResetIamUserPasswordJSONRequestBody = ResetPasswordRequest
@@ -448,9 +398,6 @@ type ServerInterface interface {
 	// UpdateIamRole Update a role
 	// (PATCH /iam/administration/roles/{roleId})
 	UpdateIamRole(w http.ResponseWriter, r *http.Request, roleId RoleId)
-	// SetIamRoleDataScope Replace a role's five-mode data scope
-	// (PUT /iam/administration/roles/{roleId}/data-scope)
-	SetIamRoleDataScope(w http.ResponseWriter, r *http.Request, roleId RoleId)
 	// SetIamRoleGrants Replace role Permission Code and menu grants
 	// (PUT /iam/administration/roles/{roleId}/grants)
 	SetIamRoleGrants(w http.ResponseWriter, r *http.Request, roleId RoleId)
@@ -475,9 +422,6 @@ type ServerInterface interface {
 	// CancelIamUserDeletion Cancel an account deletion before worker claim
 	// (POST /iam/administration/users/{userId}/deletion/cancel)
 	CancelIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId)
-	// SetIamUserOrganization Replace a user's primary department and positions
-	// (PUT /iam/administration/users/{userId}/organization)
-	SetIamUserOrganization(w http.ResponseWriter, r *http.Request, userId UserId)
 	// ResetIamUserPassword Reset a user password and revoke sessions
 	// (PUT /iam/administration/users/{userId}/password)
 	ResetIamUserPassword(w http.ResponseWriter, r *http.Request, userId UserId)
@@ -550,12 +494,6 @@ func (_ Unimplemented) UpdateIamRole(w http.ResponseWriter, r *http.Request, rol
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// SetIamRoleDataScope Replace a role's five-mode data scope
-// (PUT /iam/administration/roles/{roleId}/data-scope)
-func (_ Unimplemented) SetIamRoleDataScope(w http.ResponseWriter, r *http.Request, roleId RoleId) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
 // SetIamRoleGrants Replace role Permission Code and menu grants
 // (PUT /iam/administration/roles/{roleId}/grants)
 func (_ Unimplemented) SetIamRoleGrants(w http.ResponseWriter, r *http.Request, roleId RoleId) {
@@ -601,12 +539,6 @@ func (_ Unimplemented) StartIamUserDeletion(w http.ResponseWriter, r *http.Reque
 // CancelIamUserDeletion Cancel an account deletion before worker claim
 // (POST /iam/administration/users/{userId}/deletion/cancel)
 func (_ Unimplemented) CancelIamUserDeletion(w http.ResponseWriter, r *http.Request, userId UserId) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// SetIamUserOrganization Replace a user's primary department and positions
-// (PUT /iam/administration/users/{userId}/organization)
-func (_ Unimplemented) SetIamUserOrganization(w http.ResponseWriter, r *http.Request, userId UserId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -810,32 +742,6 @@ func (siw *ServerInterfaceWrapper) UpdateIamRole(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateIamRole(w, r, roleId)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// SetIamRoleDataScope operation middleware
-func (siw *ServerInterfaceWrapper) SetIamRoleDataScope(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// ------------- Path parameter "roleId" -------------
-	var roleId RoleId
-
-	err = runtime.BindStyledParameterWithOptions("simple", "roleId", chi.URLParam(r, "roleId"), &roleId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "roleId", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SetIamRoleDataScope(w, r, roleId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1074,32 +980,6 @@ func (siw *ServerInterfaceWrapper) CancelIamUserDeletion(w http.ResponseWriter, 
 	handler.ServeHTTP(w, r)
 }
 
-// SetIamUserOrganization operation middleware
-func (siw *ServerInterfaceWrapper) SetIamUserOrganization(w http.ResponseWriter, r *http.Request) {
-
-	var err error
-	_ = err
-
-	// ------------- Path parameter "userId" -------------
-	var userId UserId
-
-	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.SetIamUserOrganization(w, r, userId)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
 // ResetIamUserPassword operation middleware
 func (siw *ServerInterfaceWrapper) ResetIamUserPassword(w http.ResponseWriter, r *http.Request) {
 
@@ -1296,9 +1176,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Patch(options.BaseURL+"/iam/administration/roles/{roleId}", wrapper.UpdateIamRole)
 	})
 	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/iam/administration/roles/{roleId}/data-scope", wrapper.SetIamRoleDataScope)
-	})
-	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/iam/administration/roles/{roleId}/grants", wrapper.SetIamRoleGrants)
 	})
 	r.Group(func(r chi.Router) {
@@ -1321,9 +1198,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/iam/administration/users/{userId}/deletion/cancel", wrapper.CancelIamUserDeletion)
-	})
-	r.Group(func(r chi.Router) {
-		r.Put(options.BaseURL+"/iam/administration/users/{userId}/organization", wrapper.SetIamUserOrganization)
 	})
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/iam/administration/users/{userId}/password", wrapper.ResetIamUserPassword)
@@ -2621,161 +2495,6 @@ func (response UpdateIamRole500ApplicationProblemPlusJSONResponse) VisitUpdateIa
 	return err
 }
 
-type SetIamRoleDataScopeRequestObject struct {
-	RoleId RoleId `json:"roleId"`
-	Body   *SetIamRoleDataScopeJSONRequestBody
-}
-
-type SetIamRoleDataScopeResponseObject interface {
-	VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error
-}
-
-type SetIamRoleDataScope204ResponseHeaders struct {
-	SetCookie  *string
-	XCSRFToken *string
-}
-
-type SetIamRoleDataScope204Response struct {
-	Headers SetIamRoleDataScope204ResponseHeaders
-}
-
-func (response SetIamRoleDataScope204Response) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(204)
-	return nil
-}
-
-type SetIamRoleDataScope400ApplicationProblemPlusJSONResponse struct {
-	ValidationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamRoleDataScope400ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamRoleDataScope401ApplicationProblemPlusJSONResponse struct {
-	AuthenticationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamRoleDataScope401ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamRoleDataScope403ApplicationProblemPlusJSONResponse struct {
-	AuthorizationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamRoleDataScope403ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamRoleDataScope404ApplicationProblemPlusJSONResponse struct {
-	NotFoundProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamRoleDataScope404ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamRoleDataScope409ApplicationProblemPlusJSONResponse struct {
-	ConflictProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamRoleDataScope409ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamRoleDataScope500ApplicationProblemPlusJSONResponse struct {
-	InternalProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamRoleDataScope500ApplicationProblemPlusJSONResponse) VisitSetIamRoleDataScopeResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type SetIamRoleGrantsRequestObject struct {
 	RoleId RoleId `json:"roleId"`
 	Body   *SetIamRoleGrantsJSONRequestBody
@@ -3905,161 +3624,6 @@ func (response CancelIamUserDeletion500ApplicationProblemPlusJSONResponse) Visit
 	return err
 }
 
-type SetIamUserOrganizationRequestObject struct {
-	UserId UserId `json:"userId"`
-	Body   *SetIamUserOrganizationJSONRequestBody
-}
-
-type SetIamUserOrganizationResponseObject interface {
-	VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error
-}
-
-type SetIamUserOrganization204ResponseHeaders struct {
-	SetCookie  *string
-	XCSRFToken *string
-}
-
-type SetIamUserOrganization204Response struct {
-	Headers SetIamUserOrganization204ResponseHeaders
-}
-
-func (response SetIamUserOrganization204Response) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(204)
-	return nil
-}
-
-type SetIamUserOrganization400ApplicationProblemPlusJSONResponse struct {
-	ValidationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamUserOrganization400ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamUserOrganization401ApplicationProblemPlusJSONResponse struct {
-	AuthenticationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamUserOrganization401ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	w.WriteHeader(401)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamUserOrganization403ApplicationProblemPlusJSONResponse struct {
-	AuthorizationProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamUserOrganization403ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(403)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamUserOrganization404ApplicationProblemPlusJSONResponse struct {
-	NotFoundProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamUserOrganization404ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamUserOrganization409ApplicationProblemPlusJSONResponse struct {
-	ConflictProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamUserOrganization409ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type SetIamUserOrganization500ApplicationProblemPlusJSONResponse struct {
-	InternalProblemApplicationProblemPlusJSONResponse
-}
-
-func (response SetIamUserOrganization500ApplicationProblemPlusJSONResponse) VisitSetIamUserOrganizationResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/problem+json")
-	if response.Headers.SetCookie != nil {
-		w.Header().Set("Set-Cookie", fmt.Sprint(*response.Headers.SetCookie))
-	}
-	if response.Headers.XCSRFToken != nil {
-		w.Header().Set("X-CSRF-Token", fmt.Sprint(*response.Headers.XCSRFToken))
-	}
-	w.WriteHeader(500)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type ResetIamUserPasswordRequestObject struct {
 	UserId UserId `json:"userId"`
 	Body   *ResetIamUserPasswordJSONRequestBody
@@ -4402,9 +3966,6 @@ type StrictServerInterface interface {
 	// UpdateIamRole Update a role
 	// (PATCH /iam/administration/roles/{roleId})
 	UpdateIamRole(ctx context.Context, request UpdateIamRoleRequestObject) (UpdateIamRoleResponseObject, error)
-	// SetIamRoleDataScope Replace a role's five-mode data scope
-	// (PUT /iam/administration/roles/{roleId}/data-scope)
-	SetIamRoleDataScope(ctx context.Context, request SetIamRoleDataScopeRequestObject) (SetIamRoleDataScopeResponseObject, error)
 	// SetIamRoleGrants Replace role Permission Code and menu grants
 	// (PUT /iam/administration/roles/{roleId}/grants)
 	SetIamRoleGrants(ctx context.Context, request SetIamRoleGrantsRequestObject) (SetIamRoleGrantsResponseObject, error)
@@ -4429,9 +3990,6 @@ type StrictServerInterface interface {
 	// CancelIamUserDeletion Cancel an account deletion before worker claim
 	// (POST /iam/administration/users/{userId}/deletion/cancel)
 	CancelIamUserDeletion(ctx context.Context, request CancelIamUserDeletionRequestObject) (CancelIamUserDeletionResponseObject, error)
-	// SetIamUserOrganization Replace a user's primary department and positions
-	// (PUT /iam/administration/users/{userId}/organization)
-	SetIamUserOrganization(ctx context.Context, request SetIamUserOrganizationRequestObject) (SetIamUserOrganizationResponseObject, error)
 	// ResetIamUserPassword Reset a user password and revoke sessions
 	// (PUT /iam/administration/users/{userId}/password)
 	ResetIamUserPassword(ctx context.Context, request ResetIamUserPasswordRequestObject) (ResetIamUserPasswordResponseObject, error)
@@ -4755,39 +4313,6 @@ func (sh *strictHandler) UpdateIamRole(w http.ResponseWriter, r *http.Request, r
 	}
 }
 
-// SetIamRoleDataScope operation middleware
-func (sh *strictHandler) SetIamRoleDataScope(w http.ResponseWriter, r *http.Request, roleId RoleId) {
-	var request SetIamRoleDataScopeRequestObject
-
-	request.RoleId = roleId
-
-	var body SetIamRoleDataScopeJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SetIamRoleDataScope(ctx, request.(SetIamRoleDataScopeRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SetIamRoleDataScope")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SetIamRoleDataScopeResponseObject); ok {
-		if err := validResponse.VisitSetIamRoleDataScopeResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // SetIamRoleGrants operation middleware
 func (sh *strictHandler) SetIamRoleGrants(w http.ResponseWriter, r *http.Request, roleId RoleId) {
 	var request SetIamRoleGrantsRequestObject
@@ -5015,39 +4540,6 @@ func (sh *strictHandler) CancelIamUserDeletion(w http.ResponseWriter, r *http.Re
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(CancelIamUserDeletionResponseObject); ok {
 		if err := validResponse.VisitCancelIamUserDeletionResponse(w); err != nil {
-			sh.options.ResponseErrorHandlerFunc(w, r, err)
-		}
-	} else if response != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// SetIamUserOrganization operation middleware
-func (sh *strictHandler) SetIamUserOrganization(w http.ResponseWriter, r *http.Request, userId UserId) {
-	var request SetIamUserOrganizationRequestObject
-
-	request.UserId = userId
-
-	var body SetIamUserOrganizationJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
-		return
-	}
-	request.Body = &body
-
-	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.SetIamUserOrganization(ctx, request.(SetIamUserOrganizationRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "SetIamUserOrganization")
-	}
-
-	response, err := handler(r.Context(), w, r, request)
-
-	if err != nil {
-		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(SetIamUserOrganizationResponseObject); ok {
-		if err := validResponse.VisitSetIamUserOrganizationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -15,20 +15,14 @@ import (
 	filesaccountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/account_lifecycle_migration"
 	filesmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0010-files"
 	capacitymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files/migrations/0020-capacity"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
-	configmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator/migrations/0010-config"
 	sessionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0010-session-schema"
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
 	bootstraprecoverymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
 	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
 	datascopemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0050-data-scope"
 	accountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
-	organizationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization/migrations"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
 	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings"
-	settingsmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings/migrations/0010-settings"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/migrations"
@@ -40,14 +34,11 @@ var ErrCapabilityRegistration = errors.New("product capability registration fail
 type ModuleID string
 
 const (
-	ModuleIAM          ModuleID = "iam"
-	ModuleAudit        ModuleID = "audit"
-	ModuleOrganization ModuleID = "organization"
-	ModuleSettings     ModuleID = "settings"
-	ModuleGenerator    ModuleID = "generator"
-	ModuleScheduler    ModuleID = "scheduler"
-	ModuleDemo         ModuleID = "demo"
-	ModuleFiles        ModuleID = "files"
+	ModuleIAM       ModuleID = "iam"
+	ModuleAudit     ModuleID = "audit"
+	ModuleScheduler ModuleID = "scheduler"
+	ModuleDemo      ModuleID = "demo"
+	ModuleFiles     ModuleID = "files"
 )
 
 type ModuleDefinition struct {
@@ -80,9 +71,6 @@ var moduleDefinitions = []ModuleDefinition{
 		"iam-account-lifecycle",
 	}},
 	{ID: ModuleAudit, MigrationModules: []string{"audit"}, RegistersMenu: true},
-	{ID: ModuleOrganization, MigrationModules: []string{"organization"}, RegistersMenu: true},
-	{ID: ModuleSettings, MigrationModules: []string{"settings"}, RegistersMenu: true},
-	{ID: ModuleGenerator, MigrationModules: []string{"generator-config"}, RegistersMenu: true},
 	{ID: ModuleScheduler, MigrationModules: []string{"scheduler"}, RegistersMenu: true},
 	{ID: ModuleDemo, MigrationModules: []string{"demo-products"}, RegistersMenu: true},
 	{ID: ModuleFiles, MigrationModules: []string{"files", "files-capacity", "files-account-lifecycle"}, RegistersMenu: true},
@@ -91,15 +79,6 @@ var moduleDefinitions = []ModuleDefinition{
 var capabilityRegistrations = []capabilityRegistration{
 	{module: ModuleAudit, register: func(ctx context.Context, registrar CapabilityRegistrar) error {
 		return audit.RegisterCapabilities(ctx, registrar)
-	}},
-	{module: ModuleOrganization, register: func(ctx context.Context, registrar CapabilityRegistrar) error {
-		return organization.RegisterCapabilities(ctx, registrar)
-	}},
-	{module: ModuleSettings, register: func(ctx context.Context, registrar CapabilityRegistrar) error {
-		return settings.RegisterCapabilities(ctx, registrar)
-	}},
-	{module: ModuleGenerator, register: func(ctx context.Context, registrar CapabilityRegistrar) error {
-		return generator.RegisterCapabilities(ctx, registrar)
 	}},
 	{module: ModuleScheduler, register: func(ctx context.Context, registrar CapabilityRegistrar) error {
 		return scheduler.RegisterCapabilities(ctx, registrar)
@@ -137,11 +116,8 @@ func NewMigrationRunner() (*migrations.Runner, error) {
 		sessionprotectionmigration.Provider{},
 		datascopemigration.Provider{},
 		accountlifecyclemigration.Provider{},
-		organizationmigration.Provider{},
 		auditmigration.Provider{},
 		productsmigration.Provider{},
-		configmigration.Provider{},
-		settingsmigration.Provider{},
 		schedulermigration.Provider{},
 		filesmigration.Provider{},
 		capacitymigration.Provider{},

@@ -8,12 +8,9 @@ import (
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/account"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings"
 )
 
 type sessionServiceStub struct {
@@ -49,20 +46,8 @@ func TestSessionCompositionAdaptersMapCanonicalIdentityAndFailures(t *testing.T)
 			value, err := (filesSessionAdapter{base}).AuthorizeRequest(context.Background(), "token", csrf, true)
 			return requestIdentityResult{value.ActorID, value.CSRF, value.ReplacementCookie, err}
 		}},
-		{name: "generator", authentication: generator.ErrAuthentication, csrf: generator.ErrCSRF, invoke: func(base *iamSessionAdapter) requestIdentityResult {
-			value, err := (generatorSessionAdapter{base}).AuthorizeRequest(context.Background(), "token", csrf, true)
-			return requestIdentityResult{value.ActorID, value.CSRF, value.ReplacementCookie, err}
-		}},
-		{name: "organization", authentication: organization.ErrAuthentication, csrf: organization.ErrCSRF, invoke: func(base *iamSessionAdapter) requestIdentityResult {
-			value, err := (organizationSessionAdapter{base}).AuthorizeRequest(context.Background(), "token", csrf, true)
-			return requestIdentityResult{value.ActorID, value.CSRF, value.ReplacementCookie, err}
-		}},
 		{name: "scheduler", authentication: scheduler.ErrAuthentication, csrf: scheduler.ErrCSRF, invoke: func(base *iamSessionAdapter) requestIdentityResult {
 			value, err := (schedulerSessionAdapter{base}).AuthorizeRequest(context.Background(), "token", csrf, true)
-			return requestIdentityResult{value.ActorID, value.CSRF, value.ReplacementCookie, err}
-		}},
-		{name: "settings", authentication: settings.ErrAuthentication, csrf: settings.ErrCSRF, invoke: func(base *iamSessionAdapter) requestIdentityResult {
-			value, err := (settingsSessionAdapter{base}).AuthorizeRequest(context.Background(), "token", csrf, true)
 			return requestIdentityResult{value.ActorID, value.CSRF, value.ReplacementCookie, err}
 		}},
 	}

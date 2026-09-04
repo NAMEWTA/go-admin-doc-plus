@@ -7,79 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	transport "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration/transport"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 )
-
-func (s *HTTPServer) SetIamUserOrganization(ctx context.Context, request transport.SetIamUserOrganizationRequestObject) (transport.SetIamUserOrganizationResponseObject, error) {
-	if request.Body == nil {
-		return transport.SetIamUserOrganization400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil
-	}
-	if s.dataScopes == nil {
-		return transport.SetIamUserOrganization500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
-	}
-	positions := make([]string, len(request.Body.PositionIds))
-	for index, id := range request.Body.PositionIds {
-		positions[index] = id
-	}
-	var primary *string
-	if request.Body.PrimaryDepartmentId != nil {
-		value := string(*request.Body.PrimaryDepartmentId)
-		primary = &value
-	}
-	err := s.dataScopes.SetAccountOrganization(ctx, requestHTTP(ctx).actorID, request.UserId, AccountOrganization{
-		PrimaryDepartmentID: primary,
-		PositionIDs:         positions,
-	})
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrValidation):
-			return transport.SetIamUserOrganization400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil
-		case errors.Is(err, ErrDenied):
-			return transport.SetIamUserOrganization403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
-		case errors.Is(err, ErrNotFound):
-			return transport.SetIamUserOrganization404ApplicationProblemPlusJSONResponse{NotFoundProblemApplicationProblemPlusJSONResponse: notFoundProblem(ctx)}, nil
-		case errors.Is(err, ErrConflict):
-			return transport.SetIamUserOrganization409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(ctx)}, nil
-		default:
-			return transport.SetIamUserOrganization500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
-		}
-	}
-	csrf, cookie := responseHeaders(ctx)
-	return transport.SetIamUserOrganization204Response{Headers: transport.SetIamUserOrganization204ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
-}
-
-func (s *HTTPServer) SetIamRoleDataScope(ctx context.Context, request transport.SetIamRoleDataScopeRequestObject) (transport.SetIamRoleDataScopeResponseObject, error) {
-	if request.Body == nil {
-		return transport.SetIamRoleDataScope400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil
-	}
-	if s.dataScopes == nil {
-		return transport.SetIamRoleDataScope500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
-	}
-	departments := make([]string, len(request.Body.DepartmentIds))
-	for index, id := range request.Body.DepartmentIds {
-		departments[index] = id
-	}
-	err := s.dataScopes.SetRoleDataScope(ctx, requestHTTP(ctx).actorID, request.RoleId, RoleDataScope{
-		Scope:         authorization.Scope(request.Body.Scope),
-		DepartmentIDs: departments,
-	})
-	if err != nil {
-		switch {
-		case errors.Is(err, ErrValidation):
-			return transport.SetIamRoleDataScope400ApplicationProblemPlusJSONResponse{ValidationProblemApplicationProblemPlusJSONResponse: validationProblem(ctx)}, nil
-		case errors.Is(err, ErrDenied):
-			return transport.SetIamRoleDataScope403ApplicationProblemPlusJSONResponse{AuthorizationProblemApplicationProblemPlusJSONResponse: authorizationProblem(ctx)}, nil
-		case errors.Is(err, ErrNotFound):
-			return transport.SetIamRoleDataScope404ApplicationProblemPlusJSONResponse{NotFoundProblemApplicationProblemPlusJSONResponse: notFoundProblem(ctx)}, nil
-		case errors.Is(err, ErrConflict):
-			return transport.SetIamRoleDataScope409ApplicationProblemPlusJSONResponse{ConflictProblemApplicationProblemPlusJSONResponse: conflictProblem(ctx)}, nil
-		default:
-			return transport.SetIamRoleDataScope500ApplicationProblemPlusJSONResponse{InternalProblemApplicationProblemPlusJSONResponse: internalProblem(ctx)}, nil
-		}
-	}
-	csrf, cookie := responseHeaders(ctx)
-	return transport.SetIamRoleDataScope204Response{Headers: transport.SetIamRoleDataScope204ResponseHeaders{XCSRFToken: csrf, SetCookie: cookie}}, nil
-}
 
 func (s *HTTPServer) StartIamUserDeletion(ctx context.Context, request transport.StartIamUserDeletionRequestObject) (transport.StartIamUserDeletionResponseObject, error) {
 	if request.Body == nil {

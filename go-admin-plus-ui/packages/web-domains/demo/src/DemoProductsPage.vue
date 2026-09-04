@@ -66,5 +66,5 @@ onMounted(() => { void settle(() => props.controller.list.refresh()) })
 </template>
 
 <style scoped>
-.page-alert{margin:0;padding:10px 12px;border-left:3px solid var(--ga-danger);background:var(--ga-danger-soft)}.table-scroll{min-width:0;overflow:auto}.row-actions{display:flex;gap:8px;white-space:nowrap}label{display:grid;gap:4px}.wide{grid-column:1/-1}@media(max-width:640px){.wide{grid-column:auto}}
+.page-alert{margin:0}.table-scroll{min-width:0;overflow:auto}.row-actions{display:flex;gap:8px;white-space:nowrap}label{display:grid;gap:5px}.wide{grid-column:1/-1}@media(max-width:640px){.wide{grid-column:auto}}
 </style>

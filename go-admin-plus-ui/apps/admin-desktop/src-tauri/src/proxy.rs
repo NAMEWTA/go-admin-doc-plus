@@ -249,7 +249,7 @@ impl TransportProxy {
         username: Zeroizing<String>,
         password: Zeroizing<String>,
     ) -> Result<PublicProfile, &'static str> {
-        if username.len() < 3 || username.len() > 64 || password.len() < 12 || password.len() > 128
+        if username.len() < 3 || username.len() > 64 || password.len() < 10 || password.len() > 128
         {
             return Err("desktop login input invalid");
         }

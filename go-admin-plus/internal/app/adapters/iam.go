@@ -9,13 +9,9 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/demo"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/files"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/generator"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/administration"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/authorization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/session"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/organization"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler"
-	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/settings"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/database"
 )
 
@@ -44,17 +40,8 @@ func (adapters *Authorization) Demo() demo.Authorizer {
 func (adapters *Authorization) Files() files.Authorizer {
 	return filesAuthorizationAdapter{iamAuthorizationAdapter: adapters.adapter}
 }
-func (adapters *Authorization) Generator() generator.Authorizer {
-	return generatorAuthorizationAdapter{iamAuthorizationAdapter: adapters.adapter}
-}
-func (adapters *Authorization) Organization() organization.Authorizer {
-	return organizationAuthorizationAdapter{iamAuthorizationAdapter: adapters.adapter}
-}
 func (adapters *Authorization) Scheduler() scheduler.Authorizer {
 	return schedulerAuthorizationAdapter{iamAuthorizationAdapter: adapters.adapter}
-}
-func (adapters *Authorization) Settings() settings.Authorizer {
-	return settingsAuthorizationAdapter{iamAuthorizationAdapter: adapters.adapter}
 }
 
 func newIAMAuthorizationAdapter(db interface {
@@ -113,42 +100,6 @@ func (adapter filesAuthorizationAdapter) RequireInTx(ctx context.Context, tx dat
 	}
 }
 
-type settingsAuthorizationAdapter struct{ *iamAuthorizationAdapter }
-
-func (adapter settingsAuthorizationAdapter) RequireInTx(ctx context.Context, tx database.Tx, actorID, permission string) (settings.Scope, error) {
-	decision, err := adapter.service.RequireInTx(ctx, tx, actorID, permission)
-	if errors.Is(err, authorization.ErrDenied) {
-		return "", settings.ErrDenied
-	}
-	if err != nil {
-		return "", err
-	}
-	if decision.Scope != authorization.ScopeAll {
-		return "", settings.ErrDenied
-	}
-	return settings.ScopeAll, nil
-}
-
-type organizationAuthorizationAdapter struct{ *iamAuthorizationAdapter }
-
-func (adapter organizationAuthorizationAdapter) RequireInTx(ctx context.Context, tx database.Tx, actorID, permission string) (organization.AuthorizationDecision, error) {
-	decision, err := adapter.service.RequireInTx(ctx, tx, actorID, permission)
-	if errors.Is(err, authorization.ErrDenied) {
-		return organization.AuthorizationDecision{}, organization.ErrDenied
-	}
-	if err != nil {
-		return organization.AuthorizationDecision{}, err
-	}
-	switch decision.Scope {
-	case authorization.ScopeSelf:
-		return organization.AuthorizationDecision{Scope: organization.ScopeSelf}, nil
-	case authorization.ScopeAll:
-		return organization.AuthorizationDecision{Scope: organization.ScopeAll}, nil
-	default:
-		return organization.AuthorizationDecision{}, organization.ErrDenied
-	}
-}
-
 type schedulerAuthorizationAdapter struct{ *iamAuthorizationAdapter }
 
 func (adapter schedulerAuthorizationAdapter) RequireInTx(ctx context.Context, tx database.Tx, actorID, permission string) (scheduler.AuthorizationDecision, error) {
@@ -167,16 +118,6 @@ func (adapter schedulerAuthorizationAdapter) RequireInTx(ctx context.Context, tx
 	default:
 		return scheduler.AuthorizationDecision{}, scheduler.ErrDenied
 	}
-}
-
-type generatorAuthorizationAdapter struct{ *iamAuthorizationAdapter }
-
-func (adapter generatorAuthorizationAdapter) Require(ctx context.Context, actorID, permission string) error {
-	_, err := adapter.service.Require(ctx, actorID, permission)
-	if errors.Is(err, authorization.ErrDenied) {
-		return generator.ErrDenied
-	}
-	return err
 }
 
 type auditAuthorizationAdapter struct{ *iamAuthorizationAdapter }
@@ -218,17 +159,8 @@ func (adapters *Session) Demo() demo.RequestAuthenticator {
 func (adapters *Session) Files() files.RequestAuthenticator {
 	return filesSessionAdapter{iamSessionAdapter: adapters.adapter}
 }
-func (adapters *Session) Generator() generator.RequestAuthenticator {
-	return generatorSessionAdapter{iamSessionAdapter: adapters.adapter}
-}
-func (adapters *Session) Organization() organization.RequestAuthenticator {
-	return organizationSessionAdapter{iamSessionAdapter: adapters.adapter}
-}
 func (adapters *Session) Scheduler() scheduler.RequestAuthenticator {
 	return schedulerSessionAdapter{iamSessionAdapter: adapters.adapter}
-}
-func (adapters *Session) Settings() settings.RequestAuthenticator {
-	return settingsSessionAdapter{iamSessionAdapter: adapters.adapter}
 }
 
 func newIAMSessionAdapter(service sessionRequestService) (*iamSessionAdapter, error) {
@@ -281,36 +213,6 @@ func (adapter filesSessionAdapter) AuthorizeRequest(ctx context.Context, token, 
 		return files.RequestIdentity{}, requestError(err, files.ErrAuthentication, files.ErrCSRF)
 	}
 	return files.RequestIdentity{ActorID: issued.Profile.ID, CSRF: issued.CSRF, ReplacementCookie: replacementSessionCookie(issued)}, nil
-}
-
-type generatorSessionAdapter struct{ *iamSessionAdapter }
-
-func (adapter generatorSessionAdapter) AuthorizeRequest(ctx context.Context, token, csrf string, mutation bool) (generator.RequestIdentity, error) {
-	issued, err := adapter.authorize(ctx, token, csrf, mutation)
-	if err != nil {
-		return generator.RequestIdentity{}, requestError(err, generator.ErrAuthentication, generator.ErrCSRF)
-	}
-	return generator.RequestIdentity{ActorID: issued.Profile.ID, CSRF: issued.CSRF, ReplacementCookie: replacementSessionCookie(issued)}, nil
-}
-
-type settingsSessionAdapter struct{ *iamSessionAdapter }
-
-func (adapter settingsSessionAdapter) AuthorizeRequest(ctx context.Context, token, csrf string, mutation bool) (settings.RequestIdentity, error) {
-	issued, err := adapter.authorize(ctx, token, csrf, mutation)
-	if err != nil {
-		return settings.RequestIdentity{}, requestError(err, settings.ErrAuthentication, settings.ErrCSRF)
-	}
-	return settings.RequestIdentity{ActorID: issued.Profile.ID, CSRF: issued.CSRF, ReplacementCookie: replacementSessionCookie(issued)}, nil
-}
-
-type organizationSessionAdapter struct{ *iamSessionAdapter }
-
-func (adapter organizationSessionAdapter) AuthorizeRequest(ctx context.Context, token, csrf string, mutation bool) (organization.RequestIdentity, error) {
-	issued, err := adapter.authorize(ctx, token, csrf, mutation)
-	if err != nil {
-		return organization.RequestIdentity{}, requestError(err, organization.ErrAuthentication, organization.ErrCSRF)
-	}
-	return organization.RequestIdentity{ActorID: issued.Profile.ID, CSRF: issued.CSRF, ReplacementCookie: replacementSessionCookie(issued)}, nil
 }
 
 type schedulerSessionAdapter struct{ *iamSessionAdapter }
@@ -379,41 +281,14 @@ func (adapter sessionLoginFactAdapter) RecordLoginFact(ctx context.Context, tx d
 	return err
 }
 
-type organizationProjectionAdapter struct {
-	projection *organization.ProjectionAdapter
-}
-
-func NewOrganizationProjection(projection *organization.ProjectionAdapter) administration.OrganizationProjectionPort {
-	return organizationProjectionAdapter{projection: projection}
-}
-
-func (adapter organizationProjectionAdapter) DepartmentLineage(ctx context.Context, id string) (administration.OrganizationDepartmentLineage, error) {
-	lineage, err := adapter.projection.DepartmentLineage(ctx, id)
-	if err != nil {
-		return administration.OrganizationDepartmentLineage{}, err
-	}
-	return administration.OrganizationDepartmentLineage{DepartmentID: lineage.DepartmentID, AncestorIDs: append([]string(nil), lineage.AncestorIDs...)}, nil
-}
-
-func (adapter organizationProjectionAdapter) PositionDepartment(ctx context.Context, id string) (string, error) {
-	return adapter.projection.PositionDepartment(ctx, id)
-}
-
 var (
-	_ demo.Authorizer                           = demoAuthorizationAdapter{}
-	_ files.Authorizer                          = filesAuthorizationAdapter{}
-	_ settings.Authorizer                       = settingsAuthorizationAdapter{}
-	_ organization.Authorizer                   = organizationAuthorizationAdapter{}
-	_ scheduler.Authorizer                      = schedulerAuthorizationAdapter{}
-	_ generator.Authorizer                      = generatorAuthorizationAdapter{}
-	_ audit.Authorizer                          = auditAuthorizationAdapter{}
-	_ demo.RequestAuthenticator                 = demoSessionAdapter{}
-	_ files.RequestAuthenticator                = filesSessionAdapter{}
-	_ generator.RequestAuthenticator            = generatorSessionAdapter{}
-	_ settings.RequestAuthenticator             = settingsSessionAdapter{}
-	_ organization.RequestAuthenticator         = organizationSessionAdapter{}
-	_ scheduler.RequestAuthenticator            = schedulerSessionAdapter{}
-	_ audit.RequestAuthorizer                   = auditRequestAdapter{}
-	_ session.LoginFactPort                     = sessionLoginFactAdapter{}
-	_ administration.OrganizationProjectionPort = organizationProjectionAdapter{}
+	_ demo.Authorizer                = demoAuthorizationAdapter{}
+	_ files.Authorizer               = filesAuthorizationAdapter{}
+	_ scheduler.Authorizer           = schedulerAuthorizationAdapter{}
+	_ audit.Authorizer               = auditAuthorizationAdapter{}
+	_ demo.RequestAuthenticator      = demoSessionAdapter{}
+	_ files.RequestAuthenticator     = filesSessionAdapter{}
+	_ scheduler.RequestAuthenticator = schedulerSessionAdapter{}
+	_ audit.RequestAuthorizer        = auditRequestAdapter{}
+	_ session.LoginFactPort          = sessionLoginFactAdapter{}
 )

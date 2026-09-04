@@ -12,7 +12,7 @@ case $target in
     test "$target" = server || profile=$target
     config_file=$(profile_config "$profile")
     cd "$backend_root"
-    set -- serve --development --profile "$profile" --data-root "$repo_root/.data/server" --repository-root "$repo_root"
+    set -- serve --development --profile "$profile" --data-root "$repo_root/.data/server"
     test -z "$config_file" || set -- "$@" --config "$config_file"
     if test "$profile" = server-sqlite; then
       set -- "$@" --sqlite-path "$(sqlite_path)" --with-worker

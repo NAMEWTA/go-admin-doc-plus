@@ -121,7 +121,7 @@ jobs:
             if ($errors.Count -ne 0) { throw "PowerShell parse failed: $($_.Name)" }
           }
           Get-Content release/windows/identity.json -Raw | ConvertFrom-Json | Out-Null
-          go -C go-admin-plus test ./internal/modules/generator ./cmd/desktop-sidecar -count=1
+          go -C go-admin-plus test ./cmd/desktop-sidecar -count=1
           pnpm --dir go-admin-plus-ui --filter '@go-admin-plus/admin-desktop' typecheck
           node release/shared/sidecar/build.mjs --target x86_64-pc-windows-msvc
           pnpm --dir go-admin-plus-ui --filter '@go-admin-plus/admin-desktop' exec cargo test --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc

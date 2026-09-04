@@ -14,7 +14,6 @@ const fixtureEnvironment = () => {
     GO_ADMIN_REQUIRE_WEB_E2E: '1',
     GO_ADMIN_TEST_CHROMIUM_EXECUTABLE: chromium,
     GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN: 'postgres://localhost/disposable',
-    GO_ADMIN_GENERATOR_POSTGRES_BIN: root,
   }
 }
 

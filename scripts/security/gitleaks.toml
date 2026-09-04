@@ -19,5 +19,4 @@ stopWords = ["de7a062c984bf828d5d1b3a631a517e4"]
 description = "Pinned runtime archive lookup variable names are not credentials"
 condition = "AND"
 regexTarget = "line"
-paths = ['''(^|/)scripts/release/macos/prepare-generator-runtime\.sh$''']
 regexes = ['''go_key=goDarwinAmd64; node_key=nodeDarwinX64; node_arch=x64; else go_key=goDarwinArm64; node_key=nodeDarwinArm64; node_arch=arm64''']

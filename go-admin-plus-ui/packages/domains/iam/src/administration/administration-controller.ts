@@ -8,24 +8,7 @@ export type MenuInput = components['schemas']['MenuInput']
 export type Permission = components['schemas']['Permission']
 export type Manifest = components['schemas']['CapabilityManifest']
 export type AccountDeletion = components['schemas']['AccountDeletion']
-export type AccountOrganizationRequest = components['schemas']['AccountOrganizationRequest']
-export type RoleDataScopeRequest = components['schemas']['RoleDataScopeRequest']
 export type StartAccountDeletionRequest = components['schemas']['StartAccountDeletionRequest']
-
-const hasUniqueNonEmptyIdentifiers = (identifiers: ReadonlyArray<string>): boolean =>
-  identifiers.every((identifier) => identifier.trim().length > 0)
-  && new Set(identifiers).size === identifiers.length
-
-export const validAccountOrganizationRequest = (input: AccountOrganizationRequest): boolean =>
-  (input.primaryDepartmentId === undefined || input.primaryDepartmentId.trim().length > 0)
-  && hasUniqueNonEmptyIdentifiers(input.positionIds)
-
-export const validRoleDataScopeRequest = (input: RoleDataScopeRequest): boolean => {
-  if (!hasUniqueNonEmptyIdentifiers(input.departmentIds)) return false
-  return input.scope === 'custom'
-    ? input.departmentIds.length > 0
-    : input.departmentIds.length === 0
-}
 
 export const validStartAccountDeletionRequest = (
   accountId: string,
@@ -48,7 +31,6 @@ export interface AdministrationClient {
   listUsers(search: string, page: number, pageSize: number): Promise<UserPage>
   createUser(input: components['schemas']['CreateUserRequest']): Promise<User>
   updateUser(id: string, input: components['schemas']['UpdateUserRequest']): Promise<User>
-  setUserOrganization(id: string, input: AccountOrganizationRequest): Promise<void>
   startUserDeletion(id: string, input: StartAccountDeletionRequest): Promise<AccountDeletion>
   getUserDeletion(id: string): Promise<AccountDeletion>
   cancelUserDeletion(id: string): Promise<void>
@@ -59,7 +41,6 @@ export interface AdministrationClient {
   updateRole(id: string, input: components['schemas']['UpdateRoleRequest']): Promise<void>
   deleteRole(id: string): Promise<void>
   setRoleGrants(id: string, permissionCodes: ReadonlyArray<string>, menuIds: ReadonlyArray<string>): Promise<void>
-  setRoleDataScope(id: string, input: RoleDataScopeRequest): Promise<void>
   listMenus(): Promise<ReadonlyArray<Menu>>
   createMenu(input: MenuInput): Promise<Menu>
   updateMenu(id: string, input: MenuInput): Promise<void>

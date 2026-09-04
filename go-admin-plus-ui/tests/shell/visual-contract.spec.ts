@@ -7,8 +7,12 @@ const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url))
 const source = (path: string) => readFile(`${workspaceRoot}/${path}`, 'utf8')
 
 describe('admin visual contract', () => {
-  it('keeps the established shell composition and dimensions', async () => {
-    const shell = await source('packages/app-shell/src/product/ProductWorkspace.vue')
+  it('keeps the modern responsive shell composition and dimensions', async () => {
+    const [shell, shellStyles] = await Promise.all([
+      source('packages/app-shell/src/product/ProductWorkspace.vue'),
+      source('packages/app-shell/src/product/ProductWorkspace.scss')
+    ])
+    const visualShell = `${shell}\n${shellStyles}`
 
     for (const region of [
       'product-shell__sidebar',
@@ -16,17 +20,19 @@ describe('admin visual contract', () => {
       'product-shell__breadcrumb',
       'product-shell__tags',
       'product-shell__content'
-    ]) expect(shell).toContain(region)
+    ]) expect(visualShell).toContain(region)
 
-    expect(shell).toMatch(/grid-template-columns:\s*210px/)
-    expect(shell).toMatch(/product-shell__header\s*\{[^}]*height:\s*50px/s)
-    expect(shell).toMatch(/product-shell__nav-heading\s*\{[^}]*min-height:\s*50px/s)
-    expect(shell).toMatch(/product-shell__navigation button\s*\{[^}]*min-height:\s*50px/s)
-    expect(shell).toMatch(/product-shell__tags\s*\{[^}]*height:\s*34px/s)
-    expect(shell).toMatch(/product-shell__content\s*\{[^}]*height:\s*calc\(100vh - 84px\)/s)
-    expect(shell).toMatch(/grid-template-columns:\s*54px/)
-    expect(shell).toMatch(/product-shell__content\s*\{[^}]*padding:\s*12px/s)
-    expect(shell).toContain('@media (max-width: 760px)')
+    expect(shell).toContain('ProductWorkspace.scss')
+    expect(shell).toContain('navigationIcon(item)')
+    expect(shell).toContain('ShieldCheckIcon')
+    expect(shellStyles).toMatch(/grid-template-columns:\s*244px/)
+    expect(shellStyles).toMatch(/product-shell__header\s*\{[^}]*height:\s*54px/s)
+    expect(shellStyles).toMatch(/product-shell__navigation button\s*\{[^}]*min-height:\s*42px/s)
+    expect(shellStyles).toMatch(/product-shell__tags\s*\{[^}]*height:\s*36px/s)
+    expect(shellStyles).toMatch(/grid-template-rows:\s*54px 36px minmax\(0, 1fr\)/)
+    expect(shellStyles).toMatch(/grid-template-columns:\s*76px/)
+    expect(shellStyles).toMatch(/product-shell__content\s*\{[^}]*min-height:\s*0/s)
+    expect(shellStyles).toContain('@media (max-width: 760px)')
   })
 
   it('shares the tokenized Element Plus design system across both hosts', async () => {
@@ -65,9 +71,6 @@ describe('admin visual contract', () => {
     const pages = await Promise.all([
       source('packages/web-domains/iam/src/administration/AdministrationPage.vue'),
       source('packages/web-domains/audit/src/AuditPage.vue'),
-      source('packages/web-domains/organization/src/OrganizationPage.vue'),
-      source('packages/web-domains/settings/src/SettingsPage.vue'),
-      source('packages/web-domains/generator/src/GeneratorWizardPage.vue'),
       source('packages/web-domains/scheduler/src/SchedulerPage.vue'),
       source('packages/web-domains/demo/src/DemoProductsPage.vue'),
       source('packages/web-domains/files/src/FilesPage.vue'),
@@ -75,7 +78,7 @@ describe('admin visual contract', () => {
     ])
 
     for (const page of pages) {
-      expect(page).not.toMatch(/\.(?:administration-page|audit-page|organization-page|settings-page|generator-wizard|scheduler-page|demo-products|files-page|account-page)\s*\{[^}]*(?:max-width|padding):/s)
+      expect(page).not.toMatch(/\.(?:administration-page|audit-page|organization-page|generator-wizard|scheduler-page|demo-products|files-page|account-page)\s*\{[^}]*(?:max-width|padding):/s)
       expect(page).not.toMatch(/(?:input|select|button)[^{]*\{[^}]*min-height:\s*40px/s)
       expect(page).not.toMatch(/table\s*\{[^}]*border-collapse:\s*collapse/s)
     }
@@ -88,13 +91,10 @@ describe('admin visual contract', () => {
       source('packages/web-domains/audit/src/AuditPage.vue'),
       source('packages/web-domains/demo/src/DemoProductsPage.vue'),
       source('packages/web-domains/files/src/FilesPage.vue'),
-      source('packages/web-domains/generator/src/GeneratorWizardPage.vue'),
-      source('packages/web-domains/organization/src/OrganizationPage.vue'),
-      source('packages/web-domains/scheduler/src/SchedulerPage.vue'),
-      source('packages/web-domains/settings/src/SettingsPage.vue')
+      source('packages/web-domains/scheduler/src/SchedulerPage.vue')
     ])
 
-    for (const label of ['用户管理', '角色管理', '菜单管理', '部门管理', '参数设置', '代码生成', '任务调度', '文件管理']) {
+    for (const label of ['用户管理', '角色管理', '菜单管理', '任务调度', '文件管理']) {
       expect(manifest).toContain(`title: '${label}'`)
     }
     for (const text of ['用户与权限', '新增用户', '角色管理', '菜单管理', '当前账号没有可用的管理视图']) {
@@ -108,23 +108,24 @@ describe('admin visual contract', () => {
     }
   })
 
-  it('preserves the terminal-stage login composition without restoring removed features', async () => {
+  it('uses a restrained product-preview login composition without restoring removed features', async () => {
     const login = await source('packages/web-domains/iam/src/session/LoginPage.vue')
 
-    expect(login).toContain('login-page__stage')
-    expect(login).toContain('login-page__terminal')
-    expect(login).toContain('GopherMark')
-    expect(login).toContain('Tauri 2')
-    expect(login).toContain('http://localhost:5173')
-    expect(login).not.toContain('http://localhost:3000')
+    expect(login).toContain('login-page__visual')
+    expect(login).toContain('login-page__preview')
+    expect(login).toContain('login-page__preview-table')
+    expect(login).toContain('ShieldCheckIcon')
+    expect(login).toContain('UserRoundIcon')
+    expect(login).toContain('LockKeyholeIcon')
+    expect(login).not.toContain('GopherMark')
+    expect(login).not.toContain('http://localhost:')
     expect(login).toContain("passwordVisible ? 'text' : 'password'")
     expect(login).toContain("passwordVisible ? '隐藏密码' : '显示密码'")
     expect(login).toContain('passwordInput.value?.focus()')
     expect(login).toContain('autofocus required')
-    expect(login).toContain('login-page__line--7')
-    expect(login).toMatch(/login-page__terminal\s*\{[^}]*flex:\s*0 1 620px[^}]*border-radius:\s*10px/s)
-    expect(login).toContain('@keyframes line-in')
-    expect(login).toContain('@media (max-width: 1100px)')
+    expect(login).toMatch(/login-page__preview\s*\{[^}]*aspect-ratio:\s*16 \/ 9/s)
+    expect(login).toMatch(/login-page__field input\s*\{[^}]*min-height:\s*44px/s)
+    expect(login).toContain('@media (max-width: 760px)')
     expect(login).not.toMatch(/captcha|验证码|uuid/i)
   })
 
@@ -140,7 +141,7 @@ describe('admin visual contract', () => {
     expect(account).toContain('两次输入的密码不一致。')
     expect(account).toContain("@keydown.right.prevent=\"activateTab('password')\"")
     expect(account).toContain("@keydown.left.prevent=\"activateTab('profile')\"")
-    expect(account).toMatch(/grid-template-columns:\s*minmax\(220px, 1fr\) minmax\(0, 3fr\)/)
+    expect(account).toMatch(/grid-template-columns:\s*minmax\(260px, 300px\) minmax\(0, 1fr\)/)
     for (const retained of ['用户名称', '用户昵称', '用户邮箱', '头像元数据', '基本资料', '修改密码']) {
       expect(account).toContain(retained)
     }
@@ -150,22 +151,18 @@ describe('admin visual contract', () => {
   it('keeps management creation and editing in explicit dialogs', async () => {
     const pages = await Promise.all([
       source('packages/web-domains/iam/src/administration/AdministrationPage.vue'),
-      source('packages/web-domains/organization/src/OrganizationPage.vue'),
       source('packages/web-domains/demo/src/DemoProductsPage.vue'),
-      source('packages/web-domains/settings/src/SettingsPage.vue'),
       source('packages/web-domains/scheduler/src/SchedulerPage.vue')
     ])
 
     const openControls = [
       'open-create-user',
-      'open-create-department',
       'open-product-form',
-      'open-setting-form',
       'open-scheduler-definition-form'
     ]
     pages.forEach((page, index) => {
       expect(page).toContain(`data-testid="${openControls[index]}"`)
-      if (index === 2) expect(page).toContain('<FormDialog')
+      if (index === 1) expect(page).toContain('<FormDialog')
       else {
         expect(page).toContain('management-dialog-backdrop')
         expect(page).toContain('role="dialog"')
@@ -175,9 +172,8 @@ describe('admin visual contract', () => {
   })
 
   it('localizes destructive confirmations and keeps read details in the shared modal contract', async () => {
-    const [shell, settingsController, audit] = await Promise.all([
+    const [shell, audit] = await Promise.all([
       source('packages/app-shell/src/product/ProductWorkspace.vue'),
-      source('packages/web-domains/settings/src/settings-controller.ts'),
       source('packages/web-domains/audit/src/AuditPage.vue')
     ])
 
@@ -185,7 +181,6 @@ describe('admin visual contract', () => {
       expect(shell).toContain(message)
     }
     expect(shell).not.toMatch(/Delete (?:this|\$\{count\})/)
-    expect(settingsController).not.toMatch(/'save-(?:setting|dictionary|item)'/)
     expect(audit).toContain('data-testid="audit-detail-dialog"')
     expect(audit).toContain('role="dialog"')
     expect(audit).toContain('detailDialog.value?.focus()')
@@ -194,41 +189,17 @@ describe('admin visual contract', () => {
   })
 
   it('exposes complete navigation for every retained paginated projection', async () => {
-    const [settings, generator, audit, administration, organization, scheduler, demo, files] = await Promise.all([
-      source('packages/web-domains/settings/src/SettingsPage.vue'),
-      source('packages/web-domains/generator/src/GeneratorWizardPage.vue'),
+    const [audit, administration, scheduler, demo, files] = await Promise.all([
       source('packages/web-domains/audit/src/AuditPage.vue'),
       source('packages/web-domains/iam/src/administration/AdministrationPage.vue'),
-      source('packages/web-domains/organization/src/OrganizationPage.vue'),
       source('packages/web-domains/scheduler/src/SchedulerPage.vue'),
       source('packages/web-domains/demo/src/DemoProductsPage.vue'),
       source('packages/web-domains/files/src/FilesPage.vue')
     ])
 
-    for (const testId of ['settings-pagination', 'dictionaries-pagination', 'items-pagination']) {
-      expect(settings).toContain(`data-testid="${testId}"`)
-    }
-    expect(settings).toContain("outcome==='failed'&&props.controller.failure()==='validation'")
-    for (const constraint of ['minlength="3"', 'maxlength="80"', 'maxlength="120"', 'maxlength="500"', 'max="100000" required']) {
-      expect(settings).toContain(constraint)
-    }
-    for (const list of ['settings', 'dictionaries', 'items']) {
-      expect(settings).toContain(`controller.${list}.setPage(`)
-      expect(settings).toContain(`controller.${list}.setPageSize(`)
-    }
-    expect(generator).toContain('data-testid="generator-table-pagination"')
-    expect(generator).toContain('controller.tables.setPage(')
-    expect(generator).toContain('controller.tables.setPageSize(')
-    expect(generator).toContain("if (await props.controller.createPreview() === 'completed')")
-    expect(generator).toContain('selectedFile.value = 0')
-    expect(generator).toContain('props.controller.reset(); selectedFile.value = 0; confirmed.value = false')
-    for (const pattern of ['[a-z][a-z0-9]{1,31}', '[A-Z][A-Za-z0-9]{0,63}', '[a-z][a-z0-9-]{1,63}']) {
-      expect(generator).toContain(`pattern="${pattern}"`)
-    }
     for (const [page, testIds, lists] of [
       [audit, ['audit-pagination'], ['list']],
       [administration, ['iam-users-pagination'], ['users']],
-      [organization, ['organization-positions-pagination'], ['positions']],
       [scheduler, ['scheduler-definitions-pagination', 'scheduler-executions-pagination'], ['definitions', 'executions']]
     ] as const) {
       for (const testId of testIds) expect(page).toContain(`data-testid="${testId}"`)
@@ -251,21 +222,19 @@ describe('admin visual contract', () => {
   })
 
   it('keeps routed browser and desktop drivers synchronized with localized UI labels', async () => {
-    const [iam, organization, scheduler, audit, desktop] = await Promise.all([
+    const [iam, scheduler, audit, desktop] = await Promise.all([
       source('tests/e2e/iam/administration/browser-driver.ts'),
-      source('tests/e2e/organization/browser-driver.ts'),
       source('tests/e2e/scheduler/browser-driver.ts'),
       source('tests/e2e/audit/browser-driver.ts'),
       source('tests/e2e/desktop/run.mjs')
     ])
 
     expect(iam).toContain("await router.push('/iam/users')")
-    expect(organization).toContain("path: '/organization/departments'")
     expect(scheduler).toContain("path: '/scheduler/executions'")
     expect(audit).toContain("includes('会话已失效，请重新登录')")
     for (const label of ['账号', '密码', '登录', '产品示例', '退出登录']) expect(desktop).toContain(`'${label}'`)
 
-    const drivers = [iam, organization, scheduler, audit, desktop].join('\n')
+    const drivers = [iam, scheduler, audit, desktop].join('\n')
     for (const staleLabel of ["'Users'", "'Departments'", "'Executions'", "'Sign in again'", "'Sign out'"]) {
       expect(drivers).not.toContain(staleLabel)
     }

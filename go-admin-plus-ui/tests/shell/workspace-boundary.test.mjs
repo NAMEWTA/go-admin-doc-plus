@@ -38,21 +38,15 @@ const requiredPackageNames = [
   '@go-admin-plus/domain-audit',
   '@go-admin-plus/domain-demo',
   '@go-admin-plus/domain-files',
-  '@go-admin-plus/domain-generator',
   '@go-admin-plus/domain-iam',
-  '@go-admin-plus/domain-organization',
   '@go-admin-plus/domain-scheduler',
-  '@go-admin-plus/domain-settings',
   '@go-admin-plus/platform',
   '@go-admin-plus/ui',
   '@go-admin-plus/web-domain-audit',
   '@go-admin-plus/web-domain-demo',
   '@go-admin-plus/web-domain-files',
-  '@go-admin-plus/web-domain-generator',
   '@go-admin-plus/web-domain-iam',
-  '@go-admin-plus/web-domain-organization',
   '@go-admin-plus/web-domain-scheduler',
-  '@go-admin-plus/web-domain-settings'
 ]
 
 const sourceFiles = async root => {
@@ -211,7 +205,7 @@ test('apps select adapters without owning runtime transport', async () => {
 
   const productShell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
   assert.doesNotMatch(productShell, /@go-admin-plus\/adapter-(?:browser|desktop)/)
-  for (const module of ['iam', 'audit', 'organization', 'settings', 'generator', 'scheduler', 'demo', 'files']) {
+  for (const module of ['iam', 'audit', 'scheduler', 'demo', 'files']) {
     assert.match(productShell, new RegExp(`@go-admin-plus/web-domain-${module}`), `product shell must compose ${module}`)
   }
   assert.match(productShell, /productRoutesFor\(props\.host\)/)
@@ -295,8 +289,11 @@ test('headless packages do not depend on Vue, DOM globals, deep imports, or cred
 })
 
 test('mobile shell uses an off-canvas navigation and gives content the full viewport width', async () => {
-  const shell = await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8')
+  const shell = [
+    await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.vue'), 'utf8'),
+    await readFile(join(workspaceRoot, 'packages/app-shell/src/product/ProductWorkspace.scss'), 'utf8')
+  ].join('\n')
   assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*grid-template-columns:\s*1fr/)
-  assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*\.product-shell__sidebar[^}]*transform:\s*translateX\(-100%\)/)
+  assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*\.product-shell__sidebar[^}]*transform:\s*translateX\(calc\(-100% - 16px\)\)/)
   assert.match(shell, /@media \(max-width: 760px\) \{[\s\S]*\.product-shell__sidebar\.is-mobile-open[^}]*transform:\s*translateX\(0\)/)
 })

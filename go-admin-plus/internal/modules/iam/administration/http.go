@@ -34,16 +34,11 @@ type httpContext struct {
 }
 
 type HTTPServer struct {
-	service    *Service
-	dataScopes *DataScopeService
-	deletions  *DeletionService
+	service   *Service
+	deletions *DeletionService
 }
 
 type HTTPOption func(*HTTPServer)
-
-func WithHTTPDataScopeService(service *DataScopeService) HTTPOption {
-	return func(server *HTTPServer) { server.dataScopes = service }
-}
 
 func WithHTTPDeletionService(service *DeletionService) HTTPOption {
 	return func(server *HTTPServer) { server.deletions = service }

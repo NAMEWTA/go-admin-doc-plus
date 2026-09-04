@@ -25,7 +25,6 @@ const (
 	profileEnvironment    = "GO_ADMIN_WEB_SHELL_E2E_PROFILE"
 	readyEnvironment      = "GO_ADMIN_WEB_SHELL_E2E_READY_FILE"
 	staticEnvironment     = "GO_ADMIN_WEB_SHELL_E2E_STATIC_DIR"
-	repositoryEnvironment = "GO_ADMIN_WEB_SHELL_E2E_REPOSITORY_ROOT"
 	postgresEnvironment   = "GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN"
 	administratorPassword = "web browser administrator password"
 )
@@ -46,20 +45,16 @@ func TestProductWebShellHarness(t *testing.T) {
 	profile := os.Getenv(profileEnvironment)
 	staticRoot := os.Getenv(staticEnvironment)
 	readyFile := os.Getenv(readyEnvironment)
-	repositoryRoot := os.Getenv(repositoryEnvironment)
-	if staticRoot == "" || readyFile == "" || repositoryRoot == "" {
+	if staticRoot == "" || readyFile == "" {
 		t.Fatal("product Web harness paths are required")
 	}
 	if info, err := os.Stat(staticRoot); err != nil || !info.IsDir() {
 		t.Fatal("product Web static directory is unavailable")
 	}
-	if info, err := os.Stat(repositoryRoot); err != nil || !info.IsDir() {
-		t.Fatal("product Web repository root is unavailable")
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	db, schema := openProductWebDatabase(t, ctx, profile)
+	db, _ := openProductWebDatabase(t, ctx, profile)
 	if profile == "postgres" {
 		runner, err := product.NewMigrationRunner()
 		if err != nil {
@@ -78,9 +73,7 @@ func TestProductWebShellHarness(t *testing.T) {
 	}
 	temporary := t.TempDir()
 	runtime, err := product.BuildPrepared(ctx, db, product.Options{
-		SessionPolicy: policy, FilesRoot: filepath.Join(temporary, "files"), RepositoryRoot: repositoryRoot,
-		GeneratorOutputRoot: filepath.Join(temporary, "generated"), GeneratorSchema: schema,
-		GeneratorTables: []string{"iam_accounts"}, WorkerOwner: "web-e2e-worker",
+		SessionPolicy: policy, FilesRoot: filepath.Join(temporary, "files"), WorkerOwner: "web-e2e-worker",
 		WorkerInterval: 50 * time.Millisecond, AuditRetentionAge: 24 * time.Hour,
 	}, false)
 	if err != nil {

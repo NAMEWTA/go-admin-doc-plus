@@ -1,6 +1,6 @@
-# Go Admin Plus
+# Go Admin Plus 0.0.1
 
-Go Admin Plus 是一个单仓库管理系统产品，包含 Go Server、Vue Web App 和 Tauri 2 Desktop App。
+Go Admin Plus 0.0.1 是一个单仓库管理系统产品，包含 Go Server、Vue Web App 和 Tauri 2 Desktop App。
 
 ## 仓库结构
 
@@ -13,6 +13,7 @@ Go Admin Plus 是一个单仓库管理系统产品，包含 Go Server、Vue Web 
 | `release/` | 三平台打包、签名、验证和制品策略 |
 | `database/` | 数据库支持和迁移约束 |
 | `docs/` | 当前架构、开发和发行文档 |
+| `.agents/skills/` | 项目级后端、前端和垂直切片开发规范 |
 
 ## 开发启动
 
@@ -35,8 +36,8 @@ task doctor PROFILE=server-sqlite
 task dev TARGET=server PROFILE=server-sqlite
 ```
 
-另开终端运行 `task dev TARGET=web`，在 Web 登录后完成账号、角色、组织、设置、调度、
-文件和 Demo 管理。Server PostgreSQL 同样先运行
+另开终端运行 `task dev TARGET=web`，在 Web 登录后完成 IAM、审计、调度、文件和 Demo
+管理。Server PostgreSQL 同样先运行
 `GO_ADMIN_DATABASE_DSN_FILE="$DSN_FILE" task migrate PROFILE=server-postgres`，再用统一 CLI 的
 `bootstrap --profile server-postgres --secret-file "$SECRET_FILE"` 初始化；API 与 worker
 不会隐式迁移 PostgreSQL。完整命令见[开发指南](docs/development.md)。

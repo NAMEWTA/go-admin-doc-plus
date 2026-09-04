@@ -30,6 +30,5 @@ set_plist CFBundleVersion string "$build_number"
 set_plist LSMinimumSystemVersion string "$minimum"
 plutil -lint "$plist" >/dev/null
 
-"$script_dir/prepare-generator-runtime.sh" "$app"
 touch -t 202001010000 "$plist"
 echo "GO_ADMIN_MACOS_APP_PREPARE_PASS"

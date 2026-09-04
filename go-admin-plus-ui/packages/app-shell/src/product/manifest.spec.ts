@@ -7,9 +7,6 @@ describe('product manifest', () => {
     expect(productModules.map(module => module.id)).toEqual([
       'iam',
       'audit',
-      'organization',
-      'settings',
-      'generator',
       'scheduler',
       'demo',
       'files'
@@ -18,7 +15,7 @@ describe('product manifest', () => {
 
   it('gives Web and Desktop the same business navigation', () => {
     expect(productRoutesFor('desktop')).toEqual(productRoutesFor('web'))
-    expect(productRoutesFor('web')).toHaveLength(13)
+    expect(productRoutesFor('web')).toHaveLength(8)
     expect(productRoutesFor('web').every(route =>
       route.name && route.title && route.icon && typeof route.component === 'function'
     )).toBe(true)

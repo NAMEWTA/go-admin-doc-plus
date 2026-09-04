@@ -66,13 +66,6 @@ jobs:
         with:
           version: 11.1.3
           run_install: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22.22.3
-          cache: pnpm
-          cache-dependency-path: go-admin-plus-ui/pnpm-lock.yaml
-      - name: Install generator frontend workspace
-        run: pnpm --dir go-admin-plus-ui install --frozen-lockfile
       - name: Test, analyze, and build
         working-directory: go-admin-plus
         run: |
@@ -113,17 +106,6 @@ jobs:
         with:
           go-version-file: go-admin-plus/go.mod
           cache-dependency-path: go-admin-plus/go.sum
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
-        with:
-          version: 11.1.3
-          run_install: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22.22.3
-          cache: pnpm
-          cache-dependency-path: go-admin-plus-ui/pnpm-lock.yaml
-      - name: Install generator workspace
-        run: pnpm --dir go-admin-plus-ui install --frozen-lockfile --ignore-scripts
       - name: Assert PostgreSQL service health
         run: pg_isready -h 127.0.0.1 -p 5432 -U postgres -d go_admin_ci
       - name: Run non-skippable PostgreSQL suites

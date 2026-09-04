@@ -25,11 +25,11 @@ test('fails zero targets, skips, missing runs and process failures', () => {
   ]) assert.throws(() => runRequiredPostgres({ root: '/repo', environment, suites: suite, prepare: () => {}, spawn: () => ({ status, stdout: output }) }), expected)
 })
 
-test('reports one pass and injects every legacy PostgreSQL environment name', () => {
+test('reports one pass and injects the required PostgreSQL environment names', () => {
   let child
   const report = runRequiredPostgres({ root: '/repo', environment, suites: [{ name: 'required', packagePath: './required', test: 'TestRequired' }], prepare: () => {}, spawn: (_command, _args, options) => { child = options.env; return { status: 0, stdout: [event('run'), event('pass')].join('\n') } } })
   assert.deepEqual(report, [{ name: 'required', test: 'TestRequired', schema: 'ci_01_required_42_1', executed: 1, passed: 1, skipped: 0 }])
-  for (const name of ['GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN', 'GO_ADMIN_TEST_POSTGRES_FILES_LIFECYCLE_DSN', 'GO_ADMIN_TEST_POSTGRES_IAM_DELETION_DSN', 'GO_ADMIN_SCHEDULER_POSTGRES_DSN', 'GO_ADMIN_GENERATOR_POSTGRES_DSN']) {
+  for (const name of ['GO_ADMIN_TEST_POSTGRES_DISPOSABLE_DSN', 'GO_ADMIN_TEST_POSTGRES_FILES_LIFECYCLE_DSN', 'GO_ADMIN_TEST_POSTGRES_IAM_DELETION_DSN', 'GO_ADMIN_SCHEDULER_POSTGRES_DSN']) {
     assert.equal(new URL(child[name]).searchParams.get('search_path'), 'ci_01_required_42_1')
   }
 })

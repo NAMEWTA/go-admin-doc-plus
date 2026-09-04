@@ -119,17 +119,17 @@ func openOperationalDatabase(ctx context.Context, snapshot config.Snapshot) (*da
 type operationalAudit struct{}
 
 func (operationalAudit) RecordBootstrap(ctx context.Context, tx database.Tx, fact bootstrap.Fact) error {
-	payload, _ := json.Marshal(map[string]string{"action": "bootstrap"})
+	payload, _ := json.Marshal(map[string]string{"action": "bootstrap", "source": "server"})
 	_, err := tx.ExecContext(ctx, `INSERT INTO audit_facts(topic, business_key, payload, occurred_at)
 		VALUES (?, ?, ?, ?)`, "operation.created", "resource:iam_bootstrap:"+fact.AccountID, payload, fact.OccurredAt)
 	return err
 }
 
 func (operationalAudit) RecordRecovery(ctx context.Context, tx database.Tx, fact recovery.Fact) error {
-	payload, _ := json.Marshal(map[string]string{"action": "recover-admin", "reason": string(fact.Reason)})
-	key := fmt.Sprintf("resource:iam_recovery:%s:%d", fact.AccountID, fact.OccurredAt.UnixNano())
-	_, err := tx.ExecContext(ctx, `INSERT INTO audit_facts(topic, business_key, actor_ref, payload, occurred_at)
-		VALUES (?, ?, ?, ?, ?)`, "operation.updated", key, "account:"+fact.AccountID, payload, fact.OccurredAt)
+	payload, _ := json.Marshal(map[string]string{"action": "recover-admin", "reason": string(fact.Reason), "source": "server"})
+	key := fmt.Sprintf("resource:iam_recovery:%s", fact.AccountID)
+	_, err := tx.ExecContext(ctx, `INSERT INTO audit_facts(topic, business_key, payload, occurred_at)
+		VALUES (?, ?, ?, ?)`, "operation.updated", key, payload, fact.OccurredAt)
 	return err
 }
 

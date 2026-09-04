@@ -24,8 +24,8 @@ func TestDomainStateAndIntegrationEventCommitAtomically(t *testing.T) {
 	store := newReliableStore(t, db)
 	event := outbox.Event{
 		ID:          "event-atomic-1",
-		Topic:       "settings.changed",
-		BusinessKey: "settings:site-name:1",
+		Topic:       "configuration.changed",
+		BusinessKey: "configuration:site-name:1",
 		Payload:     []byte(`{"value":"current"}`),
 		OccurredAt:  time.Date(2026, 8, 26, 12, 0, 0, 0, time.UTC),
 	}
