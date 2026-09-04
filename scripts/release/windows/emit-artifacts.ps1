@@ -22,12 +22,6 @@ Copy-Item -LiteralPath (Join-Path $repository 'release/windows/identity.json') -
 Copy-Item -LiteralPath (Join-Path $repository 'release/windows/INSTALL.md') -Destination $output.FullName
 syft.exe "file:$ApplicationFile" -o "spdx-json=$(Join-Path $sbom.FullName 'go-admin-plus-windows-x64.spdx.json')"
 if ($LASTEXITCODE -ne 0) { throw 'Windows SBOM generation failed.' }
-$signature = Get-AuthenticodeSignature -LiteralPath $InstallerFile
-if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or
-    $null -eq $signature.TimeStamperCertificate -or
-    $signature.SignerCertificate.Thumbprint -ne $env:AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT) {
-    throw 'Installer signer does not match the protected release identity.'
-}
 [ordered]@{
     schemaVersion = 1
     product = 'go-admin-plus'
@@ -35,12 +29,10 @@ if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or
     sourceSha = $SourceSha
     platform = 'windows-x64'
     targetTriple = $identity.targetTriple
-    releaseClass = 'signed-production'
+    releaseClass = 'private-release'
     installer = 'nsis'
-    signed = $true
-    signingProvider = $identity.signingProvider
-    signerThumbprint = $signature.SignerCertificate.Thumbprint
-    timestamped = ($null -ne $signature.TimeStamperCertificate)
+    signed = $false
+    timestamped = $false
     remotePublished = $false
     sbomFormat = 'SPDX JSON'
 } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output.FullName 'provenance.json') -Encoding utf8NoBOM

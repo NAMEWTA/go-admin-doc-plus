@@ -13,7 +13,7 @@ scripts/release/linux/compose.sh sqlite config
 scripts/release/linux/compose.sh postgres config
 ```
 
-运行时 secret 位于 `deploy/compose/runtime/secrets/`，不得提交到 Git。具体镜像构建和验收见 [Linux 发行说明](../release/linux/README.md)。
+运行时 secret 位于 `deploy/compose/runtime/secrets/`，不得提交到 Git。具体镜像构建和验收见 [Linux 发行说明](../release/linux/README.md)。如果不使用 Compose，也可以直接部署 GitHub Release 提供的 Linux service 归档，安装步骤见 [Linux service 安装指南](../release/linux/SERVER-INSTALL.md)。
 
 PostgreSQL profile 由一次性 `migrate-postgres` 服务独占执行迁移；`api-postgres` 和
 `worker-postgres` 都以 `condition: service_completed_successfully` 等待它。API/worker 只检查

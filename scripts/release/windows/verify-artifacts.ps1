@@ -13,18 +13,7 @@ $installer = Get-Item -LiteralPath $InstallerFile
 $application = Get-Item -LiteralPath $ApplicationFile
 $expected = "$($identity.artifactBasename)-$Version-windows-x64-setup.exe"
 if ($installer.Name -ne $expected) { throw "Unexpected installer name: $($installer.Name)" }
-$expectedThumbprint = $env:AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT
-if ($expectedThumbprint -notmatch '^[0-9A-Fa-f]{40}$') { throw 'Expected signing certificate thumbprint is invalid.' }
 
-function Assert-Signed {
-    param([System.IO.FileInfo] $File)
-    $signature = Get-AuthenticodeSignature -LiteralPath $File.FullName
-    if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate -or
-        $signature.SignerCertificate.Thumbprint -ne $expectedThumbprint) {
-        throw "$($File.Name) does not have a valid Authenticode signature."
-    }
-    if ($null -eq $signature.TimeStamperCertificate) { throw "$($File.Name) is not timestamped." }
-}
 function Assert-X64Pe {
     param([System.IO.FileInfo] $File)
     $stream = $File.OpenRead()
@@ -37,15 +26,13 @@ function Assert-X64Pe {
         if ($reader.ReadUInt32() -ne 0x00004550 -or $reader.ReadUInt16() -ne 0x8664) {
             throw "$($File.Name) is not an x64 PE executable."
         }
-    } finally { $stream.Dispose() }
+    } finally { $reader.Dispose(); $stream.Dispose() }
 }
 
-Assert-Signed $installer
-Assert-Signed $application
 Assert-X64Pe $application
 $listing = (& 7z.exe l $installer.FullName 2>&1) -join "`n"
 if ($LASTEXITCODE -ne 0 -or $listing -notmatch 'go-admin-plus-desktop\.exe' -or
     $listing -notmatch 'go-admin-sidecar\.exe') {
-    throw 'NSIS installer does not contain the signed app and sidecar.'
+    throw 'NSIS installer does not contain the x64 app and sidecar.'
 }
 Write-Host 'GO_ADMIN_WINDOWS_ARTIFACT_VERIFY_PASS'

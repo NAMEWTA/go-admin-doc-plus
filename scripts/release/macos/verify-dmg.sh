@@ -5,9 +5,6 @@ set -euo pipefail
 dmg=$1
 [[ -f "$dmg" ]]
 hdiutil verify "$dmg" >/dev/null
-codesign --verify --strict --verbose=2 "$dmg"
-xcrun stapler validate "$dmg"
-spctl --assess --type open --context context:primary-signature -vv "$dmg"
 mountpoint=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/go-admin-macos-mount.XXXXXX")
 mounted=false
 cleanup() {
@@ -19,6 +16,5 @@ hdiutil attach -quiet -readonly -nobrowse -mountpoint "$mountpoint" "$dmg"
 mounted=true
 app=$(find "$mountpoint" -maxdepth 1 -type d -name '*.app' -print -quit)
 [[ -n "$app" ]]
-"$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/verify-app.sh" "$app" signed-production
-spctl --assess --type execute -vv "$app"
+"$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/verify-app.sh" "$app" private-release
 echo "GO_ADMIN_MACOS_DMG_VERIFY_PASS"

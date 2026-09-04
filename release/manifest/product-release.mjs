@@ -2,48 +2,42 @@
 
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-const PRODUCT_REPOSITORY = 'NAMEWTA/go-admin-plus'
 const SHA_PATTERN = /^[0-9a-f]{40}$/
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/
 
 const platforms = {
   linux: {
-    workflow: '.github/workflows/release-linux.yml',
+    workflow: '.github/workflows/release.yml',
     platforms: ['linux/amd64', 'linux/arm64'],
-    host: 'server-web',
-    releaseClass: 'oci-compose',
+    host: 'server-service',
+    releaseClass: 'linux-service',
     checksums: ['SHA256SUMS'],
-    sboms: [
-      'sbom/go-admin-plus-server-linux-amd64.spdx.json',
-      'sbom/go-admin-plus-server-linux-arm64.spdx.json',
-      'sbom/go-admin-plus-web-linux-amd64.spdx.json',
-      'sbom/go-admin-plus-web-linux-arm64.spdx.json'
-    ],
-    signature: { type: 'digest-provenance', required: true }
+    sboms: [],
+    signature: { type: 'none', required: false }
   },
   macos: {
-    workflow: '.github/workflows/release-macos.yml',
-    platforms: ['darwin/amd64', 'darwin/arm64'],
+    workflow: '.github/workflows/release.yml',
+    platforms: ['darwin/arm64'],
     host: 'desktop',
-    releaseClass: 'signed-production',
+    releaseClass: 'private-release',
     checksums: ['SHA256SUMS'],
-    sboms: ['go-admin-plus-macos-universal.spdx.json'],
-    signature: { type: 'developer-id', required: true, notarization: 'apple-notary' }
+    sboms: ['go-admin-plus-macos-arm64.spdx.json'],
+    signature: { type: 'none', required: false }
   },
   windows: {
-    workflow: '.github/workflows/release-windows.yml',
+    workflow: '.github/workflows/release.yml',
     platforms: ['windows/amd64'],
     host: 'desktop',
-    releaseClass: 'signed-production',
+    releaseClass: 'private-release',
     checksums: ['SHA256SUMS'],
-    sboms: ['go-admin-plus-windows-amd64.spdx.json'],
-    signature: { type: 'authenticode', required: true, timestamp: 'required' }
+    sboms: ['go-admin-plus-windows-x64.spdx.json'],
+    signature: { type: 'none', required: false }
   }
 }
 
@@ -74,11 +68,6 @@ const exactSha = (value, name) => {
   if (!SHA_PATTERN.test(normalized)) fail(`${name} must be an exact lowercase 40-character SHA`)
   return normalized
 }
-const numericId = (value, name) => {
-  if (!/^\d+$/.test(String(value)) || Number(value) <= 0) fail(`${name} must be a positive numeric GitHub ID`)
-  return Number(value)
-}
-
 const walk = directory => readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
   const path = join(directory, entry.name)
   return entry.isDirectory() ? walk(path) : [path]
@@ -101,9 +90,10 @@ const sourceContract = version => {
   const windows = JSON.parse(readFileSync(join(ROOT, 'release/windows/identity.json'), 'utf8'))
   const linux = JSON.parse(readFileSync(join(ROOT, 'release/linux/identity.json'), 'utf8'))
   if (tauri.version !== version) fail(`version ${version} does not match Tauri product version ${tauri.version}`)
-  if (macos.releaseClass !== 'signed-production' || !macos.signingRequired || !macos.notarizationRequired) fail('macOS production identity is incomplete')
-  if (windows.releaseClass !== 'signed-production' || !windows.signingRequired) fail('Windows production identity is incomplete')
-  if (JSON.stringify(linux.platforms) !== JSON.stringify(platforms.linux.platforms)) fail('Linux platform identity is incomplete')
+  if (macos.releaseClass !== 'private-release' || macos.signingRequired || macos.notarizationRequired || JSON.stringify(macos.architectures) !== JSON.stringify(['arm64'])) fail('macOS ARM64 identity is incomplete')
+  if (windows.releaseClass !== 'private-release' || windows.signingRequired || windows.architecture !== 'x86_64') fail('Windows x64 identity is incomplete')
+  if (JSON.stringify(linux.platforms) !== JSON.stringify(platforms.linux.platforms) ||
+      JSON.stringify(linux.artifacts) !== JSON.stringify(['go-admin-plus-server'])) fail('Linux service identity is incomplete')
   const rootSha = exactSha(run('git', ['rev-parse', 'HEAD']), 'root SHA')
   const openapiPath = 'scripts/contracts/generated/openapi.json'
   return {
@@ -124,62 +114,6 @@ const preflight = options => {
   process.stdout.write(`${JSON.stringify({ version, ...contract }, null, 2)}\n`)
 }
 
-const githubJson = async path => {
-  const headers = {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'go-admin-plus-product-release-contract'
-  }
-  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
-  if (token) headers.Authorization = `Bearer ${token}`
-  const response = await fetch(`https://api.github.com${path}`, { headers })
-  if (!response.ok) fail(`GitHub API ${path} returned ${response.status}`)
-  return response.json()
-}
-
-const collectPlatform = async (key, options, sourceSha, version) => {
-  const definition = platforms[key]
-  const runId = numericId(requireOption(options, `${key}-run-id`), `${key} run ID`)
-  const artifactId = numericId(requireOption(options, `${key}-artifact-id`), `${key} artifact ID`)
-  const [workflowRun, artifact] = await Promise.all([
-    githubJson(`/repos/${PRODUCT_REPOSITORY}/actions/runs/${runId}`),
-    githubJson(`/repos/${PRODUCT_REPOSITORY}/actions/artifacts/${artifactId}`)
-  ])
-  if (workflowRun.status !== 'completed' || workflowRun.conclusion !== 'success') fail(`${key} workflow run is not a completed success`)
-  if (workflowRun.event !== 'workflow_dispatch' || workflowRun.path !== definition.workflow) fail(`${key} workflow identity is invalid`)
-  if (exactSha(workflowRun.head_sha, `${key} head SHA`) !== sourceSha) fail(`${key} source SHA drifted`)
-  if (workflowRun.display_title !== `${key} source=${sourceSha} version=${version}`) fail(`${key} run title does not bind source and version`)
-  if (artifact.expired || artifact.workflow_run?.id !== runId) fail(`${key} artifact does not belong to the active run`)
-  if (artifact.name !== `go-admin-plus-${key}-${version}-${sourceSha}`) fail(`${key} artifact name does not bind source and version`)
-  if (!DIGEST_PATTERN.test(artifact.digest ?? '')) fail(`${key} artifact has no SHA-256 archive digest`)
-  return {
-    platforms: definition.platforms,
-    host: definition.host,
-    release: { product_version: version, class: definition.releaseClass },
-    provenance: {
-      repository: PRODUCT_REPOSITORY,
-      workflow: definition.workflow,
-      run_id: runId,
-      run_attempt: workflowRun.run_attempt,
-      head_sha: sourceSha,
-      event: workflowRun.event,
-      conclusion: workflowRun.conclusion,
-      url: workflowRun.html_url
-    },
-    artifact: {
-      id: artifactId,
-      name: artifact.name,
-      archive_sha256: artifact.digest,
-      size_bytes: artifact.size_in_bytes,
-      created_at: artifact.created_at,
-      expires_at: artifact.expires_at
-    },
-    checksums: { algorithm: 'SHA-256', files: definition.checksums },
-    sbom: { format: 'SPDX JSON', files: definition.sboms },
-    signature: definition.signature
-  }
-}
-
 const validateManifest = manifest => {
   if (manifest.schema_version !== 2) fail('manifest schema_version must be 2')
   if (manifest.product?.name !== 'Go Admin Plus') fail('manifest product name is invalid')
@@ -196,29 +130,10 @@ const validateManifest = manifest => {
     if (item.provenance?.head_sha !== manifest.provenance.source_sha) fail(`${key} source provenance drifted`)
     if (!DIGEST_PATTERN.test(item.artifact?.archive_sha256 ?? '')) fail(`${key} artifact digest is invalid`)
     if (!Array.isArray(item.checksums?.files) || item.checksums.files.length === 0) fail(`${key} checksums are missing`)
-    if (!Array.isArray(item.sbom?.files) || item.sbom.files.length === 0) fail(`${key} SBOM is missing`)
+    if (!Array.isArray(item.sbom?.files) || JSON.stringify(item.sbom.files) !== JSON.stringify(definition.sboms)) fail(`${key} SBOM contract is invalid`)
     if (JSON.stringify(item.signature) !== JSON.stringify(definition.signature)) fail(`${key} signature evidence is invalid`)
   }
   return manifest
-}
-
-const collect = async options => {
-  const version = requireOption(options, 'version')
-  const output = resolve(ROOT, requireOption(options, 'output'))
-  const contract = sourceContract(version)
-  const artifacts = Object.fromEntries(await Promise.all(Object.keys(platforms).map(async key => [
-    key, await collectPlatform(key, options, contract.rootSha, version)
-  ])))
-  const manifest = validateManifest({
-    schema_version: 2,
-    generated_at: new Date().toISOString(),
-    product: { name: 'Go Admin Plus', version, release_class: 'production-candidate', publication_authorized: false },
-    provenance: { source_sha: contract.rootSha, openapi: contract.openapi, migration: contract.migration },
-    artifacts,
-    policy: { protected_platform_gates_required: true, global_security_disable: false, publication_authorized: false }
-  })
-  writeFileSync(output, `${JSON.stringify(manifest, null, 2)}\n`)
-  process.stdout.write(`GO_ADMIN_PRODUCT_MANIFEST_PASS output=${output}\n`)
 }
 
 const verify = options => {
@@ -232,9 +147,8 @@ const main = async () => {
   const [command, ...values] = process.argv.slice(2)
   const options = parseArgs(values)
   if (command === 'preflight') return preflight(options)
-  if (command === 'collect') return collect(options)
   if (command === 'verify') return verify(options)
-  fail('usage: product-release.mjs <preflight|collect|verify> [options]')
+  fail('usage: product-release.mjs <preflight|verify> [options]')
 }
 
 main().catch(error => {

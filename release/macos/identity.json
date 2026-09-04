@@ -4,12 +4,13 @@
   "productName": "Go Admin Plus",
   "bundleIdentifier": "com.goadmin.plus",
   "minimumSystemVersion": "13.0",
-  "artifactBasename": "go-admin-plus-macos-universal",
-  "architectures": ["x86_64", "arm64"],
-  "releaseClass": "signed-production",
-  "signingRequired": true,
-  "notarizationRequired": true,
-  "hardenedRuntimeRequired": true,
+  "artifactBasename": "go-admin-plus-macos-arm64",
+  "architectures": ["arm64"],
+  "targetTriple": "aarch64-apple-darwin",
+  "releaseClass": "private-release",
+  "signingRequired": false,
+  "notarizationRequired": false,
+  "hardenedRuntimeRequired": false,
   "remotePublish": false,
-  "evidence": ["SHA256SUMS", "SPDX JSON", "provenance.json", "notary.json"]
+  "evidence": ["SHA256SUMS", "SPDX JSON", "provenance.json"]
 }

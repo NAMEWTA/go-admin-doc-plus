@@ -1,21 +1,21 @@
-# 发行资产
+# Release Assets
 
-本目录按平台和生命周期管理产品发行：
+This directory contains the platform release contracts and packaging helpers:
 
-- `linux/`：双架构 OCI、Compose、secret 与安装验证。
-- `macos/`：Universal App、Developer ID 签名、公证、DMG 和安装验证。
-- `windows/`：x64 sidecar、Tauri 2 NSIS、Authenticode 签名和安装验证。
-- `shared/`：Desktop sidecar 的共享打包逻辑。
-- `manifest/`：跨平台来源、摘要、SBOM 和签名状态聚合。
+- `linux/`: Linux amd64/arm64 server service bundles, systemd unit, Compose configuration, and deployment docs.
+- `macos/`: Apple Silicon ARM64 app, DMG, and install verification.
+- `windows/`: x64 sidecar, Tauri 2 NSIS installer, install-path and persistence verification.
+- `shared/`: shared Desktop sidecar packaging logic.
+- `manifest/`: source, checksum, and artifact contracts used by local release preflight.
 
-普通 CI 只运行可复现构建和策略测试。签名、公证、原生安装以及最终候选收集必须在受保护平台环境执行；任何缺失证据都使发行失败。
+Regular CI runs reproducible builds and policy tests. Pushing an exact semver tag automatically builds
+and publishes the Linux, macOS ARM64, and Windows x64 artifacts through `.github/workflows/release.yml`.
+This project intentionally does not sign or notarize its private self-use releases.
 
 ```bash
 task release VERSION=0.0.1
+task release:verify
 ```
 
-该命令只执行本地预检，不上传制品、不触发远端 workflow。
-
-本地发布候选还必须运行 `task release:verify` 与文档规定的 three-profile clean-room。该演练只用
-disposable 数据；个人自用签名和公证为 `not-required`。正式跨平台分发仍由受保护 workflow
-执行签名、公证和安装验证，不能用本地未签名构建替代。
+Those commands validate the local source and packaging contracts; only the tag workflow publishes a
+GitHub Release.

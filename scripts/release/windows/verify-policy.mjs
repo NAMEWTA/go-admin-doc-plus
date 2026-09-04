@@ -11,10 +11,8 @@ export function verifyIdentity(identity) {
   assert.equal(identity.bundleIdentifier, 'com.goadmin.plus')
   assert.equal(identity.architecture, 'x86_64')
   assert.equal(identity.targetTriple, 'x86_64-pc-windows-msvc')
-  assert.equal(identity.releaseClass, 'signed-production')
-  assert.equal(identity.signingRequired, true)
-  assert.equal(identity.signingProvider, 'azure-artifact-signing')
-  assert.equal(identity.signerIdentity, 'protected-exact-thumbprint')
+  assert.equal(identity.releaseClass, 'private-release')
+  assert.equal(identity.signingRequired, false)
   assert.equal(identity.installerType, 'nsis')
   assert.equal(identity.installMode, 'currentUser')
   assert.equal(identity.webviewInstallMode, 'offlineInstaller')
@@ -28,71 +26,44 @@ export function verifyIdentity(identity) {
 }
 
 export function verifyWorkflow(workflow) {
-  assert.match(workflow, /environment:\s*windows-production/)
-  assert.match(workflow, /source_ref:/)
-  assert.match(workflow, /git rev-parse HEAD/)
-  assert.match(workflow, /artifact-signing-cli --version 0\.11\.0 --locked/)
-  assert.match(workflow, /tauri-driver --version 2\.0\.6 --locked/)
-  assert.match(workflow, /AZURE_ARTIFACT_SIGNING_ENDPOINT/)
-  assert.match(workflow, /AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT/)
+  assert.match(workflow, /tags:\s*[\s\S]*['"]\*\.\*\.\*['"]|tags:\s*\n\s+- ['"]\*\.\*\.\*['"]/
+  )
+  assert.match(workflow, /windows-2025/)
+  assert.match(workflow, /PROCESSOR_ARCHITECTURE/)
   assert.match(workflow, /build-nsis\.ps1/)
   assert.match(workflow, /verify-install\.ps1/)
-  assert.match(workflow, /GO_ADMIN_WINDOWS_SUPPLY_CHAIN_PASS/)
-  assert.doesNotMatch(workflow, /wails|unsigned-self-use|NotSigned|go-admin-ui-plus/i)
-  assert.doesNotMatch(workflow, /gh\s+release|actions\/create-release|softprops\/action-gh-release/)
+  assert.match(workflow, /gh release create/)
+  assert.doesNotMatch(workflow, /wails|AZURE_|APPLE_|signing|notariz|Authenticode|signed-production/i)
 }
 
 export async function verifyRepository(repository) {
   const read = relative => readFile(path.join(repository, relative), 'utf8')
-  const [identityText, tauriText, runtime, builder, signer, verifier, installer, tracer, artifacts, workflow] = await Promise.all([
+  const [identityText, tauriText, runtime, builder, verifier, installer, artifacts, workflow] = await Promise.all([
     read('release/windows/identity.json'),
     read('go-admin-plus-ui/apps/admin-desktop/src-tauri/tauri.conf.json'),
     read('go-admin-plus-ui/apps/admin-desktop/src-tauri/src/main.rs'),
     read('scripts/release/windows/build-nsis.ps1'),
-    read('scripts/release/windows/sign.cmd'),
     read('scripts/release/windows/verify-artifacts.ps1'),
     read('scripts/release/windows/verify-install.ps1'),
-    read('scripts/release/windows/trace-installed.mjs'),
     read('scripts/release/windows/emit-artifacts.ps1'),
-    read('.github/workflows/release-windows.yml')
+    read('.github/workflows/release.yml')
   ])
   const identity = JSON.parse(identityText)
   const tauri = JSON.parse(tauriText)
   verifyIdentity(identity)
   assert.equal(tauri.identifier, identity.bundleIdentifier)
-  assert.match(runtime, /\.env_clear\(\)/)
-  assert.doesNotMatch(runtime, /resource_dir/i)
-  assert.match(builder, /x86_64-pc-windows-msvc|targetTriple/)
-  assert.match(builder, /webviewInstallMode/)
-  assert.match(builder, /offlineInstaller/)
+  assert.match(runtime, /current_exe\(\)/)
+  assert.match(builder, /x86_64-pc-windows-msvc/)
   assert.match(builder, /installMode = 'currentUser'/)
-  assert.match(builder, /signCommand/)
-  assert.match(builder, /verify-production\.mjs/)
-  assert.match(builder, /--files/)
-  assert.match(signer, /artifact-signing-cli/)
-  assert.match(verifier, /Get-AuthenticodeSignature/)
-  assert.match(verifier, /TimeStamperCertificate/)
-  assert.match(verifier, /AZURE_ARTIFACT_SIGNING_EXPECTED_THUMBPRINT/)
-  assert.match(installer, /GITHUB_ACTIONS/)
-  assert.match(installer, /appDataPreserved/)
-  assert.match(installer, /installDirectoryRemoved/)
-  assert.match(installer, /TimeStamperCertificate/)
-  assert.match(installer, /WebView2/)
-  assert.match(installer, /msedgedriver\.microsoft\.com\/\$webViewVersion/)
-  assert.match(installer, /SignerCertificate\.Subject -notmatch 'Microsoft'/)
-  assert.match(installer, /trace-installed\.mjs/)
-  assert.match(installer, /go-admin-plus\.db/)
-  assert.doesNotMatch(installer, /go-admin\.sqlite3/)
-  assert.match(tracer, /GO_ADMIN_WINDOWS_INSTALLED_TRACER_PASS/)
-  assert.match(tracer, /firstLaunchLogin/)
-  assert.match(tracer, /persistence/)
-  assert.match(artifacts, /spdx-json=/)
-  assert.match(artifacts, /remotePublished = \$false/)
+  assert.doesNotMatch(builder, /signCommand|artifact-signing|AZURE_/i)
+  assert.match(verifier, /Assert-X64Pe/)
+  assert.doesNotMatch(verifier, /Authenticode|SignerCertificate|thumbprint/i)
+  assert.match(installer, /installDirectory = Join-Path \$env:RUNNER_TEMP/)
+  assert.match(installer, /dataRoot = Join-Path \$installDirectory 'data'/)
+  assert.match(installer, /installPathSelected = \$true/)
+  assert.match(artifacts, /releaseClass = 'private-release'/)
+  assert.doesNotMatch(artifacts, /Authenticode|signing|thumbprint/i)
   verifyWorkflow(workflow)
-  for (const legacy of [
-    'release/windows/prepare-project.ps1', 'release/windows/verify-installer.ps1',
-    'release/windows/verify-self-use-install.ps1', 'release/windows/verify-payload.ps1'
-  ]) await assert.rejects(read(legacy))
 }
 
 const current = fileURLToPath(import.meta.url)

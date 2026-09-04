@@ -128,14 +128,3 @@ tasks:
       vars: [VERSION]
     cmds:
       - '{{.RUN_SCRIPT}} scripts/go-admin-plus/release.sh preflight "{{.VERSION}}"'
-
-  release:collect:
-    internal: true
-    requires:
-      vars: [VERSION, LINUX_RUN_ID, LINUX_ARTIFACT_ID, MACOS_RUN_ID, MACOS_ARTIFACT_ID, WINDOWS_RUN_ID, WINDOWS_ARTIFACT_ID]
-    cmds:
-      - >-
-        {{.RUN_SCRIPT}} scripts/go-admin-plus/release.sh collect "{{.VERSION}}"
-        "{{.LINUX_RUN_ID}}" "{{.LINUX_ARTIFACT_ID}}"
-        "{{.MACOS_RUN_ID}}" "{{.MACOS_ARTIFACT_ID}}"
-        "{{.WINDOWS_RUN_ID}}" "{{.WINDOWS_ARTIFACT_ID}}"

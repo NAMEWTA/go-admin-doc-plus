@@ -8,10 +8,8 @@
   "architecture": "x86_64",
   "targetTriple": "x86_64-pc-windows-msvc",
   "minimumWindowsVersion": "10.0.19041",
-  "releaseClass": "signed-production",
-  "signingRequired": true,
-  "signingProvider": "azure-artifact-signing",
-  "signerIdentity": "protected-exact-thumbprint",
+  "releaseClass": "private-release",
+  "signingRequired": false,
   "installerType": "nsis",
   "installMode": "currentUser",
   "webviewInstallMode": "offlineInstaller",
@@ -21,8 +19,8 @@
     "removeInstallDirectory": true
   },
   "dataPaths": {
-    "data": "%APPDATA%\\com.goadmin.plus",
-    "logs": "%LOCALAPPDATA%\\com.goadmin.plus\\logs"
+    "data": "<selected-install-directory>\\data",
+    "logs": "<selected-install-directory>\\logs"
   },
   "remotePublish": false,
   "evidence": ["SHA256SUMS", "SPDX JSON", "provenance.json", "install-evidence.json"]

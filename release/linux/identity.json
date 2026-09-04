@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "go-admin-plus",
-  "artifacts": ["go-admin-plus-server", "go-admin-plus-web"],
+  "artifacts": ["go-admin-plus-server"],
   "platforms": ["linux/amd64", "linux/arm64"],
   "profiles": ["server-postgres", "server-sqlite"],
   "packageManager": "pnpm@11.1.3",

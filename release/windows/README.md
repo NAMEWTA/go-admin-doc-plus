@@ -1,13 +1,15 @@
 # Windows x64 Release
 
 `identity.json` is the canonical Windows release contract. The only release artifact is a
-Tauri 2 x64 NSIS installer produced from one immutable source commit in the protected
-`windows-production` environment.
+Tauri 2 x64 NSIS installer produced automatically when an exact semver tag is pushed.
 
-The application, sidecar, and installer must have timestamped Authenticode signatures from Azure
-Artifact Signing. The installer uses current-user scope and embeds the WebView2 offline installer.
-Every payload signer must match the exact certificate thumbprint supplied by the protected environment.
+The installer is intentionally unsigned for private self-use. Windows SmartScreen or Defender may
+show a warning; continue only on a machine you control. The NSIS installer is current-user scoped,
+shows the normal destination chooser, and embeds the WebView2 offline installer.
 
-Uninstall removes only installed product files. It preserves `%APPDATA%\com.goadmin.plus`, the
-local log directory, and the Stronghold credential. The protected install tracer performs login,
-Demo CRUD, restart/persistence, and uninstall-boundary checks before retaining release evidence.
+Choose the installation directory during setup. The application stores its SQLite database, files,
+backups, logs, and desktop runtime state below `<install-directory>\\data` and
+`<install-directory>\\logs`; moving or replacing the directory without backing it up can lose data.
+Uninstall removes installed binaries and leaves runtime-created data for recovery. The release
+workflow smoke-tests a non-default installation path, first launch, login, CRUD, restart, and data
+persistence.

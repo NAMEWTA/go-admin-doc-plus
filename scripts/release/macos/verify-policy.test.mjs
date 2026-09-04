@@ -7,40 +7,36 @@ import { verifyIdentity, verifyRepository, verifyWorkflow } from './verify-polic
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 
-test('repository macOS release policy is complete', async () => {
+test('repository macOS release policy targets Apple Silicon self-use', async () => {
   await verifyRepository(repository)
 })
 
-test('identity rejects a single-architecture or unsigned release', () => {
+test('identity rejects Intel or signed release drift', () => {
   assert.throws(() => verifyIdentity({
     schemaVersion: 1,
     identityStatus: 'approved',
     bundleIdentifier: 'com.goadmin.plus',
-    architectures: ['arm64'],
-    releaseClass: 'development',
+    architectures: ['x86_64', 'arm64'],
+    targetTriple: 'aarch64-apple-darwin',
+    releaseClass: 'private-release',
     signingRequired: false,
     notarizationRequired: false,
     hardenedRuntimeRequired: false,
     remotePublish: false,
-    evidence: []
+    evidence: ['SHA256SUMS', 'SPDX JSON', 'provenance.json']
   }))
 })
 
-test('workflow rejects self-use and remote release regression', () => {
+test('workflow rejects signing or non-tag release regressions', () => {
   const invalid = `
-environment: macos-production
-source_ref:
-git rev-parse HEAD
-universal-apple-darwin
-APPLE_SIGNING_IDENTITY
-APPLE_NOTARY_KEY_P8_BASE64
-sign-app.sh
-notarize.sh app
-notarize.sh dmg
-verify-install.sh
-GO_ADMIN_MACOS_SUPPLY_CHAIN_PASS
-unsigned-self-use
+tags:
+  - '*.*.*'
+macos-15
+aarch64-apple-darwin
+build-arm64.sh
+--no-sign
 gh release create
+APPLE_SIGNING_IDENTITY
 `
   assert.throws(() => verifyWorkflow(invalid))
 })

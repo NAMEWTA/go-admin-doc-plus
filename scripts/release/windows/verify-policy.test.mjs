@@ -10,19 +10,18 @@ test('repository Windows release policy is complete', async () => {
   await verifyRepository(repository)
 })
 
-test('identity rejects unsigned, non-x64, or destructive uninstall releases', async () => {
+test('identity rejects non-x64 or destructive uninstall releases', async () => {
   const identity = JSON.parse(await import('node:fs/promises').then(fs => fs.readFile(path.join(repository, 'release/windows/identity.json'), 'utf8')))
   for (const change of [
-    { signingRequired: false },
     { architecture: 'arm64' },
-    { releaseClass: 'unsigned-self-use' },
+    { releaseClass: 'signed-production' },
     { uninstallPolicy: { ...identity.uninstallPolicy, preserveAppData: false } }
   ]) assert.throws(() => verifyIdentity({ ...identity, ...change }))
 })
 
-test('workflow rejects Wails, self-use, and remote publishing regressions', async () => {
-  const workflow = await import('node:fs/promises').then(fs => fs.readFile(path.join(repository, '.github/workflows/release-windows.yml'), 'utf8'))
-  for (const regression of ['wails build', 'unsigned-self-use', 'gh release create']) {
+test('workflow rejects signing and remote publishing regressions', async () => {
+  const workflow = await import('node:fs/promises').then(fs => fs.readFile(path.join(repository, '.github/workflows/release.yml'), 'utf8'))
+  for (const regression of ['wails build', 'AZURE_SIGNING_TOKEN', 'signed-production']) {
     assert.throws(() => verifyWorkflow(`${workflow}\n${regression}\n`))
   }
 })

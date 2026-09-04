@@ -527,14 +527,24 @@ fn runtime_paths(app: &tauri::AppHandle) -> Result<(PathBuf, PathBuf), &'static 
         let root = fs::canonicalize(root).map_err(|_| "desktop e2e root invalid")?;
         return Ok((root.join("data"), root.join("logs")));
     }
-    Ok((
-        app.path()
-            .app_data_dir()
-            .map_err(|_| "desktop data path unavailable")?,
-        app.path()
-            .app_log_dir()
-            .map_err(|_| "desktop log path unavailable")?,
-    ))
+    let _ = app;
+    let executable = env::current_exe().map_err(|_| "desktop executable path unavailable")?;
+    let install_root = installation_root(&executable)?;
+    Ok((install_root.join("data"), install_root.join("logs")))
+}
+
+fn installation_root(executable: &Path) -> Result<PathBuf, &'static str> {
+    let executable = executable
+        .parent()
+        .ok_or("desktop installation path unavailable")?;
+    #[cfg(target_os = "macos")]
+    let root = executable
+        .parent()
+        .and_then(Path::parent)
+        .ok_or("desktop application bundle path unavailable")?;
+    #[cfg(not(target_os = "macos"))]
+    let root = executable;
+    Ok(root.to_path_buf())
 }
 
 enum StartupFailure {

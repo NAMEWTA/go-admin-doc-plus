@@ -31,6 +31,8 @@ export function verifyContainerfile(text) {
 
 export function verifyIdentity(identity) {
   assert.equal(identity.schemaVersion, 1)
+  assert.equal(identity.product, 'go-admin-plus')
+  assert.deepEqual(identity.artifacts, ['go-admin-plus-server'])
   assert.deepEqual(identity.platforms, ['linux/amd64', 'linux/arm64'])
   assert.deepEqual(identity.profiles, ['server-postgres', 'server-sqlite'])
   assert.equal(identity.remotePublish, false)
@@ -39,18 +41,21 @@ export function verifyIdentity(identity) {
 
 export async function verifyRepository(repository) {
   const read = relative => readFile(path.join(repository, relative), 'utf8')
-  const [compose, build, failure, server, web, workflow, imageBuild, artifacts, identityText, postgresConfig, sqliteConfig] = await Promise.all([
+  const [compose, build, failure, server, web, workflow, imageBuild, artifacts, identityText, postgresConfig, sqliteConfig, service, serviceScript, install] = await Promise.all([
     read('deploy/compose/compose.yml'),
     read('deploy/compose/compose.build.yml'),
     read('deploy/compose/compose.migration-failure.yml'),
     read('release/linux/Containerfile.server'),
     read('release/linux/Containerfile.web'),
-    read('.github/workflows/release-linux.yml'),
+    read('.github/workflows/release.yml'),
     read('scripts/release/linux/build-images.sh'),
     read('scripts/release/linux/emit-artifacts.sh'),
     read('release/linux/identity.json'),
     read('deploy/compose/config/server-postgres.json'),
-    read('deploy/compose/config/server-sqlite.json')
+    read('deploy/compose/config/server-sqlite.json'),
+    read('release/linux/go-admin-plus-server.service'),
+    read('scripts/release/linux/build-service.sh'),
+    read('release/linux/SERVER-INSTALL.md')
   ])
   verifyComposeText(compose)
   verifyContainerfile(server)
@@ -64,15 +69,13 @@ export async function verifyRepository(repository) {
   assert.match(failure, /--profile=server-postgres/)
   assert.match(failure, /--profile=server-sqlite/)
   assert.doesNotMatch(failure, /repository-root|missing-release-skeleton/)
-  assert.match(workflow, /linux\/amd64/)
-  assert.match(workflow, /linux\/arm64/)
-  assert.match(workflow, /GO_ADMIN_LINUX_SUPPLY_CHAIN_PASS/)
-  assert.doesNotMatch(workflow, /docker\s+(?:login|push)/)
-  assert.match(imageBuild, /linux\/amd64 linux\/arm64/)
-  assert.match(imageBuild, /buildx build --load/)
-  assert.match(artifacts, /spdx-json=/)
-  assert.match(artifacts, /imageId/)
-  assert.doesNotMatch(`${imageBuild}\n${artifacts}`, /(?:docker\s+(?:login|push)|--push\b)/)
+  assert.match(workflow, /build-service\.sh/)
+  assert.match(workflow, /gh release create/)
+  assert.doesNotMatch(workflow, /docker\s+(?:login|push)|release-linux\.yml/i)
+  assert.match(service, /ExecStart=.*go-admin-plus-server serve --profile server-sqlite/)
+  assert.match(serviceScript, /GOOS=linux GOARCH=/)
+  assert.match(serviceScript, /go-admin-plus-server-postgres\.service/)
+  assert.match(install, /systemctl enable --now/)
   verifyIdentity(JSON.parse(identityText))
   const postgres = JSON.parse(postgresConfig)
   const sqlite = JSON.parse(sqliteConfig)

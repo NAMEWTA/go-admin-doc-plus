@@ -1,0 +1,22 @@
+[Unit]
+Description=Go Admin Plus server (SQLite)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=go-admin-plus
+Group=go-admin-plus
+WorkingDirectory=/var/lib/go-admin-plus
+EnvironmentFile=-/etc/go-admin-plus/server.env
+ExecStart=/opt/go-admin-plus/go-admin-plus-server serve --profile server-sqlite --config /etc/go-admin-plus/server-sqlite.json --data-root /var/lib/go-admin-plus
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/go-admin-plus
+
+[Install]
+WantedBy=multi-user.target
