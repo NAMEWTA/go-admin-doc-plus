@@ -71,7 +71,7 @@ export const validateDesktopProductionConfiguration = (config, capability) => {
     !exactKeys(config?.bundle, ['active', 'externalBin', 'targets']) ||
     !exactKeys(capability, ['$schema', 'description', 'identifier', 'permissions', 'windows']) ||
     config?.$schema !== 'https://schema.tauri.app/config/2' ||
-    config?.productName !== 'Go Admin Plus' || config?.version !== '0.1.0' ||
+    config?.productName !== 'Go Admin Plus' || config?.version !== '0.0.1' ||
     config?.identifier !== 'com.goadmin.plus' ||
     config?.build?.beforeDevCommand !== 'pnpm dev' || config?.build?.beforeBuildCommand !== 'pnpm build' ||
     config?.build?.devUrl !== 'http://127.0.0.1:1420' ||

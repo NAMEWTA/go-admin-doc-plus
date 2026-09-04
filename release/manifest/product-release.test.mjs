@@ -18,7 +18,7 @@ const signatures = {
 
 const validManifest = () => ({
   schema_version: 2,
-  product: { name: 'Go Admin Plus', version: '0.1.0', release_class: 'production-candidate', publication_authorized: false },
+  product: { name: 'Go Admin Plus', version: '0.0.1', release_class: 'production-candidate', publication_authorized: false },
   provenance: { source_sha: sha, openapi: { sha256: 'c'.repeat(64) }, migration: { max_version: '7500000000000' } },
   artifacts: Object.fromEntries([
     ['linux', ['linux/amd64', 'linux/arm64'], 'server-web', 'oci-compose'],
@@ -26,7 +26,7 @@ const validManifest = () => ({
     ['windows', ['windows/amd64'], 'desktop', 'signed-production']
   ].map(([key, platforms, host, releaseClass]) => [key, {
     platforms, host,
-    release: { product_version: '0.1.0', class: releaseClass },
+    release: { product_version: '0.0.1', class: releaseClass },
     provenance: { head_sha: sha },
     artifact: { archive_sha256: digest },
     checksums: { files: ['SHA256SUMS'] },

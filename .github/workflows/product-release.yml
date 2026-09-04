@@ -7,7 +7,7 @@ on:
       release_version:
         description: Exact numeric product version
         required: true
-        default: 0.1.0
+        default: 0.0.1
         type: string
       linux_run_id:
         description: Successful protected Linux run ID

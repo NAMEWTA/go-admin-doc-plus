@@ -11,7 +11,7 @@
 本地预检只验证来源和策略，不签名、不公证、不部署：
 
 ```bash
-task release VERSION=0.1.0
+task release VERSION=0.0.1
 task release:verify
 ```
 
@@ -37,4 +37,4 @@ passed。受保护的正式平台 workflow 仍要求 macOS Developer ID/公证�
 
 最终证据同时复用 required PostgreSQL、安全供应链、真实 Web 与真实 macOS native Gate，并在
 当前 candidate 重新运行治理、架构、零兼容、文档、生成、Go、pnpm、Rust 和 release policy
-检查。`task release VERSION=0.1.0` 仅执行本地 preflight，不 push、publish、deploy 或迁移生产。
+检查。`task release VERSION=0.0.1` 仅执行本地 preflight，不 push、publish、deploy 或迁移生产。

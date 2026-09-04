@@ -16,7 +16,7 @@ import (
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
 )
 
-const version = "0.1.0-dev"
+const version = "0.0.1-dev"
 
 type commonOptions struct {
 	profile, configFile, sqlitePath string
