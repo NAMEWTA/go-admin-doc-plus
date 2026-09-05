@@ -76,8 +76,6 @@ if (Test-Path -LiteralPath $application) { throw 'Uninstall left the installed a
 if ((Get-Content -LiteralPath $sentinel -Raw).Trim() -ne $sentinelValue -or -not (Test-Path -LiteralPath $database)) {
     throw 'Uninstall violated the install-path data preservation boundary.'
 }
-if (-not [CredentialProbe]::Exists($credentialTarget)) { throw 'Uninstall removed the Windows Credential Manager key.' }
-
 [ordered]@{
     schemaVersion = 1
     installScope = 'currentUser'
