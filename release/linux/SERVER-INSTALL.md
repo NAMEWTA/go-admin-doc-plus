@@ -1,7 +1,9 @@
 # Go Admin Plus Linux service installation
 
 This archive is a self-contained Linux server release for `amd64` or `arm64`. It contains the
-`go-admin-plus-server` binary, both typed profile examples, and systemd units. Run the commands below
+`go-admin-plus-server` binary, both typed profile examples, and systemd units. It does not include
+Docker Compose files or images; use the repository's `deploy/compose/` definitions for container
+deployment. Run the commands below
 as root on a machine you control; keep the bootstrap password and PostgreSQL DSN outside the archive.
 
 ## Install

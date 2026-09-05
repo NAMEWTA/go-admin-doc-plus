@@ -30,6 +30,17 @@ test('rejects the historical frontend workspace scope', () => {
   ))
 })
 
+test('rejects removed standalone backend command directories', () => {
+  const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
+  const commandRoot = join(root, 'go-admin-plus/cmd/config-check')
+  mkdirSync(commandRoot, { recursive: true })
+  writeFileSync(join(commandRoot, 'main.go'), 'package main\n')
+
+  assert.ok(checkArchitecture(root).includes(
+    'removed path still exists: go-admin-plus/cmd/config-check'
+  ))
+})
+
 test('rejects stale SpecDev verification commands', () => {
   const root = mkdtempSync(join(tmpdir(), 'go-admin-architecture-'))
   const configRoot = join(root, 'speculo/.speculo/specdev')

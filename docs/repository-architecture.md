@@ -1,6 +1,6 @@
 # 仓库架构
 
-当前产品版本为 `0.0.1`。Go Server、Web App 和 Tauri 2 Desktop 共用同一产品组合，正式业务模块为
+当前产品版本为 `0.0.2`。Go Server、Web App 和 Tauri 2 Desktop 共用同一产品组合，正式业务模块为
 IAM、Audit、Scheduler、Files、Demo。
 
 ## 后端

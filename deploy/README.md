@@ -5,10 +5,11 @@
 - `sqlite`：Server 与持久化 SQLite volume。
 - `postgres`：Server、PostgreSQL 17 与独立产品数据 volume。
 
-两者都包含只读 Web 容器、健康检查、最小 capability、内部后端网络和显式 secret 文件。生产部署必须使用已验证摘要的镜像，并在启动前通过 `scripts/release/linux/verify-policy.mjs`。
+两者都包含只读 Web 容器、健康检查、最小 capability、内部后端网络和显式 secret 文件。生产部署必须为 API、Web 和 PostgreSQL 分别设置完整的 `image@sha256:<64 位十六进制摘要>`，拒绝可变 tag，并在启动前通过 `scripts/release/linux/verify-policy.mjs`。
 
 ```bash
 scripts/release/linux/prepare-secrets.sh
+# 先在 deploy/compose/.env 中设置 GO_ADMIN_SERVER_IMAGE 和 GO_ADMIN_WEB_IMAGE 的完整摘要
 scripts/release/linux/compose.sh sqlite config
 scripts/release/linux/compose.sh postgres config
 ```

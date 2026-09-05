@@ -1,11 +1,9 @@
 import { createContractClient, SchedulerRequestError, type SchedulerClient } from '@go-admin-plus/domain-scheduler'
+import { createSessionAwareFetch } from '@go-admin-plus/ui'
 
 interface Problem { category?: string; code?: string; traceId?: string }
 
 export const createWebSchedulerClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): SchedulerClient => {
-  let csrf = ''
-  let responseFailure: string | null = null
-  let responseTraceId: string | null = null
   let requestTail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
     const result = requestTail.then(operation, operation)
@@ -14,26 +12,14 @@ export const createWebSchedulerClient = (fetcher: typeof fetch = fetch, baseUrl 
   }
   const contract = createContractClient({
     baseUrl,
-    fetch: async (input) => {
-      const headers = new Headers(input.headers)
-      if (csrf && input.method !== 'GET') headers.set('X-CSRF-Token', csrf)
-      const response = await fetcher(new Request(input, { credentials: 'include', headers }))
-      const next = response.headers.get('X-CSRF-Token')
-      const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
-      responseFailure = classifyResponse(response.status, body)
-      responseTraceId = responseFailure ? safeTraceId(body?.traceId) : null
-      if (next) csrf = next
-      else if (responseFailure === 'relogin') csrf = ''
-      return response
-    },
+    fetch: createSessionAwareFetch(fetcher),
   })
-  const takeFailure = (fallback: string) => { const value = { category: responseFailure ?? fallback, traceId: responseTraceId }; responseFailure = null; responseTraceId = null; return value }
   const unwrap = <T>(data: T | undefined, error: unknown): T => {
-    if (error !== undefined) { const failure = takeFailure(problemCategory(error)); throw new SchedulerRequestError(failure.category, failure.traceId) }
+    if (error !== undefined) throw new SchedulerRequestError(problemCategory(error), safeTraceId((error as Problem)?.traceId))
     if (data === undefined) throw new SchedulerRequestError('unavailable')
     return data
   }
-  const complete = (error: unknown) => { if (error !== undefined) { const failure = takeFailure(problemCategory(error)); throw new SchedulerRequestError(failure.category, failure.traceId) } }
+  const complete = (error: unknown) => { if (error !== undefined) throw new SchedulerRequestError(problemCategory(error), safeTraceId((error as Problem)?.traceId)) }
   return {
     taskTypes: () => serialized(async () => { const result = await contract.GET('/scheduler/task-types'); return unwrap(result.data, result.error) }),
     listDefinitions: (search, page, pageSize) => serialized(async () => { const result = await contract.GET('/scheduler/definitions', { params: { query: { search, page, pageSize } } }); return unwrap(result.data, result.error) }),
@@ -46,14 +32,12 @@ export const createWebSchedulerClient = (fetcher: typeof fetch = fetch, baseUrl 
   }
 }
 
-const problemCategory = (value: unknown) => typeof value === 'object' && value !== null && 'category' in value ? String((value as Problem).category ?? 'unavailable') : 'unavailable'
-const safeTraceId = (value: unknown): string | null => typeof value === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(value) ? value : null
-const classifyResponse = (status: number, problem: Problem | null): string | null => {
-  if (status === 401 || problem?.code === 'CSRF_REJECTED') return 'relogin'
-  if (status === 403) return 'forbidden'
-  if (status === 400 || status === 422) return 'validation'
-  if (status === 404) return 'not-found'
-  if (status === 409) return 'conflict'
-  if (status >= 500) return 'unavailable'
-  return null
+const problemCategory = (value: unknown) => {
+  if (typeof value !== 'object' || value === null) return 'unavailable'
+  const problem = value as Problem
+  if (problem.code === 'CSRF_REJECTED' || problem.category === 'authentication') return 'relogin'
+  if (problem.category === 'authorization') return 'forbidden'
+  if (problem.category === 'validation' || problem.category === 'conflict' || problem.category === 'not-found') return problem.category
+  return 'unavailable'
 }
+const safeTraceId = (value: unknown): string | null => typeof value === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(value) ? value : null

@@ -56,10 +56,13 @@ func NewServerHost(launch ServerLaunch) (*serverhost.Host, error) {
 		return nil, errors.New("server data root failed")
 	}
 	return serverhost.New(serverhost.Config{
-		Address:         profile.address,
-		ReadTimeout:     15 * time.Second,
-		WriteTimeout:    30 * time.Second,
-		ShutdownTimeout: 10 * time.Second,
+		Address:           profile.address,
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+		ShutdownTimeout:   10 * time.Second,
 		Capabilities: health.Capabilities{
 			Profile:  string(launch.Snapshot.Profile()),
 			Version:  launch.Version,

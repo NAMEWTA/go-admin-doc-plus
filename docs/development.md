@@ -1,6 +1,6 @@
 # 开发指南
 
-当前产品版本为 `0.0.1`。后端与前端的目录边界、调用层级和编码规则分别以
+当前产品版本为 `0.0.2`。后端与前端的目录边界、调用层级和编码规则分别以
 [backend-development](../.agents/skills/backend-development/SKILL.md) 与
 [frontend-development](../.agents/skills/frontend-development/SKILL.md) 为准；新增垂直切片时再读取对应的
 `new-business-module` 或 `new-list-page` skill。
@@ -56,7 +56,7 @@ GO_ADMIN_LOG_LEVEL=info task doctor PROFILE=server-sqlite
 task dev TARGET=server PROFILE=server-sqlite
 ```
 
-另开终端执行 `task dev TARGET=web`。Web 默认连接 `127.0.0.1:8080`；使用刚创建的账号
+另开终端执行 `task dev TARGET=web`。Web 默认连接 `127.0.0.2:8080`；使用刚创建的账号
 登录后，可验证 IAM 账号与角色、审计、调度、文件容量和 Demo CRUD。SQLite Server 用
 `serve --with-worker` 单进程运行，且由实例锁阻止两个写入宿主同时打开同一数据库。
 

@@ -12,13 +12,16 @@ const state = ref<GateState>('loading')
 const username = ref('admin')
 const displayName = ref('系统管理员')
 const email = ref('')
-const password = ref('1234567890')
-const confirmation = ref('1234567890')
+const password = ref('')
+const confirmation = ref('')
 const error = ref('')
 const submitting = ref(false)
 const workspaceKey = ref(0)
 
 const passwordsMatch = computed(() => password.value === confirmation.value)
+const passwordTooCommon = computed(() => new Set([
+  '1234567890', '123456789', 'password123', 'administrator', 'administrator password', 'admin123456'
+]).has(password.value.trim().toLowerCase()))
 
 const load = async () => {
   state.value = 'loading'
@@ -53,6 +56,10 @@ const submit = async () => {
   error.value = ''
   if (!passwordsMatch.value) {
     error.value = '两次输入的密码不一致'
+    return
+  }
+  if (password.value.length < 10 || passwordTooCommon.value) {
+    error.value = '请设置长度至少为 10 位且不易猜测的密码'
     return
   }
   const input: FirstSetupInput = {

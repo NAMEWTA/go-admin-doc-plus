@@ -22,7 +22,12 @@ import (
 // ErrAlreadyRun reports an attempt to start the same single-use Host twice.
 var ErrAlreadyRun = errors.New("server host has already run")
 
-const defaultShutdownTimeout = 5 * time.Second
+const (
+	defaultShutdownTimeout   = 5 * time.Second
+	defaultReadHeaderTimeout = 10 * time.Second
+	defaultIdleTimeout       = 120 * time.Second
+	defaultMaxHeaderBytes    = 1 << 20
+)
 
 // Application is the complete interface the ServerHost needs from the
 // host-neutral application runtime.
@@ -57,12 +62,15 @@ type TLSConfig struct {
 // Config describes only process-host concerns. Database and module wiring
 // belong to Builder.
 type Config struct {
-	Address         string
-	ReadTimeout     time.Duration
-	WriteTimeout    time.Duration
-	ShutdownTimeout time.Duration
-	TLS             TLSConfig
-	Capabilities    health.Capabilities
+	Address           string
+	ReadTimeout       time.Duration
+	ReadHeaderTimeout time.Duration
+	WriteTimeout      time.Duration
+	IdleTimeout       time.Duration
+	MaxHeaderBytes    int
+	ShutdownTimeout   time.Duration
+	TLS               TLSConfig
+	Capabilities      health.Capabilities
 }
 
 // Host owns one run of one network listener.
@@ -84,8 +92,17 @@ func New(config Config, build Builder) (*Host, error) {
 	if build == nil {
 		return nil, errors.New("server runtime builder is required")
 	}
-	if config.ReadTimeout < 0 || config.WriteTimeout < 0 || config.ShutdownTimeout < 0 {
+	if config.ReadTimeout < 0 || config.ReadHeaderTimeout < 0 || config.WriteTimeout < 0 || config.IdleTimeout < 0 || config.MaxHeaderBytes < 0 || config.ShutdownTimeout < 0 {
 		return nil, errors.New("server timeouts cannot be negative")
+	}
+	if config.ReadHeaderTimeout == 0 {
+		config.ReadHeaderTimeout = defaultReadHeaderTimeout
+	}
+	if config.IdleTimeout == 0 {
+		config.IdleTimeout = defaultIdleTimeout
+	}
+	if config.MaxHeaderBytes == 0 {
+		config.MaxHeaderBytes = defaultMaxHeaderBytes
 	}
 	if (config.TLS.CertificateFile == "") != (config.TLS.KeyFile == "") {
 		return nil, errors.New("TLS certificate and key must be configured together")
@@ -169,10 +186,13 @@ func (host *Host) Run(parent context.Context) (runErr error) {
 		applicationHandler = requestLogger(runtime.Logger, host.config.Capabilities.Database, applicationHandler)
 	}
 	httpServer := &http.Server{
-		Addr:         host.config.Address,
-		Handler:      operations.Wrap(applicationHandler),
-		ReadTimeout:  host.config.ReadTimeout,
-		WriteTimeout: host.config.WriteTimeout,
+		Addr:              host.config.Address,
+		Handler:           operations.Wrap(applicationHandler),
+		ReadTimeout:       host.config.ReadTimeout,
+		ReadHeaderTimeout: host.config.ReadHeaderTimeout,
+		WriteTimeout:      host.config.WriteTimeout,
+		IdleTimeout:       host.config.IdleTimeout,
+		MaxHeaderBytes:    host.config.MaxHeaderBytes,
 	}
 	serveErrors := make(chan error, 1)
 	go func() {

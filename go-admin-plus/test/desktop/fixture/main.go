@@ -22,7 +22,6 @@ import (
 	administrationmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0020-administration-schema"
 	bootstraprecoverymigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0030-bootstrap-recovery"
 	sessionprotectionmigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0040-session-protection"
-	datascopemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0050-data-scope"
 	accountlifecyclemigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/migrations/0060-account-lifecycle"
 	schedulermigration "github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/scheduler/migrations"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
@@ -127,7 +126,6 @@ func previousMigrationRunner() (*migrations.Runner, error) {
 		administrationmigration.Provider{},
 		bootstraprecoverymigration.Provider{},
 		sessionprotectionmigration.Provider{},
-		datascopemigration.Provider{},
 		accountlifecyclemigration.Provider{},
 		productsmigration.Provider{},
 		schedulermigration.Provider{},

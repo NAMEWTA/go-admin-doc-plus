@@ -21,7 +21,7 @@ func TestPreviousMigrationBaselineAdvancesOnlyAudit(t *testing.T) {
 		t.Fatal(err)
 	}
 	previous, err := runner.Up(context.Background(), db)
-	if err != nil || previous.Applied != 13 || previous.CurrentVersion != 8_000_000_000_000 {
+	if err != nil || previous.Applied != 12 || previous.CurrentVersion != 8_000_000_000_000 {
 		t.Fatalf("previous migration result = %#v, %v", previous, err)
 	}
 	current, err := product.NewMigrationRunner()

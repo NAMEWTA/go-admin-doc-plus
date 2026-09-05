@@ -42,7 +42,11 @@ func NewService(db Database, storage Storage, authorizer Authorizer, options ...
 		}
 	}
 	if service.capacityProbe == nil {
-		service.capacityProbe = configuredCapacityProbe{policy: service.capacityPolicy}
+		if provider, ok := storage.(interface{ CapacityProbe() CapacityProbe }); ok {
+			service.capacityProbe = provider.CapacityProbe()
+		} else {
+			service.capacityProbe = unavailableCapacityProbe{}
+		}
 	}
 	if service.now == nil || service.observer == nil || service.capacityProbe == nil || !service.capacityPolicy.valid() {
 		return nil, errors.New("files service options are invalid")

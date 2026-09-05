@@ -1,10 +1,9 @@
 import { AdministrationRequestError, createContractClient, type AdministrationClient } from '@go-admin-plus/domain-iam/administration'
+import { createSessionAwareFetch } from '@go-admin-plus/ui'
 
 interface Problem { category?: string; code?: string }
 
 export const createWebAdministrationClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): AdministrationClient => {
-  let csrf = ''
-  let responseFailure: string | null = null
   let requestTail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
     const result = requestTail.then(operation, operation)
@@ -13,29 +12,14 @@ export const createWebAdministrationClient = (fetcher: typeof fetch = fetch, bas
   }
   const contract = createContractClient({
     baseUrl,
-    fetch: async (input) => {
-      const headers = new Headers(input.headers)
-      if (csrf && input.method !== 'GET') headers.set('X-CSRF-Token', csrf)
-      const response = await fetcher(new Request(input, { credentials: 'include', headers }))
-      const next = response.headers.get('X-CSRF-Token')
-      const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
-      responseFailure = classifyResponse(response.status, body)
-      if (next) csrf = next
-      else if (responseFailure === 'relogin') csrf = ''
-      return response
-    },
+    fetch: createSessionAwareFetch(fetcher),
   })
   const unwrap = <T>(data: T | undefined, error: unknown): T => {
-    if (error !== undefined) throw new AdministrationRequestError(takeFailure(problemCategory(error)))
+    if (error !== undefined) throw new AdministrationRequestError(problemCategory(error))
     if (data === undefined) throw new AdministrationRequestError('unavailable')
     return data
   }
-  const complete = (error: unknown) => { if (error !== undefined) throw new AdministrationRequestError(takeFailure(problemCategory(error))) }
-  const takeFailure = (fallback: string) => {
-    const result = responseFailure ?? fallback
-    responseFailure = null
-    return result
-  }
+  const complete = (error: unknown) => { if (error !== undefined) throw new AdministrationRequestError(problemCategory(error)) }
   return {
     manifest: () => serialized(async () => { const result = await contract.GET('/iam/administration/manifest'); return unwrap(result.data, result.error) }),
     listUsers: (search, page, pageSize) => serialized(async () => { const result = await contract.GET('/iam/administration/users', { params: { query: { search, page, pageSize } } }); return unwrap(result.data, result.error) }),
@@ -59,16 +43,12 @@ export const createWebAdministrationClient = (fetcher: typeof fetch = fetch, bas
   }
 }
 
-const problemCategory = (value: unknown) => typeof value === 'object' && value !== null && 'category' in value
-  ? String((value as Problem).category ?? 'unavailable')
-  : 'unavailable'
-
-const classifyResponse = (status: number, problem: Problem | null): string | null => {
-  if (status === 401 || problem?.code === 'CSRF_REJECTED') return 'relogin'
-  if (status === 403) return 'forbidden'
-  if (status === 404) return 'not-found'
-  if (status === 400 || status === 422) return 'validation'
-  if (status === 409) return 'conflict'
-  if (status >= 500) return 'unavailable'
-  return null
+const problemCategory = (value: unknown) => {
+  if (typeof value !== 'object' || value === null) return 'unavailable'
+  const problem = value as Problem
+  if (problem.code === 'CSRF_REJECTED' || problem.category === 'authentication') return 'relogin'
+  if (problem.category === 'authorization') return 'forbidden'
+  if (problem.category === 'not_found') return 'not-found'
+  if (problem.category === 'validation' || problem.category === 'conflict') return problem.category
+  return 'unavailable'
 }

@@ -1,13 +1,11 @@
-# Go 后端 0.0.1
+# Go 后端 0.0.2
 
-本模块提供四个正式命令：
+本模块提供两个正式命令：
 
 | 命令 | 用途 |
 |---|---|
-| `cmd/go-admin-plus` | SQLite 或 PostgreSQL Server |
 | `cmd/desktop-sidecar` | Tauri 2 管理的本地 SQLite 服务 |
-| `cmd/config-check` | profile JSON 与运行材料预检 |
-| `cmd/migrate` | SQLite 或 PostgreSQL 向前迁移 |
+| `cmd/go-admin-plus` | SQLite 或 PostgreSQL Server；通过 `serve`、`worker`、`migrate`、`bootstrap`、`recover-admin` 和 `doctor` 子命令提供运行、迁移和管理操作 |
 
 从仓库根使用 Taskfile：
 

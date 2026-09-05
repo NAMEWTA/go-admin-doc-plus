@@ -75,9 +75,6 @@ func TestProtectedReferencesAndDuplicateCommandsAreAtomic(t *testing.T) {
 	if err := service.DeleteMenu(ctx, adminID, "menu-iam-users-01"); !errors.Is(err, administration.ErrConflict) {
 		t.Fatalf("protected menu deletion = %v", err)
 	}
-	if err := service.DeleteUser(ctx, adminID, adminID); !errors.Is(err, administration.ErrConflict) {
-		t.Fatalf("protected user deletion = %v", err)
-	}
 
 	role, err := service.CreateRole(ctx, adminID, "operator", "Operator", authorization.ScopeAll)
 	if err != nil {
@@ -232,35 +229,6 @@ func TestSelfScopeCannotReadGlobalAdministrationMetadata(t *testing.T) {
 	}
 	if _, err := service.ListPermissions(ctx, user.ID); !errors.Is(err, administration.ErrDenied) {
 		t.Fatalf("self permission list = %v", err)
-	}
-}
-
-func TestBatchDeleteIsAtomicForProtectedMissingAndSuccessfulSets(t *testing.T) {
-	db, service := newAdministrationFixture(t)
-	ctx := context.Background()
-	first, err := service.CreateUser(ctx, adminID, administration.CreateUser{Username: "batch-one", DisplayName: "Batch One", Email: "batch-one@example.test", Password: "batch one password"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, err := service.CreateUser(ctx, adminID, administration.CreateUser{Username: "batch-two", DisplayName: "Batch Two", Email: "batch-two@example.test", Password: "batch two password"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := service.DeleteUsers(ctx, adminID, []string{first.ID, adminID}); !errors.Is(err, administration.ErrConflict) {
-		t.Fatalf("protected batch = %v", err)
-	}
-	var count int
-	if err := db.Bun().QueryRowContext(ctx, `SELECT COUNT(*) FROM iam_accounts WHERE id = ?`, first.ID).Scan(&count); err != nil || count != 1 {
-		t.Fatal("protected batch partially deleted ordinary user")
-	}
-	if err := service.DeleteUsers(ctx, adminID, []string{first.ID, "missing-account-01"}); !errors.Is(err, administration.ErrNotFound) {
-		t.Fatalf("missing batch = %v", err)
-	}
-	if err := service.DeleteUsers(ctx, adminID, []string{first.ID, second.ID}); err != nil {
-		t.Fatal(err)
-	}
-	if err := db.Bun().QueryRowContext(ctx, `SELECT COUNT(*) FROM iam_accounts WHERE id IN (?, ?)`, first.ID, second.ID).Scan(&count); err != nil || count != 0 {
-		t.Fatalf("successful batch remaining=%d err=%v", count, err)
 	}
 }
 

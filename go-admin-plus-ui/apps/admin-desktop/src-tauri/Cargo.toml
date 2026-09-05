@@ -1,6 +1,6 @@
 [package]
 name = "go-admin-plus-desktop"
-version = "0.0.1"
+version = "0.0.2"
 description = "Go Admin Plus Tauri desktop host"
 edition = "2024"
 rust-version = "1.88"

@@ -1,7 +1,7 @@
 name: go-admin-plus
 
 x-api: &api
-  image: ${GO_ADMIN_SERVER_IMAGE:-go-admin-plus-server}:${GO_ADMIN_VERSION:-dev}
+  image: ${GO_ADMIN_SERVER_IMAGE:?GO_ADMIN_SERVER_IMAGE must be an image@sha256 digest reference}
   init: true
   read_only: true
   tmpfs:
@@ -19,7 +19,7 @@ x-api: &api
   restart: unless-stopped
 
 x-web: &web
-  image: ${GO_ADMIN_WEB_IMAGE:-go-admin-plus-web}:${GO_ADMIN_VERSION:-dev}
+  image: ${GO_ADMIN_WEB_IMAGE:?GO_ADMIN_WEB_IMAGE must be an image@sha256 digest reference}
   init: true
   read_only: true
   tmpfs:

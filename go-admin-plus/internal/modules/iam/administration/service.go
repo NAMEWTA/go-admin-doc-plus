@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/mail"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -292,90 +291,6 @@ func (s *Service) SetUserRoles(ctx context.Context, actorID, userID string, role
 			if _, err := tx.ExecContext(ctx, `INSERT INTO iam_account_roles(account_id, role_id) VALUES (?, ?)`, userID, roleID); err != nil {
 				return err
 			}
-		}
-		return nil
-	})
-}
-
-func (s *Service) DeleteUser(ctx context.Context, actorID, userID string) error {
-	return s.write(ctx, actorID, authorization.PermissionUsersDelete, func(ctx context.Context, tx database.Tx) error {
-		if actorID == userID {
-			return ErrConflict
-		}
-		var username string
-		if err := s.queryRowForUpdate(tx, ctx, `SELECT username FROM iam_accounts WHERE id = ?`, userID).Scan(&username); err != nil {
-			return err
-		}
-		if username == "admin" {
-			return ErrConflict
-		}
-		result, err := tx.ExecContext(ctx, `DELETE FROM iam_accounts WHERE id = ?`, userID)
-		if err != nil {
-			return err
-		}
-		count, err := result.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if count != 1 {
-			return ErrNotFound
-		}
-		return nil
-	})
-}
-
-func (s *Service) DeleteUsers(ctx context.Context, actorID string, userIDs []string) error {
-	if len(userIDs) == 0 || len(userIDs) > 100 || duplicate(userIDs) {
-		return ErrValidation
-	}
-	ordered := append([]string{}, userIDs...)
-	sort.Strings(ordered)
-	return s.write(ctx, actorID, authorization.PermissionUsersDelete, func(ctx context.Context, tx database.Tx) error {
-		arguments := make([]any, len(ordered))
-		for index, id := range ordered {
-			arguments[index] = id
-		}
-		query := `SELECT id, username FROM iam_accounts WHERE id IN (` + placeholders(len(ordered)) + `) ORDER BY id`
-		if s.db.Dialect() == database.DialectPostgres {
-			query += ` FOR UPDATE`
-		}
-		rows, err := tx.QueryContext(ctx, query, arguments...)
-		if err != nil {
-			return err
-		}
-		count := 0
-		for rows.Next() {
-			var id, username string
-			if err := rows.Scan(&id, &username); err != nil {
-				_ = rows.Close()
-				return err
-			}
-			count++
-			if id == actorID || username == "admin" {
-				_ = rows.Close()
-				return ErrConflict
-			}
-		}
-		if err := rows.Err(); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		if err := rows.Close(); err != nil {
-			return err
-		}
-		if count != len(ordered) {
-			return ErrNotFound
-		}
-		result, err := tx.ExecContext(ctx, `DELETE FROM iam_accounts WHERE id IN (`+placeholders(len(ordered))+`)`, arguments...)
-		if err != nil {
-			return err
-		}
-		removed, err := result.RowsAffected()
-		if err != nil {
-			return err
-		}
-		if removed != int64(len(ordered)) {
-			return ErrConflict
 		}
 		return nil
 	})

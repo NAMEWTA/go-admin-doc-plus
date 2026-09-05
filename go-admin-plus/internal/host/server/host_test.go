@@ -210,6 +210,30 @@ func TestHostValidatesTLSFilesAsAPair(t *testing.T) {
 	}
 }
 
+func TestHostAppliesHTTPHardeningDefaults(t *testing.T) {
+	host, err := New(testConfig("127.0.0.1:0"), func(context.Context) (Runtime, error) { return Runtime{}, nil })
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	if host.config.ReadHeaderTimeout <= 0 || host.config.IdleTimeout <= 0 || host.config.MaxHeaderBytes <= 0 {
+		t.Fatalf("HTTP hardening defaults = header=%s idle=%s max=%d", host.config.ReadHeaderTimeout, host.config.IdleTimeout, host.config.MaxHeaderBytes)
+	}
+	for _, field := range []struct {
+		name string
+		set  func(*Config)
+	}{
+		{name: "read header", set: func(config *Config) { config.ReadHeaderTimeout = -time.Second }},
+		{name: "idle", set: func(config *Config) { config.IdleTimeout = -time.Second }},
+		{name: "max header", set: func(config *Config) { config.MaxHeaderBytes = -1 }},
+	} {
+		config := testConfig("127.0.0.1:0")
+		field.set(&config)
+		if _, err := New(config, func(context.Context) (Runtime, error) { return Runtime{}, nil }); err == nil {
+			t.Fatalf("negative %s setting was accepted", field.name)
+		}
+	}
+}
+
 func TestHostRejectsInconsistentCapabilitiesBeforeBuild(t *testing.T) {
 	config := testConfig("127.0.0.1:0")
 	config.Capabilities.Database = "postgres"

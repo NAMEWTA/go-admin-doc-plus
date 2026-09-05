@@ -54,6 +54,7 @@ type StagedContent struct {
 
 type LocalStorage struct {
 	root                *os.Root
+	rootPath            string
 	maximumContentBytes int64
 }
 
@@ -101,7 +102,7 @@ func NewLocalStorage(rootPath string, options ...StorageOption) (*LocalStorage, 
 		_ = root.Close()
 		return nil, ErrStorageRoot
 	}
-	storage := &LocalStorage{root: root, maximumContentBytes: DefaultMaximumContentBytes}
+	storage := &LocalStorage{root: root, rootPath: rootPath, maximumContentBytes: DefaultMaximumContentBytes}
 	for _, option := range options {
 		if option != nil {
 			option(storage)
@@ -112,6 +113,15 @@ func NewLocalStorage(rootPath string, options ...StorageOption) (*LocalStorage, 
 		return nil, ErrStorageRoot
 	}
 	return storage, nil
+}
+
+// CapacityProbe reports the free space of this storage root. Keeping the probe
+// bound to the opened root prevents quota checks from observing another mount.
+func (s *LocalStorage) CapacityProbe() CapacityProbe {
+	if s == nil || s.rootPath == "" {
+		return unavailableCapacityProbe{}
+	}
+	return NewDiskCapacityProbe(s.rootPath)
 }
 
 func NewStorageKey() string { return "object-" + strings.ReplaceAll(uuid.NewString(), "-", "") }

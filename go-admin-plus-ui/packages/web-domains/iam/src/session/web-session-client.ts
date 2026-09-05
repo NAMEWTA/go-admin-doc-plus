@@ -6,6 +6,7 @@ import {
   type SessionClient,
   type UpdateProfile
 } from '@go-admin-plus/domain-iam/session'
+import { createSessionAwareFetch } from '@go-admin-plus/ui'
 
 interface Problem { category?: string }
 interface SessionFact { csrfToken: string, profile: AccountProfile }
@@ -13,36 +14,33 @@ interface SessionFact { csrfToken: string, profile: AccountProfile }
 const csrfPattern = /^[A-Za-z0-9_-]{43}$/
 
 export const createWebSessionClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): SessionClient => {
-  let csrf = ''
+  const transport = createSessionAwareFetch(fetcher)
   const contract = createContractClient({
     baseUrl,
-    fetch: async input => {
-      const headers = new Headers(input.headers)
-      if (csrf && input.method !== 'GET') headers.set('X-CSRF-Token', csrf)
-      const response = await fetcher(new Request(input, { credentials: 'include', headers }))
-      if (response.status === 401 || response.status === 403) csrf = ''
-      return response
-    }
+    fetch: transport
   })
   const unwrap = <T>(data: T | undefined, error: unknown): T => {
-    if (error !== undefined) throw new SessionRequestError(problemCategory(error))
+    if (error !== undefined) {
+      if (problemCategory(error) === 'authorization' || problemCategory(error) === 'authentication') transport.resetSession?.()
+      throw new SessionRequestError(problemCategory(error))
+    }
     if (data === undefined) throw new SessionRequestError('unavailable')
     return data
   }
   const complete = (error: unknown) => {
-    if (error !== undefined) throw new SessionRequestError(problemCategory(error))
+    if (error !== undefined) {
+      if (problemCategory(error) === 'authorization' || problemCategory(error) === 'authentication') transport.resetSession?.()
+      throw new SessionRequestError(problemCategory(error))
+    }
   }
   const establish = (session: SessionFact): AccountProfile => {
     if (!csrfPattern.test(session.csrfToken)) {
-      csrf = ''
       throw new SessionRequestError('unavailable')
     }
-    csrf = session.csrfToken
     return session.profile
   }
   const maintain = (session: SessionFact): AccountProfile => {
-    if (!csrfPattern.test(session.csrfToken) || !csrf || session.csrfToken !== csrf) {
-      csrf = ''
+    if (!csrfPattern.test(session.csrfToken)) {
       throw new SessionRequestError('authorization')
     }
     return session.profile
@@ -67,7 +65,6 @@ export const createWebSessionClient = (fetcher: typeof fetch = fetch, baseUrl = 
     logout: async () => {
       const result = await contract.POST('/iam/session/logout')
       complete(result.error)
-      csrf = ''
     },
     profile: async () => {
       const result = await contract.GET('/iam/account/profile')
@@ -80,7 +77,6 @@ export const createWebSessionClient = (fetcher: typeof fetch = fetch, baseUrl = 
     changePassword: async (currentPassword: string, newPassword: string) => {
       const result = await contract.PUT('/iam/account/password', { body: { currentPassword, newPassword } })
       complete(result.error)
-      csrf = ''
     }
   }
 }

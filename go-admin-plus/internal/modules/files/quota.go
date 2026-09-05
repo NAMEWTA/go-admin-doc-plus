@@ -83,11 +83,8 @@ func (policy CapacityPolicy) accepts(capacity Capacity, reservationBytes int64) 
 	return remaining >= policy.MinimumAvailableBytes && float64(remaining)/float64(capacity.TotalBytes) >= policy.MinimumAvailableFraction
 }
 
-// configuredCapacityProbe is a finite compatibility default until T-09 wires the host disk probe.
-// It preserves the same policy path as a real probe and cannot disable account or global quotas.
-type configuredCapacityProbe struct{ policy CapacityPolicy }
+type unavailableCapacityProbe struct{}
 
-func (probe configuredCapacityProbe) Capacity(context.Context) (Capacity, error) {
-	total := probe.policy.MaximumTotalBytes + probe.policy.MinimumAvailableBytes
-	return Capacity{AvailableBytes: total, TotalBytes: total}, nil
+func (unavailableCapacityProbe) Capacity(context.Context) (Capacity, error) {
+	return Capacity{}, ErrDiskCapacity
 }

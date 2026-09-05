@@ -16,6 +16,11 @@ test('policy rejects a privileged or single-architecture Compose regression', ()
   assert.throws(() => verifyComposeText(invalid))
 })
 
+test('policy rejects mutable API and Web image tags', () => {
+  const invalid = `profiles: [postgres]\nprofiles: [sqlite]\nx-api: &api\n  image: go-admin-plus-server:latest\nx-web: &web\n  image: go-admin-plus-web:latest\nservices:\n  postgres:\n    image: postgres:17\napi-postgres:\napi-sqlite:\nread_only: true\ncap_drop: [ALL]\ninternal: true\n`
+  assert.throws(() => verifyComposeText(invalid))
+})
+
 test('identity requires both architectures and forbids remote publication', () => {
   assert.throws(() => verifyIdentity({
     schemaVersion: 1,

@@ -48,7 +48,6 @@ func TestProductModulesAreCompleteAndOwned(t *testing.T) {
 			"iam-administration",
 			"iam-bootstrap-recovery",
 			"iam-session-protection",
-			"iam-data-scope",
 			"iam-account-lifecycle",
 		},
 		product.ModuleFiles: {"files", "files-capacity", "files-account-lifecycle"},
@@ -81,8 +80,8 @@ func TestProductMigrationMatrixComposesBothDialects(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(entries) != 14 {
-				t.Fatalf("composed migration files = %d, want 14", len(entries))
+			if len(entries) != 13 {
+				t.Fatalf("composed migration files = %d, want 13", len(entries))
 			}
 		})
 	}
@@ -125,8 +124,8 @@ func TestProductSQLiteAppliesMigrationsAndCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Applied != 14 {
-		t.Fatalf("applied migrations = %d, want 14", result.Applied)
+	if result.Applied != 13 {
+		t.Fatalf("applied migrations = %d, want 13", result.Applied)
 	}
 
 	capabilities, err := authorization.NewCapabilityRegistry(db)

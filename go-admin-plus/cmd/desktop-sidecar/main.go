@@ -19,7 +19,7 @@ import (
 
 const (
 	shutdownTimeout = 5 * time.Second
-	version         = "0.0.1-dev"
+	version         = "0.0.2-dev"
 )
 
 func main() {

@@ -8,7 +8,7 @@ The release workflow publishes only the supported product targets:
 | macOS | Apple Silicon (`arm64`) Tauri 2 app and DMG, unsigned private-use build |
 | Windows | x64 Tauri 2 NSIS installer, unsigned private-use build |
 
-Push an exact `major.minor.patch` tag, for example `0.0.1`, to start
+Push an exact `major.minor.patch` tag, for example `0.0.2`, to start
 [`.github/workflows/release.yml`](../.github/workflows/release.yml). The workflow validates the tag,
 builds the three targets in parallel, runs platform smoke tests, and creates a published GitHub Release
 with the generated notes and checksums. It uses the repository `GITHUB_TOKEN`; no signing certificates,
@@ -17,8 +17,9 @@ notarization keys, or other release secrets are required.
 ## Linux service deployment
 
 Download the matching Linux service archive and read its included `SERVER-INSTALL.md`. The archive
-contains the `go-admin-plus-server` binary, profile examples, a systemd unit, and the current Compose
-configuration. Choose either `server-sqlite` for a single host or `server-postgres` for PostgreSQL. Keep
+contains the `go-admin-plus-server` binary, profile examples, and systemd units; it does not contain
+Docker Compose files or images. Use the repository's `deploy/compose/` definitions for container
+deployment. Choose either `server-sqlite` for a single host or `server-postgres` for PostgreSQL. Keep
 the database DSN and bootstrap password in permission-restricted files or environment variables, never
 in Git. Run `migrate`, `bootstrap`, `doctor`, then enable the service.
 
@@ -38,7 +39,7 @@ The three-profile clean-room covers `server-sqlite`, `server-postgres`, and `des
 personal releases, signing and notarization are explicitly `not-required`.
 
 ```bash
-task release VERSION=0.0.1
+task release VERSION=0.0.2
 task release:verify
 ```
 

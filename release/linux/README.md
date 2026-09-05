@@ -10,5 +10,7 @@ use the same data root and DSN configuration. Keep credentials in permission-res
 or secret files, never in Git.
 
 The release workflow builds both architectures with `CGO_ENABLED=0`, verifies the checksums, and
-uploads the archives to the GitHub Release. The existing Compose definitions in `deploy/compose/`
-remain available for operators who prefer container deployment.
+uploads the archives to the GitHub Release. The service archive does not contain Docker Compose
+files or images. The repository's Compose definitions in `deploy/compose/` remain available for
+container deployment; production Compose runs require immutable `image@sha256:<64-hex-digest>`
+references for API, Web, and PostgreSQL images.

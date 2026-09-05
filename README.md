@@ -1,6 +1,6 @@
-# Go Admin Plus 0.0.1
+# Go Admin Plus 0.0.2
 
-Go Admin Plus 0.0.1 是一个单仓库管理系统产品，包含 Go Server、Vue Web App 和 Tauri 2 Desktop App。
+Go Admin Plus 0.0.2 是一个单仓库管理系统产品，包含 Go Server、Vue Web App 和 Tauri 2 Desktop App。
 
 ## 仓库结构
 

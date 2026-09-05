@@ -2,7 +2,7 @@
 
 Go Admin Plus 的 Server 支持 SQLite 与 PostgreSQL，Desktop 只支持 SQLite。
 
-迁移 SQL 由各业务模块拥有，`internal/app/product` 将 provider 组合成一个全局唯一、只向前的版本序列。`cmd/migrate` 与运行时 schema 检查复用同一迁移 registry。Server 的 `serve` 与 `worker` 遇到 PostgreSQL schema 不匹配时只会不 ready 并退出，不执行迁移；只有离线 `migrate` 命令拥有 PostgreSQL 迁移权。
+迁移 SQL 由各业务模块拥有，`internal/app/product` 将 provider 组合成一个全局唯一、只向前的版本序列。统一的 `cmd/go-admin-plus migrate` 子命令与运行时 schema 检查复用同一迁移 registry。Server 的 `serve` 与 `worker` 遇到 PostgreSQL schema 不匹配时只会不 ready 并退出，不执行迁移；只有离线 `migrate` 子命令拥有 PostgreSQL 迁移权。
 
 - SQLite 使用单进程文件锁、单连接和 WAL；适合 Desktop 与单实例 Server。
 - PostgreSQL 使用连接池和迁移会话锁；适合多实例 Server。

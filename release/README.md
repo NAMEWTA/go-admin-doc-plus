@@ -13,7 +13,7 @@ and publishes the Linux, macOS ARM64, and Windows x64 artifacts through `.github
 This project intentionally does not sign or notarize its private self-use releases.
 
 ```bash
-task release VERSION=0.0.1
+task release VERSION=0.0.2
 task release:verify
 ```
 

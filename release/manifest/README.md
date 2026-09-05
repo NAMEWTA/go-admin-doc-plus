@@ -5,7 +5,7 @@ It binds the product version, source SHA, OpenAPI digest, migration version, sup
 targets, and the explicit unsigned self-use policy.
 
 ```bash
-node release/manifest/product-release.mjs preflight --version 0.0.1 --root-ref "$(git rev-parse HEAD)"
+node release/manifest/product-release.mjs preflight --version 0.0.2 --root-ref "$(git rev-parse HEAD)"
 node --test release/manifest/product-release.test.mjs
 ```
 

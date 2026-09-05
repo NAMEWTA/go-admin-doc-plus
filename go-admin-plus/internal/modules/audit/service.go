@@ -394,16 +394,11 @@ func present(row storedFact) (Fact, error) {
 	var envelope struct {
 		ActorType ActorType `json:"actorType,omitempty"`
 		Source    Source    `json:"source"`
-		Action    string    `json:"action,omitempty"` // legacy offline bootstrap/recovery records
-		Reason    string    `json:"reason,omitempty"` // legacy offline recovery records
 	}
 	decoder := json.NewDecoder(bytes.NewReader(row.Payload))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&envelope); err != nil {
 		return Fact{}, ErrInternal
-	}
-	if envelope.Source == "" && envelope.Action != "" && (strings.HasPrefix(row.BusinessKey, "resource:iam_bootstrap:") || strings.HasPrefix(row.BusinessKey, "resource:iam_recovery:")) {
-		envelope.Source = SourceServer
 	}
 	if envelope.Source != SourceWeb && envelope.Source != SourceDesktop && envelope.Source != SourceServer {
 		return Fact{}, ErrInternal

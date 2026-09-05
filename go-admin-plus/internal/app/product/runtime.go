@@ -171,7 +171,7 @@ func buildRuntime(ctx context.Context, db *database.Database, options Options, m
 			_ = storage.Close()
 		}
 	}()
-	filesService, err := files.NewService(db, storage, authorizationAdapters.Files())
+	filesService, err := files.NewService(db, storage, authorizationAdapters.Files(), files.WithCapacityProbe(files.NewDiskCapacityProbe(options.FilesRoot)))
 	if err != nil {
 		return Runtime{}, errors.New("product files service failed")
 	}

@@ -11,51 +11,33 @@ import {
   type FilesFailure,
   type UploadCandidate,
 } from '@go-admin-plus/domain-files'
+import { createSessionAwareFetch } from '@go-admin-plus/ui'
 
 interface Problem { category?: string; code?: string; traceId?: string }
-const csrfPattern = /^[A-Za-z0-9_-]{43}$/
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const tracePattern = /^[A-Za-z0-9_-]{8,128}$/
 
 export const createWebFilesClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): FilesClient => {
-  let csrf = ''
-  let classified: FilesFailure | null = null
-  let classifiedTraceId: string | undefined
   let tail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
     const result = tail.then(operation, operation)
     tail = result.then(() => undefined, () => undefined)
     return result
   }
-  const guardedFetch = async (input: Request): Promise<Response> => {
-    const headers = new Headers(input.headers)
-    if (csrf && input.method !== 'GET' && input.method !== 'HEAD') headers.set('X-CSRF-Token', csrf)
-    const response = await fetcher(new Request(input, { credentials: 'include', headers }))
-    const next = response.headers.get('X-CSRF-Token')
-    if (next !== null && !csrfPattern.test(next)) {
-      csrf = ''
-      classified = 'relogin'
-      throw new FilesRequestError('relogin')
-    }
-    const body = response.status >= 400 ? await response.clone().json().catch(() => null) as Problem | null : null
-    classified = classify(response.status, body)
-    classifiedTraceId = safeTraceId(body?.traceId)
-    if (next) csrf = next
-    else if (classified === 'relogin') csrf = ''
-    return response
-  }
-  const contract = createContractClient({ baseUrl, fetch: guardedFetch })
+  const transport = createSessionAwareFetch(fetcher)
+  const contract = createContractClient({ baseUrl, fetch: transport })
   const failure = (error: unknown): never => {
-    const category = classified ?? problemCategory(error)
-    const traceId = classifiedTraceId ?? (error instanceof FilesRequestError ? error.traceId : undefined)
-    classified = null
-    classifiedTraceId = undefined
+    const category = problemCategory(error)
+    const traceId = error instanceof FilesRequestError ? error.traceId : safeTraceId((error as Problem)?.traceId)
     throw new FilesRequestError(category, traceId)
   }
   const responseData = <T>(data: T | undefined, error: unknown): T => error === undefined && data !== undefined ? data : failure(error)
   const direct = async (path: string, init: RequestInit): Promise<Response> => {
-    const response = await guardedFetch(new Request(`${baseUrl}${path}`, init))
-    if (!response.ok) failure(new Error('files request failed'))
+    const response = await transport(new Request(`${baseUrl}${path}`, init))
+    if (!response.ok) {
+      const problem = await response.clone().json().catch(() => null)
+      failure(problem ?? new Error('files request failed'))
+    }
     return response
   }
   return {
@@ -114,19 +96,20 @@ const parsePage = (value: unknown): FilePage => {
 }
 
 const validDate = (value: string) => Number.isFinite(Date.parse(value)) && value.includes('T')
-const classify = (status: number, value: Problem | null): FilesFailure | null => {
-  if (status === 401 || value?.code === 'CSRF_REJECTED') return 'relogin'
-  if (status === 403) return 'forbidden'
-  if (value?.code === 'FILES_QUOTA_EXCEEDED') return 'quota'
-  if (value?.code === 'FILES_CAPACITY_UNAVAILABLE' || status === 507) return 'capacity'
-  if (value?.code === 'CONTENT_TOO_LARGE' || value?.code === 'MEDIA_TYPE_REJECTED' || value?.code === 'FILE_SIZE_MISMATCH' || status === 413 || status === 415) return 'content'
-  if (status === 400 || status === 422) return 'validation'
-  if (status === 404) return 'not-found'
-  if (status === 409) return 'conflict'
-  if (status >= 500) return 'unavailable'
-  return null
+const problemCategory = (value: unknown): FilesFailure => {
+  if (value instanceof FilesRequestError) return value.category
+  if (!value || typeof value !== 'object') return 'unavailable'
+  const problem = value as Problem
+  if (problem.code === 'CSRF_REJECTED' || problem.category === 'authentication') return 'relogin'
+  if (problem.category === 'authorization') return 'forbidden'
+  if (problem.code === 'FILES_QUOTA_EXCEEDED') return 'quota'
+  if (problem.code === 'FILES_CAPACITY_UNAVAILABLE') return 'capacity'
+  if (problem.code === 'CONTENT_TOO_LARGE' || problem.code === 'MEDIA_TYPE_REJECTED' || problem.code === 'FILE_SIZE_MISMATCH') return 'content'
+  if (problem.category === 'validation') return 'validation'
+  if (problem.category === 'not_found') return 'not-found'
+  if (problem.category === 'conflict') return 'conflict'
+  return 'unavailable'
 }
-const problemCategory = (value: unknown): FilesFailure => value instanceof FilesRequestError ? value.category : 'unavailable'
 const safeTraceId = (value: unknown): string | undefined => typeof value === 'string' && tracePattern.test(value) ? value : undefined
 
 export type { DeleteFileTarget, FileQuery, UploadCandidate }

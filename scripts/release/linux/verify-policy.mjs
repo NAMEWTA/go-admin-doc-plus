@@ -6,6 +6,12 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const shaReference = /@sha256:[0-9a-f]{64}/
+const immutableImageVariable = /^\$\{GO_ADMIN_(?:SERVER|WEB)_IMAGE:\?[^}]*digest reference\}$/
+
+function verifyImageReference(reference, label) {
+  if (shaReference.test(reference)) return
+  assert.match(reference, immutableImageVariable, `${label} must require a complete image@sha256 digest reference`)
+}
 
 export function verifyComposeText(compose) {
   assert.match(compose, /profiles:\s*\[postgres\]/)
@@ -15,7 +21,16 @@ export function verifyComposeText(compose) {
   assert.match(compose, /read_only:\s*true/)
   assert.match(compose, /cap_drop:\s*\[ALL\]/)
   assert.match(compose, /internal:\s*true/)
-  assert.match(compose, shaReference)
+  const apiImage = compose.match(/x-api:\s*&api[\s\S]*?^\s*image:\s*(\$\{[^}]+\}|[^\s]+)/m)?.[1]
+  const webImage = compose.match(/x-web:\s*&web[\s\S]*?^\s*image:\s*(\$\{[^}]+\}|[^\s]+)/m)?.[1]
+  const postgresImage = compose.match(/\n\s*postgres:\s*[\s\S]*?^\s*image:\s*(\$\{[^}]+\}|[^\s]+)/m)?.[1]
+  assert.ok(apiImage, 'API image reference is required')
+  assert.ok(webImage, 'Web image reference is required')
+  assert.ok(postgresImage, 'PostgreSQL image reference is required')
+  verifyImageReference(apiImage, 'API image')
+  verifyImageReference(webImage, 'Web image')
+  assert.match(postgresImage, shaReference, 'PostgreSQL image must include a complete digest')
+  assert.doesNotMatch(compose, /GO_ADMIN_VERSION/)
   assert.doesNotMatch(compose, /privileged:\s*true/)
   assert.doesNotMatch(compose, /network_mode:\s*host/)
   assert.doesNotMatch(compose, /platform:\s*linux\/amd64/)

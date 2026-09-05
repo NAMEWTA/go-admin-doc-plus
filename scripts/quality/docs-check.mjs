@@ -8,8 +8,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
 export const documentationRoots = Object.freeze([
   'README.md', '.agents/skills', 'docs', 'deploy/README.md', 'database/README.md',
-  'release/README.md', 'release/linux/README.md', 'release/macos/README.md',
-  'release/windows/README.md', 'go-admin-plus/README.md', 'go-admin-plus/config/README.md'
+  'release', 'go-admin-plus/README.md', 'go-admin-plus/config/README.md', 'go-admin-plus-ui'
 ])
 
 const requiredContracts = Object.freeze({
@@ -74,6 +73,7 @@ const forbiddenContracts = Object.freeze([
 const walk = path => {
   if (!existsSync(path)) return []
   return readdirSync(path, { withFileTypes: true }).flatMap(entry => {
+    if (['node_modules', 'dist', 'target'].includes(entry.name)) return []
     const child = join(path, entry.name)
     return entry.isDirectory() ? walk(child) : entry.isFile() ? [child] : []
   })
@@ -111,7 +111,11 @@ export const checkDocumentation = repository => {
   const files = documentationRoots.flatMap(path => {
     const absolute = join(repository, path)
     if (!existsSync(absolute)) return []
-    return extname(absolute) === '.md' ? [absolute] : walk(absolute).filter(file => extname(file) === '.md')
+    if (extname(absolute) === '.md') return [absolute]
+    const markdown = walk(absolute).filter(file => extname(file) === '.md')
+    return path === 'go-admin-plus-ui'
+      ? markdown.filter(file => file.toLowerCase().endsWith(`${sep}readme.md`))
+      : markdown
   })
   const uniqueFiles = [...new Set(files)]
   const failures = checkMarkdownLinks(repository, uniqueFiles)

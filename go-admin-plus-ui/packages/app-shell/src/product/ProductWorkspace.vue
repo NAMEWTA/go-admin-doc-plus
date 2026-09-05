@@ -25,6 +25,7 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import type { AccountProfile, SessionClient, SessionState } from '@go-admin-plus/domain-iam/session'
 import { createSessionController } from '@go-admin-plus/domain-iam/session'
 import type { PlatformPort, ShellRuntimePort } from '@go-admin-plus/platform'
+import { createSessionAwareFetch } from '@go-admin-plus/ui'
 import { createThemeController } from '@go-admin-plus/ui'
 import type { ThemePreference } from '@go-admin-plus/ui'
 import { createAuditController, createWebAuditClient } from '@go-admin-plus/web-domain-audit'
@@ -47,7 +48,9 @@ const props = defineProps<{
 
 type View = 'loading' | 'login' | 'workspace' | 'account' | 'forbidden' | 'not-found' | 'unavailable'
 
-const fetcher = props.fetcher ?? globalThis.fetch
+const rawFetcher = props.fetcher ?? globalThis.fetch
+// One session boundary is shared by every web-domain client in this workspace.
+const fetcher = props.host === 'web' ? createSessionAwareFetch(rawFetcher) : rawFetcher
 const platform = props.platform
 const currentRoute = useRoute()
 const router = useRouter()
@@ -63,6 +66,15 @@ const accountMenuOpen = ref(false)
 const visitedPaths = ref<string[]>([])
 const theme = createThemeController()
 const themeSnapshot = ref(theme.snapshot())
+let sessionGeneration = 0
+let runtimeAbort: AbortController | undefined
+const beginGeneration = () => {
+  runtimeAbort?.abort()
+  runtimeAbort = new AbortController()
+  sessionGeneration += 1
+  return { generation: sessionGeneration, signal: runtimeAbort.signal }
+}
+const currentGeneration = (generation: number, signal: AbortSignal) => generation === sessionGeneration && !signal.aborted
 
 const capability = {
   can: (permission: string) => permissions.value.has(permission),
@@ -157,30 +169,39 @@ const resolveView = (authorizedRoutes: readonly ProductRoute[] = routes.value) =
   }
 }
 const loadRuntime = async () => {
+  const request = beginGeneration()
   view.value = 'loading'
   try {
-    const identity = await props.runtime.loadIdentity()
+    const identity = await props.runtime.loadIdentity({ signal: request.signal })
+    if (!currentGeneration(request.generation, request.signal)) return
     if (identity.kind === 'unauthenticated') {
       permissions.value = new Set()
+      dataScope.value = null
       navigationPaths.value = new Set()
       view.value = 'login'
       return
     }
     permissions.value = new Set(identity.permissions)
     dataScope.value = identity.dataScope
-    const navigation = await props.runtime.loadNavigation()
+    const navigation = await props.runtime.loadNavigation({ signal: request.signal })
+    if (!currentGeneration(request.generation, request.signal)) return
     navigationPaths.value = new Set(navigation.map(entry => entry.path))
     const authorizedRoutes = resolveAuthorizedProductRoutes(props.host, identity, navigation)
     const reachable = new Set<string>(authorizedRoutes.map(route => route.path))
     visitedPaths.value = visitedPaths.value.filter(visited => reachable.has(visited))
     resolveView(authorizedRoutes)
-  } catch {
+  } catch (error) {
+    if (!currentGeneration(request.generation, request.signal) || (error instanceof DOMException && error.name === 'AbortError')) return
     view.value = 'unavailable'
   }
 }
 const authenticated = async () => { await loadRuntime() }
 const requireSession = () => {
+  sessionGeneration += 1
+  runtimeAbort?.abort()
+  runtimeAbort = undefined
   permissions.value = new Set()
+  dataScope.value = null
   navigationPaths.value = new Set()
   replacePath('/login')
   view.value = 'login'
@@ -202,6 +223,9 @@ const closeTag = (target: string) => {
   if (fallback) navigate(fallback)
 }
 const restore = async () => {
+  sessionGeneration += 1
+  runtimeAbort?.abort()
+  runtimeAbort = undefined
   view.value = 'loading'
   await session.restore()
   if (session.state().status === 'authenticated') await loadRuntime()
@@ -216,7 +240,11 @@ onMounted(() => {
   void restore()
 })
 onUnmounted(() => {
+  sessionGeneration += 1
+  runtimeAbort?.abort()
+  runtimeAbort = undefined
   unsubscribe()
+  if (props.host === 'web') (fetcher as { close?: () => void }).close?.()
   theme.destroy()
 })
 watch(() => currentRoute.fullPath, () => {

@@ -324,7 +324,7 @@ export const checkArchitecture = root => {
   }
   const commandRoot = join(root, 'go-admin-plus/cmd')
   if (existsSync(commandRoot)) {
-    const allowed = new Set(['config-check', 'desktop-sidecar', 'go-admin-plus', 'migrate'])
+    const allowed = new Set(['desktop-sidecar', 'go-admin-plus'])
     for (const entry of readdirSync(commandRoot, { withFileTypes: true })) {
       if (entry.isDirectory() && !allowed.has(entry.name)) failures.push(`backend command is outside the canonical command plane: cmd/${entry.name}`)
     }

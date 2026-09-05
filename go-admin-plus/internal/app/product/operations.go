@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/application/operations/doctor"
+	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/audit"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/bootstrap"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/modules/iam/recovery"
 	"github.com/NAMEWTA/go-admin-plus/go-admin-plus/internal/platform/config"
@@ -119,17 +120,18 @@ func openOperationalDatabase(ctx context.Context, snapshot config.Snapshot) (*da
 type operationalAudit struct{}
 
 func (operationalAudit) RecordBootstrap(ctx context.Context, tx database.Tx, fact bootstrap.Fact) error {
-	payload, _ := json.Marshal(map[string]string{"action": "bootstrap", "source": "server"})
+	payload, _ := json.Marshal(map[string]string{"source": string(audit.SourceServer)})
 	_, err := tx.ExecContext(ctx, `INSERT INTO audit_facts(topic, business_key, payload, occurred_at)
 		VALUES (?, ?, ?, ?)`, "operation.created", "resource:iam_bootstrap:"+fact.AccountID, payload, fact.OccurredAt)
 	return err
 }
 
 func (operationalAudit) RecordRecovery(ctx context.Context, tx database.Tx, fact recovery.Fact) error {
-	payload, _ := json.Marshal(map[string]string{"action": "recover-admin", "reason": string(fact.Reason), "source": "server"})
+	payload, _ := json.Marshal(map[string]string{"source": string(audit.SourceServer)})
 	key := fmt.Sprintf("resource:iam_recovery:%s", fact.AccountID)
-	_, err := tx.ExecContext(ctx, `INSERT INTO audit_facts(topic, business_key, payload, occurred_at)
-		VALUES (?, ?, ?, ?)`, "operation.updated", key, payload, fact.OccurredAt)
+	actorRef := "account:" + fact.AccountID
+	_, err := tx.ExecContext(ctx, `INSERT INTO audit_facts(topic, business_key, actor_ref, payload, occurred_at)
+		VALUES (?, ?, ?, ?, ?)`, "operation.updated", key, actorRef, payload, fact.OccurredAt)
 	return err
 }
 

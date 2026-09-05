@@ -37,6 +37,26 @@ func capacityPolicy() CapacityPolicy {
 	}
 }
 
+func TestDiskCapacityProbeUsesStorageRoot(t *testing.T) {
+	root := canonicalTestRoot(t, "disk-capacity")
+	storage, err := NewLocalStorage(root)
+	if err != nil {
+		t.Fatalf("create storage root: %v", err)
+	}
+	defer storage.Close()
+	probe := NewDiskCapacityProbe(root)
+	capacity, err := probe.Capacity(context.Background())
+	if err != nil {
+		t.Fatalf("disk capacity = %v", err)
+	}
+	if capacity.TotalBytes <= 0 || capacity.AvailableBytes <= 0 || capacity.AvailableBytes > capacity.TotalBytes {
+		t.Fatalf("invalid disk capacity: %#v", capacity)
+	}
+	if _, err := NewDiskCapacityProbe(t.TempDir() + "-missing").Capacity(context.Background()); !errors.Is(err, ErrDiskCapacity) {
+		t.Fatalf("missing storage root error = %v", err)
+	}
+}
+
 func newCapacityService(t *testing.T, policy CapacityPolicy, probe CapacityProbe) (*Service, *LocalStorage) {
 	t.Helper()
 	storage, err := NewLocalStorage(canonicalTestRoot(t, "capacity"), WithMaximumContentBytes(policy.MaximumObjectBytes))

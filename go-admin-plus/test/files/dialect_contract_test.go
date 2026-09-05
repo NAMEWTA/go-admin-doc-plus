@@ -159,7 +159,7 @@ func runFilesContract(t *testing.T, db *database.Database, root string) {
 	}
 	if db.Dialect() == database.DialectPostgres {
 		failureStorage := &publishFailureStorage{Storage: storage}
-		failedService, err := files.NewService(db, failureStorage, authorizationAdapters.Files())
+		failedService, err := files.NewService(db, failureStorage, authorizationAdapters.Files(), files.WithCapacityProbe(files.NewDiskCapacityProbe(root)))
 		if err != nil {
 			t.Fatal(err)
 		}

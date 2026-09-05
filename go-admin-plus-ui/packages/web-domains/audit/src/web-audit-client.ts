@@ -5,11 +5,11 @@ import {
   type AuditFailure,
   type AuditListRequest,
 } from '@go-admin-plus/domain-audit'
+import { createSessionAwareFetch } from '@go-admin-plus/ui'
 
 interface Problem { category?: string; code?: string; traceId?: string }
 
 export const createWebAuditClient = (fetcher: typeof fetch = fetch, baseUrl = '/api'): AuditClient => {
-  let csrf = ''
   let requestTail: Promise<void> = Promise.resolve()
   const serialized = <T>(operation: () => Promise<T>): Promise<T> => {
     const result = requestTail.then(operation, operation)
@@ -18,14 +18,7 @@ export const createWebAuditClient = (fetcher: typeof fetch = fetch, baseUrl = '/
   }
   const contract = createContractClient({
     baseUrl,
-    fetch: async (input) => {
-      const headers = new Headers(input.headers)
-      if (csrf && input.method !== 'GET') headers.set('X-CSRF-Token', csrf)
-      const response = await fetcher(new Request(input, { credentials: 'include', headers }))
-      const replacement = response.headers.get('X-CSRF-Token')
-      if (replacement) csrf = replacement
-      return response
-    },
+    fetch: createSessionAwareFetch(fetcher),
   })
 
   const unwrap = <T>(data: T | undefined, error: unknown): T => {
@@ -36,7 +29,6 @@ export const createWebAuditClient = (fetcher: typeof fetch = fetch, baseUrl = '/
   const failure = (value: unknown): AuditRequestError => {
     const problem = isProblem(value) ? value : {}
     const category = publicFailure(problem)
-    if (category === 'relogin') csrf = ''
     return new AuditRequestError(category, safeTraceId(problem.traceId))
   }
 
