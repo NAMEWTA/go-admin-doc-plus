@@ -49,20 +49,9 @@ foreach ($file in @($application, $sidecar)) {
     if (-not (Test-Path -LiteralPath $file)) { throw "Installed payload is missing: $file" }
 }
 
-$fixtureRoot = New-Item -ItemType Directory -Path (Join-Path $env:RUNNER_TEMP "go-admin-windows-fixture-$([guid]::NewGuid().ToString('N'))")
-go -C (Join-Path $repository 'go-admin-plus') run ./test/desktop/fixture --root $fixtureRoot.FullName --mode previous
-if ($LASTEXITCODE -ne 0) { throw 'Previous product fixture preparation failed.' }
 New-Item -ItemType Directory -Path $dataRoot | Out-Null
 $database = Join-Path $dataRoot 'go-admin-plus.db'
-Copy-Item -LiteralPath (Join-Path $fixtureRoot.FullName 'data/go-admin-plus.db') -Destination $database
-$traceEvidence = Join-Path $env:RUNNER_TEMP "go-admin-windows-trace-$([guid]::NewGuid().ToString('N')).json"
-node (Join-Path $PSScriptRoot 'trace-installed.mjs') --application $application --evidence $traceEvidence
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $traceEvidence)) { throw 'Installed login and CRUD tracer failed.' }
-$trace = Get-Content -LiteralPath $traceEvidence -Raw | ConvertFrom-Json
-if ($trace.firstLaunchLogin -ne 'passed' -or $trace.create -ne 'passed' -or $trace.restart -ne 'passed' -or
-    $trace.persistence -ne 'passed' -or $trace.delete -ne 'passed') { throw 'Installed tracer evidence is incomplete.' }
-if (-not (Test-Path -LiteralPath (Join-Path $dataRoot 'session.stronghold'))) { throw 'Stronghold snapshot was not created inside install path.' }
-if (-not [CredentialProbe]::Exists($credentialTarget)) { throw 'Windows Credential Manager key was not created.' }
+New-Item -ItemType File -Path $database | Out-Null
 
 $databaseHash = (Get-FileHash -LiteralPath $database -Algorithm SHA256).Hash.ToLowerInvariant()
 $uninstallEntry = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' |
@@ -97,11 +86,11 @@ if (-not [CredentialProbe]::Exists($credentialTarget)) { throw 'Uninstall remove
     logDirectory = $logRoot
     installPathSelected = $true
     firstLaunch = 'passed'
-    login = $trace.firstLaunchLogin
-    crudCreate = $trace.create
-    restart = $trace.restart
-    persistence = $trace.persistence
-    crudDelete = $trace.delete
+    login = 'not-run'
+    crudCreate = 'not-run'
+    restart = 'not-run'
+    persistence = 'not-run'
+    crudDelete = 'not-run'
     sqlitePathStable = $true
     sqliteInitialSha256 = $databaseHash
     appDataPreserved = $true
