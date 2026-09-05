@@ -14,7 +14,9 @@ cleanup() {
 trap cleanup EXIT
 hdiutil attach -noverify -readonly -nobrowse -mountpoint "$mountpoint" "$dmg"
 mounted=true
+echo "GO_ADMIN_MACOS_DMG_MOUNT_PASS"
 app=$(find "$mountpoint" -maxdepth 1 -type d -name '*.app' -print -quit)
+echo "GO_ADMIN_MACOS_DMG_APP=$app"
 [[ -n "$app" ]]
-"$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/verify-app.sh" "$app" private-release
+bash -x "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/verify-app.sh" "$app" private-release
 echo "GO_ADMIN_MACOS_DMG_VERIFY_PASS"
