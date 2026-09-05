@@ -48,7 +48,12 @@ const waitForDriver = () => poll('tauri-driver readiness', async () => {
 }, 30_000)
 const createSession = async () => {
   const value = await request('/session', 'POST', {
-    capabilities: { alwaysMatch: { browserName: 'wry', 'tauri:options': { application } } }
+    capabilities: {
+      alwaysMatch: {
+        browserName: 'wry',
+        'tauri:options': { application, args: ['--no-sandbox', '--disable-gpu'] }
+      }
+    }
   })
   if (typeof value.sessionId !== 'string' || value.sessionId.length === 0) throw new Error('WebDriver session identifier is invalid')
   return value.sessionId
