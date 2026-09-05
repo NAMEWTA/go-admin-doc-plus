@@ -26,7 +26,11 @@ const request = async (path, method = 'GET', body) => {
     body: body === undefined ? undefined : JSON.stringify(body)
   })
   const payload = await response.json().catch(() => ({}))
-  if (!response.ok || payload.value?.error) throw new Error('WebDriver command failed')
+  if (!response.ok || payload.value?.error) {
+    const detail = typeof payload.value?.message === 'string' ? payload.value.message :
+      typeof payload.message === 'string' ? payload.message : `HTTP ${response.status}`
+    throw new Error(`WebDriver command failed: ${detail.slice(0, 240)}`)
+  }
   return payload.value
 }
 const poll = async (description, operation, timeout = 90_000) => {
