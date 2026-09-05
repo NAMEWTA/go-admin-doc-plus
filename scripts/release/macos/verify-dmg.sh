@@ -12,7 +12,7 @@ cleanup() {
   rmdir "$mountpoint" 2>/dev/null || true
 }
 trap cleanup EXIT
-hdiutil attach -quiet -readonly -nobrowse -mountpoint "$mountpoint" "$dmg"
+hdiutil attach -noverify -readonly -nobrowse -mountpoint "$mountpoint" "$dmg"
 mounted=true
 app=$(find "$mountpoint" -maxdepth 1 -type d -name '*.app' -print -quit)
 [[ -n "$app" ]]
