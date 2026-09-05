@@ -153,6 +153,7 @@ jobs:
           rustup target add x86_64-pc-windows-msvc
           pnpm --dir go-admin-plus-ui install --frozen-lockfile
           go -C go-admin-plus mod download
+          cargo install tauri-driver --version 2.0.6 --locked
           $archive = Join-Path $env:RUNNER_TEMP 'syft.zip'
           Invoke-WebRequest -Uri 'https://github.com/anchore/syft/releases/download/v1.51.0/syft_1.51.0_windows_amd64.zip' -OutFile $archive
           if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'fc5ffaeffb993576ece9c791da5a688fb2c8969a1479bbfe58583672c64da336') { throw 'Syft checksum mismatch.' }
