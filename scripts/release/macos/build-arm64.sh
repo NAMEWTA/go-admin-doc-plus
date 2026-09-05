@@ -30,8 +30,11 @@ pnpm --dir "$repository/go-admin-plus-ui" --filter @go-admin-plus/admin-desktop 
   --config "{\"version\":\"$version\"}"
 
 built_app="$tauri_root/target/$target/release/bundle/macos/Go Admin Plus.app"
+built_dmg="$tauri_root/target/$target/release/bundle/dmg/Go Admin Plus_${version}_aarch64.dmg"
 test -d "$built_app"
 mkdir -p -- "$(dirname -- "$output_app")"
 ditto "$built_app" "$output_app"
 "$script_dir/prepare-app.sh" "$output_app" "$version" "$build_number"
+rm -f -- "$built_dmg"
+"$script_dir/package-dmg.sh" "$output_app" "$built_dmg"
 echo "GO_ADMIN_MACOS_ARM64_BUILD_PASS"
