@@ -43,6 +43,12 @@ const capture = (command, args, options = {}) => new Promise((resolveCapture, re
   })
 })
 
+const canonicalizeModuleCache = async moduleCache => {
+  if (!path.isAbsolute(moduleCache)) throw new Error('Go module cache path is not absolute')
+  await mkdir(moduleCache, { recursive: true, mode: 0o700 })
+  return realpath(moduleCache)
+}
+
 const resolveToolchain = async () => {
   const names = process.platform === 'win32' ? ['go.exe'] : ['go']
   if (process.env.GOROOT && path.isAbsolute(process.env.GOROOT)) {
@@ -54,7 +60,10 @@ const resolveToolchain = async () => {
         : undefined
     if (moduleCache) {
       await access(goExecutable, constants.X_OK)
-      return { goExecutable: await realpath(goExecutable), moduleCache: await realpath(moduleCache) }
+      return {
+        goExecutable: await realpath(goExecutable),
+        moduleCache: await canonicalizeModuleCache(moduleCache)
+      }
     }
   }
   const roots = []
@@ -80,7 +89,7 @@ const resolveToolchain = async () => {
         }
         return {
           goExecutable: await realpath(path.join(goRoot, 'bin', process.platform === 'win32' ? 'go.exe' : 'go')),
-          moduleCache: await realpath(moduleCache)
+          moduleCache: await canonicalizeModuleCache(moduleCache)
         }
       } catch {
         // Continue through the bounded, explicit search path.
