@@ -32,9 +32,15 @@ $config = [ordered]@{
         }
     }
 } | ConvertTo-Json -Depth 12 -Compress
-pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin-plus/admin-desktop' exec tauri build `
-    --target $identity.targetTriple --features custom-protocol --bundles nsis --config $config
-if ($LASTEXITCODE -ne 0) { throw 'Unsigned Tauri NSIS build failed.' }
+$configPath = Join-Path ([System.IO.Path]::GetTempPath()) "go-admin-plus-tauri-$PID-$Version.json"
+try {
+    $config | Set-Content -LiteralPath $configPath -Encoding utf8NoBOM
+    pnpm --dir (Join-Path $repository 'go-admin-plus-ui') --filter '@go-admin-plus/admin-desktop' exec tauri build `
+        --target $identity.targetTriple --features custom-protocol --bundles nsis --config $configPath
+    if ($LASTEXITCODE -ne 0) { throw 'Unsigned Tauri NSIS build failed.' }
+} finally {
+    Remove-Item -LiteralPath $configPath -Force -ErrorAction SilentlyContinue
+}
 
 $target = Join-Path $repository "go-admin-plus-ui/apps/admin-desktop/src-tauri/target/$($identity.targetTriple)/release"
 $application = Join-Path $target 'go-admin-plus-desktop.exe'
